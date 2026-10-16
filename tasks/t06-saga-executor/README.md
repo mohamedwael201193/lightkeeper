@@ -74,7 +74,41 @@ both compensations. Before/after token balance: **1,000,000 LKTEST → 1,000,000
 LKTEST** — every wei of dust restored. Final chain state: `locked=0`,
 `allowance=0`, `settled=false`.
 
-## 5. Honest-rollback doctrine
+## 5. Run C — mid-step crash → resume (`SUCCEEDED`, idempotency proof)
+
+`runs/t06-run-c-20261016-063734/` · dust = 1000 wei LKTEST · `plan.json` records
+the run's intent so a later process can rebuild it.
+
+The executor was hard-killed with `os._exit(137)` — no cleanup, no persist,
+SIGKILL-like — **between BROADCAST and CONFIRMING of the approve step**. A
+second invocation (`python3 scripts/saga.py resume t06-run-c-20261016-063734`)
+replayed the state log, found approve's in-flight tx, re-read its receipt from
+the chain (0x1, block 31486478), and continued — never re-broadcasting it.
+
+| # | Step | Tx | Block | Status | Note |
+|---|---|---|---|---|---|
+| 1 | approve(fixture, 1000) | [`0x96d304d5…16a14`](https://atlantic.pharosscan.xyz/tx/0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14) | 31486478 | ✅ 0x1 | broadcast pre-crash; receipt re-read at resume |
+| 2 | lock(1000) | [`0x609b2b06…8bf0b6`](https://atlantic.pharosscan.xyz/tx/0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6) | 31486635 | ✅ 0x1 | |
+| 3 | execute(minOut=1000) | [`0xd9e4fb6d…4e5cc62`](https://atlantic.pharosscan.xyz/tx/0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62) | 31486759 | ✅ 0x1 | |
+| 4 | settle() | [`0x9a93fe34…ea75`](https://atlantic.pharosscan.xyz/tx/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75) | 31486778 | ✅ 0x1 | |
+
+The idempotency claim is auditable in the log itself: exactly **one**
+BROADCAST line carries approve's tx hash across both invocations; the resume
+appends a `RESUMED` marker, not a second broadcast. If the in-flight tx had
+never landed, the resume would have re-broadcast through the normal retry
+policy — that branch is unit-tested and documented in the code, not faked.
+
+## 6. Failure forensics (Run B — pure reads, zero new spend)
+
+- **Revert reason:** `TestFixture: minOut exceeds locked balance`, confirmed
+  by replaying `execute(2001)` from the deployer against block 31482533 —
+  the exact pre-failure state.
+- **Finality:** the 0x0 receipt (block 31482534) sits 3,730 blocks deep —
+  no re-org can move it.
+- **Compensation latency:** failure @31482534 → refund @31482558 (24 blocks)
+  → revoke @31482599 (41 blocks).
+
+## 7. Honest-rollback doctrine
 
 Finalized transactions cannot be undone — there is no "rollback", only forward
 compensating transactions. What compensation recovers here: the locked dust
@@ -84,26 +118,29 @@ gas too. The spend log in `evidence.json` accounts for every wei. If a
 compensation tx itself failed, the saga would land in `COMPENSATION_FAILED` and
 the manual runbook in `REVIEWER_NOTES.md` takes over.
 
-## 6. Evidence — verify it yourself
+## 8. Evidence — verify it yourself
 
 - `cast receipt 0x91f7e02125434e3f29a56ed086f440a283ac000575fb1ff3369bbf269f819b05 --rpc-url https://atlantic.dplabs-internal.com` → `status 0 (failed)`
-- State logs: `runs/t06-run-a-*/state.log`, `runs/t06-run-b-*/state.log`
-  (every transition, tx hash, and gate decision, timestamped)
-- Machine-readable everything: `evidence.json` (all txs, blocks, gas, spend log)
+- Revert reason, replayed against the pre-failure state (pure read):
+  `cast call 0x29bf11Cd948CE845687A21819b2844d5321432Cf "execute(uint256)" 2001 --from 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --block 31482533` → `execution reverted: TestFixture: minOut exceeds locked balance`
+- State logs: `runs/t06-run-a-*/state.log`, `runs/t06-run-b-*/state.log`,
+  `runs/t06-run-c-*/state.log` (every transition, tx hash, and gate decision,
+  timestamped; the crash run ends its first invocation on a BROADCAST line)
+- Machine-readable everything: `evidence.json` (all txs, blocks, gas, forensics, spend log)
 - Contracts: [`TestToken`](https://atlantic.pharosscan.xyz/address/0x1F3fb438824140b7E1125502f80B686D95072939) ·
   [`TestFixture`](https://atlantic.pharosscan.xyz/address/0x29bf11Cd948CE845687A21819b2844d5321432Cf) —
   source in `src/`, deployed from this repo
-- All 13 published links curl-tested (HTTP 200, server-rendered HTML with the
+- All 17 published links curl-tested (HTTP 200, server-rendered HTML with the
   hash in-page) — see `LINKS.md`
 
-## 7. Reproduce
+## 9. Reproduce
 
 ```bash
 export PATH="$HOME/.foundry/bin:$PATH"
 set -a; source ~/workspace/lightkeeper/.env; set +a
 cd ~/workspace/lightkeeper/tasks/t06-saga-executor
 
-# unit tests: receipt classifier, retry table, state machine, gates (no chain writes)
+# unit tests: receipt classifier, retry table, state machine, gates, resume parser (no chain writes)
 python3 scripts/saga.py --selftest
 
 # full-success saga (dust wei)
@@ -111,22 +148,26 @@ python3 scripts/saga.py run-a 1000
 
 # forced-failure saga -> compensation (dust wei)
 python3 scripts/saga.py run-b 2000
+
+# crash-recovery saga: hard-kills itself mid-step, then resume completes it
+python3 scripts/saga.py run-c 1000 --kill-after approve   # exits 137: the crash is real
+python3 scripts/saga.py resume t06-run-c-<run-id>          # -> SUCCEEDED, one broadcast/step
 ```
 
 Every broadcast goes through `flock /tmp/lk-nonce.lock` (28 workers share one
-key). Total T06 spend ≈ **0.0022 PHRS** (budget 0.15) — see `evidence.json`.
+key). Total T06 spend ≈ **0.00238 PHRS** (budget 0.15) — see `evidence.json`.
 
-## 8. Files
+## 10. Files
 
 | Path | What |
 |---|---|
 | `task.yaml` | task frontmatter |
 | `REQUIREMENTS.md` | official T06 requirements, quoted verbatim |
 | `src/TestToken.sol` / `src/TestFixture.sol` | fixture contracts (named Test*, never Mock*) |
-| `scripts/saga.py` | the executor: state machine, retry policy, gates, compensations, selftests |
-| `runs/<run-id>/{state.log,run.json}` | per-run state log + machine summary |
-| `evidence.md` / `evidence.json` | human + machine evidence, real tx hashes, spend log |
+| `scripts/saga.py` | the executor: state machine, retry policy, gates, compensations, crash/resume, selftests |
+| `runs/<run-id>/{state.log,plan.json,run.json}` | per-run state log + resume plan + machine summary |
+| `evidence.md` / `evidence.json` | human + machine evidence, real tx hashes, forensics, spend log |
 | `REVIEWER_NOTES.md` | what to check, known limits, manual runbook |
 | `LINKS.md` | every published link, curl-verified |
 | `SUBMISSION.md` | copy-paste Arena submission pack |
-| `VIDEO-GUIDE.md` | 45–90s filming guide (real terminal + real explorer) |
+| `VIDEO-GUIDE.md` | 45–120s filming guide (real terminal + real explorer) |

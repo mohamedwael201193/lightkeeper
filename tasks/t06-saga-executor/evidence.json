@@ -50,13 +50,33 @@
     "run_b_aborted_attempt": {
       "run_id": "t06-run-b-20261016-041144",
       "note": "cast's client-side eth_estimateGas refused to broadcast the deliberately-reverting execute() (4 attempts, zero txs mined). approve+lock from this attempt are real (listed above). Fixed with explicit --gas-limit on failure-broadcast steps; re-ran as the canonical run B."
+    },
+    "run_c": {
+      "run_id": "t06-run-c-20261016-063734",
+      "saga_state": "SUCCEEDED",
+      "dust_wei": 1000,
+      "crash_test": "executor hard-killed (os._exit, exit 137) between BROADCAST and CONFIRMING of approve; resumed via `python3 scripts/saga.py resume t06-run-c-20261016-063734`",
+      "idempotency_proof": "approve broadcast exactly ONCE (0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14) across both invocations \u2014 receipt re-read at resume, never re-broadcast; state log has 1 BROADCAST-with-tx line",
+      "steps": [
+        "approve",
+        "lock",
+        "execute",
+        "settle"
+      ],
+      "all_receipts": "0x1",
+      "approve_tx_mined_block": 31486478,
+      "state_log": "runs/t06-run-c-20261016-063734/state.log",
+      "plan": "runs/t06-run-c-20261016-063734/plan.json",
+      "spend_wei": 199487000199487,
+      "spend_phrs": 0.000199487000199487
     }
   },
   "final_onchain_state": {
-    "locked_wei": 0,
+    "locked_wei": 1000,
     "allowance_wei": 0,
-    "token_balance_wei": 1000000000000000000000000,
-    "settled": false
+    "token_balance_wei": 999999999999999999999000,
+    "settled": true,
+    "note": "run-c left its 1000-wei dust locked + settled (success path); run-b had previously refunded everything to 0. Consistent with design."
   },
   "transactions": [
     {
@@ -188,18 +208,58 @@
       "explorer": "https://atlantic.pharosscan.xyz/tx/0x0e80719119b7fb8781020e5a7fa0fcec01eeec167caa7329ac6781f1cb34759b",
       "cost_wei": 24739000024739,
       "cost_phrs": 2.4739000024739e-05
+    },
+    {
+      "label": "run-c approve (pre-crash broadcast)",
+      "hash": "0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14",
+      "block": 31486478,
+      "status": "0x1",
+      "gas": 46663,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14",
+      "cost_wei": 46663000046663,
+      "cost_phrs": 4.6630000046663e-05
+    },
+    {
+      "label": "run-c lock",
+      "hash": "0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6",
+      "block": 31486635,
+      "status": "0x1",
+      "gas": 80306,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6",
+      "cost_wei": 80306000080306,
+      "cost_phrs": 8.0306000080306e-05
+    },
+    {
+      "label": "run-c execute",
+      "hash": "0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62",
+      "block": 31486759,
+      "status": "0x1",
+      "gas": 25688,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62",
+      "cost_wei": 25688000025688,
+      "cost_phrs": 2.5688000025688e-05
+    },
+    {
+      "label": "run-c settle",
+      "hash": "0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75",
+      "block": 31486778,
+      "status": "0x1",
+      "gas": 46830,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75",
+      "cost_wei": 46830000046830,
+      "cost_phrs": 4.683000004683e-05
     }
   ],
   "spend_log": {
     "budget_phrs_max": 0.15,
-    "total_cost_wei": 2176793002176793,
-    "total_cost_phrs": 0.002176793002176793,
-    "accounting": "receipt-based: sum(gasUsed x effectiveGasPrice) over T06's own txs only; wallet deltas are not used because 27 other workers share the key",
+    "total_cost_wei": 2376280002376280,
+    "total_cost_phrs": 0.00237628000237628,
+    "accounting": "receipt-based: sum(gasUsed x effectiveGasPrice) over T06's own txs only (now 17 txs); wallet deltas are not used because 27 other workers share the key",
     "unrecoverable_gas_note": "the forced 0x0 burned 24231 gas and both compensation txs cost gas; none of it is recoverable by design"
   },
   "unit_tests": {
     "command": "python3 scripts/saga.py --selftest",
-    "cases": 21,
+    "cases": 25,
     "result": "ALL PASSED"
   },
   "links_curl_tested": {
@@ -207,5 +267,16 @@
     "all_http_200": true,
     "server_rendered": true,
     "see": "LINKS.md"
+  },
+  "forensics": {
+    "forced_failure_revert_reason": "TestFixture: minOut exceeds locked balance",
+    "revert_reason_source": "cast call replay of execute(2001) from deployer at block 31482533 (pre-failure state); on-chain Error(string) data 0x08c379a0...",
+    "failure_finality_depth_blocks": 3730,
+    "finality_measured_at_block": 31486264,
+    "compensation_latency_blocks": {
+      "failure_to_refund": 24,
+      "failure_to_revoke": 41
+    },
+    "compensation_latency_note": "blocks 31482534 -> 31482558 -> 31482599; executor detected the 0x0, classified permanent, and compensated within 41 blocks"
   }
 }

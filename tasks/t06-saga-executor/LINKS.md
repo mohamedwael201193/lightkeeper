@@ -29,6 +29,15 @@ identifier present in-page). Atlantic testnet explorer:
 - compensate refund: https://atlantic.pharosscan.xyz/tx/0xe6cac3114397487f6d1b1efec721af968ee8868e196a9d5f6437d35b9fbb60ca
 - compensate revoke: https://atlantic.pharosscan.xyz/tx/0x0e80719119b7fb8781020e5a7fa0fcec01eeec167caa7329ac6781f1cb34759b
 
+## Run C — mid-step crash → resume → SUCCEEDED (idempotency proof)
+
+- run-c approve (broadcast BEFORE the crash, receipt re-read at resume — never re-broadcast): https://atlantic.pharosscan.xyz/tx/0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14 (block 31486478, 0x1)
+- run-c lock: https://atlantic.pharosscan.xyz/tx/0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6 (block 31486635, 0x1)
+- run-c execute: https://atlantic.pharosscan.xyz/tx/0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62 (block 31486759, 0x1)
+- run-c settle: https://atlantic.pharosscan.xyz/tx/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75 (block 31486778, 0x1)
+
+State log + plan: `runs/t06-run-c-20261016-063734/{state.log,plan.json,run.json}`.
+
 ## Repo
 
 - Module dir (commit-pinned at submission time — see SUBMISSION.md):

@@ -49,6 +49,43 @@ cast receipt 0x91f7e02125434e3f29a56ed086f440a283ac000575fb1ff3369bbf269f819b05 
 LKTEST balance 1,000,000 → 1,000,000 (every wei restored).
 Final chain state: `locked=0`, `allowance=0`, `settled=false`.
 
+## Run C — mid-step crash → resume → `SUCCEEDED` (idempotency proof)
+
+`runs/t06-run-c-20261016-063734/` · dust 1000 wei · plan in `plan.json`
+
+The risk flagged in REVIEWER_NOTES ("kill-mid-CONFIRMING restart test") is now
+a real run, not a plan: the executor was hard-killed with `os._exit(137)`
+(no cleanup, no persist — SIGKILL-like) **between BROADCAST and CONFIRMING of
+the approve step**. A second invocation (`python3 scripts/saga.py resume
+t06-run-c-20261016-063734`) replayed the state log: it found approve's
+in-flight tx, re-read its receipt from the chain (0x1, block 31486478), and
+continued the saga — **never re-broadcasting it**.
+
+| Step | Tx | Block | Receipt | Note |
+|---|---|---|---|---|
+| approve(fixture, 1000) | [`0x96d304d5…16a14`](https://atlantic.pharosscan.xyz/tx/0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14) | 31486478 | ✅ 0x1 | broadcast pre-crash; receipt re-read at resume |
+| lock(1000) | [`0x609b2b06…8bf0b6`](https://atlantic.pharosscan.xyz/tx/0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6) | 31486635 | ✅ 0x1 | |
+| execute(minOut=1000) | [`0xd9e4fb6d…4e5cc62`](https://atlantic.pharosscan.xyz/tx/0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62) | 31486759 | ✅ 0x1 | |
+| settle() | [`0x9a93fe34…ea75`](https://atlantic.pharosscan.xyz/tx/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75) | 31486778 | ✅ 0x1 | |
+
+**Idempotency evidence:** the state log contains exactly **one** BROADCAST
+line carrying a tx hash for approve, across both invocations (the resume
+appends a RESUMED marker, not a second broadcast). Saga state: `SUCCEEDED`.
+Run spend: 0.0001995 PHRS.
+
+## Failure forensics (Run B, zero new spend — pure reads)
+
+- **Revert reason:** `TestFixture: minOut exceeds locked balance` — confirmed
+  by replaying `execute(2001)` from the deployer against block 31482533
+  (the pre-failure state); on-chain `Error(string)` payload
+  `0x08c379a0…`.
+- **Finality depth:** the 0x0 receipt (block 31482534) is 3,730 blocks deep
+  (measured at block 31486264) — no re-org can move it.
+- **Compensation latency:** failure mined @31482534 → refund @31482558 (24
+  blocks) → revoke @31482599 (41 blocks). The executor detected the 0x0,
+  classified it permanent, and finished both compensations within 41 blocks.
+- Machine-readable: `evidence.json` → `forensics`.
+
 ## Aborted first attempt (honest record)
 
 `t06-run-b-20261016-041144`: the forced `execute()` could not be broadcast —
@@ -73,15 +110,17 @@ wallet deltas are not used — 27 other workers share the key):
 | Run A (4 txs) | 0.000199487000199487 |
 | Aborted Run B attempt (2 txs) | 0.000092769000092769 |
 | Canonical Run B (5 txs) | 0.000218299000218299 |
-| **Total** | **0.002176793002176793** (budget 0.15) |
+| Run C (4 txs, crash → resume) | 0.000199487000199487 |
+| **Total** | **0.00237628000237628** (budget 0.15) |
 
 Gas is unrecoverable by design: the forced `0x0` burned 24,231 gas; both
 compensation txs cost gas. Reported, not hidden.
 
 ## Unit tests
 
-`python3 scripts/saga.py --selftest` — 21 cases, ALL PASSED:
+`python3 scripts/saga.py --selftest` — 25 cases, ALL PASSED:
 receipt-status classifier (0x1/0x0/int forms + fixture receipts), retry decision
 table (permanent→compensate; transient→retry 5/15/45s ×1.20/×1.44/×1.728 then
 give_up), state-machine states, gate helper, forced-failure arithmetic,
-gas-limit bypass flag on failure-broadcast steps.
+gas-limit bypass flag on failure-broadcast steps, **resume-point log parser**
+(crashed-step detection, terminal-log refusal, FAILED_PERMANENT refusal).

@@ -18,9 +18,16 @@
    with a tx hash on every transition. The executor classified the `0x0` as
    permanent and did **not** retry it (one attempt, then compensation).
 4. **Retry policy is defined + unit-tested**, not just documented:
-   `python3 scripts/saga.py --selftest` (21 cases). No transient failure
+   `python3 scripts/saga.py --selftest` (25 cases). No transient failure
    occurred organically during the runs, so per the build doctrine this is
    reported as "defined + unit-tested" — not faked.
+5. **Crash recovery is a real run, not a plan.** `runs/t06-run-c-20261016-063734/`
+   `SUCCEEDED` after the executor was hard-killed (exit 137) between approve's
+   BROADCAST and CONFIRMING. Count approve's BROADCAST lines carrying a tx hash
+   in the state log: exactly one, across both invocations — the resume
+   re-read the receipt instead of re-broadcasting. Run it yourself:
+   `python3 scripts/saga.py run-c 1000 --kill-after approve` (exits 137),
+   then `python3 scripts/saga.py resume t06-run-c-<run-id>`.
 
 ## Design decisions worth knowing
 
@@ -44,8 +51,15 @@
 - The retry path (dropped receipt / RPC error) is unit-tested but was not
   exercised organically on-chain; the code path is identical to the one that
   handled the aborted attempt's broadcast failures.
+- The resume's re-broadcast branch (in-flight tx never lands) is unit-tested
+  via the resume parser but was not exercised on-chain — the run-c tx landed,
+  so the receipt-re-read branch is the one with mined proof. The branch is
+  honest: it only fires when `eth_getTransactionReceipt` returns nothing after
+  40 polls.
 - `COMPENSATION_FAILED` has a defined state and persists evidence, but
   recovery from it is manual — runbook below.
+- Run-b plans are not resumable by design (a FAILED_PERMANENT step must
+  compensate, never continue); `resume` refuses them with a plain error.
 - Testnet only. The doctrine (compensate forward, never "undo") is
   chain-agnostic.
 

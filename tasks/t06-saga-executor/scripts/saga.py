@@ -21,6 +21,11 @@ impossible minOut, then runs confirmed compensation transactions.
 Usage:
     python3 scripts/saga.py run-a        # fully successful saga
     python3 scripts/saga.py run-b        # forced failure -> compensation
+    python3 scripts/saga.py run-c <dust> --kill-after <step>
+                                        # crash-recovery run: hard-kill mid-step,
+                                        # then `resume <run-id>` completes it
+    python3 scripts/saga.py resume <run-id>
+                                        # resume a crashed run from its state log
     python3 scripts/saga.py --selftest   # unit tests (no chain writes)
 
 Env: ATLANTIC_RPC_URL, DEPLOYER_PRIVATE_KEY (sourced from ../../.env by caller).
@@ -171,7 +176,7 @@ class SagaExecutor:
     STEP_STATES = ("PENDING", "PREPARED", "BROADCAST", "CONFIRMING",
                    "CONFIRMED", "RETRYING", "FAILED_PERMANENT")
 
-    def __init__(self, run_id):
+    def __init__(self, run_id, resume=False):
         self.run_id = run_id
         self.saga_state = "CREATED"
         self.run_dir = os.path.join(RUNS_DIR, run_id)
@@ -179,7 +184,16 @@ class SagaExecutor:
         self.log_path = os.path.join(self.run_dir, "state.log")
         self.txs = []
         self.spent_wei = 0
-        self._transition(None, "CREATED", saga=True)
+        self.crash_after = None  # step name: hard-kill (os._exit) after its broadcast
+        if not resume:
+            self._transition(None, "CREATED", saga=True)
+        else:
+            # Resumed executor: history is authoritative. Mark the resume as a
+            # plain log line — NOT a state-machine transition, so the log shows
+            # exactly one BROADCAST per step even across the crash.
+            self.saga_state = "RUNNING"
+            self._log("-", detail="RESUMED after crash — replaying state log; "
+                                  "in-flight tx receipts are re-read, never re-broadcast")
 
     def _log(self, step, step_state=None, tx=None, detail="", saga_state=None):
         entry = {
@@ -239,6 +253,15 @@ class SagaExecutor:
                     time.sleep(decision[1])
                     continue
                 raise TransientFailure(f"{name}: broadcast failed after {attempt+1} attempts: {e}")
+            if self.crash_after == name:
+                # Genuine hard kill between broadcast and confirmation: no
+                # cleanup, no persist, no graceful shutdown — os._exit skips
+                # every finally block, exactly like SIGKILL. The tx is in
+                # flight; the state log is the only record of what happened.
+                self._transition(name, "BROADCAST", tx=txhash,
+                                 detail="SIMULATED CRASH POINT REACHED: hard exit "
+                                        "before CONFIRMING — tx in flight, log is the only record")
+                os._exit(137)
             self._transition(name, "CONFIRMING", tx=txhash)
             receipt = fetch_receipt(txhash)
             if receipt is None:
@@ -397,6 +420,8 @@ def run_a(dust):
     ex._transition("-", "RUNNING", detail=f"dust={dust} wei; full-success path", saga=True)
     try:
         locked_before = locked_of(WALLET)
+        bal_before = token_balance(WALLET)
+        write_plan(ex, "run-a", dust, locked_before, bal_before)
         ex.run_step(step_approve(dust))
         ex.run_step(step_lock(dust, locked_before))
         ex.run_step(step_execute(dust, force_fail=False))
@@ -438,6 +463,179 @@ def run_b(dust):
                    detail="refund mined + allowance revoked; token balance restored (gas unrecoverable)",
                    saga=True)
     return ex.summary()
+
+# ------------------------------------------------------ crash / resume ----
+
+def write_plan(ex, kind, dust, locked_before, bal_before):
+    """Persist enough to rebuild and resume the saga after a hard crash.
+    The state log is the authority; plan.json only records the *intent*
+    (which plan, which dust, which pre-run snapshots the gates need)."""
+    plan = {
+        "kind": kind,
+        "dust": dust,
+        "locked_before": locked_before,
+        "bal_before": bal_before,
+        "step_order": ["approve", "lock", "execute", "settle"] if kind in ("run-a", "run-c") else [],
+        "note": "resume replays state.log; in-flight tx receipts are re-read, never re-broadcast",
+    }
+    with open(os.path.join(ex.run_dir, "plan.json"), "w") as f:
+        json.dump(plan, f, indent=2)
+
+def find_resume_point(entries):
+    """Pure log parser (unit-tested). Given state.log entries (dicts),
+    returns (confirmed_steps, crashed_step, crashed_tx):
+      - confirmed_steps: steps with a CONFIRMED line (completed, never re-run)
+      - crashed_step/tx: first step in plan order that broadcast a tx but has
+        no CONFIRMED/FAILED_PERMANENT line — the executor died mid-step.
+      - (confirmed, None, None): nothing crashed; nothing to resume.
+    Raises ValueError if the log shows a terminal saga state (nothing to resume)
+    or a FAILED_PERMANENT step (run-b plans are not resumable by design)."""
+    saga_states = [e["saga"] for e in entries if e.get("saga") not in (None, "CREATED", "RUNNING")]
+    if saga_states:
+        raise ValueError(f"log already terminal: {saga_states[-1]} — nothing to resume")
+    confirmed = {e["step"] for e in entries if e["step_state"] == "CONFIRMED"}
+    for e in entries:
+        if e["step_state"] == "FAILED_PERMANENT":
+            raise ValueError("log contains a FAILED_PERMANENT step — run-b plans are not resumable")
+    order = []
+    for e in entries:
+        s = e["step"]
+        if s not in ("-",) and s not in order:
+            order.append(s)
+    for step in order:
+        if step in confirmed:
+            continue
+        bc = [e for e in entries if e["step"] == step
+              and e["step_state"] == "BROADCAST" and e.get("tx")]
+        later = [e for e in entries if e["step"] == step
+                 and e["step_state"] in ("CONFIRMING", "CONFIRMED",
+                                         "FAILED_PERMANENT", "RETRYING")]
+        if bc and not later:
+            return confirmed, step, bc[-1]["tx"]
+    return confirmed, None, None
+
+def rebuild_from_log(ex, entries):
+    """Recompute txs + spend for CONFIRMED steps by re-reading their receipts.
+    The pre-crash invocation died before persisting, so run.json never saw them;
+    the receipts are still on-chain — recompute, never invent."""
+    for e in entries:
+        if e["step_state"] != "CONFIRMING" or not e.get("tx"):
+            continue
+        txhash = e["tx"]
+        if any(t["hash"] == txhash for t in ex.txs):
+            continue
+        receipt = fetch_receipt(txhash, polls=40, interval=6)
+        if receipt is None:
+            raise TransientFailure(f"resume: receipt never landed for {txhash}")
+        gas_used = int(receipt["gasUsed"], 16)
+        eff_gas = int(receipt.get("effectiveGasPrice", "0x1"), 16)
+        ex.spent_wei += gas_used * eff_gas
+        ex.txs.append({
+            "step": e["step"], "hash": txhash, "attempt": 0,
+            "status": receipt["status"],
+            "blockNumber": int(receipt["blockNumber"], 16),
+            "gasUsed": gas_used, "effectiveGasPriceWei": eff_gas,
+            "explorer": f"{EXPLORER}/tx/{txhash}",
+            "note": "recomputed at resume from on-chain receipt",
+        })
+
+def run_c(dust, kill_after):
+    """Crash-recovery run: the full approve -> lock -> execute -> settle plan,
+    but the executor hard-kills itself (os._exit(137), SIGKILL-like) between
+    BROADCAST and CONFIRMING of `kill_after`. Recover with:
+        python3 scripts/saga.py resume <run-id>
+    which replays the state log and completes the saga. The claim under test:
+    exactly ONE broadcast tx per step even though the executor died mid-step
+    (idempotency via the state log, not via re-sending)."""
+    ex = SagaExecutor(f"t06-run-c-{datetime.now(timezone.utc):%Y%m%d-%H%M%S}")
+    ex.crash_after = kill_after
+    ex._transition("-", "RUNNING",
+                   detail=f"dust={dust} wei; crash-recovery path (kill-after={kill_after})",
+                   saga=True)
+    locked_before = locked_of(WALLET)
+    bal_before = token_balance(WALLET)
+    write_plan(ex, "run-c", dust, locked_before, bal_before)
+    steps = [step_approve(dust), step_lock(dust, locked_before),
+             step_execute(dust, force_fail=False), step_settle()]
+    try:
+        for s in steps:
+            ex.run_step(s)
+    except (PermanentFailure, TransientFailure, GateFailure) as e:
+        return ex.abort("FAILED", f"unexpected failure on crash-recovery path: {type(e).__name__}: {e}")
+    return ex.saga_result(True, "crash-recovered: all steps 0x1, one broadcast tx per step")
+
+def resume_run(run_id):
+    """Resume a crashed run-a/run-c from its state log. Never re-broadcasts an
+    in-flight tx: the logged hash's receipt is re-read first. A step whose tx
+    actually landed is marked CONFIRMED from the receipt (post-state gate
+    still applies); a step whose tx never landed is re-broadcast through the
+    normal retry policy."""
+    run_dir = os.path.join(RUNS_DIR, run_id)
+    plan_path = os.path.join(run_dir, "plan.json")
+    log_path = os.path.join(run_dir, "state.log")
+    if not os.path.exists(plan_path):
+        raise ValueError(f"{run_id}: no plan.json — only run-a/run-c runs are resumable")
+    plan = json.load(open(plan_path))
+    if plan.get("kind") not in ("run-a", "run-c"):
+        raise ValueError(f"{run_id}: plan kind {plan.get('kind')} is not resumable")
+    entries = [json.loads(l) for l in open(log_path) if l.strip()]
+    confirmed, crashed_step, crashed_tx = find_resume_point(entries)
+    dust, locked_before = plan["dust"], plan["locked_before"]
+    ex = SagaExecutor(run_id, resume=True)
+    rebuild_from_log(ex, entries)
+
+    builders = {
+        "approve": lambda: step_approve(dust),
+        "lock": lambda: step_lock(dust, locked_before),
+        "execute": lambda: step_execute(dust, force_fail=False),
+        "settle": step_settle,
+    }
+    order = plan["step_order"]
+    if crashed_step:
+        receipt = fetch_receipt(crashed_tx, polls=40, interval=6)
+        if receipt is None:
+            # Tx never landed (dropped before mining): re-broadcast the step
+            # through the normal retry policy. Its BROADCAST lines already in
+            # the log document the attempts honestly.
+            ex._log(crashed_step, detail=f"resume: in-flight tx {crashed_tx} never "
+                                         "landed — re-broadcasting through retry policy")
+            ex.run_step(builders[crashed_step]())
+        else:
+            gas_used = int(receipt["gasUsed"], 16)
+            eff_gas = int(receipt.get("effectiveGasPrice", "0x1"), 16)
+            ex.spent_wei += gas_used * eff_gas
+            ex.txs.append({
+                "step": crashed_step, "hash": crashed_tx, "attempt": 0,
+                "status": receipt["status"],
+                "blockNumber": int(receipt["blockNumber"], 16),
+                "gasUsed": gas_used, "effectiveGasPriceWei": eff_gas,
+                "explorer": f"{EXPLORER}/tx/{crashed_tx}",
+                "note": "broadcast before crash; receipt re-read at resume",
+            })
+            verdict = classify_status(receipt["status"])
+            if verdict == "FAILED_PERMANENT":
+                ex._transition(crashed_step, "FAILED_PERMANENT", tx=crashed_tx,
+                               detail="in-flight tx mined 0x0 — permanent")
+                return ex.abort("FAILED", f"resumed step {crashed_step} mined 0x0 at {crashed_tx}")
+            ex._transition(crashed_step, "CONFIRMING", tx=crashed_tx,
+                           detail="resume: receipt re-read from chain, not re-broadcast")
+            ex._transition(crashed_step, "CONFIRMED", tx=crashed_tx,
+                           detail="resume: exactly one broadcast tx for this step across both invocations")
+            post = builders[crashed_step]().get("postcheck")
+            if post:
+                try:
+                    post()
+                except Exception as e:
+                    raise GateFailure(f"{crashed_step}: post-state gate failed at resume: {e}")
+        confirmed.add(crashed_step)
+    # Run every remaining step normally.
+    for step in order:
+        if step in confirmed:
+            continue
+        ex.run_step(builders[step]())
+    ex._transition("-", "RUNNING",
+                   detail="resume complete — saga continues to SUCCEEDED", saga=True)
+    return ex.saga_result(True, "resumed after mid-step crash; one broadcast tx per step")
 
 # ------------------------------------------------------------------ tests ----
 
@@ -508,6 +706,37 @@ def selftest():
         check("gate raises on false", True)
     _gate(True, "x"); check("gate passes on true", True)
 
+    # 7. Resume-point parser: pure function over fabricated state.log entries.
+    def _e(step, state, tx=None, saga="RUNNING"):
+        return {"ts": "2026-10-16T00:00:00+00:00", "run": "r", "saga": saga,
+                "step": step, "step_state": state, "tx": tx, "detail": ""}
+    crash_log = [
+        _e("-", None, saga="CREATED"), _e("-", None, saga="RUNNING"),
+        _e("approve", "PENDING"), _e("approve", "PREPARED"),
+        _e("approve", "BROADCAST"),
+        _e("approve", "BROADCAST", tx="0xaaa"),
+        _e("approve", "BROADCAST", tx="0xaaa"),
+    ]
+    confirmed, crashed, ctx = find_resume_point(crash_log)
+    check("resume parser finds crashed approve step",
+          confirmed == set() and crashed == "approve" and ctx == "0xaaa")
+    clean_log = crash_log + [_e("approve", "CONFIRMING", tx="0xaaa"),
+                             _e("approve", "CONFIRMED", tx="0xaaa"),
+                             _e("lock", "PENDING")]
+    confirmed, crashed, ctx = find_resume_point(clean_log)
+    check("resume parser sees confirmed approve, no crash to resume",
+          confirmed == {"approve"} and crashed is None and ctx is None)
+    term_log = clean_log + [_e("-", None, saga="SUCCEEDED")]
+    try:
+        find_resume_point(term_log); check("terminal log refuses resume", False)
+    except ValueError:
+        check("terminal log refuses resume", True)
+    fail_log = crash_log + [_e("execute", "FAILED_PERMANENT", tx="0xbbb")]
+    try:
+        find_resume_point(fail_log); check("FAILED_PERMANENT log refuses resume", False)
+    except ValueError:
+        check("FAILED_PERMANENT log refuses resume", True)
+
     print(f"\n{len(fails)} failures" if fails else "\nALL SELFTESTS PASSED")
     return 1 if fails else 0
 
@@ -519,9 +748,33 @@ def main():
     if sys.argv[1] == "--selftest":
         return selftest()
     which = sys.argv[1]
-    dust = int(sys.argv[2]) if len(sys.argv) > 2 else (1000 if which == "run-a" else 2000)
+    if which == "resume":
+        if len(sys.argv) < 3:
+            print("usage: saga.py resume <run-id>"); return 2
+        run_id = sys.argv[2]
+        try:
+            summary = resume_run(run_id)
+        except (ValueError, TransientFailure, GateFailure) as e:
+            print(f"resume refused/failed: {e}"); return 1
+        out_path = os.path.join(RUNS_DIR, run_id, "run.json")
+        with open(out_path, "w") as f:
+            json.dump(summary, f, indent=2)
+        print(json.dumps(summary, indent=2))
+        print("run.json ->", out_path)
+        return 0
+    dust = int(sys.argv[2]) if len(sys.argv) > 2 else (1000 if which in ("run-a", "run-c") else 2000)
+    kill_after = None
+    if "--kill-after" in sys.argv:
+        kill_after = sys.argv[sys.argv.index("--kill-after") + 1]
     before = _snap_balances()
-    summary = run_a(dust) if which == "run-a" else run_b(dust)
+    if which == "run-a":
+        summary = run_a(dust)
+    elif which == "run-c":
+        summary = run_c(dust, kill_after)
+    elif which == "run-b":
+        summary = run_b(dust)
+    else:
+        print(__doc__); return 2
     after = _snap_balances()
     summary["balances"] = {"before": before, "after": after}
     out_path = os.path.join(RUNS_DIR, summary["run_id"], "run.json")

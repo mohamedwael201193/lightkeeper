@@ -10,7 +10,8 @@ contracts:
   fixture: 0x29bf11Cd948CE845687A21819b2844d5321432Cf # TestFixture
 runs:
   canonical_run_a: t06-run-a-20261016-040851   # SUCCEEDED, 4 steps all 0x1
-  canonical_run_b: PENDING                     # forced 0x0 -> COMPENSATED
+  canonical_run_b: t06-run-b-20261016-042903   # forced 0x0 -> COMPENSATED
+  canonical_run_c: t06-run-c-20261016-063734   # mid-step crash -> resume -> SUCCEEDED, 1 broadcast/step
 budget_phrs_max: 0.15
 deliverables:
   - task.yaml
