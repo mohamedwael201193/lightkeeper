@@ -15,7 +15,7 @@ A single user request (`flow.py --amount-phrs X`) drives READ → SKILL → EXEC
 Dependency proven by contrast runs on the same contract: 0.0001 PHRS → ALLOW → real tx → pingCount 0→1; 0.1 PHRS → BLOCK quoting the live balance → no broadcast → pingCount unchanged. Honest run history (one freshness-BLOCK, one broadcast crash before any tx) preserved in the transcript. Unit tests 8/8. Budget 0.0004362040 of 0.15 PHRS.
 
 **Repo link (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t12-skill-chain-flow
+https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t12-skill-chain-flow
 
 **Share/demo links:**
 https://atlantic.pharosscan.xyz/tx/0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3 (deploy)

@@ -1,6 +1,5 @@
 # SUBMISSION.md — T05 Threshold Guardian (copy-paste Arena pack)
 
-> Fill PENDING-COMMIT at push time (coordinator). Do not edit anything else.
 
 ## Title
 
@@ -53,7 +52,7 @@ exercise both branches symmetrically — never post-hoc rigging.
 
 ## Links
 
-- Source (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/PENDING-COMMIT/tasks/t05-threshold-guardian
+- Source (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t05-threshold-guardian
 - Demo video: PENDING-VIDEO
 - FIRE tx: https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c
 - Share link (portal session): PENDING — coordinator adds if/when available

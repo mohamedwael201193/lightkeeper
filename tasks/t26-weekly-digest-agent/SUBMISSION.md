@@ -33,7 +33,7 @@ this is documented honestly rather than faked.
 ## Links
 
 - Code (commit-pinned):
-  https://github.com/mohamedwael201193/lightkeeper/tree/8f2fcf6d657a45aa1c851d0a05809e1b8ab1cff6/tasks/t26-weekly-digest-agent
+  https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t26-weekly-digest-agent
 - Live evidence: `evidence.md` + `evidence.json` in the folder above
   (digest text, block range 31186577–31482619, Telegram message_id 723)
 - Explorer (watched address):

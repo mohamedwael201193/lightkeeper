@@ -44,7 +44,7 @@ spend log): see Repo link below. Live re-verification: `node bin/run.mjs
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t23-wallet-risk-checker
+https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t23-wallet-risk-checker
 
 ## Video link
 

@@ -16,14 +16,14 @@ Proven on-chain (chain 688689):
 - 10/10 tests pass, including a live cross-check that the Python quoter equals ArbPool.getAmountOut on-chain at a pinned block.
 
 ## Repo link (commit-pinned)
-https://github.com/mohamedwael201193/lightkeeper/tree/6b25ef40ffbe7a60ae3bb1b90a1d7dcb4cbcb60a/tasks/t07-arbitrage-scanner
+https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t07-arbitrage-scanner
 
 ## Proof link
-https://github.com/mohamedwael201193/lightkeeper/tree/6b25ef40ffbe7a60ae3bb1b90a1d7dcb4cbcb60a/tasks/t07-arbitrage-scanner/evidence.md
+https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t07-arbitrage-scanner/evidence.md
 (Independently verifiable: `python3 scanner.py` re-runs the scan against the same on-chain venues.)
 
 ## Reviewer notes
-https://github.com/mohamedwael201193/lightkeeper/tree/6b25ef40ffbe7a60ae3bb1b90a1d7dcb4cbcb60a/tasks/t07-arbitrage-scanner/REVIEWER_NOTES.md
+https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t07-arbitrage-scanner/REVIEWER_NOTES.md
 
 ## Key tx hashes (Atlantic, chain 688689)
 - Arb leg 1: 0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30
