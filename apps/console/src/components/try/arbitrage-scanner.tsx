@@ -4,16 +4,24 @@
  * "Live spread scanner": runs the T07 config→scan→verdict rhythm against the
  * three real T07 venues on Pharos Atlantic (chain 688689) — all via eth_call.
  * Per scan: pin one block → read all three getReserves() at that block →
- * price the 6 WPHRS-start directed cycles with the contract-identical
- * constant-product quote math → net per-leg fees on notionals + slippage
- * + gas + a configurable slippage guard band → verdict OPPORTUNITY
- * (above threshold) or SKIP with the honest machine-readable reason.
+ * price all TWELVE directed cycles (6 WPHRS-start + 6 TKB-start, the same set
+ * the CLI's scanner.py prices) with the contract-identical constant-product
+ * quote math → net per-leg fees on notionals + slippage + gas + a configurable
+ * slippage guard band → verdict OPPORTUNITY (above threshold) or SKIP with
+ * the honest machine-readable reason.
+ *
+ * The differentiator: this panel shows the WHOLE market, not just the winner.
+ * All twelve cycles are ranked in two leaderboards — WPHRS-start and
+ * TKB-start — with their full cost decomposition, including the losing
+ * routes. And every scan is appended to a session evidence log you can export
+ * as JSONL, mirroring the CLI's append-only scans.jsonl. A scanner that shows
+ * its losers and keeps its receipts.
  *
  * No mocks: every number on screen was just read from chain. This panel is
  * read-only — it never signs or broadcasts. Execution is the CLI's job
  * (scanner.py --execute); the two mined execution legs are linked below.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Lamp } from "../../types";
 import { EXPLORER_ADDRESS, EXPLORER_TX, rpcCall, useAtlanticRead } from "../../hooks/useAtlantic";
 
@@ -76,6 +84,20 @@ interface VenueRead {
   r1: bigint;
 }
 
+interface Cycle {
+  start: "WPHRS" | "TKB";
+  leg1Venue: string;
+  leg2Venue: string;
+  leg1Out: bigint;
+  leg2Out: bigint;
+  gross: bigint;
+  fee1: bigint;
+  fee2: bigint;
+  slip1: bigint;
+  slip2: bigint;
+  net: bigint;
+}
+
 interface ScanResult {
   pinnedBlock: number;
   tipBlock: number;
@@ -85,24 +107,30 @@ interface ScanResult {
   sizeWei: bigint;
   thresholdWei: bigint;
   guardBps: number;
-  best: {
-    leg1Venue: string;
-    leg2Venue: string;
-    leg1Out: bigint;
-    leg2Out: bigint;
-    gross: bigint;
-    fee1: bigint;
-    fee2: bigint;
-    slip1: bigint;
-    slip2: bigint;
-  };
   gasWei: bigint;
+  cyclesWphrs: Cycle[];
+  cyclesTkb: Cycle[];
+  best: Cycle | null;
   guardWei: bigint;
   net: bigint;
   verdict: "OPPORTUNITY" | "SKIP";
   skipReason: string | null;
   onChainMatch: boolean | null;
   onChainNote: string;
+}
+
+interface LogEntry {
+  scan: number;
+  pinnedBlock: number;
+  tipBlock: number;
+  sizeWphrs: string;
+  bestCycle: string;
+  startToken: string;
+  grossWphrs: string;
+  netWphrs: string;
+  verdict: string;
+  skipReason: string | null;
+  onChainVerified: boolean | null;
 }
 
 async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number): Promise<ScanResult> {
@@ -138,36 +166,77 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
   if (lag > STALE_BLOCK_LAG) skipReason = "STALE_QUOTE";
   else if (reads.some((v) => v.r0 === 0n || v.r1 === 0n)) skipReason = "NO_LIQUIDITY";
 
-  // 4. Price the 6 WPHRS-start directed cycles (buy TKB on venue X, sell back on venue Y).
-  let best: ScanResult["best"] | null = null;
+  // 4. Price all TWELVE directed cycles — the same set the CLI prices.
+  //    WPHRS-start: swap size WPHRS on v1 → TKB, then back on v2.
+  //    TKB-start:   swap size (same wei, in TKB) on v1 → WPHRS, then back on v2.
+  //    Cycles are ranked WITHIN their start token: WPHRS and TKB are different
+  //    units and are never mixed — unlike the CLI, which compares net across
+  //    starts. The verdict runs on the WPHRS cycles, matching the size /
+  //    threshold / guard units of this panel's inputs.
+  const gasWei = 2n * GAS_PER_LEG * gasPriceWei;
+  const guardWei = (sizeWei * BigInt(guardBps)) / 10000n;
+  const cyclesWphrs: Cycle[] = [];
+  const cyclesTkb: Cycle[] = [];
   for (const v1 of reads) {
     for (const v2 of reads) {
       if (v1.name === v2.name) continue;
-      const leg1Out = quote(sizeWei, v1.r0, v1.r1); // WPHRS -> TKB on v1
-      const leg2Out = quote(leg1Out, v2.r1, v2.r0); // TKB -> WPHRS on v2
-      if (leg1Out === 0n || leg2Out === 0n) continue;
-      const gross = leg2Out - sizeWei;
-      if (!best || gross > best.gross) {
-        const fee1 = (sizeWei * FEE_BPS) / 10000n;
-        const fee2 = (leg1Out * FEE_BPS) / 10000n;
-        best = {
-          leg1Venue: v1.name,
-          leg2Venue: v2.name,
-          leg1Out,
-          leg2Out,
-          gross,
-          fee1,
-          fee2,
-          slip1: ideal(sizeWei, v1.r0, v1.r1) - leg1Out,
-          slip2: ideal(leg1Out, v2.r1, v2.r0) - leg2Out,
-        };
+      // WPHRS-start cycle
+      {
+        const leg1Out = quote(sizeWei, v1.r0, v1.r1);
+        if (leg1Out > 0n) {
+          const leg2Out = quote(leg1Out, v2.r1, v2.r0);
+          if (leg2Out > 0n) {
+            const gross = leg2Out - sizeWei;
+            const fee1 = (sizeWei * FEE_BPS) / 10000n;
+            const fee2 = (leg1Out * FEE_BPS) / 10000n;
+            cyclesWphrs.push({
+              start: "WPHRS",
+              leg1Venue: v1.name,
+              leg2Venue: v2.name,
+              leg1Out,
+              leg2Out,
+              gross,
+              fee1,
+              fee2,
+              slip1: ideal(sizeWei, v1.r0, v1.r1) - leg1Out,
+              slip2: ideal(leg1Out, v2.r1, v2.r0) - leg2Out,
+              net: gross - gasWei - guardWei,
+            });
+          }
+        }
+      }
+      // TKB-start cycle (same wei size, denominated in TKB — mirrors the CLI)
+      {
+        const leg1Out = quote(sizeWei, v1.r1, v1.r0);
+        if (leg1Out > 0n) {
+          const leg2Out = quote(leg1Out, v2.r0, v2.r1);
+          if (leg2Out > 0n) {
+            const gross = leg2Out - sizeWei;
+            const fee1 = (sizeWei * FEE_BPS) / 10000n;
+            const fee2 = (leg1Out * FEE_BPS) / 10000n;
+            cyclesTkb.push({
+              start: "TKB",
+              leg1Venue: v1.name,
+              leg2Venue: v2.name,
+              leg1Out,
+              leg2Out,
+              gross,
+              fee1,
+              fee2,
+              slip1: ideal(sizeWei, v1.r1, v1.r0) - leg1Out,
+              slip2: ideal(leg1Out, v2.r0, v2.r1) - leg2Out,
+              net: gross - gasWei - guardWei,
+            });
+          }
+        }
       }
     }
   }
+  cyclesWphrs.sort((a, b) => (b.net > a.net ? 1 : b.net < a.net ? -1 : 0));
+  cyclesTkb.sort((a, b) => (b.net > a.net ? 1 : b.net < a.net ? -1 : 0));
 
-  const gasWei = 2n * GAS_PER_LEG * gasPriceWei;
-  const guardWei = (sizeWei * BigInt(guardBps)) / 10000n;
-  const net = best ? best.gross - gasWei - guardWei : 0n;
+  const best = cyclesWphrs[0] ?? null;
+  const net = best ? best.net : 0n;
 
   if (!skipReason) {
     if (!best) skipReason = "SOURCE_DOWN";
@@ -216,11 +285,10 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
     sizeWei,
     thresholdWei,
     guardBps,
-    best: best ?? {
-      leg1Venue: "—", leg2Venue: "—", leg1Out: 0n, leg2Out: 0n, gross: 0n,
-      fee1: 0n, fee2: 0n, slip1: 0n, slip2: 0n,
-    },
     gasWei,
+    cyclesWphrs,
+    cyclesTkb,
+    best,
     guardWei,
     net,
     verdict,
@@ -233,14 +301,66 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
 const inputCls =
   "w-full rounded-lg border border-hairline bg-porcelain px-3 py-2 font-mono text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent/30";
 
+function CycleTable({
+  title,
+  cycles,
+  unit,
+  footnote,
+}: {
+  title: string;
+  cycles: Cycle[];
+  unit: string;
+  footnote: string;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate">{title}</p>
+      <table className="data-table w-full">
+        <thead>
+          <tr>
+            <th>Cycle</th>
+            <th className="text-right">Leg 1 out</th>
+            <th className="text-right">Leg 2 out</th>
+            <th className="text-right">Gross</th>
+            <th className="text-right">Fees</th>
+            <th className="text-right">Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cycles.map((c, i) => (
+            <tr key={`${c.leg1Venue}-${c.leg2Venue}`} className={i === 0 ? "bg-accent/5" : undefined}>
+              <td className="font-mono text-xs">
+                {i === 0 && <span className="mr-1 chip-pass !px-1.5 !py-0.5">best</span>}
+                {c.leg1Venue} → {c.leg2Venue}
+              </td>
+              <td className="font-mono text-right">{fmt(c.leg1Out, 4)}</td>
+              <td className="font-mono text-right">{fmt(c.leg2Out, 4)}</td>
+              <td className="font-mono text-right">{fmt(c.gross, 4)}</td>
+              <td className="font-mono text-right">{fmt(c.fee1 + c.fee2, 4)}</td>
+              <td className={`font-mono text-right ${c.net > 0n ? "text-[#0f7a37]" : "text-fail"}`}>
+                {fmt(c.net, 4)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-1 text-xs text-slate">
+        Figures in {unit}. {footnote}
+      </p>
+    </div>
+  );
+}
+
 export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
   const [size, setSize] = useState("10");
   const [threshold, setThreshold] = useState("0.05");
   const [guard, setGuard] = useState("0.5");
   const [inputError, setInputError] = useState<string | null>(null);
   const [runId, setRunId] = useState(0);
+  const [log, setLog] = useState<LogEntry[]>([]);
+  const lastLoggedRun = useRef(0);
 
-  const { data, loading, error, refetch } = useAtlanticRead<ScanResult>(
+  const { data, loading, error } = useAtlanticRead<ScanResult>(
     async () => {
       const guardBps = Math.round(parseFloat(guard) * 100);
       return runScan(parseUnits(size), parseUnits(threshold), guardBps);
@@ -248,6 +368,27 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
     [runId],
     { auto: runId > 0 }
   );
+
+  // Session evidence log: every completed scan is appended once, receipts kept.
+  useEffect(() => {
+    if (data && !loading && runId > lastLoggedRun.current) {
+      lastLoggedRun.current = runId;
+      const entry: LogEntry = {
+        scan: runId,
+        pinnedBlock: data.pinnedBlock,
+        tipBlock: data.tipBlock,
+        sizeWphrs: fmt(data.sizeWei),
+        bestCycle: data.best ? `${data.best.leg1Venue} → ${data.best.leg2Venue}` : "—",
+        startToken: "WPHRS",
+        grossWphrs: data.best ? fmt(data.best.gross) : "0",
+        netWphrs: fmt(data.net),
+        verdict: data.verdict,
+        skipReason: data.skipReason,
+        onChainVerified: data.onChainMatch,
+      };
+      setLog((l) => [...l, entry]);
+    }
+  }, [data, loading, runId]);
 
   const start = () => {
     setInputError(null);
@@ -265,6 +406,17 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
     }
   };
 
+  const exportLog = () => {
+    const body = log.map((e) => JSON.stringify(e)).join("\n") + "\n";
+    const blob = new Blob([body], { type: "application/jsonl" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "t07-scan-log.jsonl";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -276,13 +428,15 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
       <p className="mb-5 max-w-3xl text-sm leading-relaxed text-slate">
         The T07 <strong className="text-ink">config → scan → verdict</strong> rhythm, live in your
         browser. One scan pins a block, reads the three real T07 venues on Atlantic testnet via{" "}
-        <code className="font-mono text-xs">eth_call</code>, prices the six WPHRS-start directed
-        cycles with the contract-identical constant-product math (fees 30 bps/leg on the notional),
-        nets slippage + gas + your slippage guard — then rules{" "}
+        <code className="font-mono text-xs">eth_call</code>, and prices{" "}
+        <strong className="text-ink">all twelve directed cycles</strong> — six WPHRS-start, six
+        TKB-start, the same set the CLI prices — with the contract-identical constant-product math
+        (fees 30 bps/leg on the notional), nets slippage + gas + your slippage guard — then rules{" "}
         <strong className="text-ink">OPPORTUNITY</strong> above your threshold or{" "}
-        <strong className="text-ink">SKIP</strong> with the honest reason. Every number below was
-        just read from chain; nothing here is a mock. (The CLI scanner additionally prices the six
-        TKB-start cycles.)
+        <strong className="text-ink">SKIP</strong> with the honest reason. Most arb panels show only
+        the winner; this one shows the whole market — including the losing routes — and appends every
+        scan to a session evidence log below. Every number below was just read from chain; nothing
+        here is a mock.
       </p>
 
       {/* config */}
@@ -312,7 +466,14 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
         </div>
       </div>
       {inputError && <p className="mb-4 text-sm text-fail">{inputError}</p>}
-      {error && <p className="mb-4 text-sm text-fail">{error}</p>}
+      {error && (
+        <div className="mb-4 rounded-xl border border-hairline bg-porcelain p-4">
+          <p className="text-sm text-fail">{error}</p>
+          <button className="btn-outline mt-3" onClick={start} disabled={loading}>
+            Retry scan
+          </button>
+        </div>
+      )}
       {loading && <p className="mb-4 text-sm text-slate">Reading venues at a pinned block…</p>}
 
       {/* results */}
@@ -349,7 +510,7 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                         </a>
                       </td>
                       <td className="font-mono">{fmt(v.r0, 2)} / {fmt(v.r1, 2)}</td>
-                      <td className="font-mono">{(Number(v.r1) / Number(v.r0)).toFixed(4)}</td>
+                      <td className="font-mono">{v.r0 > 0n ? (Number(v.r1) / Number(v.r0)).toFixed(4) : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -357,35 +518,54 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
             </div>
           </div>
 
-          {/* best route + decomposition */}
-          <div>
-            <h4 className="smallcaps !text-ink mb-2">Best route &amp; cost decomposition</h4>
-            <p className="mb-3 text-sm text-slate">
-              <strong className="text-ink">{data.best.leg1Venue}</strong> →{" "}
-              <strong className="text-ink">{data.best.leg2Venue}</strong>: swap{" "}
-              <span className="font-mono">{fmt(data.sizeWei)}</span> WPHRS →{" "}
-              <span className="font-mono">{fmt(data.best.leg1Out)}</span> TKB, then back to{" "}
-              <span className="font-mono">{fmt(data.best.leg2Out)}</span> WPHRS.
-            </p>
-            <div className="overflow-x-auto">
-              <table className="data-table w-full">
-                <tbody>
-                  <tr><td>Gross spread (leg2 out − size)</td><td className="font-mono text-right">{fmt(data.best.gross)} WPHRS</td></tr>
-                  <tr><td>Fee, leg 1 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee1)} WPHRS</td></tr>
-                  <tr><td>Fee, leg 2 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee2)} WPHRS</td></tr>
-                  <tr><td>Slippage leg 1 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip1)} TKB</td></tr>
-                  <tr><td>Slippage leg 2 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip2)} WPHRS</td></tr>
-                  <tr><td>Gas — 2 legs × {GAS_PER_LEG.toString()} gas × live price (PHRS 1:1 by test construction)</td><td className="font-mono text-right">{fmt(data.gasWei)} WPHRS</td></tr>
-                  <tr><td>Slippage guard — your {data.guardBps / 100}% buffer on size</td><td className="font-mono text-right">{fmt(data.guardWei)} WPHRS</td></tr>
-                  <tr><td className="font-semibold text-ink">Net</td><td className="font-mono text-right font-semibold text-ink">{fmt(data.net)} WPHRS</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p className="mt-2 text-xs text-slate">
-              Contract cross-check: {data.onChainNote}.
-              {data.onChainMatch === false && " The scan above is untrusted — the on-chain quotes disagreed."}
-            </p>
+          {/* the whole market: both leaderboards */}
+          <div className="space-y-4">
+            <h4 className="smallcaps !text-ink mb-2">The whole market — every cycle, losers included</h4>
+            <CycleTable
+              title="WPHRS-start cycles (verdict runs on these)"
+              cycles={data.cyclesWphrs}
+              unit="WPHRS"
+              footnote="Leg 1 swaps WPHRS → TKB, leg 2 swaps back. Net = gross − gas − your slippage guard."
+            />
+            <CycleTable
+              title="TKB-start cycles"
+              cycles={data.cyclesTkb}
+              unit="TKB"
+              footnote="Priced with the same wei size, denominated in TKB — the CLI's second half. Ranked separately: WPHRS and TKB are different units and are never mixed. Gas is paid in PHRS and subtracted 1:1 by test construction."
+            />
           </div>
+
+          {/* best route + decomposition */}
+          {data.best && (
+            <div>
+              <h4 className="smallcaps !text-ink mb-2">Best route &amp; cost decomposition</h4>
+              <p className="mb-3 text-sm text-slate">
+                <strong className="text-ink">{data.best.leg1Venue}</strong> →{" "}
+                <strong className="text-ink">{data.best.leg2Venue}</strong>: swap{" "}
+                <span className="font-mono">{fmt(data.sizeWei)}</span> WPHRS →{" "}
+                <span className="font-mono">{fmt(data.best.leg1Out)}</span> TKB, then back to{" "}
+                <span className="font-mono">{fmt(data.best.leg2Out)}</span> WPHRS.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="data-table w-full">
+                  <tbody>
+                    <tr><td>Gross spread (leg2 out − size)</td><td className="font-mono text-right">{fmt(data.best.gross)} WPHRS</td></tr>
+                    <tr><td>Fee, leg 1 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee1)} WPHRS</td></tr>
+                    <tr><td>Fee, leg 2 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee2)} WPHRS</td></tr>
+                    <tr><td>Slippage leg 1 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip1)} TKB</td></tr>
+                    <tr><td>Slippage leg 2 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip2)} WPHRS</td></tr>
+                    <tr><td>Gas — 2 legs × {GAS_PER_LEG.toString()} gas × live price (PHRS 1:1 by test construction)</td><td className="font-mono text-right">{fmt(data.gasWei)} WPHRS</td></tr>
+                    <tr><td>Slippage guard — your {data.guardBps / 100}% buffer on size</td><td className="font-mono text-right">{fmt(data.guardWei)} WPHRS</td></tr>
+                    <tr><td className="font-semibold text-ink">Net</td><td className="font-mono text-right font-semibold text-ink">{fmt(data.net)} WPHRS</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-xs text-slate">
+                Contract cross-check: {data.onChainNote}.
+                {data.onChainMatch === false && " The scan above is untrusted — the on-chain quotes disagreed."}
+              </p>
+            </div>
+          )}
 
           {/* verdict */}
           <div className="rounded-xl border border-hairline bg-porcelain p-4">
@@ -409,10 +589,55 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                       ? "The pinned block lagged the tip too far — quotes are not trusted. Re-run the scan."
                       : "A price source failed or a venue is empty — failed reads are errors, never zeros."}
             </p>
-            <button className="btn-outline mt-3" onClick={refetch} disabled={loading}>
+            <button className="btn-outline mt-3" onClick={start} disabled={loading}>
               Re-run scan (free)
             </button>
           </div>
+
+          {/* scan log */}
+          {log.length > 0 && (
+            <div>
+              <h4 className="smallcaps !text-ink mb-2">Scan log — every verdict, kept</h4>
+              <p className="mb-2 text-xs text-slate">
+                Each scan you run is appended here with its block, best route, net and verdict — the
+                same append-only discipline as the CLI&apos;s scans.jsonl. Export it any time.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="data-table w-full">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Block</th>
+                      <th>Best cycle</th>
+                      <th className="text-right">Net</th>
+                      <th>Verdict</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {log.map((e) => (
+                      <tr key={e.scan}>
+                        <td className="font-mono">{e.scan}</td>
+                        <td className="font-mono">{e.pinnedBlock}</td>
+                        <td className="font-mono text-xs">{e.bestCycle}</td>
+                        <td className="font-mono text-right">{e.netWphrs}</td>
+                        <td>
+                          <span className={e.verdict === "OPPORTUNITY" ? "chip-pass" : "chip-fail"}>
+                            {e.verdict}{e.skipReason ? ` — ${e.skipReason}` : ""}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button className="btn-outline" onClick={exportLog}>Export scan log (JSONL)</button>
+                <button className="btn-outline" onClick={() => { setLog([]); lastLoggedRun.current = runId; }}>
+                  Clear log
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* prior on-chain proof */}
           <div className="text-xs text-slate">
@@ -435,8 +660,9 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
 
       {!data && !loading && runId === 0 && (
         <div className="empty-panel px-5 py-6 text-sm text-slate">
-          Set your size, threshold and slippage guard, then run a scan — Atlantic's real venue
-          reserves will appear here, priced at a pinned block.
+          Set your size, threshold and slippage guard, then run a scan — Atlantic&apos;s real venue
+          reserves will appear here, priced at a pinned block, with every one of the twelve cycles
+          laid out and each verdict kept in the scan log.
         </div>
       )}
     </div>

@@ -39,10 +39,10 @@ query — including a SkillEngine query that failed 3 times (`IncompleteRead`).
 
 ## Links
 
-- Code + evidence (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/328f7ce/tasks/t03-docs-mcp-onboarding
-- README: https://github.com/mohamedwael201193/lightkeeper/tree/328f7ce/tasks/t03-docs-mcp-onboarding#readme
-- Raw query log: https://github.com/mohamedwael201193/lightkeeper/tree/328f7ce/tasks/t03-docs-mcp-onboarding/blob/328f7ce/tasks/t03-docs-mcp-onboarding/evidence.json
-- Gap table: https://github.com/mohamedwael201193/lightkeeper/tree/328f7ce/tasks/t03-docs-mcp-onboarding/blob/328f7ce/tasks/t03-docs-mcp-onboarding/evidence.md
+- Code + evidence (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/4830726/tasks/t03-docs-mcp-onboarding
+- README: https://github.com/mohamedwael201193/lightkeeper/tree/4830726/tasks/t03-docs-mcp-onboarding#readme
+- Raw query log: https://github.com/mohamedwael201193/lightkeeper/tree/4830726/tasks/t03-docs-mcp-onboarding/blob/4830726/tasks/t03-docs-mcp-onboarding/evidence.json
+- Gap table: https://github.com/mohamedwael201193/lightkeeper/tree/4830726/tasks/t03-docs-mcp-onboarding/blob/4830726/tasks/t03-docs-mcp-onboarding/evidence.md
 
 ## Share / demo links
 

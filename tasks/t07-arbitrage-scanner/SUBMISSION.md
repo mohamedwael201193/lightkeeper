@@ -13,6 +13,13 @@ Proven on-chain (chain 688689):
 - ACT scan (pinned block 31482138): net +0.138051195909437998 WPHRS > 0.05 threshold → executed leg1 0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30 + leg2 0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad (both status 1); wallet WPHRS 7000 → 7000.139809535909437998, matching the predicted gross to the wei.
 - SKIP / BELOW_THRESHOLD (pinned 31482387, threshold 0.5 WPHRS): real spread nets 0.138 < 0.5 → no broadcast, reason logged.
 - SKIP / NEGATIVE_NET (pinned 31482299): run after our own arb consumed the spread — best route −0.253 WPHRS, reported truthfully.
+- HARDEN op 2026-10-16 (read-only, zero broadcasts, all appended to scans.jsonl): fresh ACT
+  scan (poolC→poolB, net +0.138051195909437998 WPHRS > 0.05 threshold, prepared calls logged,
+  NOT broadcast — scan mode only); fresh BELOW_THRESHOLD skip (threshold 0.5 WPHRS, same real
+  spread); fresh NEGATIVE_NET skip (0.001 size — gas dominates, best route −0.00172 WPHRS).
+  The CLI's twelve-cycle math was cross-verified against the panel's independent TypeScript
+  port on live reserves (same winner, same route; net differs only by the panel's disclosed
+  0.5% slippage guard + live gas price movement between runs).
 - 10/10 tests pass, including a live cross-check that the Python quoter equals ArbPool.getAmountOut on-chain at a pinned block.
 
 ## Repo link (commit-pinned)
@@ -46,12 +53,19 @@ New interactive surface: `apps/console/src/components/try/arbitrage-scanner.tsx`
 
 - Visitor sets **trade size**, **profit threshold**, **slippage guard %**, hits **Run scan**.
 - The panel pins one Atlantic block, reads `getReserves()` on all three venues at that
-  block via `eth_call`, prices the six WPHRS-start directed cycles with the
-  contract-identical constant-product quote math (30 bps/leg on notionals), nets slippage
+  block via `eth_call`, prices **all twelve directed cycles** — six WPHRS-start, six
+  TKB-start, the same set the CLI prices — with the contract-identical constant-product
+  quote math (30 bps/leg on notionals), nets slippage
   + gas (2 legs × 68,744 gas — measured from the mined execution legs — × live
   `eth_gasPrice`) + the slippage guard, and shows a verdict chip:
   **◉ OPPORTUNITY** (net above threshold) or **○ SKIP — BELOW_THRESHOLD / NEGATIVE_NET /
   STALE_QUOTE / NO_LIQUIDITY / SOURCE_DOWN** with the numbers.
+- The differentiator: **the whole market is shown, not just the winner.** All twelve cycles
+  are ranked in two leaderboards (WPHRS-start and TKB-start, ranked separately — the two
+  tokens are different units and are never mixed), with leg outputs, gross, fees and net on
+  every row, losing routes included. Every scan is appended to a session evidence log
+  (block, best cycle, net, verdict, skip reason) with a one-click JSONL export —
+  the same append-only discipline as the CLI's scans.jsonl.
 - The winning route's two legs are cross-checked through the contracts' own
   `getAmountOut` view via `eth_call` at the pinned block — the panel reports
   "contract quotes match the panel math exactly" (wei-identical) or flags the scan
