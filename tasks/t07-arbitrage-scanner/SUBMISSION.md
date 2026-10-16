@@ -13,13 +13,15 @@ Proven on-chain (chain 688689):
 - ACT scan (pinned block 31482138): net +0.138051195909437998 WPHRS > 0.05 threshold → executed leg1 0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30 + leg2 0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad (both status 1); wallet WPHRS 7000 → 7000.139809535909437998, matching the predicted gross to the wei.
 - SKIP / BELOW_THRESHOLD (pinned 31482387, threshold 0.5 WPHRS): real spread nets 0.138 < 0.5 → no broadcast, reason logged.
 - SKIP / NEGATIVE_NET (pinned 31482299): run after our own arb consumed the spread — best route −0.253 WPHRS, reported truthfully.
-- HARDEN op 2026-10-16 (read-only, zero broadcasts, all appended to scans.jsonl): fresh ACT
-  scan (poolC→poolB, net +0.138051195909437998 WPHRS > 0.05 threshold, prepared calls logged,
-  NOT broadcast — scan mode only); fresh BELOW_THRESHOLD skip (threshold 0.5 WPHRS, same real
-  spread); fresh NEGATIVE_NET skip (0.001 size — gas dominates, best route −0.00172 WPHRS).
-  The CLI's twelve-cycle math was cross-verified against the panel's independent TypeScript
-  port on live reserves (same winner, same route; net differs only by the panel's disclosed
-  0.5% slippage guard + live gas price movement between runs).
+- HARDEN op 2026-10-16 (read-only, zero broadcasts, appended to scans.jsonl as records 5–7):
+  ACT `t07-1792133596` (pinned 31487071): poolC→poolB WPHRS-start, net +0.138051195909437998
+  WPHRS > 0.05 threshold, 2 prepared calls logged, NOT broadcast (scan mode only);
+  BELOW_THRESHOLD `t07-1792133650` (pinned 31487103): threshold raised to 0.5 WPHRS, same real
+  spread nets 0.138 < 0.5 → no broadcast, reason logged; NEGATIVE_NET `t07-1792133667`
+  (pinned 31487115): 0.001 WPHRS size, best route −0.001723761305911841 WPHRS → gas dominates,
+  truthful skip. The CLI's twelve-cycle math was cross-verified against the panel's independent
+  TypeScript port on live reserves (same winner poolC→poolB; net differs only by the panel's
+  disclosed 0.5% slippage guard + live gas-price movement between runs).
 - 10/10 tests pass, including a live cross-check that the Python quoter equals ArbPool.getAmountOut on-chain at a pinned block.
 
 ## Repo link (commit-pinned)

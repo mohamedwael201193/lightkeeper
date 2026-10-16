@@ -55,10 +55,17 @@ New interactive surface: `apps/console/src/components/try/swell-line.tsx`
   the CLI), and renders: the trailing streak + verdict chip (**▲ TRENDING UP ×n** /
   **◌ BUILDING** / **○ HOLD** with the honest reason), a sparkline of base fee with
   above-band readings dotted, and a 16-row table (block, base fee gwei, Δ, fastMA(5),
-  slowMA(15), band marker).
+  slowMA(15), band marker). Block numbers link to the Atlantic explorer so every row
+  is one click from on-chain verification. RPC failures show a plain-language error
+  with a **Try again** button — never a dead end.
 - The panel applies the real rule: fastMA(5) vs slowMA(15), 0.5% band, dual condition
   (crossover + raw reading above), 3 consecutive confirmations to FIRE, streak resets on
   any miss. Flat markets render HOLD with the reason — never a manufactured signal.
+- **Spike test tab (SYNTHETIC-CONTROLLED):** a second tab runs the exact same
+  confirmation math (ported faithfully from `src/trend.mjs`) over the controlled
+  harness series (14× 10 gwei, one 5× spike, 6× flat) — streak climbs to 1 at the
+  spike, resets on the dip, result **NO FIRE — HOLD**. Official requirement 4, one
+  click, in the browser. Labeled synthetic everywhere; never mixed with live reads.
 - Read-only: no wallet, no signature, costs nothing. The panel samples one window on
   demand; the CLI holds the streak across runs in `state/runtime.json`.
 

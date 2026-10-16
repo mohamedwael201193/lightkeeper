@@ -37,12 +37,15 @@
 ### Shot 5 — New interactive shot: the live console surface (0:00–0:45, standalone video option)
 **Show:** the LIGHTKEEPER console, task T07 → "Try it live" section.
 **Do:** set threshold 0.05, hit **Run scan**. Scroll: pinned block, the three venue reserves
-read live, the best-route cost decomposition, then the verdict chip (OPPORTUNITY or SKIP with
-the reason). Point at the contract cross-check line ("contract quotes match the panel math
-exactly"). Say it plainly: "Every number here was read from Atlantic just now — no mocks.
-This panel never signs or broadcasts; the execution proof is the two mined legs on the
-explorer tab." This shot replaces nothing — it is the new interactive demo the console now
-offers every visitor.
+read live, the two cycle leaderboards — point out that all twelve cycles are ranked, losers
+included, not just the winner — the best-route cost decomposition, then the verdict chip
+(OPPORTUNITY or SKIP with the reason). Scroll to the scan log: every scan you ran is kept
+with block, route, net and verdict, with a one-click JSONL export. Point at the contract
+cross-check line ("contract quotes match the panel math exactly"). Say it plainly: "Every
+number here was read from Atlantic just now — no mocks. This panel never signs or
+broadcasts; the execution proof is the two mined legs on the explorer tab. And it shows
+its losers — that is the whole point of this build." This shot replaces nothing — it is
+the new interactive demo the console now offers every visitor.
 
 ## Rules for the recording
 

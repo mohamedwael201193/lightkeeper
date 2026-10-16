@@ -79,7 +79,7 @@
           "valueWei": "1000000000"
         }
       ],
-      "signal": "NO SIGNAL \u2014 market flat inside the 0.5% band"
+      "signal": "NO SIGNAL — market flat inside the 0.5% band"
     },
     {
       "blockRange": [
@@ -103,7 +103,32 @@
       "observationsPersisted": 30,
       "priorsLoadedFrom": "state/runtime.json (samplesTotal 30 -> 60)",
       "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
-      "signal": "NO SIGNAL \u2014 market flat inside the 0.5% band"
+      "signal": "NO SIGNAL — market flat inside the 0.5% band"
+    },
+    {
+      "cycle": "2026-10-16T06:37Z",
+      "command": "node bin/run.mjs observe",
+      "mode": "LIVE",
+      "chainId": 688689,
+      "metric": "baseFeePerGas",
+      "blockRange": [
+        31486349,
+        31486378
+      ],
+      "observationsPersisted": 30,
+      "decision": "HOLD",
+      "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+      "signal": "NO SIGNAL — market flat inside the 0.5% band",
+      "gasSpotGwei": [
+        10,
+        10,
+        10,
+        10,
+        10
+      ],
+      "gasSpotNote": "context only, not in MA math",
+      "priorsLoadedFrom": "state/runtime.json (samplesTotal 60 -> 90)",
+      "notes": "2026-10-16 Harden op cycle. Validates two fixes: (1) cast auto-resolution via ~/.foundry/bin without PATH pre-export; (2) report now shows true totals (90 live observations, not tail-60). Streak 0, firesTotal 0 — honest flat-market HOLD."
     }
   ],
   "metric": {

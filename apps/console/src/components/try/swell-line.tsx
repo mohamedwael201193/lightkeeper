@@ -101,6 +101,101 @@ async function sampleTrend(): Promise<TrendResult> {
   return { oldestBlock: oldest, rows, streak, verdict, reason };
 }
 
+interface TrendResult {
+  oldestBlock: number;
+  rows: Row[];
+  streak: number;
+  verdict: "TRENDING_UP" | "BUILDING" | "HOLD";
+  reason: string;
+}
+
+// ---------------------------------------------------------------------------
+// Spike test (CONTROLLED — SYNTHETIC series, same math as the CLI harness).
+// The exact evaluateSeries/decide math from src/trend.mjs, ported faithfully:
+// 14x flat 10 gwei, ONE 5x spike, 6x flat — the streak must climb to 1 then
+// reset on the dip, and never FIRE. This is official requirement 4, one click.
+// Labeled synthetic everywhere it appears; never mixed with live reads.
+// ---------------------------------------------------------------------------
+type TrendClass = "BULLISH" | "BEARISH" | "FLAT" | "WARMUP";
+
+interface SpikeRow {
+  blockNumber: number;
+  valueGwei: number;
+  fastMAGwei: number | null;
+  slowMAGwei: number | null;
+  trend: TrendClass;
+  streak: number;
+  decision: "FIRE" | "HOLD";
+  reason: string;
+}
+
+function classifyTrendT(fastMA: bigint, slowMA: bigint, bandBps: number): "BULLISH" | "BEARISH" | "FLAT" {
+  const SCALE = 10000n;
+  const band = BigInt(bandBps);
+  if (fastMA * SCALE > slowMA * (SCALE + band)) return "BULLISH";
+  if (slowMA * SCALE > fastMA * (SCALE + band)) return "BEARISH";
+  return "FLAT";
+}
+
+function runSpikeTest(): { rows: SpikeRow[]; fired: boolean; endStreak: number } {
+  const G = 1_000_000_000n;
+  const base = 10n * G;
+  const series: bigint[] = Array(14).fill(base).concat([50n * G]).concat(Array(6).fill(base));
+  const values: bigint[] = [];
+  let streak = 0;
+  let lastFireBlock: number | null = null;
+  const rows: SpikeRow[] = [];
+  let fired = false;
+
+  series.forEach((value, i) => {
+    const blockNumber = 99000000 + i;
+    values.push(value);
+    const fastMA = values.length >= FAST ? meanWei(values.slice(-FAST)) : null;
+    const slowMA = values.length >= SLOW ? meanWei(values.slice(-SLOW)) : null;
+
+    let decision: "FIRE" | "HOLD" = "HOLD";
+    let reason: string;
+    let above = false;
+    if (fastMA === null || slowMA === null) {
+      reason = "WARMUP_INSUFFICIENT_SAMPLES";
+      streak = 0;
+    } else {
+      const trend = classifyTrendT(fastMA, slowMA, BAND_BPS);
+      const readingAbove = value * 10000n > slowMA * (10000n + BigInt(BAND_BPS));
+      above = trend === "BULLISH" && readingAbove;
+      streak = above ? streak + 1 : 0;
+      if (trend === "BEARISH") reason = "BEARISH_TREND_STREAK_RESET";
+      else if (trend === "BULLISH" && !readingAbove) reason = "READING_BELOW_BAND_STREAK_RESET";
+      else if (trend === "FLAT") reason = "FLAT_INSIDE_BAND_STREAK_RESET";
+      else reason = `STREAK_${streak}_OF_${CONFIRMATIONS}`;
+      if (above && streak >= CONFIRMATIONS) {
+        const cooled = lastFireBlock === null || blockNumber - lastFireBlock >= 20;
+        if (cooled) {
+          decision = "FIRE";
+          reason = `CONFIRMED_${CONFIRMATIONS}X_ABOVE_BAND`;
+          lastFireBlock = blockNumber;
+          streak = 0;
+          fired = true;
+        } else {
+          reason = "CONFIRMED_BUT_COOLDOWN";
+          streak = 0;
+        }
+      }
+    }
+    rows.push({
+      blockNumber,
+      valueGwei: Number(value) / 1e9,
+      fastMAGwei: fastMA === null ? null : Number(fastMA) / 1e9,
+      slowMAGwei: slowMA === null ? null : Number(slowMA) / 1e9,
+      trend: fastMA === null || slowMA === null ? "WARMUP" : classifyTrendT(fastMA, slowMA, BAND_BPS),
+      streak,
+      decision,
+      reason,
+    });
+  });
+  return { rows, fired, endStreak: streak };
+}
+
 function gwei(wei: bigint | null): string {
   return wei === null ? "—" : (Number(wei) / 1e9).toFixed(3);
 }
@@ -148,6 +243,7 @@ function Sparkline({ rows }: { rows: Row[] }) {
 
 export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
   const [runId, setRunId] = useState(0);
+  const [tab, setTab] = useState<"live" | "spike">("live");
   const { data, loading, error, refetch } = useAtlanticRead<TrendResult>(
     sampleTrend,
     [runId],
@@ -155,6 +251,9 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
   );
 
   const tail = data ? data.rows.slice(-16) : [];
+  const spike = tab === "spike" ? runSpikeTest() : null;
+  const spikeRow = spike ? spike.rows.find((r) => r.valueGwei > 10.0001) : null;
+  const resetRow = spikeRow ? spike.rows[spike.rows.indexOf(spikeRow) + 1] : null;
 
   return (
     <div>
@@ -166,15 +265,102 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
       <h3 className="smallcaps !text-ink mb-2">Trend line, live</h3>
       <p className="mb-5 max-w-3xl text-sm leading-relaxed text-slate">
         The question Swell Line answers: <strong className="text-ink">is gas trending up, or is
-        that just a wave?</strong> This panel samples the same live series the CLI watches —
-        per-block <code className="font-mono text-xs">baseFeePerGas</code> via{" "}
-        <code className="font-mono text-xs">eth_feeHistory</code> — and applies the same rule:
-        fastMA(5) vs slowMA(15), a 0.5% confirmation band, and <strong className="text-ink">3
-        consecutive above-band readings to FIRE</strong>. Any miss resets the streak; a single
-        spike provably cannot trigger it. Every row below was just read from chain — flat markets
-        stay silent here.
+        that just a wave?</strong> The rule: fastMA(5) vs slowMA(15), a 0.5% confirmation band,
+        and <strong className="text-ink">3 consecutive above-band readings to FIRE</strong>. Any
+        miss resets the streak; a single spike provably cannot trigger it.
       </p>
 
+      {/* tabs */}
+      <div className="mb-5 flex gap-2">
+        <button
+          className={tab === "live" ? "btn-primary" : "btn-outline"}
+          onClick={() => setTab("live")}
+        >
+          Live fee market
+        </button>
+        <button
+          className={tab === "spike" ? "btn-primary" : "btn-outline"}
+          onClick={() => setTab("spike")}
+        >
+          Spike test — controlled
+        </button>
+      </div>
+
+      {tab === "spike" && spike && (
+        <div className="space-y-5">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="chip">SYNTHETIC-CONTROLLED</span>
+            <span className="chip">SAME MATH AS `node bin/run.mjs spike-demo`</span>
+          </div>
+          <p className="max-w-3xl text-sm leading-relaxed text-slate">
+            A controlled series: 14 blocks flat at 10 gwei, <strong className="text-ink">one 5×
+            spike</strong>, then 6 blocks flat. This is <em>not</em> chain data — it is the
+            official anti-spike demonstration (requirement 4), run here with the identical
+            confirmation math the CLI uses on live blocks.
+          </p>
+
+          <div className="rounded-xl border border-hairline bg-porcelain p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className={spike.fired ? "chip-pass" : "chip"}>
+                {spike.fired ? "▲ FIRED" : "○ NO FIRE — HOLD"}
+              </span>
+              <span className="text-xs text-slate">end streak {spike.endStreak} · 21 synthetic blocks</span>
+            </div>
+            <p className="mt-2 text-sm text-slate">
+              {spikeRow
+                ? `At block ${spikeRow.blockNumber} the 5× spike lands: streak climbs to 1 — then the very next reading (${resetRow ? resetRow.blockNumber : "?"}) falls below the band (${resetRow ? resetRow.reason : "streak reset"}) and the streak drops back to 0. The raw-reading condition kills the fast-MA echo of the spike, so one spike can never reach 3 confirmations.`
+                : "No spike row found — the harness series may have changed."}
+            </p>
+          </div>
+
+          <div>
+            <h4 className="smallcaps !text-ink mb-2">The full series, row by row</h4>
+            <div className="overflow-x-auto">
+              <table className="data-table w-full">
+                <thead>
+                  <tr>
+                    <th>Block</th>
+                    <th className="text-right">Value (gwei)</th>
+                    <th className="text-right">fastMA(5)</th>
+                    <th className="text-right">slowMA(15)</th>
+                    <th className="text-right">Streak</th>
+                    <th>Decision</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spike.rows.map((r) => (
+                    <tr key={r.blockNumber} className={r.valueGwei > 10.0001 ? "font-semibold" : undefined}>
+                      <td className="font-mono">{r.blockNumber}</td>
+                      <td className="font-mono text-right">{r.valueGwei.toFixed(3)}</td>
+                      <td className="font-mono text-right">{r.fastMAGwei === null ? "—" : r.fastMAGwei.toFixed(3)}</td>
+                      <td className="font-mono text-right">{r.slowMAGwei === null ? "—" : r.slowMAGwei.toFixed(3)}</td>
+                      <td className="font-mono text-right">{r.streak}</td>
+                      <td>
+                        {r.decision === "FIRE" ? (
+                          <span className="chip-pass">▲ FIRE</span>
+                        ) : (
+                          <span className="text-xs text-slate">HOLD</span>
+                        )}
+                      </td>
+                      <td className="font-mono text-xs text-slate">{r.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate">
+            Controlled synthetic series only — the live fee-market tab above reads real blocks.
+            Task: <strong className="text-ink">{lamp.name}</strong>. Tier A — LIGHTKEEPER never
+            sees, holds, or asks for private keys.
+          </p>
+        </div>
+      )}
+
+      {tab === "live" && (
+        <>
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <button className="btn-primary" onClick={() => setRunId((n) => n + 1)} disabled={loading}>
           {loading ? "Sampling Atlantic…" : data ? "Refresh sample" : "Sample the fee market"}
@@ -189,7 +375,14 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
         </span>
       </div>
 
-      {error && <p className="mb-4 text-sm text-fail">{error}</p>}
+      {error && (
+        <div className="mb-4">
+          <p className="mb-2 text-sm text-fail">{error}</p>
+          <button className="btn-outline" onClick={() => setRunId((n) => n + 1)}>
+            Try again
+          </button>
+        </div>
+      )}
       {loading && <p className="mb-4 text-sm text-slate">Reading {WINDOW} blocks of fee history…</p>}
 
       {data && !loading && (
@@ -240,7 +433,16 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                 <tbody>
                   {tail.map((r) => (
                     <tr key={r.blockNumber}>
-                      <td className="font-mono">{r.blockNumber}</td>
+                      <td className="font-mono">
+                        <a
+                          className="underline decoration-dotted underline-offset-2"
+                          href={`https://atlantic.pharosscan.xyz/block/${r.blockNumber}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {r.blockNumber}
+                        </a>
+                      </td>
                       <td className="font-mono text-right">{r.baseFeeGwei.toFixed(3)}</td>
                       <td className="font-mono text-right">
                         {r.deltaGwei === null ? "—" : `${r.deltaGwei >= 0 ? "+" : ""}${r.deltaGwei.toFixed(3)}`}
@@ -273,11 +475,13 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
         </div>
       )}
 
-      {!data && !loading && runId === 0 && (
+      {!data && !loading && !error && runId === 0 && (
         <div className="empty-panel px-5 py-6 text-sm text-slate">
           Sample the fee market to pull {WINDOW} real blocks of Atlantic base-fee history and see
           Swell Line's verdict — with every intermediate number on the table.
         </div>
+      )}
+        </>
       )}
     </div>
   );

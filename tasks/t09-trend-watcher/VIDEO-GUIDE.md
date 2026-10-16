@@ -65,6 +65,15 @@ this — the rule needs three confirmations in a row, and the panel shows you th
 Hit **Refresh sample** (free, no wallet, no signature). This shot is the new interactive
 demo every visitor gets.
 
+### Shot 7 — New: the one-click spike test (0:00–0:25, standalone video option)
+
+**Do:** in the same "Try it live" panel, switch to the **Spike test — controlled** tab.
+**Say:** "And the anti-spike proof, in the browser. A controlled series — fourteen flat
+blocks, one spike five times the baseline, six flat — run through the exact same
+confirmation math as the CLI. Watch row by row: the streak climbs to one at the spike,
+the next reading falls below the band, the streak resets to zero. Result: no fire. It is
+labeled controlled and synthetic on screen — it never pretends to be chain data."
+
 ## Don'ts
 
 - Don't fake a live FIRE — the live market was flat; the honest evidence is HOLD

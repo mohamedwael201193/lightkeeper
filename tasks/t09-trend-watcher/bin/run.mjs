@@ -103,7 +103,7 @@ async function observe() {
 
 async function report() {
   const priors = store.loadPriors(paths);
-  const rows = store.readObservations(paths, 60);
+  const rows = store.readObservations(paths, Number.MAX_SAFE_INTEGER); // full log; "last 10" section below is the recency window
   if (rows.length === 0) {
     console.log("No observations yet. Run: node bin/run.mjs observe");
     return;
@@ -113,7 +113,7 @@ async function report() {
   const live = rows.filter((r) => r.mode === "LIVE");
   const synth = rows.filter((r) => r.mode !== "LIVE");
   console.log("t09-trend-watcher :: observation summary");
-  console.log(`  observations: ${rows.length} (LIVE ${live.length}, synthetic ${synth.length})`);
+  console.log(`  observations: ${rows.length} total (LIVE ${live.length}, synthetic ${synth.length})`);
   console.log(`  block range:  ${rows[0].blockNumber} .. ${rows[rows.length - 1].blockNumber}`);
   console.log(`  decisions:    FIRE x${fires.length} | HOLD x${holds}`);
   console.log(`  current streak: ${priors.streak} | lastFireBlock: ${priors.lastFireBlock ?? "none"} | firesTotal: ${priors.firesTotal ?? 0}`);
