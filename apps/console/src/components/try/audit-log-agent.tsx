@@ -25,8 +25,28 @@
  * LIGHTKEEPER never sees, holds, or asks for private keys. Testnet only (688689).
  */
 import { useEffect, useRef, useState } from "react";
+import {
+  Anchor,
+  FlaskConical,
+  Fingerprint,
+  Link2,
+  ScrollText,
+  ShieldCheck,
+  ShieldX,
+  Swords,
+  Terminal,
+} from "lucide-react";
 import type { Lamp } from "../../types";
 import { EXPLORER_TX, rpcCall } from "../../hooks/useAtlantic";
+import {
+  EmptyState,
+  ErrorState,
+  FeedList,
+  ProgressLoader,
+  ResultCard,
+  StatStrip,
+} from "../ui";
+import type { FeedItem } from "../ui";
 
 /** AUTO-GENERATED from tasks/t24-audit-log-agent/state/audit-log.jsonl — do not hand-edit. */
 const ENTRY_COUNT = 22;
@@ -141,13 +161,36 @@ interface Verdict {
   failures: Failure[];
 }
 
-/** Mirrors `node bin/audit-log.mjs verify` from tasks/t24-audit-log-agent. */
-async function verifyChain(text: string): Promise<Verdict> {
+interface HashedEntry {
+  /** line number among non-blank lines */
+  line: number;
+  e: Record<string, unknown>;
+  recomputed: string;
+}
+
+interface PassA {
+  failures: Failure[];
+  hashed: HashedEntry[];
+  checked: number;
+}
+
+/**
+ * Pass A — hash every entry. Each entry's SHA-256 is a real async digest;
+ * `onHashed` fires per entry so the run UI can name the live entry.
+ * Same checks and failure wording as the CLI's `verify`.
+ */
+async function hashAllEntries(
+  text: string,
+  onHashed?: (done: number, total: number, index: number) => void
+): Promise<PassA> {
   const failures: Failure[] = [];
-  let prev: string | undefined = GENESIS;
-  let i = 0;
+  const hashed: HashedEntry[] = [];
+  const raws: string[] = [];
   for (const raw of text.split("\n")) {
-    if (!raw.trim()) continue;
+    if (raw.trim()) raws.push(raw);
+  }
+  let i = 0;
+  for (const raw of raws) {
     let e: Record<string, unknown>;
     try {
       e = JSON.parse(raw);
@@ -156,6 +199,24 @@ async function verifyChain(text: string): Promise<Verdict> {
       i += 1;
       continue;
     }
+    const recomputed = await entryHashOf(e as never);
+    hashed.push({ line: i, e, recomputed });
+    i += 1;
+    onHashed?.(hashed.length, raws.length, typeof e.index === "number" ? e.index : i - 1);
+  }
+  return { failures, hashed, checked: i };
+}
+
+/**
+ * Pass B — link verification over Pass A's hashes: index sequence, prevHash
+ * links, stored-vs-recomputed entryHash, required fields.
+ */
+function verifyLinks(pass: PassA): Verdict {
+  const failures: Failure[] = [...pass.failures];
+  let prev: string | undefined = GENESIS;
+  for (const h of pass.hashed) {
+    const e = h.e;
+    const i = h.line;
     if (e.index !== i)
       failures.push({ index: i, reason: `index mismatch: expected ${i}, got ${e.index}` });
     if (e.prevHash !== prev)
@@ -165,21 +226,27 @@ async function verifyChain(text: string): Promise<Verdict> {
           e.prevHash ?? ""
         ).slice(0, 12)}…)`,
       });
-    const recomputed = await entryHashOf(e as never);
-    if (recomputed !== e.entryHash)
+    if (h.recomputed !== e.entryHash)
       failures.push({ index: i, reason: "entryHash mismatch — field content was altered after logging" });
     if (!e.timestamp || !e.actor || !e.action)
       failures.push({ index: i, reason: "missing required field (timestamp/actor/action)" });
     prev = typeof e.entryHash === "string" ? e.entryHash : undefined;
-    i += 1;
   }
-  return { ok: failures.length === 0, checked: i, failures };
+  return { ok: failures.length === 0, checked: pass.checked, failures };
+}
+
+/** Mirrors `node bin/audit-log.mjs verify` from tasks/t24-audit-log-agent. */
+async function verifyChain(text: string): Promise<Verdict> {
+  return verifyLinks(await hashAllEntries(text));
 }
 
 interface ParsedEntry {
   index: number;
   action: string;
   raw: string;
+  entryHash: string;
+  prevHash: string;
+  txHash: string | null;
 }
 
 function parseEntries(text: string): ParsedEntry[] {
@@ -187,9 +254,22 @@ function parseEntries(text: string): ParsedEntry[] {
   for (const raw of text.split("\n")) {
     if (!raw.trim()) continue;
     try {
-      const e = JSON.parse(raw) as { index?: unknown; action?: unknown };
+      const e = JSON.parse(raw) as {
+        index?: unknown;
+        action?: unknown;
+        entryHash?: unknown;
+        prevHash?: unknown;
+        txHash?: unknown;
+      };
       if (typeof e.index === "number")
-        out.push({ index: e.index, action: String(e.action ?? "?"), raw });
+        out.push({
+          index: e.index,
+          action: String(e.action ?? "?"),
+          raw,
+          entryHash: typeof e.entryHash === "string" ? e.entryHash : "",
+          prevHash: typeof e.prevHash === "string" ? e.prevHash : "",
+          txHash: typeof e.txHash === "string" ? e.txHash : null,
+        });
     } catch {
       /* unparseable lines are the verifier's job to flag */
     }
@@ -318,64 +398,154 @@ async function checkAnchor(a: (typeof ANCHORS)[number]): Promise<AnchorResult> {
 
 /* ---------------- component ---------------- */
 
+const RUN_STEPS_BASE = ["Verifying links & indexes", "Anchoring on Atlantic — 3 live reads"];
+const ATTACK_STEPS = ["Crafting the tampered copy", "Re-verifying the tampered chain"];
+
+const short = (h: string) => (h.length > 18 ? `${h.slice(0, 10)}…${h.slice(-6)}` : h);
+
 export default function TryAudit({ lamp }: { lamp: Lamp }) {
   const [text, setText] = useState(REAL_CHAIN_JSONL);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
-  const [attack, setAttack] = useState<{ attack: Attack; verdict: Verdict } | null>(null);
-  const [attackRunning, setAttackRunning] = useState<string | null>(null);
+
+  // 02 Run — every step maps to real work, never a timer.
+  const [running, setRunning] = useState(false);
+  const [runStep, setRunStep] = useState(0);
+  const [hashedCount, setHashedCount] = useState(0);
+  const [hashTotal, setHashTotal] = useState(ENTRY_COUNT);
+  const [anchorLabel, setAnchorLabel] = useState("");
+
+  // Anchors on Atlantic (Tier C: live, free RPC reads)
   const [anchors, setAnchors] = useState<AnchorResult[] | null>(null);
-  const [anchorsLoading, setAnchorsLoading] = useState(false);
+  const [anchorError, setAnchorError] = useState<string | null>(null);
+  const [anchorsBusy, setAnchorsBusy] = useState(false);
+
+  // Red-team lab
+  const [attackResult, setAttackResult] = useState<{ attack: Attack; verdict: Verdict } | null>(null);
+  const [attackRunning, setAttackRunning] = useState<string | null>(null);
+  const [attackStep, setAttackStep] = useState(0);
+  const [attacksRun, setAttacksRun] = useState(0);
+
+  // Entry inspector
   const [inspectIdx, setInspectIdx] = useState<number>(ENTRY_COUNT - 1);
   const [inspectHash, setInspectHash] = useState<{ stored: string; live: string } | null>(null);
+
   const runRef = useRef(0);
 
-  // Re-verify on every keystroke — SHA-256 of 22 short lines is instant.
+  // Live re-verify on every keystroke — 22 SHA-256 digests, fully client-side.
   useEffect(() => {
+    if (running) return;
     const run = ++runRef.current;
     verifyChain(text).then((v) => {
       if (runRef.current === run) setVerdict(v);
     });
-  }, [text]);
+  }, [text, running]);
 
   const entries = parseEntries(text);
   const brokenSet = new Set((verdict?.failures ?? []).map((f) => f.index));
   const firstBroken = verdict && !verdict.ok ? verdict.failures[0] : null;
+  const anchorsConfirmed =
+    anchors?.filter((a) => !a.error && (a.calldata === "MATCH" || a.status === "0x1"))
+      .length ?? 0;
+  const terminalHash =
+    entries.length > 0 && entries[entries.length - 1].entryHash
+      ? entries[entries.length - 1].entryHash
+      : TERMINAL_ENTRY_HASH;
 
+  /* ----- 02 Run: the staged audit pipeline ----- */
+  const checkAnchorsLive = async (onStep?: (msg: string) => void): Promise<boolean> => {
+    const results: AnchorResult[] = [];
+    let hadError = false;
+    for (let k = 0; k < ANCHORS.length; k++) {
+      onStep?.(`Reading ${k + 1} of ${ANCHORS.length} — ${ANCHORS[k].label}`);
+      const r = await checkAnchor(ANCHORS[k]);
+      results.push(r);
+      if (r.error) hadError = true;
+    }
+    setAnchors(results);
+    return !hadError;
+  };
+
+  const runPipeline = async (source: string, withAnchor: boolean) => {
+    if (running) return;
+    const myRun = ++runRef.current;
+    setRunning(true);
+    setAnchorError(null);
+    setAttackResult(null);
+    try {
+      // Step 0 — hash every entry: real SHA-256 digests, progress per entry.
+      setRunStep(0);
+      setHashedCount(0);
+      const total = source.split("\n").filter((l) => l.trim()).length;
+      setHashTotal(total);
+      const passA = await hashAllEntries(source, (done) => {
+        if (runRef.current === myRun) setHashedCount(done);
+      });
+      if (runRef.current !== myRun) return;
+      // Step 1 — link verification: index, prevHash, stored-vs-recomputed, fields.
+      setRunStep(1);
+      const v = verifyLinks(passA);
+      setVerdict(v);
+      // Step 2 — anchor: confirm the 3 proof transactions on Atlantic (live reads).
+      if (withAnchor) {
+        setRunStep(2);
+        const clean = await checkAnchorsLive((msg) => {
+          if (runRef.current === myRun) setAnchorLabel(msg);
+        });
+        if (runRef.current !== myRun) return;
+        if (!clean)
+          setAnchorError(
+            "Atlantic didn't answer for every anchor check. The chain verdict above is unaffected — it was computed locally in your browser. Retry the live check below."
+          );
+      }
+      setRunStep(RUN_STEPS_BASE.length + 1);
+    } finally {
+      if (runRef.current === myRun) setRunning(false);
+    }
+  };
+
+  const onVerify = () => runPipeline(text, true);
+
+  const onCheckAnchors = async () => {
+    if (anchorsBusy) return;
+    setAnchorsBusy(true);
+    setAnchorError(null);
+    try {
+      const clean = await checkAnchorsLive();
+      if (!clean)
+        setAnchorError(
+          "Atlantic didn't answer for every anchor check. Retry below — the local chain verdict is unaffected."
+        );
+    } finally {
+      setAnchorsBusy(false);
+    }
+  };
+
+  /* ----- Red-team lab: four attacks, all run live on copies ----- */
   const onAttack = async (a: Attack) => {
+    if (attackRunning) return;
     setAttackRunning(a.id);
+    setAttackStep(0);
+    setAttackResult(null);
     try {
       const copy = await a.make(REAL_CHAIN_JSONL.split("\n"));
+      setAttackStep(1);
       const v = await verifyChain(copy);
-      setAttack({ attack: a, verdict: v });
+      setAttackResult({ attack: a, verdict: v });
+      setAttacksRun((n) => n + 1);
     } finally {
       setAttackRunning(null);
     }
   };
 
-  const onCheckAnchors = async () => {
-    setAnchorsLoading(true);
-    try {
-      const results = await Promise.all(ANCHORS.map(checkAnchor));
-      setAnchors(results);
-    } finally {
-      setAnchorsLoading(false);
-    }
-  };
-
+  /* ----- Entry inspector: stored hash vs live-recomputed hash ----- */
   const onInspect = async (idx: number) => {
     setInspectIdx(idx);
     setInspectHash(null);
-    const line = text.split("\n").find((l) => {
-      try {
-        return (JSON.parse(l) as { index?: number }).index === idx;
-      } catch {
-        return false;
-      }
-    });
-    if (!line) return;
-    const e = JSON.parse(line) as Record<string, unknown>;
+    const entry = entries.find((e) => e.index === idx);
+    if (!entry || !entry.raw) return;
+    const e = JSON.parse(entry.raw) as Record<string, unknown>;
     const live = await entryHashOf(e as never);
-    setInspectHash({ stored: String(e.entryHash ?? "—"), live });
+    setInspectHash({ stored: entry.entryHash || "—", live });
   };
 
   useEffect(() => {
@@ -383,370 +553,493 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // First paint: run the full pipeline (hash → verify → anchor) on the real chain.
+  useEffect(() => {
+    runPipeline(REAL_CHAIN_JSONL, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const inspected = entries.find((e) => e.index === inspectIdx);
+
+  const feedItems: FeedItem[] = [...entries].reverse().map((e) => ({
+    key: String(e.index),
+    node: (
+      <button type="button" onClick={() => onInspect(e.index)} className="flex w-full items-start gap-3 text-left">
+        <span
+          className={`mt-1.5 h-3 w-3 shrink-0 rounded-full ${brokenSet.has(e.index) ? "bg-fail" : "bg-pass"}`}
+          aria-hidden
+        />
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-sm font-semibold text-ink">Entry #{e.index}</span>
+            <span className="font-mono text-xs text-slate">{e.action}</span>
+            {brokenSet.has(e.index) && <span className="chip chip-fail">flagged</span>}
+          </span>
+          <span
+            className="mt-1 block truncate font-mono text-xs text-slate"
+            title={`entryHash ${e.entryHash} · prevHash ${e.prevHash}`}
+          >
+            {short(e.entryHash)} <Link2 size={10} className="inline text-slate" aria-hidden /> {short(e.prevHash)}
+          </span>
+        </span>
+      </button>
+    ),
+  }));
+
+  const runSteps = [
+    `Hashing entry ${Math.min(hashedCount, hashTotal)} of ${hashTotal} — SHA-256`,
+    ...RUN_STEPS_BASE,
+  ];
 
   return (
     <div className="space-y-8">
-      {/* ---- 1. Interactive chain verifier ---- */}
+      {/* ================= 01 — Configure ================= */}
       <section>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-semibold text-ink">
-            Tamper-evident, verifiable in your browser
-          </h3>
-          <span className="chip chip-lit">client-side</span>
-        </div>
-        <p className="mb-3 max-w-3xl text-xs leading-relaxed text-slate">
-          Below is the task's <strong className="text-ink">real</strong> audit chain — all{" "}
-          {ENTRY_COUNT} entries (chain-id reads, two mined dust transfers, receipt
-          confirmations, the mempool-drop disclosures, the chain-anchor tx pinning the log
-          head on-chain, report generation). Every hash recomputes{" "}
-          <strong className="text-ink">entirely in your browser</strong> with SHA-256 over
-          canonical (sorted-key) JSON — the exact algorithm of the task's{" "}
-          <code className="font-mono">audit-log</code> CLI. Nothing is sent anywhere; type,
-          paste, or delete and watch the verdict respond.
+        <p className="mb-1 text-sm font-semibold text-slate">01 · Configure</p>
+        <h3 className="text-xl font-semibold text-ink">Choose the chain to audit</h3>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink">
+          Below is the task's <strong>real</strong> audit chain — all {ENTRY_COUNT} entries:
+          chain-id reads, two mined dust transfers, receipt confirmations, the mempool-drop
+          disclosures, the chain-anchor transaction pinning the log head on-chain, and report
+          generation. Edit anything — flip a character, delete a line — and the verdict
+          re-computes in your browser with the exact algorithm of the task's{" "}
+          <code className="font-mono">audit-log</code> CLI. Nothing leaves your machine.
         </p>
-
-        {/* chain strip */}
-        <div className="mb-3 rounded-xl border border-hairline bg-porcelain p-3">
-          <p className="smallcaps mb-2">chain strip — {entries.length} parsed entries</p>
-          <div className="flex flex-wrap items-center gap-1">
-            <span
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
-              style={{ background: "#2456E6" }}
-              title="genesis prevHash (64 zeros)"
-            >
-              G
-            </span>
-            {entries.map((e) => {
-              const broken = brokenSet.has(e.index);
-              return (
-                <span key={e.index} className="flex items-center gap-1">
-                  <span className="h-px w-2 bg-slate/40" aria-hidden />
-                  <button
-                    className="flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
-                    style={{ background: broken ? "#DC2626" : "#16A34A" }}
-                    title={`entry #${e.index} — ${e.action}${broken ? " — BROKEN" : ""}`}
-                    onClick={() => onInspect(e.index)}
-                  >
-                    {e.index}
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-[11px] text-slate">
-            Click any node to inspect the entry. Green = hash recomputes and link holds;
-            red = the verifier flagged it.
-          </p>
+        <div className="mt-4">
+          <label htmlFor="t24-chain" className="mb-2 block text-sm font-semibold text-slate">
+            Chain under audit (JSONL)
+          </label>
+          <textarea
+            id="t24-chain"
+            className="h-64 w-full rounded-xl border border-hairline bg-porcelain px-3 py-2 font-mono text-xs text-ink disabled:opacity-60"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={running}
+            spellCheck={false}
+            aria-label="Audit chain (JSONL) to verify"
+          />
         </div>
-
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          {verdict && verdict.ok && (
-            <span className="chip chip-pass">
-              CHAIN VALID — {verdict.checked}/{ENTRY_COUNT} entries
-            </span>
-          )}
-          {verdict && !verdict.ok && (
-            <span className="chip chip-fail">
-              BROKEN AT ENTRY {firstBroken ? firstBroken.index : "—"}
-            </span>
-          )}
-          {!verdict && <span className="chip chip-dim">verifying…</span>}
-          <button className="btn-outline" onClick={() => setText(REAL_CHAIN_JSONL)}>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn-primary min-h-[44px]"
+            onClick={onVerify}
+            disabled={running}
+          >
+            {running ? "Auditing…" : "Verify chain"}
+          </button>
+          <button
+            type="button"
+            className="btn-outline min-h-[44px]"
+            onClick={() => setText(REAL_CHAIN_JSONL)}
+            disabled={running}
+          >
             Restore the real chain
           </button>
         </div>
+      </section>
 
-        <textarea
-          className="h-72 w-full rounded-lg border border-hairline bg-porcelain px-3 py-2 font-mono text-xs text-ink"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          aria-label="Audit chain (JSONL) to verify"
-          spellCheck={false}
-        />
+      {/* ================= 02 — Run ================= */}
+      {running && (
+        <section aria-live="polite">
+          <ProgressLoader
+            steps={runSteps}
+            current={runStep}
+            title={
+              runStep === 2 && anchorLabel
+                ? anchorLabel
+                : `Auditing the ${hashTotal}-entry chain`
+            }
+          />
+        </section>
+      )}
 
-        {verdict && !verdict.ok && (
-          <div className="mt-2 rounded-xl border border-fail/40 bg-porcelain p-4">
-            <p className="mb-2 text-sm font-semibold text-fail">
-              {verdict.failures.length} failure{verdict.failures.length === 1 ? "" : "s"} in{" "}
-              {verdict.checked} checked entries:
-            </p>
-            <ul className="space-y-1">
-              {verdict.failures.map((f, n) => (
-                <li key={n} className="font-mono text-xs text-ink">
-                  entry <strong>#{f.index}</strong> — {f.reason}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* entry inspector */}
-        <div className="mt-4 rounded-xl border border-hairline bg-porcelain p-4">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold text-ink">Entry inspector</h4>
-            <select
-              className="rounded-lg border border-hairline bg-white px-2 py-1 font-mono text-xs text-ink"
-              value={inspectIdx}
-              onChange={(e) => onInspect(Number(e.target.value))}
-              aria-label="Choose an entry to inspect"
+      {/* ================= 03 — Result ================= */}
+      {!running && verdict && (
+        <>
+          <section>
+            <p className="mb-3 text-sm font-semibold text-slate">03 · Result</p>
+            <ResultCard
+              eyebrow="Result — chain verification"
+              headline={verdict.ok ? "Intact" : "Broken"}
+              status={verdict.ok ? "pass" : "fail"}
+              subline={
+                verdict.ok ? (
+                  <>
+                    All {verdict.checked} entries re-hashed in your browser and every prevHash
+                    link holds. This is the task's own log — and its head is pinned on Atlantic
+                    by a mined anchor transaction you can check below.
+                  </>
+                ) : (
+                  <>
+                    The chain is broken — {verdict.failures.length} failure
+                    {verdict.failures.length === 1 ? "" : "s"} across {verdict.checked} checked
+                    entries, first at entry #{firstBroken ? firstBroken.index : "—"}. The
+                    red-team lab below shows exactly how tampering gets caught.
+                  </>
+                )
+              }
+              rows={[
+                { label: "Entries checked", value: `${verdict.checked} of ${ENTRY_COUNT}` },
+                { label: "Failures found", value: String(verdict.failures.length) },
+                {
+                  label: "Terminal entryHash",
+                  value: <span title={terminalHash}>{short(terminalHash)}</span>,
+                },
+                {
+                  label: "Anchored hash (entry #20)",
+                  value: <span title={ANCHOR_SOURCE.hash}>{short(ANCHOR_SOURCE.hash)}</span>,
+                },
+                { label: "Genesis prevHash", value: <span title={GENESIS}>{short(GENESIS)}</span> },
+                {
+                  label: "Algorithm",
+                  value: "SHA-256 over canonical sorted-key JSON — same as the CLI",
+                },
+                { label: "On-chain spend", value: "0.000363512000063512 PHRS of the 0.15 budget" },
+              ]}
+              links={[
+                { label: "View the anchor transaction", href: `${EXPLORER_TX}${ANCHORS[2].hash}` },
+                { label: "View dust transfer 1", href: `${EXPLORER_TX}${ANCHORS[0].hash}` },
+                { label: "View dust transfer 2", href: `${EXPLORER_TX}${ANCHORS[1].hash}` },
+              ]}
+              copyValue={terminalHash}
             >
-              {entries.map((e) => (
-                <option key={e.index} value={e.index}>
-                  #{e.index} — {e.action}
-                </option>
-              ))}
-            </select>
-            {inspectHash && (
-              <span
-                className={`chip ${inspectHash.stored === inspectHash.live ? "chip-pass" : "chip-fail"}`}
-              >
-                {inspectHash.stored === inspectHash.live ? "hash recomputes ✓" : "hash mismatch ✗"}
-              </span>
-            )}
-          </div>
-          {inspected && inspectHash && (
-            <table className="data-table">
-              <tbody>
-                <tr>
-                  <td className="font-semibold text-ink">stored entryHash</td>
-                  <td className="break-all font-mono text-xs text-ink">{inspectHash.stored}</td>
-                </tr>
-                <tr>
-                  <td className="font-semibold text-ink">recomputed live</td>
-                  <td className="break-all font-mono text-xs text-ink">{inspectHash.live}</td>
-                </tr>
-                <tr>
-                  <td className="font-semibold text-ink">action</td>
-                  <td className="font-mono text-xs text-ink">
-                    {(() => {
-                      try {
-                        return (JSON.parse(inspected.raw) as { action?: string }).action;
-                      } catch {
-                        return "—";
-                      }
-                    })()}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="font-semibold text-ink">txHash</td>
-                  <td className="break-all font-mono text-xs text-ink">
-                    {(() => {
-                      try {
-                        const t = (JSON.parse(inspected.raw) as { txHash?: string | null }).txHash;
-                        return t ? (
-                          <a
-                            className="text-accent hover:underline"
-                            href={`${EXPLORER_TX}${t}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {t}
-                          </a>
-                        ) : (
-                          "—"
-                        );
-                      } catch {
-                        return "—";
-                      }
-                    })()}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-          {!inspected && <p className="text-xs text-slate">No parseable entries in the textarea.</p>}
-        </div>
-      </section>
-
-      {/* ---- 2. Red-team lab ---- */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-semibold text-ink">Red-team the chain</h3>
-          <span className="chip chip-lit">four attacks, live copies</span>
-        </div>
-        <p className="mb-3 max-w-3xl text-xs leading-relaxed text-slate">
-          Each attack runs against a <strong className="text-ink">copy</strong> of the real
-          chain — the original above is never touched. The verdict recomputes in your
-          browser with the same verifier.
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {ATTACKS.map((a) => (
-            <div key={a.id} className="rounded-xl border border-hairline bg-porcelain p-4">
-              <p className="mb-1 text-sm font-semibold text-ink">{a.name}</p>
-              <p className="mb-3 font-mono text-xs text-slate">{a.desc}</p>
-              <button
-                className="btn-outline"
-                onClick={() => onAttack(a)}
-                disabled={attackRunning !== null}
-              >
-                {attackRunning === a.id ? "Attacking…" : "Run attack on a copy"}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {attack && (
-          <div className="mt-3 rounded-xl border border-hairline bg-porcelain p-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-ink">
-                {attack.attack.name} — <span className="font-mono text-xs text-slate">{attack.attack.desc}</span>
-              </p>
-              <span className="chip chip-fail">
-                BROKEN AT ENTRY {attack.verdict.failures[0]?.index ?? "—"}
-              </span>
-            </div>
-            <ul className="mb-3 space-y-1">
-              {attack.verdict.failures.slice(0, 6).map((f, n) => (
-                <li key={n} className="font-mono text-xs text-ink">
-                  entry <strong>#{f.index}</strong> — {f.reason}
-                </li>
-              ))}
-              {attack.verdict.failures.length > 6 && (
-                <li className="font-mono text-xs text-slate">
-                  …and {attack.verdict.failures.length - 6} more
-                </li>
+              {verdict.failures.length > 0 && (
+                <div className="rounded-xl border border-fail/40 bg-[#FEF2F2] p-4" role="alert">
+                  <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-fail">
+                    <ShieldX size={16} aria-hidden />
+                    {verdict.failures.length} failure{verdict.failures.length === 1 ? "" : "s"} —
+                    the chain names every broken entry
+                  </p>
+                  <ul className="space-y-1">
+                    {verdict.failures.slice(0, 8).map((f, n) => (
+                      <li key={n} className="font-mono text-xs text-ink">
+                        entry <strong>#{f.index}</strong> — {f.reason}
+                      </li>
+                    ))}
+                    {verdict.failures.length > 8 && (
+                      <li className="font-mono text-xs text-slate">
+                        …and {verdict.failures.length - 8} more
+                      </li>
+                    )}
+                  </ul>
+                </div>
               )}
-            </ul>
-            <p className="text-xs leading-relaxed text-slate">
-              <strong className="text-ink">Why the chain catches it:</strong> {attack.attack.why}
+            </ResultCard>
+          </section>
+
+          <section>
+            <StatStrip
+              stats={[
+                { label: "Entries checked", value: verdict.checked, icon: <ScrollText size={16} aria-hidden /> },
+                { label: "Failures found", value: verdict.failures.length, icon: <ShieldX size={16} aria-hidden /> },
+                { label: "Attacks run", value: attacksRun, icon: <Swords size={16} aria-hidden /> },
+                { label: "Anchors confirmed", value: anchorsConfirmed, icon: <Anchor size={16} aria-hidden /> },
+              ]}
+            />
+          </section>
+
+          <section>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <ScrollText size={18} className="text-accent" aria-hidden />
+              <h3 className="text-xl font-semibold text-ink">The chain — a linked ledger</h3>
+            </div>
+            <p className="mb-3 max-w-3xl text-sm leading-relaxed text-slate">
+              Every entry's hash covers the previous entry's hash — a ledger where each line
+              seals the one before it. Newest first; click any entry to inspect it below.
             </p>
-          </div>
-        )}
-      </section>
+            {entries.length === 0 ? (
+              <EmptyState
+                title="No entries to audit"
+                message="The textarea is empty — there is nothing to verify. That's an honest answer, not an error."
+                actionLabel="Restore the real chain"
+                onAction={() => setText(REAL_CHAIN_JSONL)}
+              />
+            ) : (
+              <FeedList items={feedItems} maxHeight="max-h-[28rem]" emptyText="No entries yet." />
+            )}
+          </section>
 
-      {/* ---- 3. Verify our proof ---- */}
-      <section>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-semibold text-ink">Verify our proof</h3>
-          <span className="chip chip-dim">the task's own chain</span>
-        </div>
-        <table className="data-table">
-          <tbody>
-            <tr>
-              <td className="font-semibold text-ink">Entries</td>
-              <td className="font-mono text-ink">{ENTRY_COUNT} (indices 0–{ENTRY_COUNT - 1})</td>
-            </tr>
-            <tr>
-              <td className="font-semibold text-ink">Genesis prevHash</td>
-              <td className="font-mono text-ink">{GENESIS}</td>
-            </tr>
-            <tr>
-              <td className="font-semibold text-ink">Terminal entryHash (entry #{ENTRY_COUNT - 1})</td>
-              <td className="break-all font-mono text-ink">{TERMINAL_ENTRY_HASH}</td>
-            </tr>
-            <tr>
-              <td className="font-semibold text-ink">Algorithm</td>
-              <td className="text-ink">SHA-256 over canonical (sorted-key, recursive) JSON — same as the CLI</td>
-            </tr>
-            <tr>
-              <td className="font-semibold text-ink">On-chain spend</td>
-              <td className="font-mono text-ink">0.000363512000063512 PHRS of the 0.15 budget</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div className="mt-4">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold text-ink">Anchor transactions on Atlantic</h4>
-            <button className="btn-outline" onClick={onCheckAnchors} disabled={anchorsLoading}>
-              {anchorsLoading ? "Reading from Atlantic…" : "Confirm all three on Atlantic"}
-            </button>
-          </div>
-          <p className="mb-2 text-xs text-slate">
-            The two dust transfers (entries #10 and #12) and the chain-anchor tx (entry #21)
-            are real, mined Atlantic transactions. The anchor tx's{" "}
-            <strong className="text-ink">calldata is entry #20's entryHash</strong> — the live
-            check below fetches the mined transaction and compares its input data to that
-            hash. All checks are live, free reads against the public Atlantic RPC — no
-            wallet, no signature.
-          </p>
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Anchor</th>
-                  <th>Explorer</th>
-                  <th className="text-right">Receipt</th>
-                  <th className="text-right">Block</th>
-                  <th className="text-right">Calldata check</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ANCHORS.map((a) => {
-                  const check = anchors?.find((c) => c.hash === a.hash);
-                  return (
-                    <tr key={a.hash}>
-                      <td className="text-ink">{a.label}</td>
-                      <td>
+          <section>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Fingerprint size={18} className="text-accent" aria-hidden />
+              <h3 className="text-xl font-semibold text-ink">Entry inspector</h3>
+            </div>
+            <div className="rounded-2xl border border-hairline bg-white p-5 sm:p-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  className="min-h-[44px] rounded-lg border border-hairline bg-porcelain px-2 py-1 font-mono text-sm text-ink"
+                  value={inspectIdx}
+                  onChange={(e) => onInspect(Number(e.target.value))}
+                  aria-label="Choose an entry to inspect"
+                >
+                  {entries.map((e) => (
+                    <option key={e.index} value={e.index}>
+                      #{e.index} — {e.action}
+                    </option>
+                  ))}
+                </select>
+                {inspectHash && (
+                  <span
+                    className={`chip ${inspectHash.stored === inspectHash.live ? "chip-pass" : "chip-fail"}`}
+                  >
+                    {inspectHash.stored === inspectHash.live ? "hash recomputes ✓" : "hash mismatch ✗"}
+                  </span>
+                )}
+              </div>
+              {inspected && inspectHash && (
+                <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+                  <div className="border-t border-hairline pt-3">
+                    <dt className="text-sm font-semibold text-slate">Stored entryHash</dt>
+                    <dd className="mt-1 break-all font-mono text-xs text-ink" title={inspectHash.stored}>
+                      {inspectHash.stored}
+                    </dd>
+                  </div>
+                  <div className="border-t border-hairline pt-3">
+                    <dt className="text-sm font-semibold text-slate">Recomputed live</dt>
+                    <dd className="mt-1 break-all font-mono text-xs text-ink" title={inspectHash.live}>
+                      {inspectHash.live}
+                    </dd>
+                  </div>
+                  <div className="border-t border-hairline pt-3">
+                    <dt className="text-sm font-semibold text-slate">Action</dt>
+                    <dd className="mt-1 font-mono text-xs text-ink">{inspected.action}</dd>
+                  </div>
+                  <div className="border-t border-hairline pt-3">
+                    <dt className="text-sm font-semibold text-slate">Transaction</dt>
+                    <dd className="mt-1 break-all font-mono text-xs text-ink">
+                      {inspected.txHash ? (
                         <a
-                          className="font-mono text-xs text-accent hover:underline"
-                          href={`${EXPLORER_TX}${a.hash}`}
+                          className="text-accent hover:underline"
+                          href={`${EXPLORER_TX}${inspected.txHash}`}
                           target="_blank"
                           rel="noreferrer"
+                          title={inspected.txHash}
                         >
-                          {a.hash.slice(0, 12)}…{a.hash.slice(-8)}
+                          {short(inspected.txHash)}
                         </a>
-                      </td>
-                      <td className="text-right font-mono text-ink">
-                        {check ? (
-                          check.error ? (
-                            <span className="text-fail">{check.error}</span>
-                          ) : (
-                            check.status
-                          )
-                        ) : (
-                          <span className="text-slate">—</span>
-                        )}
-                      </td>
-                      <td className="text-right font-mono text-ink">
-                        {check ? check.block : <span className="text-slate">—</span>}
-                      </td>
-                      <td className="text-right font-mono text-ink">
-                        {a.kind === "calldata" ? (
-                          check ? (
-                            check.calldata === "MATCH" ? (
-                              <span className="chip chip-pass">input == entry #{ANCHOR_SOURCE.index} hash ✓</span>
+                      ) : (
+                        "—"
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+              {!inspected && (
+                <p className="mt-2 text-sm text-slate">No parseable entries in the textarea.</p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <FlaskConical size={18} className="text-accent" aria-hidden />
+              <h3 className="text-xl font-semibold text-ink">Red-team the chain</h3>
+              <span className="chip chip-lit">four attacks, live copies</span>
+            </div>
+            <p className="mb-4 max-w-3xl text-sm leading-relaxed text-slate">
+              Each attack runs against a <strong className="text-ink">copy</strong> of the real
+              chain — the original is never touched. The verdict recomputes in your browser
+              with the same verifier. Every attack should fail: that's the point.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {ATTACKS.map((a) => (
+                <div key={a.id} className="rounded-2xl border border-hairline bg-white p-5">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-fail/10">
+                      <Swords size={18} className="text-fail" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-ink">{a.name}</p>
+                      <p className="truncate font-mono text-xs text-slate" title={a.desc}>{a.desc}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-outline mt-4 min-h-[44px]"
+                    onClick={() => onAttack(a)}
+                    disabled={attackRunning !== null}
+                  >
+                    {attackRunning === a.id ? "Attacking…" : "Run attack on a copy"}
+                  </button>
+                  {attackRunning === a.id && (
+                    <div className="mt-4">
+                      <ProgressLoader steps={ATTACK_STEPS} current={attackStep} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {attackResult && !attackRunning && (
+              <div className="mt-4 overflow-hidden rounded-2xl border border-hairline bg-white">
+                <div className="flex items-center gap-3 border-b border-hairline bg-[#FEF2F2] px-5 py-4">
+                  <Swords size={20} className="shrink-0 text-fail" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink">
+                      {attackResult.attack.name} — attack executed on a copy
+                    </p>
+                    <p className="truncate font-mono text-xs text-slate" title={attackResult.attack.desc}>
+                      {attackResult.attack.desc}
+                    </p>
+                  </div>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ShieldCheck size={18} className="text-pass" aria-hidden />
+                    <p className="text-base font-semibold text-ink">
+                      The chain fought back — detected at entry #
+                      {attackResult.verdict.failures[0]?.index ?? "—"}
+                    </p>
+                    <span className="chip chip-pass">attack foiled</span>
+                  </div>
+                  <ul className="mt-3 space-y-1">
+                    {attackResult.verdict.failures.slice(0, 4).map((f, n) => (
+                      <li key={n} className="font-mono text-xs text-ink">
+                        entry <strong>#{f.index}</strong> — {f.reason}
+                      </li>
+                    ))}
+                    {attackResult.verdict.failures.length > 4 && (
+                      <li className="font-mono text-xs text-slate">
+                        …and {attackResult.verdict.failures.length - 4} more
+                      </li>
+                    )}
+                  </ul>
+                  <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate">
+                    <strong className="text-ink">Why the chain catches it:</strong>{" "}
+                    {attackResult.attack.why}
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <h3 className="text-xl font-semibold text-ink">Verify our proof</h3>
+              <span className="chip chip-dim">live reads on Atlantic</span>
+            </div>
+            <p className="mb-3 max-w-3xl text-sm leading-relaxed text-slate">
+              The two dust transfers (entries #10 and #12) and the chain-anchor transaction
+              (entry #21) are real, mined Atlantic transactions. The anchor transaction's{" "}
+              <strong className="text-ink">calldata is entry #20's entryHash</strong> — the live
+              check fetches the mined transaction and compares its input data to that hash. All
+              checks are free reads against the public Atlantic RPC — no wallet, no signature.
+            </p>
+            <div className="mb-3">
+              <button
+                type="button"
+                className="btn-primary min-h-[44px]"
+                onClick={onCheckAnchors}
+                disabled={anchorsBusy}
+              >
+                {anchorsBusy ? "Reading from Atlantic…" : "Confirm all three on Atlantic"}
+              </button>
+            </div>
+            {anchorError && (
+              <div className="mb-3">
+                <ErrorState
+                  title="The live check didn't complete"
+                  message={anchorError}
+                  hint="This is usually a temporary RPC hiccup — the local chain verdict above is unaffected."
+                  retryLabel="Retry the live check"
+                  onRetry={onCheckAnchors}
+                />
+              </div>
+            )}
+            <div className="overflow-x-auto rounded-2xl border border-hairline bg-white">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Anchor</th>
+                    <th>Explorer</th>
+                    <th className="text-right">Receipt</th>
+                    <th className="text-right">Block</th>
+                    <th className="text-right">Calldata check</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ANCHORS.map((a) => {
+                    const check = anchors?.find((c) => c.hash === a.hash);
+                    return (
+                      <tr key={a.hash}>
+                        <td className="text-ink">{a.label}</td>
+                        <td>
+                          <a
+                            className="font-mono text-xs text-accent hover:underline"
+                            href={`${EXPLORER_TX}${a.hash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={a.hash}
+                          >
+                            {a.hash.slice(0, 12)}…{a.hash.slice(-8)}
+                          </a>
+                        </td>
+                        <td className="text-right font-mono text-ink">
+                          {check ? (
+                            check.error ? (
+                              <span className="text-fail">{check.error}</span>
                             ) : (
-                              <span className="text-fail">{check.calldata ?? check.error ?? "—"}</span>
+                              check.status
                             )
                           ) : (
-                            <span className="text-slate">press “Confirm…”</span>
-                          )
-                        ) : (
-                          <span className="text-slate">n/a</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-2 font-mono text-[11px] text-slate">
-            anchored hash (entry #{ANCHOR_SOURCE.index}): {ANCHOR_SOURCE.hash}
-          </p>
-        </div>
+                            <span className="text-slate">—</span>
+                          )}
+                        </td>
+                        <td className="text-right font-mono text-ink">
+                          {check ? check.block : <span className="text-slate">—</span>}
+                        </td>
+                        <td className="text-right font-mono text-ink">
+                          {a.kind === "calldata" ? (
+                            check ? (
+                              check.calldata === "MATCH" ? (
+                                <span className="chip chip-pass">
+                                  input == entry #{ANCHOR_SOURCE.index} hash ✓
+                                </span>
+                              ) : (
+                                <span className="text-fail">{check.calldata ?? check.error ?? "—"}</span>
+                              )
+                            ) : (
+                              <span className="text-slate">press "Confirm…"</span>
+                            )
+                          ) : (
+                            <span className="text-slate">n/a</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 break-all font-mono text-xs text-slate">
+              anchored hash (entry #{ANCHOR_SOURCE.index}): {ANCHOR_SOURCE.hash}
+            </p>
+          </section>
 
-        <div className="mt-4">
-          <h4 className="mb-2 text-sm font-semibold text-ink">Reproduce everything offline</h4>
-          <div className="code-block">
-            cd tasks/t24-audit-log-agent
-            <br />
-            node bin/audit-log.mjs verify
-            <br />
-            node --test "test/*.test.mjs"
-          </div>
-          <p className="mt-2 text-xs text-slate">
-            Run this in your own terminal — LIGHTKEEPER never executes it for you.{" "}
-            <code className="font-mono">verify</code> replays the chain and also proves the
-            negative: tampered <em>copies</em> fail naming the exact entry, while the
-            original stays PASS.
-          </p>
-        </div>
-      </section>
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <Terminal size={18} className="text-accent" aria-hidden />
+              <h3 className="text-xl font-semibold text-ink">Reproduce everything offline</h3>
+            </div>
+            <div className="code-block">
+              cd tasks/t24-audit-log-agent
+              <br />
+              node bin/audit-log.mjs verify
+              <br />
+              node --test "test/*.test.mjs"
+            </div>
+            <p className="mt-2 max-w-3xl text-sm text-slate">
+              Run this in your own terminal — LIGHTKEEPER never executes it for you.{" "}
+              <code className="font-mono">verify</code> replays the chain and also proves the
+              negative: tampered <em>copies</em> fail naming the exact entry, while the
+              original stays PASS.
+            </p>
+          </section>
+        </>
+      )}
 
-      <p className="text-xs text-slate">
+      <p className="text-sm text-slate">
         Tier C surface: computation happens in your browser; commands run in your terminal; the
         console never signs. {lamp.name} has no key, no signer, no broadcast path.
         LIGHTKEEPER never sees, holds, or asks for private keys. Testnet only (688689).
