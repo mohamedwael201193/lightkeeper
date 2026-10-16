@@ -7,6 +7,4 @@
 | https://atlantic.pharosscan.xyz/ | 200 | Atlantic explorer root |
 | https://github.com/mohamedwael201193/lightkeeper/tree/cefa397710530677a6ab7a61e29afed868d0e41b/tasks/t17-nl-payment-agent | commit-pinned (push pending) | Canonical repo path for this task — SUBMISSION.md |
 
-Note: unauthenticated curl against `https://github.com/mohamedwael201193/lightkeeper`
-returns 404 because the repo is private; the commit-pinned tree link above is
-the submission artifact (repo access is via the user's GitHub session).
+| https://github.com/mohamedwael201193/lightkeeper | 200 | Repo root (publicly reachable; commit-pinned tree link above is the submission artifact) |
