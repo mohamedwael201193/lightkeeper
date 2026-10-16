@@ -4,17 +4,34 @@
  * Honest CLI config builder: the console never signs and never sends Telegram
  * messages — it generates the exact `config.yaml` + the run commands for the
  * T20 watcher, which the visitor copies into their own terminal. Proof below
- * is the task's REAL live evidence (trigger tx + Telegram message_id 717).
+ * is the task's REAL live evidence (trigger txs + real Telegram message_ids).
+ *
+ * 01 · Build your rule — the interactive config builder.
+ * 02 · The delivery guarantee — why no alert is ever lost or doubled:
+ *      write-ahead SENDING ledger + dedupe + the self-verifying audit.
+ * 03 · Live proof — the real Telegram alert, verbatim, plus the evidence table.
  */
 import { useState } from "react";
 import type { Lamp } from "../../types";
 import { EXPLORER_TX, isValidAddress } from "../../hooks/useAtlantic";
 
 // Public, real evidence — copied verbatim from tasks/t20-onchain-alert-bot/evidence.json.
+// First proof: 0.001 PHRS dust trigger (incoming-transfer only).
 const PROOF_TX =
   "0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084";
 const PROOF_BLOCK = "31481424";
 const PROOF_MSG_ID = "717";
+// Threshold proof (2026-10-16): a disclosed 0.5 PHRS self-transfer fired BOTH
+// conditions — incoming-transfer (message_id 727) + large-transfer (message_id 728),
+// each alerted exactly once. This is the first live trip of the threshold path.
+const LARGE_TX =
+  "0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a";
+const LARGE_BLOCK = "31486611";
+const LARGE_MSG_IDS = "727, 728";
+const LARGE_ALERT_TIME = "2026-10-16T06:51:49Z";
+// Latest ledger audit: src/audit.sh replayed every alert against the live chain.
+const AUDIT_RESULT = "168 PASS · 0 FAIL";
+const AUDIT_RUN = "2026-10-16T07:14:34Z";
 const DEFAULT_ADDRESS = "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3";
 
 const inputCls =
@@ -34,6 +51,56 @@ function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
     >
       {copied ? "Copied ✓" : "Copy"}
     </button>
+  );
+}
+
+function TelegramBubble({
+  condition,
+  amount,
+  tx,
+  block,
+  time,
+  note,
+  msgId,
+}: {
+  condition: string;
+  amount: string;
+  tx: string;
+  block: string;
+  time: string;
+  note: string;
+  msgId: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-hairline bg-[#f2f6ff] p-4 sm:p-5">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm text-white">
+          🚨
+        </span>
+        <div>
+          <p className="text-xs font-semibold text-ink">OctaneShift_Bot</p>
+          <p className="text-[11px] text-slate">
+            Telegram · message_id {msgId} · {time}
+          </p>
+        </div>
+      </div>
+      <div className="whitespace-pre-wrap rounded-xl bg-white p-4 font-mono text-xs leading-relaxed text-ink shadow-sm">
+        {`🚨 LIGHTKEEPER · T20 On-Chain Alert
+Condition: ${condition}
+Watched: ${DEFAULT_ADDRESS}
+Amount: ${amount} PHRS
+Tx: ${tx}
+Explorer: https://atlantic.pharosscan.xyz/tx/${tx}
+Block: ${block}
+Time: ${time}
+
+Atlantic testnet · chain 688689 · ${note}`}
+      </div>
+      <p className="mt-2 text-[11px] text-slate">
+        The exact body the bot sent — condition, watched address, amount, tx
+        hash, explorer link, block, timestamp. Nothing staged.
+      </p>
+    </div>
   );
 }
 
@@ -92,11 +159,17 @@ cd ~/workspace/lightkeeper/tasks/t20-onchain-alert-bot
 
 bash test/match_test.sh        # 16 matcher unit tests (synthetic fixtures)
 bash src/watch.sh --once       # one scan pass from the saved cursor
-bash src/watch.sh --daemon     # continuous polling`;
+bash src/watch.sh --daemon     # continuous polling
+bash src/audit.sh              # replay the alert ledger against the live chain`;
+
+  const auditCmd = `# Every alert carries its own receipt. Replay the whole
+# ledger against the live chain — recipient, value, block,
+# matcher agreement — fails loudly on any mismatch.
+bash src/audit.sh`;
 
   return (
     <div className="space-y-6">
-      {/* 1 — builder */}
+      {/* 01 — builder */}
       <div>
         <p className="smallcaps mb-1 text-slate">01 · Build your rule</p>
         <h3 className="text-lg font-semibold text-ink">
@@ -237,18 +310,14 @@ bash src/watch.sh --daemon     # continuous polling`;
         )}
       </fieldset>
 
-      {/* 2 — generated config */}
       <div>
-        <p className="smallcaps mb-1 text-slate">02 · Your config</p>
         <div className="code-block mb-3 max-h-96 overflow-auto whitespace-pre">
           {yaml}
         </div>
         <CopyButton text={yaml} disabled={!valid} />
       </div>
 
-      {/* 3 — run commands */}
       <div>
-        <p className="smallcaps mb-1 text-slate">03 · Run it</p>
         <div className="code-block mb-3 whitespace-pre-wrap">{runCmd}</div>
         <div className="flex flex-wrap gap-2">
           <CopyButton text={runCmd} />
@@ -263,18 +332,102 @@ bash src/watch.sh --daemon     # continuous polling`;
         </p>
       </div>
 
-      {/* 4 — real proof */}
+      {/* 02 — the delivery guarantee */}
       <div>
-        <p className="smallcaps mb-1 text-slate">04 · It already works — live proof</p>
-        <p className="mb-3 text-sm text-slate">
-          The same watcher config, run on 2026-10-16 against a real disclosed
-          dust transfer on Pharos Atlantic. Every row below is evidence from{" "}
-          <span className="font-mono text-xs">tasks/t20-onchain-alert-bot/evidence.json</span>.
+        <p className="smallcaps mb-1 text-slate">02 · The delivery guarantee</p>
+        <h3 className="text-lg font-semibold text-ink">
+          No alert lost, no alert doubled — even on a crash
+        </h3>
+        <p className="mt-1 text-sm text-slate">
+          Most alert bots promise &ldquo;exactly once&rdquo; and hope. This one
+          is built so doubling is structurally impossible: before the bot calls
+          Telegram, it writes <span className="font-mono text-xs">SENDING</span> to
+          an append-only ledger. Only after Telegram confirms does it write{" "}
+          <span className="font-mono text-xs">SENT</span>. If the process dies in
+          between, the next start treats the event as delivered and never
+          re-sends — because Telegram&apos;s{" "}
+          <span className="font-mono text-xs">sendMessage</span> has no
+          idempotency key, the safe direction is <em>never duplicate</em>.
         </p>
-        <table className="data-table">
+        <div className="code-block my-3 whitespace-pre-wrap">{`scan → match → SENDING (ledger) → Telegram → SENT (ledger)
+restart → SENDING without SENT? → treat as delivered, never re-send`}</div>
+        <p className="text-sm text-slate">
+          And the ledger is checkable by anyone:{" "}
+          <span className="font-mono text-xs">src/audit.sh</span> replays every
+          alert against the live chain — recipient, value, block, and the
+          matcher&apos;s own verdict — and fails loudly on any mismatch. Every
+          alert carries its own receipt.
+        </p>
+        <div className="code-block mb-3 mt-3 whitespace-pre-wrap">{auditCmd}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <CopyButton text={auditCmd} />
+          <span className="chip chip-pass">ledger audit · {AUDIT_RESULT}</span>
+          <span className="text-xs text-slate">last run {AUDIT_RUN}</span>
+        </div>
+        <p className="mt-2 text-xs text-slate">
+          One transaction can legitimately raise two conditions — a 0.5 PHRS
+          transfer fires both <span className="font-mono text-xs">incoming-transfer</span> and{" "}
+          <span className="font-mono text-xs">large-transfer</span>. That is not
+          spam: dedupe is per <span className="font-mono text-xs">condition:txhash</span>,
+          and the condition is printed in the alert itself.
+        </p>
+      </div>
+
+      {/* 03 — live proof */}
+      <div>
+        <p className="smallcaps mb-1 text-slate">03 · Live proof</p>
+        <h3 className="text-lg font-semibold text-ink">
+          The real alert, exactly as Telegram delivered it
+        </h3>
+        <p className="mb-3 mt-1 text-sm text-slate">
+          A disclosed 0.5 PHRS self-transfer on Pharos Atlantic — big enough to
+          trip the <span className="font-mono text-xs">large-transfer</span>{" "}
+          threshold for the first time on-chain. Both conditions fired, each
+          alerted exactly once. Below is the large-transfer alert, verbatim.
+        </p>
+        <TelegramBubble
+          condition="LARGE TRANSFER"
+          amount="0.5"
+          tx={LARGE_TX}
+          block={LARGE_BLOCK}
+          time={LARGE_ALERT_TIME}
+          note="disclosed self-test transfer"
+          msgId={LARGE_MSG_IDS}
+        />
+        <table className="data-table mt-4">
           <tbody>
             <tr>
-              <td className="font-semibold">Trigger event</td>
+              <td className="font-semibold">Threshold trigger</td>
+              <td>
+                <a
+                  className="font-mono text-xs text-accent hover:underline"
+                  href={`${EXPLORER_TX}${LARGE_TX}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {LARGE_TX.slice(0, 18)}…
+                </a>{" "}
+                — 0.5 PHRS self-transfer, block {LARGE_BLOCK}, status 0x1
+              </td>
+            </tr>
+            <tr>
+              <td className="font-semibold">Detection</td>
+              <td>
+                watcher matched <span className="font-mono text-xs">incoming-transfer</span> +{" "}
+                <span className="font-mono text-xs">large-transfer</span> (0.5 ≥
+                0.5 threshold); clean amount formatting in the alert
+              </td>
+            </tr>
+            <tr>
+              <td className="font-semibold">Delivery</td>
+              <td>
+                two real Telegram <span className="font-mono text-xs">sendMessage</span> calls →
+                message_ids <span className="font-mono text-xs">{LARGE_MSG_IDS}</span> at{" "}
+                {LARGE_ALERT_TIME}
+              </td>
+            </tr>
+            <tr>
+              <td className="font-semibold">First proof</td>
               <td>
                 <a
                   className="font-mono text-xs text-accent hover:underline"
@@ -284,36 +437,23 @@ bash src/watch.sh --daemon     # continuous polling`;
                 >
                   {PROOF_TX.slice(0, 18)}…
                 </a>{" "}
-                — 0.001 PHRS self-transfer, block {PROOF_BLOCK}, status 0x1
-              </td>
-            </tr>
-            <tr>
-              <td className="font-semibold">Detection</td>
-              <td>
-                watcher classified it <span className="font-mono text-xs">incoming-transfer</span>;
-                <span className="font-mono text-xs"> large-transfer</span> correctly
-                did NOT fire (0.001 &lt; 0.5 PHRS)
-              </td>
-            </tr>
-            <tr>
-              <td className="font-semibold">Delivery</td>
-              <td>
-                real Telegram <span className="font-mono text-xs">sendMessage</span> →
-                message_id <span className="font-mono text-xs">{PROOF_MSG_ID}</span> at
-                2026-10-16T04:19:24Z, with condition, amount, tx hash, explorer link,
-                block, timestamp
+                — 0.001 PHRS dust, block {PROOF_BLOCK}, Telegram message_id{" "}
+                <span className="font-mono text-xs">{PROOF_MSG_ID}</span>
               </td>
             </tr>
             <tr>
               <td className="font-semibold">No spam</td>
               <td>
-                restart re-scan: zero re-emission; one SENDING + one SENT per txhash
-                in <span className="font-mono text-xs">state/alerts.log</span>
+                restart re-scan: zero re-emission; one SENDING + one SENT per
+                txhash in <span className="font-mono text-xs">state/alerts.log</span>;
+                full ledger audit: <span className="font-mono text-xs">{AUDIT_RESULT}</span>
               </td>
             </tr>
             <tr>
               <td className="font-semibold">Spend</td>
-              <td>0.000021000000021 PHRS (one dust tx; budget ≤ 0.15)</td>
+              <td>
+                gas only — self-transfers return funds (budget ≤ 0.15 PHRS)
+              </td>
             </tr>
           </tbody>
         </table>

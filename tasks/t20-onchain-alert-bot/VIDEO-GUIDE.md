@@ -1,4 +1,4 @@
-# VIDEO GUIDE — T20 On-Chain Alert Bot (45–90 seconds)
+# VIDEO GUIDE — T20 On-Chain Alert Bot (45–115 seconds)
 
 **Rule: REAL terminal + REAL Telegram message on screen. NO staged fakes.**
 Record the screen as you run the commands; do not re-enact or mock anything.
@@ -14,8 +14,10 @@ this video replays the flow honestly with fresh terminal output where noted.
 | 3 | 20–30s | Explorer page: the tx `0xe6c9f52c…` at block 31481424 | "Mined at block 31481424. Status success." |
 | 4 | 30–45s | Terminal: `bash src/watch.sh --once` → log line `ALERT SENT … message_id=717` | "The watcher polls block by block, matches it as an incoming transfer, and sends exactly one Telegram alert." |
 | 5 | 45–60s | Telegram app: the REAL delivered message (condition, 0.001 PHRS, tx hash, explorer link, block) | "Here it is in Telegram — what happened, the value, the transaction, and the explorer link. One alert, no spam." |
-| 6 | 60–75s | Terminal: restart `bash src/watch.sh --once` → scan completes, no `ALERT SENT` for the same tx | "Restart the watcher — the same event is never alerted twice. Dedupe by condition and transaction hash, with a write-ahead marker so even a crash can't cause a duplicate." |
-| 7 | 75–90s | Terminal: `bash test/match_test.sh` → `PASS=16 FAIL=0` | "Sixteen unit tests green. Total on-chain spend for the whole demo: about two hundred-thousandths of a PHRS. Done." |
+| 5a | 60–75s (new) | Terminal: `bash src/trigger.sh --amount-phrs 0.5` → real tx `0x157dc990…` at block 31486611 → `bash src/watch.sh --once --from-block 31486611 --to-block 31486611` → TWO `ALERT SENT` lines (message_ids 727, 728) | "Second run, live: a disclosed half-PHRS transfer trips the large-transfer threshold for the first time on-chain. One transaction, two conditions — incoming-transfer and large-transfer — each alerted exactly once. That is by design, not spam: dedupe is per condition and transaction hash." |
+| 5b | 75–90s (new) | Terminal: `bash src/audit.sh` → per-alert PASS lines → `AUDIT RESULT: PASS=60 FAIL=0` | "And every alert carries its own receipt: the audit replays the whole ledger against the live chain — recipient, value, block — and fails loudly on any mismatch. Sixty checks, zero failures." |
+| 6 | 90–105s | Terminal: restart `bash src/watch.sh --once` → scan completes, no `ALERT SENT` for the same tx | "Restart the watcher — the same event is never alerted twice. Dedupe by condition and transaction hash, with a write-ahead marker so even a crash can't cause a duplicate." |
+| 7 | 105–115s | Terminal: `bash test/match_test.sh` → `PASS=16 FAIL=0` | "Sixteen unit tests green. Total on-chain spend for the whole demo: gas only — about four hundred-thousandths of a PHRS. Done." |
 
 | 1a | 0–8s (alt) | Console: `lightkeeper-console.vercel.app/#/task/onchain-alert-bot` — rule builder generating `config.yaml` + copy | "Or build the rule in the LIGHTKEEPER console: toggle the conditions, set the threshold, copy the exact config the watcher reads." |
 

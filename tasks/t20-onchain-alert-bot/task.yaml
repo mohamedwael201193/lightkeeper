@@ -13,9 +13,14 @@ evidence:
   trigger_block: 31481424
   telegram_message_id: 717
   telegram_observed_message_ids: [718, 719, 720, 722, 724, 725, 726]
-  telegram_note: "717 = my disclosed test trigger; 718/719/720 = genuine observed transfers by other workers on the shared key, each alerted exactly once"
+  telegram_note: "717 = my disclosed dust trigger; 718/719/720/722/724/725/726 = genuine observed transfers by other workers on the shared key, each alerted exactly once"
+  large_transfer_tx: "0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a"
+  large_transfer_block: 31486611
+  large_transfer_message_ids: [727, 728]
+  large_transfer_note: "disclosed 0.5 PHRS self-transfer; first live trip of the large-transfer condition (incoming-transfer msg 727 + large-transfer msg 728)"
+  ledger_audit: "src/audit.sh replayed every alert against the live chain: 168 PASS, 0 FAIL (2026-10-16T07:14:34Z)"
   telegram_chat_id: "1434154285"
-  spend_phrs: "0.000021000000021"
+  spend_phrs: "0.000042000000042"
 chain:
   network: atlantic-testnet
   chain_id: 688689
@@ -24,5 +29,6 @@ chain:
 tests:
   unit: test/match_test.sh
   unit_result: 16 passed, 0 failed
-  live: trigger -> watcher detection -> Telegram alert (message_id 717)
+  live: trigger -> watcher detection -> Telegram alert (message_id 717); large-transfer trigger -> 2 alerts (message_ids 727, 728)
+  ledger_audit: src/audit.sh — 168 PASS, 0 FAIL (2026-10-16T07:14:34Z)
   restart_dedup: zero re-emission on restart

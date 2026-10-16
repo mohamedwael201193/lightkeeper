@@ -32,7 +32,10 @@ flock /tmp/lk-nonce.lock cast send "$TO" \
   >"$RAW_OUT" 2>&1
 tee -a "$LOG_DIR/watch.log" <"$RAW_OUT" >/dev/null
 
-TXHASH="$(grep -oE '0x[0-9a-fA-F]{64}' "$RAW_OUT" | head -1)"
+# Parse the receipt's transactionHash line specifically — the raw output's
+# first 0x{64} is the blockHash, NOT the tx hash (a real bug this script
+# once had: it recorded the block hash as the trigger tx).
+TXHASH="$(grep -i '^transactionHash' "$RAW_OUT" | grep -oE '0x[0-9a-fA-F]{64}' | head -1)"
 if [[ -z "$TXHASH" ]]; then
   echo "FATAL: could not find tx hash in cast output ($RAW_OUT)" >&2
   exit 1

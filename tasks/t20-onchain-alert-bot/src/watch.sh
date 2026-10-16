@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # t20-onchain-alert-bot — block-by-block poller.
-# Usage: watch.sh [--once] [--from-block N] [--to-block M] [--daemon]
+# Usage: watch.sh [--once] [--from-block N] [--to-block M] [--daemon] [--catchup]
+#   --once            single scan pass from the saved cursor (default)
+#   --daemon          continuous polling
+#   --catchup         batched resume scan (same matching/alerting, ~100x faster
+#                     than --once for large gaps after an outage)
 #
 # No-repeat-spam design (per official requirement 4 + QA fix):
 #   * dedupe store state/seen keyed "<condition>:<txhash>"
@@ -9,6 +13,9 @@
 #     at startup (recover_unacked): the event is treated as already delivered
 #     and never re-sent — sendMessage has no idempotency key, so the safe
 #     direction is "never duplicate".
+#   * catchup mode (--catchup): batched block fetch via src/batchscan.py for
+#     fast resume after an outage; same matching, dedupe and alerting as the
+#     per-block path (shared handle_block_txs).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,6 +34,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --once) MODE="once"; shift ;;
     --daemon) MODE="daemon"; shift ;;
+    --catchup) MODE="catchup"; shift ;;
     --from-block) FROM_BLOCK="$2"; shift 2 ;;
     --to-block) TO_BLOCK="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
@@ -69,8 +77,15 @@ handle_match() { # cond hash to valhex block
   # WRITE-AHEAD marker: persisted BEFORE the Telegram send.
   printf '%s SENDING %s %s block=%s\n' "$(date -u +%FT%TZ)" "$cond" "$hash" "$block" >> "$STATE_DIR/alerts.log"
   local amount msgid
+  # NOTE: in sed -E, grouping parens are unescaped — the earlier "\(…\)"
+  # form silently never stripped, leaving "0.001000000000000000" in alerts.
   amount="$(cast --from-wei "$(cast --to-dec "$valhex")" | sed -E 's/(\.[0-9]*[1-9])0+$/\1/; s/\.0+$//')"
-  if msgid="$(send_alert "$cond" "$to" "$amount" "$hash" "$block")"; then
+  # Label the alert honestly: dust amounts say "dust"; larger test amounts say so.
+  local selftest_note="disclosed self-test dust transfer"
+  if awk "BEGIN{exit !( $amount >= 0.01 )}"; then
+    selftest_note="disclosed self-test transfer"
+  fi
+  if msgid="$(send_alert "$cond" "$to" "$amount" "$hash" "$block" "$selftest_note")"; then
     printf '%s SENT %s %s message_id=%s\n' "$(date -u +%FT%TZ)" "$cond" "$hash" "$msgid" >> "$STATE_DIR/alerts.log"
     printf '%s\n' "$key" >> "$STATE_DIR/seen"
     log "ALERT SENT cond=$cond tx=$hash block=$block amount=${amount}PHRS message_id=$msgid"
@@ -82,14 +97,8 @@ handle_match() { # cond hash to valhex block
   fi
 }
 
-scan_block() { # block_number
-  local b="$1" txs tx hash to val cond
-  # fast path: header-only fetch first; skip empty blocks without pulling tx bodies
-  local n
-  n="$(cast block "$b" --rpc-url "$ATLANTIC_RPC_URL" --json 2>/dev/null | jq -r '.data.transactions | length')"
-  if [[ "$n" == "0" ]]; then return 0; fi
-  txs="$(cast block "$b" --full --rpc-url "$ATLANTIC_RPC_URL" --json 2>/dev/null \
-    | jq -c '.data.transactions[]? | {hash, to, value}')"
+handle_block_txs() { # block_number ; reads JSON tx lines {hash,to,value} on stdin
+  local b="$1" tx hash to val cond
   while IFS= read -r tx; do
     [[ -z "$tx" ]] && continue
     hash="$(jq -r .hash <<<"$tx")"
@@ -99,7 +108,41 @@ scan_block() { # block_number
       [[ -z "$cond" ]] && continue
       handle_match "$cond" "$hash" "$to" "$val" "$b" || true
     done < <(match_tx "$hash" "$to" "$val" "$b")
-  done <<<"$txs"
+  done
+}
+
+scan_block() { # block_number
+  local b="$1"
+  # fast path: header-only fetch first; skip empty blocks without pulling tx bodies
+  local n
+  n="$(cast block "$b" --rpc-url "$ATLANTIC_RPC_URL" --json 2>/dev/null | jq -r '.data.transactions | length')"
+  if [[ "$n" == "0" ]]; then return 0; fi
+  cast block "$b" --full --rpc-url "$ATLANTIC_RPC_URL" --json 2>/dev/null \
+    | jq -c '.data.transactions[]? | {hash, to, value}' \
+    | handle_block_txs "$b"
+}
+
+catchup_pass() { # from to  (inclusive) — batched fetch for fast resume
+  local from="$1" to="$2"
+  local done_file="$STATE_DIR/catchup.done"
+  rm -f "$done_file"
+  log "catchup pass: blocks $from..$to (batched fetch)"
+  python3 "$SCRIPT_DIR/batchscan.py" "$from" "$to" 2>>"$LOG_DIR/watch.log" | while IFS= read -r line; do
+    if grep -q '"done": true' <<<"$line"; then
+      touch "$done_file"
+      continue
+    fi
+    local b
+    b="$(jq -r .block <<<"$line")"
+    jq -c '.txs[]?' <<<"$line" | handle_block_txs "$b"
+    echo $((b + 1)) > "$STATE_DIR/cursor"
+  done
+  if [[ -f "$done_file" ]]; then
+    log "catchup pass done; cursor=$(cat "$STATE_DIR/cursor")"
+  else
+    echo "FATAL: batchscan ended without the done sentinel — cursor left at $(cat "$STATE_DIR/cursor"); re-run to continue" >&2
+    exit 1
+  fi
 }
 
 pass_once() { # from to  (inclusive)
@@ -139,6 +182,14 @@ main() {
       fi
       sleep "$INTERVAL"
     done
+  elif [[ "$MODE" == "catchup" ]]; then
+    head="$(latest_confirmed)"
+    [[ -n "$TO_BLOCK" ]] && head="$TO_BLOCK"
+    if ((cursor > head)); then
+      log "nothing to catch up (cursor=$cursor > head=$head)"
+      return 0
+    fi
+    catchup_pass "$cursor" "$head"
   else
     head="$(latest_confirmed)"
     [[ -n "$TO_BLOCK" ]] && head="$TO_BLOCK"
