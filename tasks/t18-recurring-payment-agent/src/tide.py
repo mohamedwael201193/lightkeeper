@@ -16,6 +16,12 @@ on-chain native-PHRS transfer. Idempotency is enforced at two levels:
      on-chain revert becomes `failed` (safe to retry — nothing was paid);
      an unknown tx hash is left as `broadcast-unknown` and NEVER auto-retried.
 
+RPC-stall hardening: any stalled call raises TideTimeout (never a raw
+traceback). A stalled receipt lookup is treated as *unknown* (parked as
+broadcast-unknown); a stalled broadcast is likewise parked as
+broadcast-unknown — never marked `failed`, which would let the next tick
+retry and double-pay.
+
 SkillEngine has NO native cron/scheduling (confirmed-absent primitive G1).
 The external scheduler is the operator's system cron — see
 scripts/install-cron.sh (instructions only, installs nothing itself).
@@ -60,6 +66,15 @@ class TideError(Exception):
     pass
 
 
+class TideTimeout(TideError):
+    """
+    An RPC/subprocess call stalled past its deadline. A timeout does NOT mean
+    the call failed on-chain — it means we do not know. Handlers must treat
+    it as *unknown state* (broadcast-unknown, never auto-retried), never as
+    a plain failure (which would be retryable and could double-pay).
+    """
+
+
 # ---------------------------------------------------------------- utilities
 
 def utcnow_iso() -> str:
@@ -84,7 +99,14 @@ def fmt_ts(epoch: int) -> str:
 
 def run(cmd, timeout=120, check=False):
     """Run a subprocess; never log argv containing the private key."""
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        # A stalled RPC must never surface as a raw traceback: callers get a
+        # typed error and choose the *unknown-state* path (no auto-retry).
+        raise TideTimeout(
+            f"command timed out after {timeout}s — the RPC may be stalled; "
+            f"nothing is known about the call's outcome")
     if check and p.returncode != 0:
         raise TideError(f"command failed ({p.returncode}): {p.stderr.strip()[:300]}")
     return p
@@ -222,8 +244,16 @@ def amount_to_wei(amount_phrs: str) -> int:
 
 
 def tx_status(rpc: str, tx_hash: str):
-    """Return (status, block_number) or (None, None) if the tx is unknown."""
-    p = cast("receipt", tx_hash, "--rpc-url", rpc, "--json")
+    """Return (status, block_number) or (None, None) if the tx is unknown.
+
+    An RPC stall while looking up the receipt is treated as *unknown* —
+    never as a crash: the caller parks the installment as broadcast-unknown
+    instead of raising a traceback.
+    """
+    try:
+        p = cast("receipt", tx_hash, "--rpc-url", rpc, "--json")
+    except TideTimeout:
+        return None, None
     if p.returncode != 0:
         return None, None
     try:
@@ -406,6 +436,20 @@ def cmd_tick(_args):
 
     try:
         tx_hash = broadcast_native(rpc, key, sched["recipient"], amount_wei)
+    except TideTimeout as e:
+        # The broadcast may have landed before the stall — marking it
+        # `failed` would let the next tick retry and DOUBLE-PAY. Park it as
+        # broadcast-unknown instead: never auto-retried, human reconciles.
+        append_state({"schedule_id": sid, "installment": n, "due_at": fmt_ts(due_at),
+                      "status": "broadcast-unknown",
+                      "amount_phrs": sched["amount_phrs"],
+                      "recipient": sched["recipient"],
+                      "note": f"{e} — the transfer may have landed on-chain; "
+                              f"operator must reconcile before any retry"})
+        print(f"WARNING: installment {n} broadcast timed out — marked "
+              f"broadcast-unknown, auto-retry disabled")
+        audit(f"tick {sid}: installment {n} broadcast timed out (broadcast-unknown)")
+        return 2
     except TideError as e:
         append_state({"schedule_id": sid, "installment": n, "due_at": fmt_ts(due_at),
                       "status": "failed", "amount_phrs": sched["amount_phrs"],

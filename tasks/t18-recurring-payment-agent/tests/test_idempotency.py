@@ -184,6 +184,77 @@ class TideTestCase(unittest.TestCase):
         recs = tide.load_state()
         self.assertEqual(tide.latest_status(recs, "test-sched", 0), "broadcast-unknown")
 
+    # -- rpc-stall hardening (real bug: `cast receipt` on an unknown hash
+    #    can stall past the deadline; a raw TimeoutExpired traceback must
+    #    never escape, and a broadcast timeout must never become `failed`) ----
+
+    def test_run_timeout_raises_typed_error(self):
+        import subprocess as sp
+        orig = sp.run
+
+        def slow(*a, **k):
+            raise sp.TimeoutExpired(cmd=a[0] if a else [], timeout=1)
+        sp.run = slow
+        try:
+            with self.assertRaises(tide.TideTimeout):
+                tide.run(["cast", "receipt", "0x0"], timeout=1)
+        finally:
+            sp.run = orig
+
+    def test_recovery_rpc_stall_parks_unknown(self):
+        # dangling broadcast + stalling RPC: tick must NOT crash; the
+        # installment is parked broadcast-unknown and never auto-retried
+        tide.append_state({"schedule_id": "test-sched", "installment": 0,
+                           "status": "broadcast", "tx_hash": "0xstall"})
+        orig = (tide.cast, tide.validate_payment, tide.broadcast_native,
+                tide.wallet_address)
+        calls = {"broadcasts": 0}
+
+        def stalled_cast(*a, **k):
+            raise tide.TideTimeout("command timed out (stub)")
+
+        def fake_broadcast(rpc, key, to, amount_wei):
+            calls["broadcasts"] += 1
+            return "0xstub000001"
+
+        tide.cast = stalled_cast
+        tide.validate_payment = lambda s, r, w: (1, 1, 10 ** 18)
+        tide.broadcast_native = fake_broadcast
+        tide.wallet_address = lambda: "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+        try:
+            rc = self._run_tick()  # must not raise
+        finally:
+            (tide.cast, tide.validate_payment, tide.broadcast_native,
+             tide.wallet_address) = orig
+        self.assertEqual(rc, 0)
+        self.assertEqual(calls["broadcasts"], 0)
+        recs = tide.load_state()
+        self.assertEqual(tide.latest_status(recs, "test-sched", 0),
+                         "broadcast-unknown")
+
+    def test_broadcast_timeout_parks_unknown_never_retries(self):
+        # the transfer MAY have landed before the stall: marking it `failed`
+        # would let the next tick retry and double-pay
+        calls = self._stub_chain(self)
+        orig_b = tide.broadcast_native
+
+        def slow_broadcast(rpc, key, to, amount_wei):
+            calls["broadcasts"] += 1
+            raise tide.TideTimeout("broadcast timed out waiting for receipt (stub)")
+
+        tide.broadcast_native = slow_broadcast
+        try:
+            rc1 = self._run_tick()
+            rc2 = self._run_tick()  # must NOT retry the unknown broadcast
+        finally:
+            tide.broadcast_native = orig_b
+        self.assertEqual(rc1, 2)
+        self.assertEqual(rc2, 0)
+        self.assertEqual(calls["broadcasts"], 1)
+        recs = tide.load_state()
+        self.assertEqual(tide.latest_status(recs, "test-sched", 0),
+                         "broadcast-unknown")
+
     # -- control ---------------------------------------------------------
 
     def test_paused_schedule_skips(self):

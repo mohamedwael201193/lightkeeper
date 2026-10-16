@@ -98,7 +98,8 @@ Every broadcast goes through the shared nonce lock: `flock /tmp/lk-nonce.lock ca
 - **Live installment:** 0.0005 PHRS paid on Atlantic — [`0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10`](https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10) (block 31481497, status 0x1, value verified 500000000000000 wei, chainId 688689).
 - **Idempotency proof:** immediate re-run printed `SKIP: no installment due` and broadcast nothing (transcript: `evidence/03-tick-skip-rerun.txt`).
 - **Control proof:** pause → tick SKIP → resume → cancel, all recorded (transcripts `evidence/04–06`).
-- **Unit tests:** 12/12 pass (`tests/test_idempotency.py`) — double-tick pays exactly once, sequential installments each paid once, failed installments never broadcast, `broadcast-unknown` blocks auto-retry, expiry/pause/cancel semantics.
+- **Unit tests:** 15/15 pass (`tests/test_idempotency.py`) — double-tick pays exactly once, sequential installments each paid once, failed installments never broadcast, `broadcast-unknown` blocks auto-retry, RPC-stall recovery (stalled receipt → unknown, never a crash; stalled broadcast → `broadcast-unknown`, never `failed`), expiry/pause/cancel semantics.
+- **Crash-recovery proof (2026-10-16):** a sandbox run with two dangling `broadcast` records against the real chain — the real tx `0xeec25b…` reconciled to `paid`, a nonexistent hash stalled the RPC for 120s and was cleanly parked `broadcast-unknown` with no traceback and no retry (transcript: `evidence/08-crash-recovery.txt`). Zero broadcasts were made by the test.
 - **Spend:** 0.000521 PHRS total (0.0005 value + 0.000021 fee) of the 0.15 PHRS budget.
 - Full packet: [evidence.md](evidence.md) · [evidence.json](evidence.json) · [LINKS.md](LINKS.md) (curl-verified).
 

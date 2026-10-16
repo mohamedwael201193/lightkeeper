@@ -67,8 +67,9 @@ export default function TryT18({ lamp }: { lamp: Lamp }) {
   const addrPending = recipient.trim() === "";
   let amtOk = false;
   try {
-    phrsToWeiHex(amount);
-    amtOk = true;
+    // tide.py's load_schedule() rejects amount <= 0 — mirror it here so the
+    // builder never generates a config the executor would refuse.
+    amtOk = phrsToWeiHex(amount) !== "0x0";
   } catch {
     amtOk = false;
   }
@@ -96,6 +97,19 @@ export default function TryT18({ lamp }: { lamp: Lamp }) {
     if (!ready || !startUtc) return [];
     return Array.from({ length: countN }, (_, i) => new Date(startUtc.getTime() + i * spec.seconds * 1000));
   }, [ready, startUtc, countN, spec]);
+
+  // Table rows: installment number + due date. When there are many runs we
+  // show the first three, a gap row, and the last — the idempotency key
+  // (`schedule_id` · `#n`) is the exact key tide.py uses to never double-pay.
+  const rows = useMemo(() => {
+    if (runs.length <= 1) return [];
+    if (runs.length <= 7) return runs.map((d, n) => ({ n, d, gap: false as const }));
+    return [
+      ...runs.slice(0, 3).map((d, n) => ({ n, d, gap: false as const })),
+      { n: -1, d: new Date(0), gap: true as const },
+      { n: runs.length - 1, d: runs[runs.length - 1], gap: false as const },
+    ];
+  }, [runs]);
 
   const scheduleJson = useMemo(() => {
     if (!ready || !startUtc) return "# fill in every field above to generate the schedule";
@@ -158,9 +172,17 @@ python3 src/tide.py tick
 
   const checks = [
     { label: "Recipient is a valid 0x address", state: addrPending ? "dim" : addrOk ? "pass" : "fail" },
-    { label: "Amount parses (up to 18 decimals)", state: amtPending ? "dim" : amtOk ? "pass" : "fail" },
+    { label: "Amount parses and is above zero (up to 18 decimals)", state: amtPending ? "dim" : amtOk ? "pass" : "fail" },
     { label: "Run count ≥ 1", state: count.trim() === "" ? "dim" : countOk ? "pass" : "fail" },
-    { label: "Start time is valid", state: startUtc === null ? "fail" : startInFuture ? "pass" : "warn" },
+    {
+      label:
+        startUtc === null
+          ? "Start time is valid"
+          : startInFuture
+            ? "Start time is in the future"
+            : "Start is in the past — the first tick pays immediately",
+      state: startUtc === null ? "fail" : startInFuture ? "pass" : "warn",
+    },
     { label: "Balance floor parses", state: floorOk ? "pass" : "fail" },
   ];
 
@@ -286,36 +308,57 @@ python3 src/tide.py tick
               Each payment happens exactly once: an installment is marked paid only after an
               observed on-chain receipt — re-running a tick can never double-pay.
             </p>
+            <ul className="mt-3 space-y-1.5 text-xs text-slate">
+              <li>
+                <span className="font-semibold text-ink">Never twice.</span> Every installment
+                carries the idempotency key{" "}
+                <span className="font-mono text-ink">{scheduleId} · #n</span> — the same key
+                re-ticked skips instead of paying.
+              </li>
+              <li>
+                <span className="font-semibold text-ink">Never broke.</span> Validation runs
+                before every broadcast: a tick that would overdraw or breach your balance
+                floor fails without broadcasting anything.
+              </li>
+              <li>
+                <span className="font-semibold text-ink">Never stranded.</span> A broadcast
+                that stalls is parked <span className="font-mono">broadcast-unknown</span> and
+                never auto-retried — the operator reconciles, the agent waits.
+              </li>
+            </ul>
             {runs.length > 1 && (
-              <table className="data-table mt-3">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Due (UTC)</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(runs.length <= 7 ? runs : [...runs.slice(0, 3), null, runs[runs.length - 1]]).map(
-                    (d, i) =>
-                      d === null ? (
+              <div className="mt-3 overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Idempotency key</th>
+                      <th>Due (UTC)</th>
+                      <th>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) =>
+                      r.gap ? (
                         <tr key="gap">
-                          <td colSpan={3} className="text-center text-slate">
+                          <td colSpan={4} className="text-center text-slate">
                             … {runs.length - 4} more …
                           </td>
                         </tr>
                       ) : (
-                        <tr key={d.getTime()}>
+                        <tr key={r.d.getTime()}>
+                          <td className="font-mono">{r.n + 1}</td>
                           <td className="font-mono">
-                            {i < 3 || runs.length <= 7 ? i + 1 : runs.length}
+                            {scheduleId} · #{r.n}
                           </td>
-                          <td className="font-mono">{fmtUtc(d)}</td>
+                          <td className="font-mono">{fmtUtc(r.d)}</td>
                           <td className="font-mono">{amount.trim()} PHRS</td>
                         </tr>
                       )
-                  )}
-                </tbody>
-              </table>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}

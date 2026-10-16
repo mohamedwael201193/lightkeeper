@@ -10,7 +10,8 @@ did NOT claim.
 3. **Idempotency:** `evidence/03-tick-skip-rerun.txt` — the immediate re-run printed `SKIP: no installment due` and broadcast nothing.
 4. **History + next payment:** `evidence/01-status-before.txt` (before) and `evidence/07-status-final.txt` (after) — paid/pending/cancelled board with next-payment line.
 5. **Controls:** `evidence/04-pause.txt`, `05-resume.txt`, `06-cancel.txt`.
-6. **Tests:** `python3 tests/test_idempotency.py` → 12/12 pass (pure logic; chain stubs labeled in the file header).
+6. **Tests:** `python3 tests/test_idempotency.py` → 15/15 pass (pure logic; chain stubs labeled in the file header).
+7. **Crash recovery:** `evidence/08-crash-recovery.txt` — dangling `broadcast` records reconciled against the real chain: the real tx `0xeec25b…` recovered to `paid`; a nonexistent hash stalled the receipt RPC and was parked `broadcast-unknown` with no traceback, no retry, zero broadcasts.
 
 ## Requirement coverage (official bullets)
 
@@ -27,6 +28,7 @@ did NOT claim.
 - **Native PHRS only.** ERC-20 is a roadmap item, not a supported path. The `token` field says `"PHRS"` so the limit is visible in the config itself.
 - **Self-payment dust.** The demo pays the operator's own wallet — a real on-chain transfer (nonce, gas, receipt) that keeps the shared test wallet funded. Labeled as such in the schedule label, evidence, and README.
 - **Reorg depth.** `paid` is recorded only after an explicitly re-read receipt (`status 0x1`); we do not implement multi-block confirmation depth. For weekly dust on a testnet this is proportionate; a production deployment should add it.
+- **RPC stalls.** A stalled `cast receipt` lookup (observed on the Atlantic RPC for a nonexistent hash: it hangs past the 120s deadline) is typed as `TideTimeout` and treated as *unknown*, never as a crash; a stalled broadcast is parked `broadcast-unknown`, never `failed` — because `failed` is retryable and a retry after a landed-but-unconfirmed broadcast would double-pay.
 - **Nonce safety.** Every broadcast is wrapped: `flock /tmp/lk-nonce.lock cast send …` per the 28-worker shared-key protocol.
 
 ## How to re-run the demo yourself
