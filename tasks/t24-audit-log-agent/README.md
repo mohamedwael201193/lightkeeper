@@ -48,7 +48,7 @@ node bin/audit-log.mjs transcript --out sample-output/audit-log.transcript.md
 node bin/audit-log.mjs report --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 \
   --from-date 2026-10-16T02:00:00Z --to-date 2026-10-16T05:00:00Z \
   --export md,csv,pdf
-node --test test/                        # 7/7 hash-chain unit tests
+node --test "test/*.test.mjs"                        # 7/7 hash-chain unit tests
 ```
 
 Live demo (re-runnable, dust only): `demo/run-live-demo.sh`,

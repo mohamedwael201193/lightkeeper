@@ -38,4 +38,4 @@ Video: PENDING-VIDEO (see VIDEO-GUIDE.md for the 60-second shot plan)
 See REVIEWER_NOTES.md in the task folder (paste-ready): 5-minute test path
 (`verify` → transcript → tamper-demo → explorer links → report → unit tests),
 the mempool-drop disclosure, and the RPC-limitation notes. Test:
-`node --test test/` (7/7 pass).
+`node --test "test/*.test.mjs"` (7/7 pass).

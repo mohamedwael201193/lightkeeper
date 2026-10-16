@@ -14,7 +14,7 @@ exports). Pure Node.js stdlib, no dependencies.
 4. Open the two explorer links below → both dust txs mined, status success.
 5. Open `sample-output/audit-report-2026-10-16T05-13-57.md` (also `.csv`, `.pdf`)
    → grouped activity, totals, notable txs with links, coverage disclosure.
-6. `node --test test/` → 7/7 pass.
+6. `node --test "test/*.test.mjs"` → 7/7 pass.
 
 ## Real transactions (Atlantic testnet, curl-verified HTTP 200)
 - 0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1

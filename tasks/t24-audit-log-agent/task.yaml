@@ -19,5 +19,5 @@ entrypoints:
   verify: node bin/audit-log.mjs verify [--log PATH]
   transcript: node bin/audit-log.mjs transcript [--log PATH] [--out PATH]
   report: node bin/audit-log.mjs report --wallet ADDR [--from-date ISO] [--to-date ISO] [--export md,csv,pdf]
-tests: node --test test/
+tests: node --test "test/*.test.mjs"
 demo_script: demo/run-live-demo.sh
