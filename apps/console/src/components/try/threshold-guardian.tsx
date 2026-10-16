@@ -20,6 +20,16 @@ import {
   useProposeAndSign,
 } from "../../hooks/useAtlantic";
 import { useWallet } from "../WalletContext";
+import {
+  EmptyState,
+  ErrorState,
+  FeedList,
+  ProgressLoader,
+  ResultCard,
+  StatStrip,
+} from "../ui";
+import type { FeedItem } from "../ui";
+import { Hourglass, ShieldCheck, ShieldX } from "lucide-react";
 
 /** From tasks/t05-threshold-guardian/policy.yaml — the real task policy. */
 const DEFAULT_POLICY = {
@@ -67,6 +77,53 @@ function fmtGwei(gwei: number): string {
   return gwei < 0.0001 ? "<0.0001" : gwei.toFixed(4).replace(/\.?0+$/, "");
 }
 
+/** One proposal step per REAL async call — the loader advances only when a
+ *  call actually starts. The rolling-window check closes the loop with the
+ *  real aggregate math (proposal + session spend vs the window cap). */
+const PROPOSE_STEPS = [
+  "Reading chain identity (eth_chainId)",
+  "Reading live gas price (eth_gasPrice)",
+  "Reading your balance (eth_getBalance)",
+  "Checking the rolling window",
+];
+
+/** The sign flow's real async legs: the visitor's wallet sends, then the
+ *  chain mines. Nothing else animates here. */
+const SIGN_STEPS = [
+  "Sending through your wallet (eth_sendTransaction)",
+  "Waiting for Atlantic to mine it (eth_getTransactionReceipt)",
+];
+
+interface LiveStats {
+  inWindow: number;
+  capWin: number;
+  gasGwei: number;
+  balPhrs: number;
+}
+
+function TraceList({ trace }: { trace: CondResult[] }) {
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border border-hairline bg-white">
+      <p className="border-b border-hairline bg-porcelain px-5 py-3 text-sm font-semibold text-slate">
+        Condition trace — every comparison, exact numbers
+      </p>
+      <ul className="divide-y divide-hairline">
+        {trace.map((c) => (
+          <li key={c.key} className="flex items-start gap-3 px-5 py-4">
+            <span className={c.pass ? "chip chip-pass mt-0.5" : "chip chip-fail mt-0.5"}>
+              {c.pass ? "Pass" : "Block"}
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-ink">{c.name}</p>
+              <p className="mt-1 break-words font-mono text-xs text-slate">{c.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
   const { state: wallet, connect } = useWallet();
   const address = wallet.status === "connected" || wallet.status === "wrong-network"
@@ -82,9 +139,11 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
 
   // --- 02 · live evaluation ---
   const [running, setRunning] = useState(false);
+  const [step, setStep] = useState(0);
   const [readError, setReadError] = useState<string | null>(null);
   const [trace, setTrace] = useState<CondResult[] | null>(null);
   const [decision, setDecision] = useState<"ALLOW" | "BLOCK" | null>(null);
+  const [stats, setStats] = useState<LiveStats | null>(null);
   /** Visitor-confirmed guardian txs in this browser session — feeds the rolling-window check. */
   const [sessionSpend, setSessionSpend] = useState(0);
   const [ranFor, setRanFor] = useState<string>("");
@@ -117,6 +176,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
     setReadError(null);
     setTrace(null);
     setDecision(null);
+    setStats(null);
     if (!address) {
       setReadError("Connect your Atlantic wallet first — the guardian binds every proposal to the visitor's own address.");
       return;
@@ -132,14 +192,17 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
     }
 
     setRunning(true);
+    setStep(0);
     const conds: CondResult[] = [];
     try {
-      // Live reads — Tier A. Anything unreadable ⇒ fail closed.
-      const [chainHex, gasHex, balHex] = (await Promise.all([
-        rpcCall("eth_chainId", []),
-        rpcCall("eth_gasPrice", []),
-        rpcCall("eth_getBalance", [address, "latest"]),
-      ])) as [string, string, string];
+      // Live reads — Tier A, one real call per loader step. Anything unreadable
+      // ⇒ fail closed. (Sequential so each loader step maps to a real call.)
+      const chainHex = (await rpcCall("eth_chainId", [])) as string;
+      setStep(1);
+      const gasHex = (await rpcCall("eth_gasPrice", [])) as string;
+      setStep(2);
+      const balHex = (await rpcCall("eth_getBalance", [address, "latest"])) as string;
+      setStep(3);
 
       const chainId = parseInt(chainHex, 16);
       const gasGwei = Number(BigInt(gasHex)) / 1e9;
@@ -201,9 +264,11 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
       });
 
       const allow = conds.every((c) => c.pass);
+      setStats({ inWindow, capWin, gasGwei, balPhrs });
       setTrace(conds);
       setDecision(allow ? "ALLOW" : "BLOCK");
       setRanFor(fmtPhrs(valuePhrs));
+      setStep(PROPOSE_STEPS.length);
       logRun({
         t: new Date().toISOString(),
         value: fmtPhrs(valuePhrs),
@@ -282,6 +347,41 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
 
   const estFeeNote = "≈21,000 gas at live gas price — exact fee shown in your wallet before signing";
 
+  const feedItems: FeedItem[] = sessionLog.map((e, i) => ({
+    key: `${e.t}-${i}`,
+    node: (
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={e.decision === "ALLOW" ? "chip chip-pass" : "chip chip-fail"}>
+            {e.decision}
+          </span>
+          <span className="text-sm font-semibold text-ink">{e.value} PHRS proposed</span>
+          <span className="font-mono text-xs text-slate">
+            {new Date(e.t).toLocaleTimeString()}
+          </span>
+        </div>
+        <p className="mt-1 font-mono text-xs text-slate">
+          {e.decision === "ALLOW" ? (
+            e.tx ? (
+              <a
+                className="text-accent hover:underline break-all"
+                href={`${EXPLORER_TX}${e.tx}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                fired — {e.tx.slice(0, 18)}…
+              </a>
+            ) : (
+              "no broadcast yet — nothing spent"
+            )
+          ) : (
+            `failed on: ${e.failing.join("; ")}`
+          )}
+        </p>
+      </div>
+    ),
+  }));
+
   return (
     <div className="space-y-8">
       {/* Intro */}
@@ -297,23 +397,22 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
           it, you may fire a dust self-transfer. <strong className="text-ink">Your tx —
           signed in your wallet, from your address, with your testnet PHRS.</strong>{" "}
           LIGHTKEEPER never sees, holds, or asks for private keys. Atlantic testnet
-          (chain 688689) only. Every run you make is logged in your own session
-          log below (section 05), stored only in your browser.
+          (chain 688689) only.
         </p>
       </div>
 
       {/* 01 · Configure */}
-      <section>
+      <section id="t05-config">
         <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
           01 · Configure the gate
         </h4>
-        <p className="mt-1 text-xs text-slate">
+        <p className="mt-1 text-sm text-slate">
           Prefilled from the task's real <span className="font-mono">policy.yaml</span>.
           Edit any number — the trace below shows exactly what each one guards.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-ink">Max per tx (PHRS)</span>
+            <span className="mb-1 block text-sm font-semibold text-ink">Max per tx (PHRS)</span>
             <input
               className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
               value={maxPerTx}
@@ -322,7 +421,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-ink">Rolling window cap (PHRS)</span>
+            <span className="mb-1 block text-sm font-semibold text-ink">Rolling window cap (PHRS)</span>
             <input
               className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
               value={maxPerWindow}
@@ -331,7 +430,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-ink">Window (minutes)</span>
+            <span className="mb-1 block text-sm font-semibold text-ink">Window (minutes)</span>
             <input
               className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
               value={windowMinutes}
@@ -340,7 +439,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-ink">Max gas price (gwei)</span>
+            <span className="mb-1 block text-sm font-semibold text-ink">Max gas price (gwei)</span>
             <input
               className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
               value={maxGasGwei}
@@ -351,7 +450,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
         </div>
         <div className="mt-3 max-w-xs">
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold text-ink">Proposal value (PHRS)</span>
+            <span className="mb-1 block text-sm font-semibold text-ink">Proposal value (PHRS)</span>
             <input
               className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
               value={value}
@@ -386,183 +485,291 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
             </button>
           </div>
         )}
-        {readError && <p className="mt-3 text-sm text-fail">{readError}</p>}
+        {readError && (
+          <div className="mt-4">
+            <ErrorState
+              title="The gate couldn't run"
+              message={readError}
+              hint="Nothing was evaluated and nothing was spent — fix the input and try again."
+              retryLabel={!address ? "Connect Atlantic wallet" : "Try again"}
+              onRetry={!address ? connect : () => runEvaluation()}
+            />
+          </div>
+        )}
       </section>
 
-      {/* 02 · Condition trace */}
-      {(trace || running) && (
+      {/* 02 · Propose — live progress while the real reads happen */}
+      {running && (
         <section>
           <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
-            02 · Condition trace — every comparison, exact numbers
+            02 · Propose — composing and checking against the chain
           </h4>
-          {running && <p className="mt-2 text-sm text-slate">Reading eth_chainId, eth_gasPrice and your balance from Atlantic…</p>}
-          {trace && (
-            <div className="mt-3 overflow-hidden rounded-xl border border-hairline bg-white">
-              <div className="overflow-x-auto">
-              <table className="data-table min-w-[560px]">
-                <thead>
-                  <tr>
-                    <th>Condition</th>
-                    <th>Live value vs threshold</th>
-                    <th>Verdict</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trace.map((c) => (
-                    <tr key={c.key}>
-                      <td className="font-semibold text-ink">{c.name}</td>
-                      <td className="font-mono text-xs text-slate">{c.detail}</td>
-                      <td>
-                        <span className={c.pass ? "chip chip-pass" : "chip chip-fail"}>
-                          {c.pass ? "Pass" : "Block"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-              <div className="flex items-center justify-between gap-3 border-t border-hairline bg-porcelain px-4 py-3">
-                <p className="text-xs text-slate">
-                  {decision === "ALLOW"
-                    ? "Six independent conditions, all passing on live chain data."
-                    : "One failing condition is enough — the guardian fails closed."}
-                </p>
-                <span className={decision === "ALLOW" ? "chip chip-pass" : "chip chip-fail"}>
-                  Decision: {decision}
-                </span>
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* 03 · Fire — the mandatory review + visitor signature */}
-      {decision === "ALLOW" && (
-        <section>
-          <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
-            03 · Fire — only because the gate allowed it
-          </h4>
-          {sign.state === "idle" && (
-            <div className="mt-3">
-              <p className="text-sm text-slate">
-                Propose a dust self-transfer of{" "}
-                <span className="font-mono font-semibold text-ink">{ranFor} PHRS</span>{" "}
-                to your own address. Nothing leaves your hands: the proposal is reviewed
-                here first, then signed and sent by you.
-              </p>
-              <button className="btn-primary mt-3" onClick={fireDust}>
-                Propose {ranFor} PHRS self-transfer
-              </button>
-            </div>
-          )}
-
-          {sign.state === "review" && sign.proposal && (
-            <div className="mt-3 rounded-xl border border-hairline bg-porcelain p-4">
-              <p className="smallcaps mb-2">Review — mandatory</p>
-              <p className="text-sm font-semibold text-ink">{sign.proposal.label}</p>
-              <div className="mt-2 space-y-1 font-mono text-xs text-slate">
-                <p>
-                  to <span className="text-ink">{sign.proposal.to}</span>{" "}
-                  <span className="text-slate">(your connected address)</span>
-                </p>
-                <p>
-                  value <span className="text-ink">{sign.proposal.valuePhrs} PHRS</span>
-                </p>
-                <p>estimated cost {estFeeNote}</p>
-              </div>
-              {/* The review-step dust warning — AMBER, never an error. */}
-              {sign.error && (
-                <p className="mt-3 rounded-lg border border-gold bg-[#fff8e8] px-3 py-2 text-sm font-semibold text-golddeep">
-                  ⚠ {sign.error}
-                </p>
-              )}
-              <p className="mt-3 text-xs text-slate">
-                Your tx — signed in your wallet, from your address. LIGHTKEEPER cannot
-                sign or broadcast for you; approving asks your wallet to send on
-                Atlantic testnet only.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button className="btn-primary" onClick={() => sign.approve()}>
-                  Sign in my wallet
-                </button>
-                <button className="btn-outline" onClick={() => sign.cancel()}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {sign.state === "awaiting-signature" && (
-            <p className="mt-3 text-sm text-slate">Waiting for your wallet — review the transaction there, then sign.</p>
-          )}
-          {sign.state === "broadcasting" && (
-            <p className="mt-3 text-sm text-slate">Sent — waiting for Atlantic to mine it…</p>
-          )}
-          {sign.state === "blocked" && (
-            <div className="mt-3">
-              <p className="text-sm text-fail">{sign.error}</p>
-              <button className="btn-outline mt-2" onClick={connect}>
-                Reconnect wallet
-              </button>
-            </div>
-          )}
-          {sign.state === "error" && (
-            <div className="mt-3">
-              <p className="text-sm text-fail">{sign.error}</p>
-              <button className="btn-outline mt-2" onClick={() => sign.cancel()}>
-                Start over
-              </button>
-            </div>
-          )}
-          {sign.state === "confirmed" && sign.txHash && (
-            <div className="mt-3 rounded-xl border border-hairline bg-white p-4">
-              <span className="chip chip-pass">Confirmed</span>
-              <p className="mt-2 font-mono text-xs text-slate break-all">
-                tx <span className="text-ink">{sign.txHash}</span>
-              </p>
-              <p className="mt-1 text-xs text-slate">
-                The {ranFor} PHRS now counts toward this session's rolling window
-                (session spend: {fmtPhrs(sessionSpend)} PHRS).
-              </p>
-              <a
-                className="mt-2 inline-block font-mono text-sm text-accent hover:underline"
-                href={`${EXPLORER_TX}${sign.txHash}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                View on the Atlantic explorer →
-              </a>
-            </div>
-          )}
-        </section>
-      )}
-
-      {decision === "BLOCK" && trace && (
-        <section>
-          <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
-            03 · Hold — the honest negative case
-          </h4>
-          <div className="empty-panel mt-3 px-5 py-5">
-            <span className="chip chip-fail">Blocked</span>
-            <p className="mt-2 text-sm text-slate">
-              The proposal of <span className="font-mono text-ink">{ranFor} PHRS</span>{" "}
-              breached at least one condition above. <strong className="text-ink">
-              Nothing was proposed, nothing was signed, nothing was broadcast, nothing
-              was spent.</strong> That is the guardian doing its job — the trace is the
-              proof.
-            </p>
-            <button
-              className="btn-outline mt-3"
-              onClick={() => {
-                setValue("0.0001");
-                runEvaluation("0.0001");
-              }}
-              disabled={running}
-            >
-              Re-run with 0.0001 PHRS (the firing case)
-            </button>
+          <div className="mt-3">
+            <ProgressLoader steps={PROPOSE_STEPS} current={step} />
           </div>
+        </section>
+      )}
+
+      {/* 03 · Result — the verdict is the showpiece */}
+      {!running && decision && trace && (
+        <section>
+          <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
+            03 · Result — the gate's verdict
+          </h4>
+          <div className="mt-3">
+            {decision === "ALLOW" ? (
+              <ResultCard
+                eyebrow={`Gate verdict — proposal of ${ranFor} PHRS`}
+                headline={
+                  <span className="inline-flex items-center gap-3">
+                    <ShieldCheck size={44} className="text-pass" aria-hidden />
+                    ALLOW
+                  </span>
+                }
+                status="pass"
+                subline="All six conditions pass on live Atlantic reads. The guardian would fire this transfer — and only a transfer you propose, review, and sign yourself."
+                rows={[
+                  {
+                    label: "Per-tx check",
+                    value: trace.find((c) => c.key === "threshold")?.detail ?? "—",
+                  },
+                  {
+                    label: "Rolling-window check",
+                    value: trace.find((c) => c.key === "window")?.detail ?? "—",
+                  },
+                  {
+                    label: "Balance check",
+                    value: trace.find((c) => c.key === "balance")?.detail ?? "—",
+                  },
+                  {
+                    label: "Gas sanity",
+                    value: trace.find((c) => c.key === "gas")?.detail ?? "—",
+                  },
+                ]}
+              />
+            ) : (
+              <ResultCard
+                eyebrow={`Gate verdict — proposal of ${ranFor} PHRS`}
+                headline={
+                  <span className="inline-flex items-center gap-3">
+                    <ShieldX size={44} className="text-fail" aria-hidden />
+                    BLOCK
+                  </span>
+                }
+                status="fail"
+                subline="At least one condition failed on live Atlantic data. Nothing was proposed, nothing was signed, nothing was spent — that is the guardian doing its job. The trace below is the proof."
+                rows={[
+                  {
+                    label: "Failed on",
+                    value: trace.filter((c) => !c.pass).map((c) => c.name).join("; ") || "—",
+                  },
+                  {
+                    label: "Rolling-window check",
+                    value: trace.find((c) => c.key === "window")?.detail ?? "—",
+                  },
+                ]}
+              />
+            )}
+          </div>
+
+          {stats && (
+            <div className="mt-4">
+              <StatStrip
+                stats={[
+                  {
+                    label: "Window used",
+                    value: stats.inWindow,
+                    format: fmtPhrs,
+                    suffix: "PHRS",
+                  },
+                  {
+                    label: "Window cap",
+                    value: stats.capWin,
+                    format: fmtPhrs,
+                    suffix: "PHRS",
+                  },
+                  {
+                    label: "Live gas price",
+                    value: stats.gasGwei,
+                    format: fmtGwei,
+                    suffix: "gwei",
+                  },
+                  {
+                    label: "Your balance",
+                    value: stats.balPhrs,
+                    format: fmtPhrs,
+                    suffix: "PHRS",
+                  },
+                ]}
+              />
+            </div>
+          )}
+
+          <TraceList trace={trace} />
+
+          {/* The fire flow — propose → review → sign → receipt, each an honest state */}
+          {decision === "ALLOW" && (
+            <div className="mt-6">
+              <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
+                Fire — only because the gate allowed it
+              </h4>
+
+              {sign.state === "idle" && (
+                <div className="mt-3 rounded-2xl border border-hairline bg-white p-6 sm:p-8">
+                  <p className="text-sm leading-relaxed text-ink">
+                    Propose a dust self-transfer of{" "}
+                    <span className="font-mono font-semibold">{ranFor} PHRS</span>{" "}
+                    to your own address. Nothing leaves your hands: the proposal is
+                    reviewed here first, then signed and sent by you.
+                  </p>
+                  <button className="btn-primary mt-4" onClick={fireDust}>
+                    Propose {ranFor} PHRS self-transfer
+                  </button>
+                </div>
+              )}
+
+              {sign.state === "review" && sign.proposal && (
+                <div className="mt-3 rounded-2xl border border-hairline bg-white p-6 sm:p-8">
+                  <p className="smallcaps mb-2">Review — mandatory</p>
+                  <p className="text-base font-semibold text-ink">{sign.proposal.label}</p>
+                  <div className="mt-3 space-y-1.5 font-mono text-sm text-slate">
+                    <p>
+                      to <span className="break-all text-ink">{sign.proposal.to}</span>{" "}
+                      <span className="text-slate">(your connected address)</span>
+                    </p>
+                    <p>
+                      value <span className="text-ink">{sign.proposal.valuePhrs} PHRS</span>
+                    </p>
+                    <p className="text-xs">estimated cost {estFeeNote}</p>
+                  </div>
+                  {/* The review-step dust warning — AMBER, never an error. */}
+                  {sign.error && (
+                    <p className="mt-4 rounded-lg border border-gold bg-[#fff8e8] px-3 py-2 text-sm font-semibold text-golddeep">
+                      ⚠ {sign.error}
+                    </p>
+                  )}
+                  <p className="mt-4 text-sm text-slate">
+                    Your tx — signed in your wallet, from your address. LIGHTKEEPER
+                    cannot sign or broadcast for you; approving asks your wallet to
+                    send on Atlantic testnet only.
+                  </p>
+                  <div className="sticky bottom-3 mt-5 flex flex-col gap-2 sm:flex-row">
+                    <button className="btn-primary flex-1" onClick={() => sign.approve()}>
+                      Sign in my wallet
+                    </button>
+                    <button className="btn-outline" onClick={() => sign.cancel()}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {sign.state === "awaiting-signature" && (
+                <div className="mt-3 flex items-start gap-3 rounded-2xl border border-hairline bg-white p-6 sm:p-8">
+                  <span className="mt-1.5 h-3 w-3 shrink-0 animate-pulse rounded-full bg-accent" aria-hidden />
+                  <div>
+                    <p className="text-base font-semibold text-ink">
+                      <Hourglass size={16} className="mr-1.5 inline-block" aria-hidden />
+                      Waiting in your wallet
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate">
+                      Check the transaction popup in your wallet — review it there, then
+                      sign. This step only moves when you act; LIGHTKEEPER can't see
+                      your wallet or touch your keys.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {sign.state === "broadcasting" && (
+                <div className="mt-3">
+                  <ProgressLoader
+                    steps={SIGN_STEPS}
+                    current={1}
+                    title="Signed — your transaction is on its way"
+                  />
+                </div>
+              )}
+
+              {sign.state === "blocked" && (
+                <div className="mt-3">
+                  <ErrorState
+                    title="Blocked — a safety check refused"
+                    message={sign.error ?? "The proposal failed a safety check."}
+                    hint="Nothing was signed or broadcast. Fix the flagged issue and propose again."
+                    retryLabel="Reconnect wallet"
+                    onRetry={connect}
+                  />
+                </div>
+              )}
+
+              {sign.state === "error" && (
+                <div className="mt-3">
+                  <ErrorState
+                    title="That didn't go through"
+                    message={sign.error ?? "The wallet call failed."}
+                    hint="Nothing unexpected was sent — check the message above, then start over."
+                    retryLabel="Start over"
+                    onRetry={() => sign.cancel()}
+                  />
+                </div>
+              )}
+
+              {sign.state === "confirmed" && sign.txHash && (
+                <div className="mt-3">
+                  <ResultCard
+                    eyebrow="Receipt — mined on Atlantic testnet"
+                    headline="Confirmed"
+                    status="pass"
+                    subline={`Your guardian-approved dust self-transfer was mined — and the ${ranFor} PHRS now counts toward this session's rolling window (session spend: ${fmtPhrs(sessionSpend)} PHRS).`}
+                    rows={[
+                      {
+                        label: "Transaction",
+                        value: `${sign.txHash.slice(0, 18)}…${sign.txHash.slice(-8)}`,
+                      },
+                      { label: "Value", value: `${ranFor} PHRS` },
+                      { label: "To", value: `${address?.slice(0, 10)}… (your address)` },
+                    ]}
+                    links={[
+                      {
+                        label: "View on the Atlantic explorer",
+                        href: `${EXPLORER_TX}${sign.txHash}`,
+                      },
+                    ]}
+                    copyValue={sign.txHash}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* The honest negative — re-fireable with the small amount */}
+          {decision === "BLOCK" && (
+            <div className="mt-6">
+              <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
+                Hold — the honest negative case
+              </h4>
+              <div className="empty-panel mt-3 px-6 py-6">
+                <p className="text-sm leading-relaxed text-slate">
+                  The proposal of{" "}
+                  <span className="font-mono font-semibold text-ink">{ranFor} PHRS</span>{" "}
+                  breached at least one condition above. <strong className="text-ink">
+                  Nothing was proposed, nothing was signed, nothing was broadcast, nothing
+                  was spent.</strong> Want to see the other side? Re-run with the firing case.
+                </p>
+                <button
+                  className="btn-outline mt-4"
+                  onClick={() => {
+                    setValue("0.0001");
+                    runEvaluation("0.0001");
+                  }}
+                  disabled={running}
+                >
+                  Re-run with 0.0001 PHRS (the firing case)
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -571,7 +778,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
         <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
           04 · Audit history — the task's real on-chain record
         </h4>
-        <p className="mt-1 text-xs text-slate">
+        <p className="mt-1 text-sm text-slate">
           Every run below comes from this task's <span className="font-mono">evidence.json</span> —
           real guardian runs on Atlantic, not a replay.
         </p>
@@ -633,12 +840,13 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
             </div>
           </div>
         ) : (
-          <div className="empty-panel mt-3 px-5 py-6 text-sm text-slate">
-            No audit rows found in this lamp's evidence.
-          </div>
+          <EmptyState
+            title="No audit rows found"
+            message="This lamp's evidence carries no recorded guardian runs yet — the session log below fills as you run the gate yourself."
+          />
         )}
         {spendTotal !== null && budget !== null && (
-          <p className="mt-3 text-xs text-slate">
+          <p className="mt-3 text-sm text-slate">
             Task spend on-chain:{" "}
             <span className="font-mono text-ink">{spendTotal} PHRS</span> of a{" "}
             <span className="font-mono text-ink">{budget} PHRS</span> budget — the
@@ -653,58 +861,16 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
         <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
           05 · Your session log — this visit's runs
         </h4>
-        <p className="mt-1 text-xs text-slate">
+        <p className="mt-1 text-sm text-slate">
           Every gate you run above is written here too — decision, proposal, and
           what failed it — stored only in your browser, never sent anywhere.
         </p>
         {sessionLog.length > 0 ? (
-          <div className="mt-3 overflow-hidden rounded-xl border border-hairline bg-white">
-            <div className="overflow-x-auto">
-            <table className="data-table min-w-[480px]">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Proposal</th>
-                  <th>Decision</th>
-                  <th>Failed on</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessionLog.map((e, i) => (
-                  <tr key={`${e.t}-${i}`}>
-                    <td className="font-mono text-xs text-slate">
-                      {new Date(e.t).toLocaleTimeString()}
-                    </td>
-                    <td className="font-mono text-xs text-ink">{e.value} PHRS</td>
-                    <td>
-                      <span className={e.decision === "ALLOW" ? "chip chip-pass" : "chip chip-fail"}>
-                        {e.decision}
-                      </span>
-                    </td>
-                    <td className="font-mono text-xs text-slate">
-                      {e.decision === "ALLOW"
-                        ? e.tx
-                          ? (
-                            <a
-                              className="text-accent hover:underline break-all"
-                              href={`${EXPLORER_TX}${e.tx}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {e.tx.slice(0, 18)}…
-                            </a>
-                          )
-                          : "—"
-                        : e.failing.join("; ")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-            <div className="border-t border-hairline bg-porcelain px-4 py-2">
+          <div className="mt-3">
+            <FeedList items={feedItems} maxHeight="max-h-[22rem]" emptyText="Nothing yet — run the gate and the decision lands here." />
+            <div className="mt-2">
               <button
-                className="text-xs text-slate underline hover:text-ink"
+                className="text-sm text-slate underline hover:text-ink"
                 onClick={() => {
                   setSessionLog([]);
                   try {
@@ -719,8 +885,13 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
             </div>
           </div>
         ) : (
-          <div className="empty-panel mt-3 px-5 py-6 text-sm text-slate">
-            Nothing yet — run the gate in section 02 and the decision lands here.
+          <div className="mt-3">
+            <EmptyState
+              title="No gate runs yet"
+              message="Run the gate in section 02 and the decision lands here — the log lives only in your browser, newest first."
+              actionLabel="Back to configuration"
+              onAction={() => document.getElementById("t05-config")?.scrollIntoView({ behavior: "smooth" })}
+            />
           </div>
         )}
       </section>
