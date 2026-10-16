@@ -34,4 +34,27 @@ https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb
 - Venue contracts: poolA 0x8683C6D6EeAA57B03688f43Ad0cbCA0af26Cf464 · poolB 0x432BCd7bc6944Def44015bF00C82Eb50aA18A3F6 · poolC 0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D
 
 ## Demo video
-PENDING-VIDEO
+PENDING-VIDEO — new interactive shot added: the console "Try it live" spread scanner
+(`apps/console/src/components/try/arbitrage-scanner.tsx`) runs the config→scan→verdict
+rhythm in-browser against the same three venues — Tier A live reads, no signature.
+
+## Try it live (LIGHTKEEPER console, Tier A)
+
+New interactive surface: `apps/console/src/components/try/arbitrage-scanner.tsx`
+(default-exports `TryArbitrageScanner`, lazy-loaded by `TryPanel` for lamp slug
+`arbitrage-scanner` — no registry edits needed).
+
+- Visitor sets **trade size**, **profit threshold**, **slippage guard %**, hits **Run scan**.
+- The panel pins one Atlantic block, reads `getReserves()` on all three venues at that
+  block via `eth_call`, prices the six WPHRS-start directed cycles with the
+  contract-identical constant-product quote math (30 bps/leg on notionals), nets slippage
+  + gas (2 legs × 68,744 gas — measured from the mined execution legs — × live
+  `eth_gasPrice`) + the slippage guard, and shows a verdict chip:
+  **◉ OPPORTUNITY** (net above threshold) or **○ SKIP — BELOW_THRESHOLD / NEGATIVE_NET /
+  STALE_QUOTE / NO_LIQUIDITY / SOURCE_DOWN** with the numbers.
+- The winning route's two legs are cross-checked through the contracts' own
+  `getAmountOut` view via `eth_call` at the pinned block — the panel reports
+  "contract quotes match the panel math exactly" (wei-identical) or flags the scan
+  untrusted. Failed reads are errors, never zeros.
+- Fully read-only: no wallet, no signature, no broadcast. Prior on-chain execution proof
+  (arb legs `0x39fe2154…e2185de30`, `0xdcd894bb…ca380c58ad`) is linked in the panel footer.

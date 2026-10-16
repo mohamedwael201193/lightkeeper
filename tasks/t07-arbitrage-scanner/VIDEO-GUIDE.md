@@ -34,6 +34,16 @@
 **Do:** `python3 scanner.py --config config-skip.json` (threshold 0.5 WPHRS). Show `"decision": "SKIP"`, `"skip_reason": "BELOW_THRESHOLD"`, and the note with the numbers.
 **Say:** "Same real spread — but the threshold is now point-five. Net is below it, so nothing is broadcast. The scanner logs why: below threshold, with the numbers. On testnet, a truthful skip beats a fabricated opportunity. That's the build."
 
+### Shot 5 — New interactive shot: the live console surface (0:00–0:45, standalone video option)
+**Show:** the LIGHTKEEPER console, task T07 → "Try it live" section.
+**Do:** set threshold 0.05, hit **Run scan**. Scroll: pinned block, the three venue reserves
+read live, the best-route cost decomposition, then the verdict chip (OPPORTUNITY or SKIP with
+the reason). Point at the contract cross-check line ("contract quotes match the panel math
+exactly"). Say it plainly: "Every number here was read from Atlantic just now — no mocks.
+This panel never signs or broadcasts; the execution proof is the two mined legs on the
+explorer tab." This shot replaces nothing — it is the new interactive demo the console now
+offers every visitor.
+
 ## Rules for the recording
 
 - REAL terminal, REAL explorer pages. If a command is slow, cut the wait — never paste fake output.
