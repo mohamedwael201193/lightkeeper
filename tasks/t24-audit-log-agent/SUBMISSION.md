@@ -23,7 +23,7 @@ scan caps) are disclosed in each report. No mocks, no placeholders.
 Total on-chain spend: 0.000242000000042 PHRS (budget 0.15).
 
 ## Proof link (repo, commit-pinned)
-https://github.com/mohamedwael201193/lightkeeper/tree/9214c1b/tasks/t24-audit-log-agent
+https://github.com/mohamedwael201193/lightkeeper/tree/3b9a8ef/tasks/t24-audit-log-agent
 
 ## Demo / share links
 Video: PENDING-VIDEO (see VIDEO-GUIDE.md for the 60-second shot plan)
