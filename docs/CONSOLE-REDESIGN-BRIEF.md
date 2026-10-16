@@ -1,5 +1,37 @@
 # CONSOLE REDESIGN BRIEF — Founder Order (2026-10-16 ~08:00 EEST)
 
+## 0B. AMENDMENT — Identity: LIGHTKEEPER-first, not Pharos-first (2026-10-16 ~08:30 EEST)
+The console currently reads like a Pharos marketing site — it repeats Pharos's words instead of
+showing OUR work. Flip the hierarchy:
+- The product is LIGHTKEEPER. Hero, nav, and copy lead with our work: the lighthouse, the 28
+  lamps/skills, the stack, the on-chain proof.
+- Pharos / Atlantic / Arena appear ONLY as technical context, never as the headline:
+  - Hero eyebrow becomes LIGHTKEEPER-first (e.g. "LIGHTKEEPER · 28 autonomous agent skills");
+    the arena drops to a sub-line ("Built for the Pharos Agent Arena · live on Atlantic testnet").
+  - Status strip keeps NETWORK as data (it names the chain the wallet uses) — that is fine.
+  - Arena portal / explorer links are utility links in nav/footer, not hero content.
+  - Per-task "Arena submission" panels stay (they are the founder's working tools), but each task's
+    story leads with what the skill DOES and its evidence, not the arena.
+- Copy rule: if a sentence could appear on Pharos's own website, rewrite it to be about what we built.
+
+## 0A. AMENDMENT — Founder correction (2026-10-16 ~08:25 EEST, overrides §1 for the hero)
+The retheme **overcorrected**: the founder did NOT ask to remove the blue hero, the octopus,
+or the dramatic hero shape — those are the locked brand identity from his reference image.
+**Restore the OCTOPUS hero; keep the light dashboard.**
+- **HERO (spectacle, blue):** deep royal blue `#1414c8` field, the giant porcelain octopus
+  artwork (`public/assets/octopus.png`) as the centerpiece, gold serif display typography
+  (Playfair Display) in the spirit of the founder's reference ("OCTOPUS" / "MENTALITY" treatment —
+  for us: LIGHTKEEPER wordmark + "One lighthouse. Twenty-eight lamps." concept line).
+  This is the brand moment — keep it dramatic and full-bleed.
+- **DASHBOARD BELOW THE HERO (workbench, light):** everything under the hero stays in the
+  Porcelain light theme — white/paper surfaces, The Stack, lamps grid, per-task 01→02→03 flow
+  views, wallet connect, status strip. This is what the "blue-on-blue" complaint was about:
+  content sections being unreadable, not the hero.
+- **Rule of thumb: blue = the stage (hero only); light = the workbench (everything else).**
+- Keep the hero title restrained enough to never clip at 1440px (fix the earlier bleed), and keep
+  the octopus as the hero centerpiece — not a tiny logo.
+- Everything else in this brief (§2–§7) stands unchanged.
+
 ## 0. Verdict
 The shipped dark blue-on-blue OCTOPUS console is **REJECTED** by the founder: too heavy,
 unreadable, unorganized. This is a full retheme + restructure, not a tweak. The previous

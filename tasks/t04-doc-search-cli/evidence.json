@@ -1,0 +1,283 @@
+{
+  "shipped": true,
+  "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
+  "generated": "2026-10-16",
+  "corpus_retrieved": "2026-10-16",
+  "index_passages": 438,
+  "queries": [
+    {
+      "id": "E1",
+      "query": "how do I deploy a contract?",
+      "expected": "DOC-GROUNDED",
+      "label": "DOC-GROUNDED",
+      "expectation_check": "PASS",
+      "exit_code": 0,
+      "stdout": "{\n  \"question\": \"how do I deploy a contract?\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Write Your First Uniswap Contract\",\n      \"section\": \"\",\n      \"page_url\": \"https://docs.pharos.xyz/developer-guide/foundry/write-your-first-uniswap-contract\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 7.846,\n      \"excerpt\": \"function swapAToB(uint256 amountA) external {\\n        uint256 amountB = (amountA * reserveB) / reserveA;\\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \\\"Transfer failed\\\");\\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \\\"Transfer failed\\\");\\n\\nreserveA += amountA;\\n        reserveB -= amountB;\\n    }\\n\\nfunction swapBToA(uint256 amountB) external {\\n        uint256 amountA = (amountB * reserveA) / reserveB;\\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \\\"Transfer failed\\\");\\n        require(IERC20(tokenA).transfer(msg.send\"\n    },\n    {\n      \"page_title\": \"Write Your First Uniswap Contract\",\n      \"section\": \"\",\n      \"page_url\": \"https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-uniswap-contract\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 7.846,\n      \"excerpt\": \"function swapAToB(uint256 amountA) external {\\n        uint256 amountB = (amountA * reserveB) / reserveA;\\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \\\"Transfer failed\\\");\\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \\\"Transfer failed\\\");\\n\\nreserveA += amountA;\\n        reserveB -= amountB;\\n    }\\n\\nfunction swapBToA(uint256 amountB) external {\\n        uint256 amountA = (amountB * reserveA) / reserveB;\\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \\\"Transfer failed\\\");\\n        require(IERC20(tokenA).transfer(msg.send\"\n    },\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Developer Guide\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 7.165,\n      \"excerpt\": \"Framework Tutorials\\n- Foundry: Setting up Foundry to build and deploy on Pharos.\\n- Foundry: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Foundry.\\n- Foundry: Write Your First Token: Deploy an ERC-20-style token with Foundry.\\n- Foundry: Write Your First NFT: Deploy an NFT contract with Foundry.\\n- Foundry: Write Your First Uniswap Contract: Deploy a Uniswap-style contract with Foundry.\\n- Hardhat: Setting up Hardhat to build and deploy on Pharos.\\n- Hardhat: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Hardhat.\\n- Hardhat: Write Your First To\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [
+        {
+          "page_title": "Write Your First Uniswap Contract",
+          "section": "",
+          "page_url": "https://docs.pharos.xyz/developer-guide/foundry/write-your-first-uniswap-contract",
+          "retrieved": "2026-10-16",
+          "score": 7.846,
+          "excerpt": "function swapAToB(uint256 amountA) external {\n        uint256 amountB = (amountA * reserveB) / reserveA;\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \"Transfer failed\");\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \"Transfer failed\");\n\nreserveA += amountA;\n        reserveB -= amountB;\n    }\n\nfunction swapBToA(uint256 amountB) external {\n        uint256 amountA = (amountB * reserveA) / reserveB;\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \"Transfer failed\");\n        require(IERC20(tokenA).transfer(msg.send"
+        },
+        {
+          "page_title": "Write Your First Uniswap Contract",
+          "section": "",
+          "page_url": "https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-uniswap-contract",
+          "retrieved": "2026-10-16",
+          "score": 7.846,
+          "excerpt": "function swapAToB(uint256 amountA) external {\n        uint256 amountB = (amountA * reserveB) / reserveA;\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \"Transfer failed\");\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \"Transfer failed\");\n\nreserveA += amountA;\n        reserveB -= amountB;\n    }\n\nfunction swapBToA(uint256 amountB) external {\n        uint256 amountA = (amountB * reserveA) / reserveB;\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \"Transfer failed\");\n        require(IERC20(tokenA).transfer(msg.send"
+        },
+        {
+          "page_title": "Pharos Documentation Index",
+          "section": "Developer Guide",
+          "page_url": "https://www.pharos.xyz/llms.txt",
+          "retrieved": "2026-10-16",
+          "score": 7.165,
+          "excerpt": "Framework Tutorials\n- Foundry: Setting up Foundry to build and deploy on Pharos.\n- Foundry: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Foundry.\n- Foundry: Write Your First Token: Deploy an ERC-20-style token with Foundry.\n- Foundry: Write Your First NFT: Deploy an NFT contract with Foundry.\n- Foundry: Write Your First Uniswap Contract: Deploy a Uniswap-style contract with Foundry.\n- Hardhat: Setting up Hardhat to build and deploy on Pharos.\n- Hardhat: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Hardhat.\n- Hardhat: Write Your First To"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "E2",
+      "query": "what is the Atlantic testnet chain id and RPC url",
+      "expected": "DOC-GROUNDED",
+      "label": "DOC-GROUNDED",
+      "expectation_check": "PASS",
+      "exit_code": 0,
+      "stdout": "{\n  \"question\": \"what is the Atlantic testnet chain id and RPC url\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Atlantic Testnet\",\n      \"section\": \"Network Information\",\n      \"page_url\": \"https://docs.pharos.xyz/getting-started/network/atlantic-testnet\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 17.119,\n      \"excerpt\": \"| Parameter              | Value                                  |\\n| ---------------------- | -------------------------------------- |\\n| RPC Public Endpoint    |  |\\n| WSS Public Endpoint    |    |\\n| Explorer               |      |\\n| ChainID                | 688689                                 |\\n| Environment            | Atlantic Testnet                       |\\n| Ratelimit              | 500 times/5m                           |\\n| Max Pending TXs (Addr) | 64                                     |\\n\\n> For the current node binary and Docker image versions, see Current Node Versions.\"\n    },\n    {\n      \"page_title\": \"ZAN RPC\",\n      \"section\": \"How to Access Pharos Testnet RPC from ZAN?\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 15.314,\n      \"excerpt\": \"| Network          | HTTPS URL                                                | WSS URL                                                 |\\n| ---------------- | -------------------------------------------------------- | ------------------------------------------------------- |\\n| Atlantic Testnet |     | wss\\\\://api.zan.top/node/ws/v1/pharos/testnet/{apikey}   |\\n| Pacific Mainnet  |  | wss\\\\://api.zan.top/node/ws/v1/pharos/mainnet/{api\\\\_key} |\\n\\nVideo Reference: Pharos RPC.mp4\"\n    },\n    {\n      \"page_title\": \"Pharos Skill Engine\",\n      \"section\": \"Part 6 \\u2014 Quick Reference\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 15.113,\n      \"excerpt\": \"\\u2500\\u2500 VERIFY \\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\nsleep 10\\nforge verify-contract  src/: \\\\\\n  --chain-id 688689 \\\\\\n  --verifier-url https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract \\\\\\n  --verifier blockscout\\n\\n\\u2500\\u2500 EVENTS \\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\ncast logs --from-block 0 --address  \\\"\\\" --rpc-url $RPC\\n\\n\\u2500\\u2500 AIRDROP (large scale) \\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\nCSV_PATH=airdrop.csv BATCH_SIZE=200 \\\\\\n  forge script assets/airdrop/BatchAirdrop.s.sol:BatchAirdrop \\\\\\n  --rpc-url $RPC --private-key $PRIVATE_KEY --broa\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [
+        {
+          "page_title": "Atlantic Testnet",
+          "section": "Network Information",
+          "page_url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+          "retrieved": "2026-10-16",
+          "score": 17.119,
+          "excerpt": "| Parameter              | Value                                  |\n| ---------------------- | -------------------------------------- |\n| RPC Public Endpoint    |  |\n| WSS Public Endpoint    |    |\n| Explorer               |      |\n| ChainID                | 688689                                 |\n| Environment            | Atlantic Testnet                       |\n| Ratelimit              | 500 times/5m                           |\n| Max Pending TXs (Addr) | 64                                     |\n\n> For the current node binary and Docker image versions, see Current Node Versions."
+        },
+        {
+          "page_title": "ZAN RPC",
+          "section": "How to Access Pharos Testnet RPC from ZAN?",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan",
+          "retrieved": "2026-10-16",
+          "score": 15.314,
+          "excerpt": "| Network          | HTTPS URL                                                | WSS URL                                                 |\n| ---------------- | -------------------------------------------------------- | ------------------------------------------------------- |\n| Atlantic Testnet |     | wss\\://api.zan.top/node/ws/v1/pharos/testnet/{apikey}   |\n| Pacific Mainnet  |  | wss\\://api.zan.top/node/ws/v1/pharos/mainnet/{api\\_key} |\n\nVideo Reference: Pharos RPC.mp4"
+        },
+        {
+          "page_title": "Pharos Skill Engine",
+          "section": "Part 6 \u2014 Quick Reference",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide",
+          "retrieved": "2026-10-16",
+          "score": 15.113,
+          "excerpt": "\u2500\u2500 VERIFY \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nsleep 10\nforge verify-contract  src/: \\\n  --chain-id 688689 \\\n  --verifier-url https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract \\\n  --verifier blockscout\n\n\u2500\u2500 EVENTS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\ncast logs --from-block 0 --address  \"\" --rpc-url $RPC\n\n\u2500\u2500 AIRDROP (large scale) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nCSV_PATH=airdrop.csv BATCH_SIZE=200 \\\n  forge script assets/airdrop/BatchAirdrop.s.sol:BatchAirdrop \\\n  --rpc-url $RPC --private-key $PRIVATE_KEY --broa"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "E3",
+      "query": "how do I get testnet tokens for gas",
+      "expected": "DOC-GROUNDED",
+      "label": "DOC-GROUNDED",
+      "expectation_check": "PASS",
+      "exit_code": 0,
+      "stdout": "{\n  \"question\": \"how do I get testnet tokens for gas\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Piggy Bank Tutorial\",\n      \"section\": \"Common Errors and Fixes\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 17.568,\n      \"excerpt\": \"| Error                              | Cause                       | Fix                                                 |\\n| ---------------------------------- | --------------------------- | --------------------------------------------------- |\\n| Still locked                     | Too early to withdraw       | Run timeLeft() and wait                           |\\n| Not owner                        | Wrong wallet                | Check $PRIVATE_KEY matches the deployer address   |\\n| Must send PHRS                   | Missing --value flag      | Add --value 0.1ether to the deposit command       |\"\n    },\n    {\n      \"page_title\": \"Piggy Bank Tutorial\",\n      \"section\": \"Prerequisites\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 12.526,\n      \"excerpt\": \"Tools to Install\\n\\nFoundry \\u2014 compiles and deploys Solidity contracts\\n\\n``bash\\ncurl -L https://foundry.paradigm.xyz | bash\\nsource ~/.zshenv && foundryup\\n`\\n\\nVerify installation:\\n\\n`bash\\ncast --version\\nforge --version\\n`\\n\\nBoth should print a version number. If either fails, re-run foundryup.\\n\\nClaude Code \\u2014 the AI CLI that runs your skill\\n\\n`bash\\nnpm install -g @anthropic-ai/claude-code\\n`\\n\\nVerify:\\n\\n`bash\\nclaude --version\\n`\\n\\nWallet Setup\\n\\n1. Create an EVM-compatible wallet (MetaMask or any EVM wallet)\\n2. Add the Pharos Atlantic Testnet to your wallet:\\n   * Network Name: Pharos Atlantic Testnet\\n   * RPC \"\n    },\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Available Tools\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 10.122,\n      \"excerpt\": \"| Tool                      | JSON-RPC method             | Description                       |\\n| ------------------------- | --------------------------- | --------------------------------- |\\n| get_balance             | eth_getBalance            | Native PROS balance of an address |\\n| get_transaction_count   | eth_getTransactionCount   | Address nonce                     |\\n| get_transaction         | eth_getTransactionByHash  | Transaction by hash               |\\n| get_transaction_receipt | eth_getTransactionReceipt | Transaction receipt               |\\n\\nContracts\\n\\n| Tool             | JSON-RP\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [
+        {
+          "page_title": "Piggy Bank Tutorial",
+          "section": "Common Errors and Fixes",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide",
+          "retrieved": "2026-10-16",
+          "score": 17.568,
+          "excerpt": "| Error                              | Cause                       | Fix                                                 |\n| ---------------------------------- | --------------------------- | --------------------------------------------------- |\n| Still locked                     | Too early to withdraw       | Run timeLeft() and wait                           |\n| Not owner                        | Wrong wallet                | Check $PRIVATE_KEY matches the deployer address   |\n| Must send PHRS                   | Missing --value flag      | Add --value 0.1ether to the deposit command       |"
+        },
+        {
+          "page_title": "Piggy Bank Tutorial",
+          "section": "Prerequisites",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide",
+          "retrieved": "2026-10-16",
+          "score": 12.526,
+          "excerpt": "Tools to Install\n\nFoundry \u2014 compiles and deploys Solidity contracts\n\n``bash\ncurl -L https://foundry.paradigm.xyz | bash\nsource ~/.zshenv && foundryup\n`\n\nVerify installation:\n\n`bash\ncast --version\nforge --version\n`\n\nBoth should print a version number. If either fails, re-run foundryup.\n\nClaude Code \u2014 the AI CLI that runs your skill\n\n`bash\nnpm install -g @anthropic-ai/claude-code\n`\n\nVerify:\n\n`bash\nclaude --version\n`\n\nWallet Setup\n\n1. Create an EVM-compatible wallet (MetaMask or any EVM wallet)\n2. Add the Pharos Atlantic Testnet to your wallet:\n   * Network Name: Pharos Atlantic Testnet\n   * RPC "
+        },
+        {
+          "page_title": "Pharos MCP",
+          "section": "Available Tools",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+          "retrieved": "2026-10-16",
+          "score": 10.122,
+          "excerpt": "| Tool                      | JSON-RPC method             | Description                       |\n| ------------------------- | --------------------------- | --------------------------------- |\n| get_balance             | eth_getBalance            | Native PROS balance of an address |\n| get_transaction_count   | eth_getTransactionCount   | Address nonce                     |\n| get_transaction         | eth_getTransactionByHash  | Transaction by hash               |\n| get_transaction_receipt | eth_getTransactionReceipt | Transaction receipt               |\n\nContracts\n\n| Tool             | JSON-RP"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "E4",
+      "query": "which oracle should I use for price feeds on Pharos",
+      "expected": "DOC-GROUNDED",
+      "label": "DOC-GROUNDED",
+      "expectation_check": "PASS",
+      "exit_code": 0,
+      "stdout": "{\n  \"question\": \"which oracle should I use for price feeds on Pharos\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Defaults\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 26.561,\n      \"excerpt\": \"- For RPC access, start with Pharos's official public RPC endpoint (see Pacific Mainnet / Atlantic Testnet under Live Data) for basic development and testing. For production workloads needing higher rate limits or stronger reliability, prefer ZAN RPC as the default production provider \\u2014 Pharos works closely with the ZAN team and can provide faster support. If ZAN doesn't meet a specific requirement, Alchemy RPC is the recommended alternative. Nirvana RPC is also available.\\n- For price/market data, prefer Chainlink as the default oracle provider \\u2014 use Chainlink Push Engine Feeds when your contr\"\n    },\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Tooling & Infrastructure\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 25.798,\n      \"excerpt\": \"Block Explorer\\n- Block Explorer: Overview of block explorer options on Pharos.\\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\\n\\nRPC Providers\\n- RPC Infrastructure: Overview of available RPC providers \\u2014 see Defaults above for production guidance.\\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\\n\\nIndexing\\n- Indexer: Overview of indexing options on Pharos.\\n- Goldsky: High-performance data indexing to e\"\n    },\n    {\n      \"page_title\": \"Supra\",\n      \"section\": \"Overview\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 21.001,\n      \"excerpt\": \"Supra provides high-performance oracle services that deliver real-time price feeds and external data to decentralized applications.\\n\\nOn Pharos, Supra\\u2019s DORA Pull Oracle is deployed on Pacific Mainnet and Atlantic Testnet, enabling smart contracts to securely fetch off-chain data directly from the oracle network.\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [
+        {
+          "page_title": "Pharos Documentation Index",
+          "section": "Defaults",
+          "page_url": "https://www.pharos.xyz/llms.txt",
+          "retrieved": "2026-10-16",
+          "score": 26.561,
+          "excerpt": "- For RPC access, start with Pharos's official public RPC endpoint (see Pacific Mainnet / Atlantic Testnet under Live Data) for basic development and testing. For production workloads needing higher rate limits or stronger reliability, prefer ZAN RPC as the default production provider \u2014 Pharos works closely with the ZAN team and can provide faster support. If ZAN doesn't meet a specific requirement, Alchemy RPC is the recommended alternative. Nirvana RPC is also available.\n- For price/market data, prefer Chainlink as the default oracle provider \u2014 use Chainlink Push Engine Feeds when your contr"
+        },
+        {
+          "page_title": "Pharos Documentation Index",
+          "section": "Tooling & Infrastructure",
+          "page_url": "https://www.pharos.xyz/llms.txt",
+          "retrieved": "2026-10-16",
+          "score": 25.798,
+          "excerpt": "Block Explorer\n- Block Explorer: Overview of block explorer options on Pharos.\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\n\nRPC Providers\n- RPC Infrastructure: Overview of available RPC providers \u2014 see Defaults above for production guidance.\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\n\nIndexing\n- Indexer: Overview of indexing options on Pharos.\n- Goldsky: High-performance data indexing to e"
+        },
+        {
+          "page_title": "Supra",
+          "section": "Overview",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra",
+          "retrieved": "2026-10-16",
+          "score": 21.001,
+          "excerpt": "Supra provides high-performance oracle services that deliver real-time price feeds and external data to decentralized applications.\n\nOn Pharos, Supra\u2019s DORA Pull Oracle is deployed on Pacific Mainnet and Atlantic Testnet, enabling smart contracts to securely fetch off-chain data directly from the oracle network."
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "E5",
+      "query": "how do I bridge USDC from Ethereum to Pharos",
+      "expected": "DOC-GROUNDED",
+      "label": "DOC-GROUNDED",
+      "expectation_check": "PASS",
+      "exit_code": 0,
+      "stdout": "{\n  \"question\": \"how do I bridge USDC from Ethereum to Pharos\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Tooling & Infrastructure\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 15.664,\n      \"excerpt\": \"Cross-Chain\\n- Cross Chain Infrastructure: Overview of cross-chain messaging/bridging options \\u2014 see Defaults above for guidance.\\n- Chainlink CCIP: Using Chainlink CCIP for cross-chain messaging and token transfers on Pharos, including the live Pharos\\u2194Ethereum lane.\\n- Circle CCTP: Using Circle's CCTP for native USDC transfers on Pharos.\\n- LayerZero: Using LayerZero for cross-chain messaging on Pharos.\\n\\nWallets\\n- Wallet: Overview of wallet integrations on Pharos.\\n- Safe MultiSig: Deploying and using Safe multisig wallets on Pharos.\\n- Fordefi: Using Fordefi's MPC wallet infrastructure on Pharos.\\n\\n\"\n    },\n    {\n      \"page_title\": \"Circle CCTP\",\n      \"section\": \"Overview\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 12.971,\n      \"excerpt\": \"Circle\\u2019s Cross-Chain Transfer Protocol (CCTP) enables secure transfer of USDC across blockchains using a native burn-and-mint mechanism.\\n\\nOn Pharos, CCTP allows developers to move USDC between supported networks without relying on traditional bridges or wrapped tokens.\\n\\nUnlike lock-and-mint bridges, CCTP burns USDC on the source chain and mints native USDC on the destination chain, ensuring a 1:1 transfer with no liquidity fragmentation.\"\n    },\n    {\n      \"page_title\": \"Token Registry\",\n      \"section\": \"Pacific Mainnet Token Registry\",\n      \"page_url\": \"https://docs.pharos.xyz/getting-started/token-registry\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 11.047,\n      \"excerpt\": \"| Symbol                 | Name            | Pharos Address                             | Ethereum Address                           | Base Address                               |\\n| ---------------------- | --------------- | ------------------------------------------ | ------------------------------------------ | ------------------------------------------ |\\n| WPROS                  | Wrapped PROS    | 0x52c48d4213107b20bc583832b0d951fb9ca8f0b0 | 0xB197E02499e6502733C6bCE2eb39013C39A03147 | 0x8B7DdE054BE9D180c1Be7FaE0874697374A49832 |\\n| USDC (Circle Deployed) | USDC            | 0xc879c018db605\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [
+        {
+          "page_title": "Pharos Documentation Index",
+          "section": "Tooling & Infrastructure",
+          "page_url": "https://www.pharos.xyz/llms.txt",
+          "retrieved": "2026-10-16",
+          "score": 15.664,
+          "excerpt": "Cross-Chain\n- Cross Chain Infrastructure: Overview of cross-chain messaging/bridging options \u2014 see Defaults above for guidance.\n- Chainlink CCIP: Using Chainlink CCIP for cross-chain messaging and token transfers on Pharos, including the live Pharos\u2194Ethereum lane.\n- Circle CCTP: Using Circle's CCTP for native USDC transfers on Pharos.\n- LayerZero: Using LayerZero for cross-chain messaging on Pharos.\n\nWallets\n- Wallet: Overview of wallet integrations on Pharos.\n- Safe MultiSig: Deploying and using Safe multisig wallets on Pharos.\n- Fordefi: Using Fordefi's MPC wallet infrastructure on Pharos.\n\n"
+        },
+        {
+          "page_title": "Circle CCTP",
+          "section": "Overview",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp",
+          "retrieved": "2026-10-16",
+          "score": 12.971,
+          "excerpt": "Circle\u2019s Cross-Chain Transfer Protocol (CCTP) enables secure transfer of USDC across blockchains using a native burn-and-mint mechanism.\n\nOn Pharos, CCTP allows developers to move USDC between supported networks without relying on traditional bridges or wrapped tokens.\n\nUnlike lock-and-mint bridges, CCTP burns USDC on the source chain and mints native USDC on the destination chain, ensuring a 1:1 transfer with no liquidity fragmentation."
+        },
+        {
+          "page_title": "Token Registry",
+          "section": "Pacific Mainnet Token Registry",
+          "page_url": "https://docs.pharos.xyz/getting-started/token-registry",
+          "retrieved": "2026-10-16",
+          "score": 11.047,
+          "excerpt": "| Symbol                 | Name            | Pharos Address                             | Ethereum Address                           | Base Address                               |\n| ---------------------- | --------------- | ------------------------------------------ | ------------------------------------------ | ------------------------------------------ |\n| WPROS                  | Wrapped PROS    | 0x52c48d4213107b20bc583832b0d951fb9ca8f0b0 | 0xB197E02499e6502733C6bCE2eb39013C39A03147 | 0x8B7DdE054BE9D180c1Be7FaE0874697374A49832 |\n| USDC (Circle Deployed) | USDC            | 0xc879c018db605"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "E6",
+      "query": "does Pharos support confidential transactions",
+      "expected": "DOC-GROUNDED",
+      "label": "DOC-GROUNDED",
+      "expectation_check": "PASS",
+      "exit_code": 0,
+      "stdout": "{\n  \"question\": \"does Pharos support confidential transactions\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"About Pharos\",\n      \"section\": \"Ecosystem Architecture\",\n      \"page_url\": \"https://docs.pharos.xyz/introduction/readme.md\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 18.996,\n      \"excerpt\": \"The Pharos ecosystem is structured across three key layers:\\n\\n1. Transaction Layer: Facilitates secure, confidential, and efficient cross-chain asset and account interactions via the secure and confidential cross-chain interoperability protocol.\\n2. Consensus Layer: Integrates with external restaking protocols through the Adaptive Restaking Interaction Protocol, enabling shared security and liquidity. This includes circulating assets like stBTC and stETH within the Pharos DeFi ecosystem.\\n3. Data Layer: Uses the Decentralized Data Exchange Protocol to synchronize and collaborate with external dat\"\n    },\n    {\n      \"page_title\": \"x402\",\n      \"section\": \"Development Recommendations\",\n      \"page_url\": \"https://docs.pharos.xyz/developer-guide/x402\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 8.311,\n      \"excerpt\": \"* Temporary Access Authorization based on JWT: After the user completes payment verification, the server can issue a short-term valid JSON Web Token (JWT) as a credential for subsequent resource access. This token should have a reasonable expiration time to avoid repeated payments while reducing the overhead of frequent on-chain verification by the server.\\n* Security Management of Sensitive Information: All confidential data such as private keys and API keys should be injected into the application through environment variables or dedicated secret management services. Hardcoding them in source \"\n    },\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Tooling & Infrastructure\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 6.52,\n      \"excerpt\": \"Block Explorer\\n- Block Explorer: Overview of block explorer options on Pharos.\\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\\n\\nRPC Providers\\n- RPC Infrastructure: Overview of available RPC providers \\u2014 see Defaults above for production guidance.\\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\\n\\nIndexing\\n- Indexer: Overview of indexing options on Pharos.\\n- Goldsky: High-performance data indexing to e\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [
+        {
+          "page_title": "About Pharos",
+          "section": "Ecosystem Architecture",
+          "page_url": "https://docs.pharos.xyz/introduction/readme.md",
+          "retrieved": "2026-10-16",
+          "score": 18.996,
+          "excerpt": "The Pharos ecosystem is structured across three key layers:\n\n1. Transaction Layer: Facilitates secure, confidential, and efficient cross-chain asset and account interactions via the secure and confidential cross-chain interoperability protocol.\n2. Consensus Layer: Integrates with external restaking protocols through the Adaptive Restaking Interaction Protocol, enabling shared security and liquidity. This includes circulating assets like stBTC and stETH within the Pharos DeFi ecosystem.\n3. Data Layer: Uses the Decentralized Data Exchange Protocol to synchronize and collaborate with external dat"
+        },
+        {
+          "page_title": "x402",
+          "section": "Development Recommendations",
+          "page_url": "https://docs.pharos.xyz/developer-guide/x402",
+          "retrieved": "2026-10-16",
+          "score": 8.311,
+          "excerpt": "* Temporary Access Authorization based on JWT: After the user completes payment verification, the server can issue a short-term valid JSON Web Token (JWT) as a credential for subsequent resource access. This token should have a reasonable expiration time to avoid repeated payments while reducing the overhead of frequent on-chain verification by the server.\n* Security Management of Sensitive Information: All confidential data such as private keys and API keys should be injected into the application through environment variables or dedicated secret management services. Hardcoding them in source "
+        },
+        {
+          "page_title": "Pharos Documentation Index",
+          "section": "Tooling & Infrastructure",
+          "page_url": "https://www.pharos.xyz/llms.txt",
+          "retrieved": "2026-10-16",
+          "score": 6.52,
+          "excerpt": "Block Explorer\n- Block Explorer: Overview of block explorer options on Pharos.\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\n\nRPC Providers\n- RPC Infrastructure: Overview of available RPC providers \u2014 see Defaults above for production guidance.\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\n\nIndexing\n- Indexer: Overview of indexing options on Pharos.\n- Goldsky: High-performance data indexing to e"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "E7",
+      "query": "how do I install the Pharos MCP server",
+      "expected": "DOC-GROUNDED",
+      "label": "DOC-GROUNDED",
+      "expectation_check": "PASS",
+      "exit_code": 0,
+      "stdout": "{\n  \"question\": \"how do I install the Pharos MCP server\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Self-Hosting\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 22.708,\n      \"excerpt\": \"Run your own instance when you need a private RPC provider, a higher rate limit, or your own operational control.\\n\\nRequires Node.js 20 or newer.\\n\\n``bash\\ngit clone https://github.com/PharosNetwork/pharos-mcp.git\\ncd pharos-mcp\\nnpm install\\nnpm run build\\nnpm start\\n`\\n\\nConnecting a local instance over stdio\\n\\n`json\\n{\\n  \\\"mcpServers\\\": {\\n    \\\"pharos\\\": {\\n      \\\"command\\\": \\\"node\\\",\\n      \\\"args\\\": [\\\"/absolute/path/to/pharos-mcp/dist/src/index.js\\\"],\\n      \\\"env\\\": {\\n        \\\"PHAROS_RPC_URL\\\": \\\"https://rpc.pharos.xyz\\\",\\n        \\\"PHAROS_CHAIN_ID\\\": \\\"1672\\\",\\n        \\\"PHAROS_NATIVE_SYMBOL\\\": \\\"PROS\\\"\\n      }\\n    }\\n  }\\n}\\n`\\n\"\n    },\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Quick Start\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 19.885,\n      \"excerpt\": \"Add the server to your MCP client configuration:\\n\\n``json\\n{\\n  \\\"mcpServers\\\": {\\n    \\\"pharos\\\": {\\n      \\\"type\\\": \\\"http\\\",\\n      \\\"url\\\": \\\"https://mcp.pharos.xyz/mcp\\\"\\n    }\\n  }\\n}\\n`\\n\\nNo API key is required.\\n\\nClients that only support stdio\\n\\nSome clients cannot connect to remote MCP servers directly. Bridge to the hosted endpoint with mcp-remote:\\n\\n`json\\n{\\n  \\\"mcpServers\\\": {\\n    \\\"pharos\\\": {\\n      \\\"command\\\": \\\"npx\\\",\\n      \\\"args\\\": [\\\"-y\\\", \\\"mcp-remote\\\", \\\"https://mcp.pharos.xyz/mcp\\\"]\\n    }\\n  }\\n}\\n`\\n\\nVerify the connection\\n\\n`bash\\ncurl https://mcp.pharos.xyz/health\\n`\\n\\n`json\\n{\\\"status\\\":\\\"ok\\\",\\\"chain\\\":\\\"Pharos\\\",\\\"chainId\\\":1\"\n    },\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Sending Transactions\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 14.935,\n      \"excerpt\": \"The server is non-custodial: it never receives, stores, or asks for a private key. Signing happens entirely in your own wallet or script; the server only relays the resulting signed bytes to the network.\\n\\n``\\nYour private key \\u2500\\u2500sign (locally)\\u2500\\u2500\\u25b6 0x02f86b\\u2026\\u2500\\u2500\\u25b6 MCP server \\u2500\\u2500\\u25b6 Pharos\\n`\\n\\nThe flow is:\\n\\n1. Build and sign a transaction locally with your own tooling (viem, ethers, a wallet).\\n2. Pass the resulting 0x-prefixed string to send_raw_transaction.\\n3. Use the returned transaction hash with get_transaction_receipt` to confirm inclusion.\\n\\nBecause signing is local, an AI agent connected to this ser\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [
+        {
+          "page_title": "Pharos MCP",
+          "section": "Self-Hosting",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+          "retrieved": "2026-10-16",
+          "score": 22.708,
+          "excerpt": "Run your own instance when you need a private RPC provider, a higher rate limit, or your own operational control.\n\nRequires Node.js 20 or newer.\n\n``bash\ngit clone https://github.com/PharosNetwork/pharos-mcp.git\ncd pharos-mcp\nnpm install\nnpm run build\nnpm start\n`\n\nConnecting a local instance over stdio\n\n`json\n{\n  \"mcpServers\": {\n    \"pharos\": {\n      \"command\": \"node\",\n      \"args\": [\"/absolute/path/to/pharos-mcp/dist/src/index.js\"],\n      \"env\": {\n        \"PHAROS_RPC_URL\": \"https://rpc.pharos.xyz\",\n        \"PHAROS_CHAIN_ID\": \"1672\",\n        \"PHAROS_NATIVE_SYMBOL\": \"PROS\"\n      }\n    }\n  }\n}\n`\n"
+        },
+        {
+          "page_title": "Pharos MCP",
+          "section": "Quick Start",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+          "retrieved": "2026-10-16",
+          "score": 19.885,
+          "excerpt": "Add the server to your MCP client configuration:\n\n``json\n{\n  \"mcpServers\": {\n    \"pharos\": {\n      \"type\": \"http\",\n      \"url\": \"https://mcp.pharos.xyz/mcp\"\n    }\n  }\n}\n`\n\nNo API key is required.\n\nClients that only support stdio\n\nSome clients cannot connect to remote MCP servers directly. Bridge to the hosted endpoint with mcp-remote:\n\n`json\n{\n  \"mcpServers\": {\n    \"pharos\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"mcp-remote\", \"https://mcp.pharos.xyz/mcp\"]\n    }\n  }\n}\n`\n\nVerify the connection\n\n`bash\ncurl https://mcp.pharos.xyz/health\n`\n\n`json\n{\"status\":\"ok\",\"chain\":\"Pharos\",\"chainId\":1"
+        },
+        {
+          "page_title": "Pharos MCP",
+          "section": "Sending Transactions",
+          "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+          "retrieved": "2026-10-16",
+          "score": 14.935,
+          "excerpt": "The server is non-custodial: it never receives, stores, or asks for a private key. Signing happens entirely in your own wallet or script; the server only relays the resulting signed bytes to the network.\n\n``\nYour private key \u2500\u2500sign (locally)\u2500\u2500\u25b6 0x02f86b\u2026\u2500\u2500\u25b6 MCP server \u2500\u2500\u25b6 Pharos\n`\n\nThe flow is:\n\n1. Build and sign a transaction locally with your own tooling (viem, ethers, a wallet).\n2. Pass the resulting 0x-prefixed string to send_raw_transaction.\n3. Use the returned transaction hash with get_transaction_receipt` to confirm inclusion.\n\nBecause signing is local, an AI agent connected to this ser"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "M1",
+      "query": "what is the birthday of the Pharos CEO",
+      "expected": "UNVERIFIED",
+      "label": "UNVERIFIED",
+      "expectation_check": "PASS",
+      "exit_code": 2,
+      "stdout": "{\n  \"question\": \"what is the birthday of the Pharos CEO\",\n  \"label\": \"UNVERIFIED\",\n  \"citations\": [],\n  \"note\": \"covers 1 of 3 question terms (need 2)\",\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [],
+      "note": "covers 1 of 3 question terms (need 2)"
+    },
+    {
+      "id": "M2",
+      "query": "how do I run a Pharos node on a Raspberry Pi",
+      "expected": "UNVERIFIED",
+      "label": "UNVERIFIED",
+      "expectation_check": "PASS",
+      "exit_code": 2,
+      "stdout": "{\n  \"question\": \"how do I run a Pharos node on a Raspberry Pi\",\n  \"label\": \"UNVERIFIED\",\n  \"citations\": [],\n  \"note\": \"covers none of the question's distinctive terms\",\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+      "citations": [],
+      "note": "covers none of the question's distinctive terms"
+    }
+  ]
+}

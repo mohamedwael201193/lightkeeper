@@ -83,6 +83,9 @@ function summaryMarkdown(md, maxLen = 6000) {
       if (!p) return false;
       if (p.startsWith("![")) return false; // badge/hero images
       if (p.includes("<")) {
+        // OCTOPUS banner divs: always decoration, drop regardless of text length
+        // (react-markdown renders raw HTML as visible text — never let them through)
+        if (/<div[^>]*background\s*:\s*#1414c8/i.test(p)) return false;
         const text = stripTags(p);
         // banner if it's HTML-wrapped with barely any prose, or an OCTOPUS header block
         if (text.length < 40) return false;
