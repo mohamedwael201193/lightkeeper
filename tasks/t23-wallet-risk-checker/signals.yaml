@@ -1,0 +1,25 @@
+# T23 Wallet Risk Checker — signal configuration
+# All thresholds are HEURISTICS. They tune how cautious the plain-language
+# flags are; they do not change the raw on-chain values in any report.
+
+# Flag "young account" when first activity is fewer than this many blocks ago.
+young_account_blocks: 50000
+
+# Lookback window (blocks) for activity, diversity and approval checks.
+activity_window_blocks: 10000
+
+# More outbound txs than this inside the window => "burst activity" flag.
+burst_outbound_txs: 500
+
+# Distinct token-transfer counterparties <= this inside the window => "low diversity" flag.
+low_diversity_max_peers: 2
+
+# Distinct approval spenders above this inside the window => "unusual approvals" flag.
+max_approval_spenders: 5
+
+# Flagged-address watchlist (lowercase 0x addresses). Empty on Atlantic testnet:
+# there is no published sanctions/flag list for this testnet, so S8 reports
+# UNKNOWN ("check could not run") rather than a fake PASS.
+# Add addresses to enable the check, e.g.:
+# watchlist: [0x000000000000000000000000000000000000dead]
+watchlist: []
