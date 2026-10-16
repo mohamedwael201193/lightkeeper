@@ -748,11 +748,10 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
 
       {/* ---- Keeper's reference (historical) ---- */}
       <section>
-        <ActHeader
-          n="·"
-          title="Keeper's reference"
-          hint={`The LIGHTKEEPER operator wallet's portfolio as captured for the task's evidence ledger — pinned at block ${REFERENCE.block.toLocaleString()}, not live data. Your own portfolio above is the live one.`}
-        />
+        <div className="mb-4">
+          <p className="text-sm font-semibold text-slate">Keeper's reference</p>
+          <p className="mt-1 text-sm text-slate">{`The LIGHTKEEPER operator wallet's portfolio as captured for the task's evidence ledger — pinned at block ${REFERENCE.block.toLocaleString()}, not live data. Your own portfolio above is the live one.`}</p>
+        </div>
         <div className="overflow-x-auto rounded-2xl border border-hairline bg-white">
           <table className="data-table">
             <thead>

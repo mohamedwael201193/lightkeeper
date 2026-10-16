@@ -390,7 +390,7 @@ python3 src/tide.py tick
     <div className="space-y-6">
       {/* 01 — design the schedule */}
       <div>
-        <p className="smallcaps mb-3">01 · Design the schedule</p>
+        <p className="mb-3 text-sm font-semibold text-slate">01 · Design the schedule</p>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate">Recipient</span>
@@ -503,7 +503,7 @@ python3 src/tide.py tick
 
       {/* 02 — run: honest progress while the schedule is composed */}
       <div>
-        <p className="smallcaps mb-3">02 · Run</p>
+        <p className="mb-3 text-sm font-semibold text-slate">02 · Run</p>
         {phase === "running" && (
           <ProgressLoader steps={GEN_STEPS} current={step} title="Composing your schedule" />
         )}
@@ -527,7 +527,7 @@ python3 src/tide.py tick
       {/* 03 — result: the schedule as a premium document */}
       {phase === "result" && result && resSpec && (
         <div className="space-y-6">
-          <p className="smallcaps">03 · Result — your schedule</p>
+          <p className="text-sm font-semibold text-slate">03 · Result — your schedule</p>
 
           <ResultCard
             eyebrow="Result — composed schedule"
@@ -613,7 +613,7 @@ python3 src/tide.py tick
                   key={s.title}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 + i * 0.08 }}
+                  transition={{ duration: 0.25, delay: 0.08 + i * 0.05 }}
                   className="relative pl-10"
                 >
                   <span className="absolute -left-[21px] top-0 flex h-10 w-10 items-center justify-center rounded-full border-2 border-tint bg-white">

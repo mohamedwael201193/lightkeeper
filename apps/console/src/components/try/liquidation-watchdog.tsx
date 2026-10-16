@@ -337,7 +337,7 @@ export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
     <div className="space-y-6">
       {/* 01 · Configure */}
       <section aria-label="Configure">
-        <p className="smallcaps">01 · Configure</p>
+        <p className="text-sm font-semibold text-slate">01 · Configure</p>
         <h3 className="mt-2 text-lg font-semibold text-ink">Your position, live risk</h3>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink">
           Paste any address and get the watcher&apos;s verdict on it: collateral, debt, oracle
@@ -374,7 +374,7 @@ export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
       {/* 02 · Run — only while real work is in flight */}
       {running && (
         <section aria-label="Reading position">
-          <p className="smallcaps mb-3">02 · Reading</p>
+          <p className="mb-3 text-sm font-semibold text-slate">02 · Reading</p>
           <ProgressLoader steps={STEPS} current={step} title={checked} />
         </section>
       )}
@@ -382,7 +382,7 @@ export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
       {/* 03 · Verdict */}
       {phase === "error" && (
         <section aria-label="Result">
-          <p className="smallcaps mb-3">03 · Verdict</p>
+          <p className="mb-3 text-sm font-semibold text-slate">03 · Verdict</p>
           <ErrorState
             title="The read failed"
             message={errorMsg ?? "The Atlantic RPC did not answer."}
@@ -394,7 +394,7 @@ export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
 
       {showEmpty && v && (
         <section aria-label="Result">
-          <p className="smallcaps mb-3">03 · Verdict</p>
+          <p className="mb-3 text-sm font-semibold text-slate">03 · Verdict</p>
           <EmptyState
             title="No position at this address"
             message="Zero collateral and zero debt on MiniLend — nothing to liquidate, and the watcher would stay silent. That's an honest answer, not an error."
@@ -406,7 +406,7 @@ export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
 
       {showDebtFree && v && (
         <section aria-label="Result">
-          <p className="smallcaps mb-3">03 · Verdict</p>
+          <p className="mb-3 text-sm font-semibold text-slate">03 · Verdict</p>
           <EmptyState
             title="Debt-free — nothing to liquidate"
             message={`This address holds $${fixed(v.acct.collateralUsd8, 8)} of collateral and owes nothing, so the on-chain health factor is infinite. The watcher only pages debt positions; this one would never trigger it.`}
@@ -418,7 +418,7 @@ export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
 
       {showResult && v && (
         <section aria-label="Result">
-          <p className="smallcaps mb-3">03 · Verdict</p>
+          <p className="mb-3 text-sm font-semibold text-slate">03 · Verdict</p>
           <ResultCard
             eyebrow={`Risk verdict · ${v.address}`}
             headline={ZONE_VERDICT[v.zone as Exclude<RiskZone, "none">].headline}

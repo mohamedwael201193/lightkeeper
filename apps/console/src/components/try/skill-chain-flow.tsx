@@ -560,7 +560,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <p className="smallcaps">Spend Readiness Check · T12</p>
+        <p className="text-sm font-semibold text-slate">Spend Readiness Check · T12</p>
         <h3 className="mt-2 text-2xl font-bold text-ink">See the whole chain before you run it</h3>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink">
           One request flows READ → SKILL → EXECUTE → VERIFY. Inspect every phase, every command, and
@@ -574,7 +574,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
 
       {/* ================================================================ 01 CONFIGURE */}
       <section aria-label="01 Configure">
-        <p className="smallcaps">01 — Configure · the flow, defined</p>
+        <p className="text-sm font-semibold text-slate">01 — Configure · the flow, defined</p>
         <div className="mt-4 space-y-6">
           {/* Contrast scenario */}
           <div className="rounded-2xl border border-hairline bg-paper p-5">
@@ -696,7 +696,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
             transition={{ duration: 0.25 }}
             aria-label="02 Run"
           >
-            <p className="smallcaps">02 — Run · probing the boundary</p>
+            <p className="text-sm font-semibold text-slate">02 — Run · probing the boundary</p>
             <div className="mt-4">
               <ProgressLoader
                 steps={PROBE_STEPS}
@@ -710,7 +710,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
 
       {/* ================================================================ 03 RESULT */}
       <section aria-label="03 Result">
-        <p className="smallcaps">03 — Result · the verdict</p>
+        <p className="text-sm font-semibold text-slate">03 — Result · the verdict</p>
         <div className="mt-4">
           {probeStatus === "idle" && (
             <EmptyState

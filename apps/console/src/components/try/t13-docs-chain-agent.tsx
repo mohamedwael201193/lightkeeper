@@ -431,7 +431,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
 
       {/* 01 · CONFIGURE — pick the claim to verify */}
       <section>
-        <p className="smallcaps mb-2 text-xs font-semibold text-slate">
+        <p className="mb-2 text-sm font-semibold text-slate">
           01 · Configure — pick the claim to verify
         </p>
         <div className="rounded-2xl border border-hairline bg-white p-5 sm:p-6">
@@ -539,7 +539,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
       {/* 02 · RUN — read the claim, prove it on-chain */}
       {ask && grounded && (
         <section>
-          <p className="smallcaps mb-2 text-xs font-semibold text-slate">
+          <p className="mb-2 text-sm font-semibold text-slate">
             02 · Run — read the claim, prove it on-chain
           </p>
           <div className="space-y-4">
@@ -598,7 +598,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
       {/* 03 · RESULT — the verdict showpiece */}
       {fresh && (
         <section>
-          <p className="smallcaps mb-2 text-xs font-semibold text-slate">03 · Result</p>
+          <p className="mb-2 text-sm font-semibold text-slate">03 · Result</p>
           <ResultCard
             eyebrow={hasClaim ? "Verdict — docs vs chain" : `Result — ${data.sig} proven on-chain`}
             headline={

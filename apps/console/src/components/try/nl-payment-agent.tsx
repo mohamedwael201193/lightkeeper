@@ -564,11 +564,11 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
     <div className="space-y-6">
       {/* header */}
       <div>
-        <p className="smallcaps">Tier B — type → review → sign yourself</p>
+        <p className="text-sm font-semibold text-slate">Tier B — type → review → sign yourself</p>
         <h3 className="mt-1 text-xl font-bold text-ink">
           Type it, review it, sign it
         </h3>
-        <p className="mt-1 max-w-3xl text-sm text-slate">
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink">
           {lamp.name}: a deterministic parser (same grammar as the audited CLI
           agent — 34/34 unit tests, no LLM) turns your words into a payment
           plan, or <strong className="text-ink">refuses to guess</strong>. A
@@ -580,7 +580,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
 
       {/* 01 — configure */}
       <div>
-        <p className="smallcaps mb-2">01 · Configure — the instruction</p>
+        <p className="mb-2 text-sm font-semibold text-slate">01 · Configure — the instruction</p>
         <div className="flex flex-col gap-3">
           <input
             value={text}
@@ -619,7 +619,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
       {/* 02 — parse (only while work is in flight) */}
       {phase === "parsing" && (
         <div>
-          <p className="smallcaps mb-2">02 · Parsing</p>
+          <p className="mb-2 text-sm font-semibold text-slate">02 · Parsing</p>
           <ProgressLoader steps={PARSE_STEPS} current={parseStep} />
         </div>
       )}
@@ -627,7 +627,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
       {/* 03 — result */}
       {phase === "result" && result && (
         <div className="space-y-6">
-          <p className="smallcaps">03 · Result — the parsed plan</p>
+          <p className="text-sm font-semibold text-slate">03 · Result — the parsed plan</p>
 
           {plan && (
             <ResultCard
@@ -730,7 +730,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
             <div className="space-y-4">
               {state === "review" && (
                 <>
-                  <p className="smallcaps">Review — mandatory before any signature</p>
+                  <p className="text-sm font-semibold text-slate">Review — mandatory before any signature</p>
                   <div className="rounded-2xl border-2 border-gold/60 bg-white p-6">
                     <p className="text-base font-bold text-ink">{proposal.label}</p>
                     <table className="data-table mt-3">

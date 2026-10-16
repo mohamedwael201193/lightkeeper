@@ -366,7 +366,7 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
       {/* Header — identity: what the skill does, its on-chain proof. */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <p className="smallcaps !text-slate">Tier A · live reads, no wallet</p>
+          <p className="text-sm font-semibold text-slate">Tier A · live reads, no wallet</p>
           <h3 className="mt-1 font-display text-3xl tracking-tight text-ink">
             Yield Optimizer
           </h3>
@@ -389,7 +389,7 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
 
       {/* 01 · Configure */}
       <section aria-label="01 Configure">
-        <p className="smallcaps !text-slate">01 · Configure</p>
+        <p className="text-sm font-semibold text-slate">01 · Configure</p>
         <div className="mt-2 rounded-2xl border border-hairline bg-porcelain p-5 sm:p-6">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
             <div>
@@ -435,7 +435,7 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
       {/* 02 · Run — honest progress, one step per real call. */}
       {loading && (
         <section aria-label="02 Run">
-          <p className="smallcaps !text-slate">02 · Run</p>
+          <p className="text-sm font-semibold text-slate">02 · Run</p>
           <div className="mt-2">
             <ProgressLoader
               steps={RUN_STEPS}
@@ -461,7 +461,7 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
       {data && verdict && !loading && (
         <>
           <section aria-label="03 Result">
-            <p className="smallcaps !text-slate">03 · Result</p>
+            <p className="text-sm font-semibold text-slate">03 · Result</p>
             <div className="mt-2">
               <ResultCard
                 eyebrow={`Result — best net across all 3 horizons · ${verdict.bestHorizon.horizon} blocks`}
@@ -515,7 +515,7 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
 
           {/* Horizon comparison — the three horizons as elegant cards. */}
           <section aria-label="Horizon comparison">
-            <p className="smallcaps !text-slate">The three horizons, compared</p>
+            <p className="text-sm font-semibold text-slate">The three horizons, compared</p>
             <div className="mt-2 grid gap-3 sm:grid-cols-3">
               {verdict.horizons.map((hz, i) => {
                 const isHero = hz.horizon === verdict.bestHorizon.horizon;
@@ -650,7 +650,7 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
 
           {/* Live rate cards — the raw reads the verdict was priced from. */}
           <section aria-label="Live rate cards">
-            <p className="smallcaps !text-slate">Live rate cards, read at the latest block</p>
+            <p className="text-sm font-semibold text-slate">Live rate cards, read at the latest block</p>
             <div className="mt-2 overflow-x-auto rounded-2xl border border-hairline bg-white">
               <table className="data-table tabular">
                 <thead>
