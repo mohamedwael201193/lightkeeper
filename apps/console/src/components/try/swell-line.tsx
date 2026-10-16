@@ -14,10 +14,15 @@
  * one window on demand; the CLI holds the streak across runs.
  *
  * Presentation: 01 Configure → 02 Run → 03 Result (Presentation Standard,
- * SHOWTIME op 2026-10-16). All math below is the CLI's exact rule, unchanged.
+ * SHOWTIME op 2026-10-16). FLAGSHIP (2026-10-16): the 03 act is rebuilt
+ * around the chart as the hero — the trend line as a living thing. The
+ * 0.5% confirmation band is drawn on the chart as a visible instrument, the
+ * trailing streak gets its own meter, and a streak-anatomy panel shows
+ * exactly why the rule fired or stayed silent. All math below is the CLI's
+ * exact rule, unchanged.
  */
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, animate, useReducedMotion } from "framer-motion";
 import type { Lamp } from "../../types";
 import { rpcCall } from "../../hooks/useAtlantic";
 import { ResultCard, ProgressLoader, EmptyState, ErrorState, StatStrip } from "../ui";
@@ -68,10 +73,13 @@ function above(fastMA: bigint, slowMA: bigint, raw: bigint): boolean {
  * eth_feeHistory (bin/run.mjs observe) — advancing onObservation as each call
  * resolves. onStage tracks the real async stages: 0 = pinning tip,
  * 1 = observing blocks, 2 = verdict computation (synchronous, instant).
+ * onBlock fires once per REAL completed observation (block + fee) so the run
+ * act can draw each point as it arrives — never a timer.
  */
 interface TrendProgress {
   onStage: (stage: number) => void;
   onObservation: (done: number) => void;
+  onBlock?: (blockNumber: number, feeWei: bigint) => void;
 }
 
 async function sampleTrend(window: number, prog?: TrendProgress): Promise<TrendResult> {
@@ -95,6 +103,7 @@ async function sampleTrend(window: number, prog?: TrendProgress): Promise<TrendR
           if (!block || !block.baseFeePerGas)
             throw new Error(`Atlantic did not return block ${blockNumber}.`);
           fees[i] = BigInt(block.baseFeePerGas);
+          prog?.onBlock?.(blockNumber, fees[i]);
         })
         .finally(() => {
           done += 1;
@@ -252,6 +261,7 @@ const INK = "#0B1533";
 const SLATE = "#5A6B8C";
 const ACCENT = "#2456E6";
 const PASS = "#16a34a";
+const BAND_FILL = "rgba(36, 86, 230, 0.10)";
 
 /** Smooth path through points (Catmull-Rom → bezier). Passes through every point. */
 function smoothPath(xs: number[], ys: number[]): string {
@@ -275,11 +285,20 @@ function smoothPath(xs: number[], ys: number[]): string {
   return d;
 }
 
-/** The live trend chart: raw base fee + fastMA(5) + slowMA(15) + above-band dots. */
+const gweiNum = (wei: bigint): number => Number(wei) / 1e9;
+
+/**
+ * The hero instrument: the live trend line with the 0.5% confirmation band
+ * drawn as a shaded instrument around slowMA(15), fastMA(5) and the raw base
+ * fee, above-band confirmations marked, and the trailing streak zone lit.
+ * The line draws itself on data arrival (The Draw); every other motion is an
+ * entrance that maps to the same state.
+ */
 function TrendChart({ result }: { result: TrendResult }) {
+  const reduceMotion = useReducedMotion();
   const W = 720;
-  const H = 300;
-  const PAD = { l: 64, r: 16, t: 16, b: 44 };
+  const H = 340;
+  const PAD = { l: 64, r: 16, t: 20, b: 48 };
   const rows = result.rows;
   const vals = rows.map((r) => r.baseFeeGwei);
   const lo = Math.min(...vals);
@@ -300,15 +319,52 @@ function TrendChart({ result }: { result: TrendResult }) {
   });
   const fastPath = smoothPath(
     fastIdx.map(x),
-    fastIdx.map((i) => y(Number(rows[i].fastMAWei) / 1e9))
+    fastIdx.map((i) => y(gweiNum(rows[i].fastMAWei!)))
   );
   const slowPath = smoothPath(
     slowIdx.map(x),
-    slowIdx.map((i) => y(Number(rows[i].slowMAWei) / 1e9))
+    slowIdx.map((i) => y(gweiNum(rows[i].slowMAWei!)))
   );
+
+  // The 0.5% confirmation band as a visible instrument: slowMA(15) ± 0.5%.
+  // The rule's band condition is slowMA * (10000 + 50) / 10000, drawn here.
+  const bandUp = slowIdx.map((i) => `${x(i).toFixed(1)},${y(gweiNum(rows[i].slowMAWei!) * 1.005).toFixed(1)}`);
+  const bandDn = slowIdx
+    .map((i) => `${x(i).toFixed(1)},${y(gweiNum(rows[i].slowMAWei!) * 0.995).toFixed(1)}`)
+    .reverse();
+  const bandPath = bandUp.length > 1 ? `M${bandUp.join(" L")} L${bandDn.join(" L")} Z` : "";
+
+  // The trailing streak zone: the exact blocks that built the live streak.
+  const streak = result.streak;
+  const streakStart = rows.length - streak;
+  const stepX = rows.length > 1 ? x(1) - x(0) : 0;
+  const streakZone =
+    streak > 0
+      ? {
+          x1: x(streakStart) - stepX / 2,
+          x2: x(rows.length - 1) + stepX / 2,
+        }
+      : null;
 
   const gridlines = [0, 1, 2, 3].map((g) => lo + (span * g) / 3);
   const gradId = `swell-area-${result.oldestBlock}`;
+
+  // Draw-on choreography: the line draws itself once, because the real data
+  // just arrived. Instant under prefers-reduced-motion.
+  const drawProps = reduceMotion
+    ? {}
+    : {
+        initial: { pathLength: 0 },
+        animate: { pathLength: 1 },
+        transition: { duration: 0.9, ease: "easeOut" as const },
+      };
+  const fadeLateProps = reduceMotion
+    ? {}
+    : {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        transition: { duration: 0.6, delay: 0.55 },
+      };
 
   return (
     <div>
@@ -326,15 +382,19 @@ function TrendChart({ result }: { result: TrendResult }) {
           <span className="font-medium text-ink">slowMA(15)</span>
         </span>
         <span className="inline-flex items-center gap-2">
+          <svg width="20" height="10" aria-hidden><rect x="0" y="0" width="20" height="10" rx="2" fill={BAND_FILL} stroke={ACCENT} strokeOpacity="0.5" /></svg>
+          <span className="font-medium text-ink">0.5% confirmation band</span>
+        </span>
+        <span className="inline-flex items-center gap-2">
           <svg width="12" height="12" aria-hidden><circle cx="6" cy="6" r="5" fill={ACCENT} /></svg>
-          <span className="font-medium text-ink">Above the 0.5% band</span>
+          <span className="font-medium text-ink">Above the band</span>
         </span>
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="w-full"
         role="img"
-        aria-label={`Base fee trend, blocks ${result.oldestBlock} to ${result.oldestBlock + rows.length - 1}`}
+        aria-label={`Base fee trend, blocks ${result.oldestBlock} to ${result.oldestBlock + rows.length - 1}, with the 0.5% confirmation band`}
       >
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
@@ -350,23 +410,54 @@ function TrendChart({ result }: { result: TrendResult }) {
             </text>
           </g>
         ))}
+        {streakZone && (
+          <g>
+            <rect
+              x={streakZone.x1}
+              y={PAD.t}
+              width={streakZone.x2 - streakZone.x1}
+              height={H - PAD.t - PAD.b}
+              fill={ACCENT}
+              opacity="0.07"
+            />
+            <text
+              x={(streakZone.x1 + streakZone.x2) / 2}
+              y={PAD.t + 16}
+              textAnchor="middle"
+              fontSize="12"
+              fontWeight="700"
+              fill={ACCENT}
+            >
+              streak {streak}/{CONFIRMATIONS}
+            </text>
+          </g>
+        )}
+        {bandPath && (
+          <motion.path d={bandPath} fill={BAND_FILL} stroke={ACCENT} strokeOpacity="0.45" strokeWidth="1" {...fadeLateProps} />
+        )}
         <path d={areaPath} fill={`url(#${gradId})`} />
-        <path d={slowPath} fill="none" stroke={SLATE} strokeWidth="2" strokeDasharray="6 4" opacity="0.85" />
-        <path d={fastPath} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeDasharray="7 4" />
-        <path d={rawPath} fill="none" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
+        {slowPath && (
+          <motion.path d={slowPath} fill="none" stroke={SLATE} strokeWidth="2" strokeDasharray="6 4" opacity="0.85" {...fadeLateProps} />
+        )}
+        {fastPath && (
+          <motion.path d={fastPath} fill="none" stroke={ACCENT} strokeWidth="2.5" strokeDasharray="7 4" {...fadeLateProps} />
+        )}
+        {rawPath && (
+          <motion.path d={rawPath} fill="none" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" {...drawProps} />
+        )}
         {rows.map(
           (r, i) =>
             r.aboveBand && (
               <circle key={r.blockNumber} cx={x(i)} cy={y(r.baseFeeGwei)} r="5" fill={ACCENT} stroke="#fff" strokeWidth="1.5" />
             )
         )}
-        <text x={PAD.l} y={H - 26} fontSize="12" fill={SLATE} fontFamily="monospace">
+        <text x={PAD.l} y={H - 30} fontSize="12" fill={SLATE} fontFamily="monospace">
           #{result.oldestBlock}
         </text>
-        <text x={W - PAD.r} y={H - 26} textAnchor="end" fontSize="12" fill={SLATE} fontFamily="monospace">
+        <text x={W - PAD.r} y={H - 30} textAnchor="end" fontSize="12" fill={SLATE} fontFamily="monospace">
           #{result.oldestBlock + rows.length - 1}
         </text>
-        <text x={PAD.l} y={H - 8} fontSize="12" fill={SLATE}>
+        <text x={PAD.l} y={H - 12} fontSize="12" fill={SLATE}>
           gwei — {rows.length} live block observations
         </text>
       </svg>
@@ -441,6 +532,173 @@ function SpikeChart({ rows }: { rows: SpikeRow[] }) {
   );
 }
 
+/**
+ * THE STREAK — the signature instant. The trailing above-band streak as a
+ * live-counting meter: the count ticks from 0 to the real value once (The
+ * Tick, mapped to the measured streak landing), and the three confirmation
+ * slots fill with it. Any miss resets the streak — this meter IS the rule.
+ */
+function StreakMeter({ streak, verdict }: { streak: number; verdict: TrendResult["verdict"] }) {
+  const reduceMotion = useReducedMotion();
+  const [ticked, setTicked] = useState(reduceMotion ? streak : 0);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      setTicked(streak);
+      return;
+    }
+    const controls = animate(0, streak, {
+      duration: 0.7,
+      ease: "easeOut",
+      onUpdate: (v) => setTicked(Math.round(v)),
+    });
+    return () => controls.stop();
+  }, [streak, reduceMotion]);
+
+  const slotCopy =
+    verdict === "TRENDING_UP"
+      ? "Three in a row — the rule fires."
+      : verdict === "BUILDING"
+        ? "Above the band, not yet confirmed — one flat reading resets it."
+        : "Quiet. A lone spike can never reach three.";
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+      <div>
+        <p className="text-sm font-semibold text-slate">Confirmation streak</p>
+        <p className="font-display text-5xl tracking-tight text-ink" aria-live="polite">
+          {ticked}
+          <span className="text-2xl text-slate">/{CONFIRMATIONS}</span>
+        </p>
+      </div>
+      <div className="flex items-center gap-2" role="img" aria-label={`${streak} of ${CONFIRMATIONS} confirmations`}>
+        {Array.from({ length: CONFIRMATIONS }, (_, i) => (
+          <span
+            key={i}
+            className="h-4 w-10 rounded-full border transition-colors"
+            style={{
+              background: i < ticked ? ACCENT : "#E9EEF9",
+              borderColor: i < ticked ? ACCENT : "#C9D4EC",
+            }}
+          />
+        ))}
+      </div>
+      <p className="max-w-xs text-sm leading-relaxed text-slate">{slotCopy}</p>
+    </div>
+  );
+}
+
+/**
+ * Streak anatomy — the thinking layer made visible. The exact trailing
+ * blocks that built the streak, and the exact block where a spike died
+ * (above the band once, then back inside — streak reset to 0). This is the
+ * "a single spike provably cannot trigger it" proof, on live data.
+ */
+function StreakAnatomy({ result }: { result: TrendResult }) {
+  const rows = result.rows;
+  const run: Row[] = [];
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (rows[i].aboveBand) run.unshift(rows[i]);
+    else break;
+  }
+  let deadSpike: { spike: Row; fell: Row } | null = null;
+  for (let i = rows.length - 2; i >= 0; i--) {
+    if (rows[i].aboveBand === true && rows[i + 1].aboveBand === false) {
+      deadSpike = { spike: rows[i], fell: rows[i + 1] };
+      break;
+    }
+  }
+
+  const first = run[0]?.blockNumber;
+  const last = run[run.length - 1]?.blockNumber;
+
+  return (
+    <div className="mt-5 rounded-xl border border-hairline bg-porcelain p-4 sm:p-5">
+      <p className="text-sm font-semibold text-slate">Streak anatomy — why the rule did, or didn&apos;t, fire</p>
+      <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink">
+        {run.length >= CONFIRMATIONS && (
+          <li>
+            <strong>It fired here.</strong> Blocks{" "}
+            <span className="font-mono">#{first} → #{last}</span> read above the band{" "}
+            {run.length} times running — the rule fires at the {CONFIRMATIONS}rd confirmation.
+          </li>
+        )}
+        {run.length > 0 && run.length < CONFIRMATIONS && (
+          <li>
+            <strong>Building, not fired.</strong> Blocks{" "}
+            <span className="font-mono">#{first} → #{last}</span> read above the band {run.length}×
+            — <strong>{CONFIRMATIONS - run.length} more</strong> consecutive confirmation
+            {CONFIRMATIONS - run.length === 1 ? " is" : "s are"} needed. The next flat reading
+            resets it to 0.
+          </li>
+        )}
+        {run.length === 0 && deadSpike && (
+          <li>
+            <strong>The spike that died.</strong> Block{" "}
+            <span className="font-mono">#{deadSpike.spike.blockNumber}</span> read{" "}
+            {deadSpike.spike.baseFeeGwei.toFixed(3)} gwei — above the band, streak 1. The very
+            next block, <span className="font-mono">#{deadSpike.fell.blockNumber}</span>, read{" "}
+            {deadSpike.fell.baseFeeGwei.toFixed(3)} gwei — back inside — and the streak reset to
+            0. A single spike provably cannot trigger the rule.
+          </li>
+        )}
+        {run.length === 0 && !deadSpike && (
+          <li>
+            <strong>Quiet window.</strong> No above-band readings in these {rows.length} blocks —
+            the market moved inside the 0.5% band the whole time, so the honest signal is HOLD.
+          </li>
+        )}
+        <li className="text-slate">
+          The dual condition: fastMA(5) <em>and</em> the raw reading must both clear
+          slowMA(15) × 1.005. The raw-reading half kills the fast-MA echo of a lone spike.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * The run act's live instrument: each point is a REAL completed block read
+ * (delivered by sampleTrend's onBlock), drawn in block order as it arrives.
+ * No timers, no fake progress — just the observations as they land.
+ */
+function LiveObservations({ obs, window }: { obs: Array<{ block: number; feeWei: bigint }>; window: number }) {
+  const W = 240;
+  const H = 52;
+  const sorted = [...obs].sort((a, b) => a.block - b.block);
+  const vals = sorted.map((o) => Number(o.feeWei) / 1e9);
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  const span = hi - lo || 1;
+  const px = (i: number) => (sorted.length > 1 ? (i / (sorted.length - 1)) * W : W / 2);
+  const py = (v: number) => 6 + (1 - (v - lo) / span) * (H - 12);
+  const points = sorted.map((_, i) => `${px(i).toFixed(1)},${py(vals[i]).toFixed(1)}`).join(" ");
+  const latest = sorted[sorted.length - 1];
+
+  return (
+    <div className="mt-4 rounded-xl border border-hairline bg-white p-4">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-60" role="img" aria-label="Observations arriving live">
+          <polyline points={points} fill="none" stroke={ACCENT} strokeWidth="2" strokeLinejoin="round" />
+          {sorted.map((o, i) => (
+            <circle key={o.block} cx={px(i)} cy={py(vals[i])} r="2" fill={ACCENT} />
+          ))}
+        </svg>
+        <div className="text-sm">
+          <p className="font-semibold text-ink">
+            {obs.length} of {window} blocks observed
+          </p>
+          {latest && (
+            <p className="mt-1 font-mono text-slate">
+              latest: #{latest.block} · {(Number(latest.feeWei) / 1e9).toFixed(3)} gwei
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function gwei(wei: bigint | null): string {
   return wei === null ? "—" : (Number(wei) / 1e9).toFixed(3);
 }
@@ -464,6 +722,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState(0);
   const [observed, setObserved] = useState(0);
+  const [liveObs, setLiveObs] = useState<Array<{ block: number; feeWei: bigint }> | null>(null);
   const runSeq = useRef(0);
 
   useEffect(() => {
@@ -474,12 +733,16 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
     setError(null);
     setObserved(0);
     setStage(0);
+    setLiveObs([]);
     sampleTrend(window, {
       onStage: (s) => {
         if (alive()) setStage(s);
       },
       onObservation: (d) => {
         if (alive()) setObserved(d);
+      },
+      onBlock: (blockNumber, feeWei) => {
+        if (alive()) setLiveObs((prev) => (prev === null ? [{ block: blockNumber, feeWei }] : [...prev, { block: blockNumber, feeWei }]));
       },
     })
       .then((r) => {
@@ -724,6 +987,9 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                 ]}
                 current={stage}
               />
+              {liveObs !== null && liveObs.length > 0 && (
+                <LiveObservations obs={liveObs} window={window} />
+              )}
             </section>
           )}
 
@@ -738,7 +1004,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
             />
           )}
 
-          {/* 03 Result */}
+          {/* 03 Result — the chart as the hero */}
           {!loading && !error && data && latest && (
             <section aria-label="Result" className="space-y-6">
               <p className="text-sm font-semibold text-slate">03 — Result</p>
@@ -765,6 +1031,27 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                 ]}
               />
 
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="rounded-2xl border border-hairline bg-white p-5 sm:p-8"
+              >
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-5">
+                  <div>
+                    <p className="text-sm font-semibold text-slate">The instrument</p>
+                    <p className="mt-1 max-w-md text-sm leading-relaxed text-slate">
+                      The trend line as a living thing: base fee drawn block by block, fastMA(5)
+                      and slowMA(15) as the moving instruments, and the 0.5% confirmation band
+                      shaded around slowMA — the rule you can see.
+                    </p>
+                  </div>
+                  <StreakMeter streak={data.streak} verdict={data.verdict} />
+                </div>
+                <TrendChart result={data} />
+                <StreakAnatomy result={data} />
+              </motion.div>
+
               <StatStrip
                 stats={[
                   { label: "Observations", value: data.rows.length, format: (n) => `${Math.round(n)}`, suffix: "blocks" },
@@ -773,18 +1060,6 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                   { label: "Latest base fee", value: latest.baseFeeGwei, format: (n) => n.toFixed(3), suffix: "gwei" },
                 ]}
               />
-
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="rounded-2xl border border-hairline bg-white p-5 sm:p-6"
-              >
-                <p className="mb-3 text-sm font-semibold text-slate">
-                  The trend line — base fee, last {data.window} blocks
-                </p>
-                <TrendChart result={data} />
-              </motion.div>
 
               <div>
                 <p className="mb-3 text-sm font-semibold text-slate">
