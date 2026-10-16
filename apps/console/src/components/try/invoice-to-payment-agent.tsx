@@ -4,22 +4,22 @@
  * "Invoice to money in one review": paste invoice text -> the console's
  * client-side extractor (same no-guess rules as the agent's parsers.py)
  * pulls payee / amount / token / reference from JSON, CSV, KEY:value, or
- * free-text formats -> structured preview with mismatch flags -> propose()
- * -> MANDATORY review (payee, amount, reference, wallet-balance coverage,
- * amber dust warning) -> the VISITOR signs in their own wallet -> receipt +
- * explorer link.
+ * free-text formats -> the invoice as a premium document (the total springs
+ * up as the hero number, fields assemble into the document) -> propose() ->
+ * THE BINDING: the mandatory review reframed as the moment of commitment —
+ * a native PHRS transfer has no memo bytes, so the review binds payee,
+ * amount, reference and wallet-balance coverage off-chain, honestly labeled,
+ * before anything is signed -> the VISITOR signs in their own wallet ->
+ * receipt + explorer link.
  *
  * Journey: 01 Configure (invoice text) -> 02 Parse (ProgressLoader: parsing,
- * then a real wallet-balance coverage read) -> 03 Result (the invoice as a
- * premium document — total as the hero number, line items as elegant rows;
- * payment review -> sign -> receipt).
+ * then a real wallet-balance coverage read) -> 03 Result (document climax ->
+ * binding -> sign -> receipt). A broken invoice is REFUSED beautifully:
+ * the extractor never guesses, and the refusal is a designed verdict.
  *
  * LIGHTKEEPER never holds keys; the visitor's wallet signs and sends.
- * Honesty rule kept verbatim from the agent: a native PHRS transfer has no
- * memo bytes, so the invoice reference is bound in the review and the
- * payment label — never faked on-chain.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Lamp } from "../../types";
 import { useWallet } from "../WalletContext";
 import {
@@ -48,6 +48,8 @@ import {
   weiToPhrs,
   type ExtractedInvoice,
 } from "./invoice-extract";
+import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { Check, Copy, FileText } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 
@@ -68,6 +70,143 @@ function nextFrame(): Promise<void> {
   return new Promise((r) => setTimeout(r, 40));
 }
 
+/* ------------------------------------------------------------------ */
+/* Flagship choreography. Every motion below maps to a REAL state:     */
+/* the tick = the measured total landing; the assembly = the extracted */
+/* fields composing into the document; the seal = the binding/review   */
+/* (or the refusal) being issued.                                      */
+/* ------------------------------------------------------------------ */
+
+/** Trim a float to the invoice's decimal precision without float noise. */
+function trimDec(v: number): string {
+  if (!Number.isFinite(v)) return "0";
+  const s = v.toFixed(18).replace(/\.?0+$/, "");
+  return s === "" || s === "-0" ? "0" : s;
+}
+
+/**
+ * The hero number of the invoice document: the extracted total springing
+ * from 0 to its real value ONCE, the moment the document composes.
+ * Mounts fresh per extraction (keyed by the document key), so every new
+ * invoice replays the tick.
+ */
+function HeroTick({ amount }: { amount: string }) {
+  const reduce = useReducedMotion();
+  const safe = Number.parseFloat(amount);
+  const target = Number.isFinite(safe) ? safe : 0;
+  const mv = useMotionValue(0);
+  const spring = useSpring(mv, { stiffness: 55, damping: 16 });
+  const [display, setDisplay] = useState(() => (reduce ? amount : "0"));
+
+  useEffect(() => {
+    mv.set(target);
+  }, [mv, target]);
+
+  useEffect(() => {
+    if (reduce) {
+      setDisplay(amount);
+      return;
+    }
+    const unsub = spring.on("change", (v) => setDisplay(trimDec(v)));
+    return unsub;
+  }, [spring, reduce, amount, target]);
+
+  return <span className="tabular-nums">{display}</span>;
+}
+
+/**
+ * The Assembly: extracted fields ticking into the document one by one
+ * (stagger <= 0.5s total). Maps to "the structured artifact composing" —
+ * the extraction just completed and the fields are landing in order.
+ */
+function Assemble({
+  items,
+  docKey,
+}: {
+  items: { label: string; value: React.ReactNode }[];
+  docKey: number;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <dl key={docKey} className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+      {items.map((it, i) => (
+        <motion.div
+          key={it.label}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: i * 0.06, ease: "easeOut" }}
+          className="border-t border-hairline pt-3"
+        >
+          <dt className="text-sm font-semibold text-slate">{it.label}</dt>
+          <dd className="mt-1 break-words text-sm text-ink">{it.value}</dd>
+        </motion.div>
+      ))}
+    </dl>
+  );
+}
+
+/**
+ * The Seal: a verdict stamp landing once (scale 1.15 -> 1.0, soft
+ * thud-shadow). Maps to a binary judgment issuing — the binding sealing,
+ * or the refusal being handed down.
+ */
+function Seal({ word, tone }: { word: string; tone: "pass" | "fail" }) {
+  const reduce = useReducedMotion();
+  const toneClass =
+    tone === "pass"
+      ? "border-pass text-pass"
+      : "border-fail text-fail";
+  return (
+    <motion.span
+      initial={reduce ? false : { scale: 1.15, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      style={{ boxShadow: "0 6px 18px rgba(11,21,51,0.12)" }}
+      className={`inline-block -rotate-2 rounded border-2 bg-white px-3 py-1 font-display text-lg font-bold tracking-[0.2em] ${toneClass}`}
+      aria-label={word}
+    >
+      {word}
+    </motion.span>
+  );
+}
+
+/** Copy button for the payee address inside the document. */
+function CopyAddr({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="ml-2 inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-hairline bg-porcelain px-2 text-xs font-medium text-accent hover:bg-tint"
+      aria-label="Copy payee address"
+    >
+      {copied ? <Check size={13} className="text-pass" /> : <Copy size={13} />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 export default function TryInvoice({ lamp }: { lamp: Lamp }) {
   const { state: wallet, connect } = useWallet();
   const { state, proposal, txHash, error, propose, approve, cancel } =
@@ -75,6 +214,8 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
 
   const [invoiceText, setInvoiceText] = useState("");
   const [invoice, setInvoice] = useState<ExtractedInvoice | null>(null);
+  /** Bumps per extraction so the document (tick + assembly) replays fresh. */
+  const [docKey, setDocKey] = useState(0);
   const [runPhase, setRunPhase] = useState<{ step: number; steps: string[] } | null>(null);
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const [coverageNote, setCoverageNote] = useState<string | null>(null);
@@ -118,6 +259,7 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
     await nextFrame();
     const inv = extractInvoice(text);
     setInvoice(inv);
+    setDocKey((k) => k + 1);
     setRunPhase({ step: 1, steps });
     if (withCoverage && walletAddress) {
       try {
@@ -207,10 +349,12 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink">
           Paste an invoice in any of 4 formats — <strong>JSON</strong>,{" "}
           <strong>CSV</strong>, <strong>KEY: value</strong>, or{" "}
-          <strong>free text</strong>. LIGHTKEEPER extracts payee, amount, token,
-          and reference with the same no-guess rules as the invoice agent:
-          mismatches and missing fields are flagged, never guessed. Then it
-          hands you one review — and your wallet settles it on Atlantic.
+          <strong>free text</strong>. LIGHTKEEPER extracts payee, amount,
+          token, and reference with the same no-guess rules as the invoice
+          agent: mismatches and missing fields are flagged, never guessed.
+          Then comes the binding — one review where payee, amount, reference
+          and your balance coverage are sealed before your signature — and
+          your wallet settles it on Atlantic.
         </p>
       </div>
 
@@ -317,13 +461,35 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
       {runPhase == null && invoice != null && (
         <div className="space-y-6">
           {!clean ? (
-            /* Invalid invoice — honest refusal, every flag on the record. */
-            <div className="space-y-4">
-              <ErrorState
-                title={`Invoice refused — ${invoice.flags.length} flag${invoice.flags.length === 1 ? "" : "s"}`}
-                message="The extractor found problems it will not guess around. Nothing can be paid from this text."
-                hint="Fix the invoice text (or the invoice itself) and extract again — LIGHTKEEPER never fills the gaps."
-              />
+            /* The Beautiful Refusal — the machine said no, with dignity. */
+            <div className="space-y-4" key={docKey}>
+              <motion.section
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="rounded-2xl border border-[#F3C1C1] bg-[#FEF2F2] p-6 sm:p-8"
+                role="alert"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <p className="text-sm font-semibold text-slate">
+                    Invoice verdict
+                  </p>
+                  <Seal word="REFUSED" tone="fail" />
+                </div>
+                <h3 className="mt-3 font-display text-4xl leading-tight tracking-tight text-ink sm:text-5xl">
+                  This invoice can't be paid
+                </h3>
+                <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">
+                  The extractor found {invoice.flags.length}{" "}
+                  {invoice.flags.length === 1 ? "problem" : "problems"} it
+                  will not guess around. Nothing can be paid from this text —
+                  that refusal <em>is</em> the safety of the machine.
+                </p>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+                  Fix the invoice text (or the invoice itself) and extract
+                  again — LIGHTKEEPER never fills the gaps.
+                </p>
+              </motion.section>
               <FeedList
                 items={invoice.flags.map((f, i) => ({
                   key: `flag-${i}`,
@@ -340,7 +506,7 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
               </button>
             </div>
           ) : (
-            /* The invoice as a document — total is the hero number. */
+            /* The invoice as a premium document — total is the hero number. */
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 <span className="chip chip-pass">Clean — no flags</span>
@@ -349,30 +515,52 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
                 </span>
               </div>
               <ResultCard
-                eyebrow={`Invoice ${invoice.invoice_id} — verified clean`}
-                headline={`${invoice.amount} PHRS`}
-                subline="Ready to settle on Atlantic. You review the payment and sign in your own wallet — LIGHTKEEPER never touches keys."
+                eyebrow={`Invoice ${invoice.invoice_id} — the document`}
+                headline={
+                  <span key={docKey}>
+                    <HeroTick amount={invoice.amount} /> PHRS
+                  </span>
+                }
+                subline="Extracted clean — every field below was read from your text, none of it guessed. Review it, bind it, then sign it in your own wallet."
                 status="pass"
-                copyValue={invoice.payee}
-                rows={[
-                  {
-                    label: "Invoice id",
-                    value: <span title={invoice.invoice_id}>{invoice.invoice_id}</span>,
-                  },
-                  {
-                    label: "Payee",
-                    value: <span title={invoice.payee}>{shortHex(invoice.payee)}</span>,
-                  },
-                  {
-                    label: "Reference",
-                    value: <span title={invoice.reference}>{invoice.reference}</span>,
-                  },
-                  { label: "Token", value: invoice.currency },
-                  ...(invoice.memo
-                    ? [{ label: "Memo", value: invoice.memo }]
-                    : []),
-                ]}
               >
+                {/* The Assembly — fields ticking into the document. */}
+                <Assemble
+                  docKey={docKey}
+                  items={[
+                    {
+                      label: "Invoice id",
+                      value: (
+                        <span className="font-mono" title={invoice.invoice_id}>
+                          {invoice.invoice_id}
+                        </span>
+                      ),
+                    },
+                    {
+                      label: "Payee",
+                      value: (
+                        <span>
+                          <span className="font-mono" title={invoice.payee}>
+                            {shortHex(invoice.payee)}
+                          </span>
+                          <CopyAddr value={invoice.payee} />
+                        </span>
+                      ),
+                    },
+                    {
+                      label: "Reference",
+                      value: (
+                        <span className="font-mono" title={invoice.reference}>
+                          {invoice.reference}
+                        </span>
+                      ),
+                    },
+                    { label: "Token", value: invoice.currency },
+                    ...(invoice.memo
+                      ? [{ label: "Memo", value: invoice.memo }]
+                      : []),
+                  ]}
+                />
                 {invoice.lineItems.length > 0 && (
                   <div>
                     <p className="text-sm font-semibold text-slate">Line items</p>
@@ -404,9 +592,9 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
                   </div>
                 )}
                 <p className="text-sm text-slate">
-                  Honesty rule: a native PHRS transfer has no memo bytes, so the
-                  invoice reference is bound in the review below and the payment
-                  label — never faked on-chain.
+                  A native PHRS transfer has no memo bytes — the invoice
+                  reference is bound in your review below, never faked
+                  on-chain.
                 </p>
               </ResultCard>
 
@@ -415,7 +603,7 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
                 <div className="rounded-2xl border border-hairline bg-white p-6">
                   <p className="text-sm text-ink">
                     The invoice is clean. To settle it, connect your wallet —
-                    you will review and sign the payment yourself, with your
+                    you will bind and sign the payment yourself, with your
                     testnet PHRS.
                   </p>
                   <button
@@ -432,67 +620,128 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
                   className="btn-primary min-h-[44px]"
                   onClick={handlePropose}
                 >
-                  Review this payment
+                  Bind &amp; review this payment
                 </button>
               )}
 
-              {/* Mandatory review — sign nothing yet */}
+              {/* THE BINDING — the mandatory review as the moment of commitment.
+                  The invoice reference can't go on-chain, so it lives here,
+                  bound to payee + amount + coverage before the signature. */}
               {state === "review" && proposal && (
                 <div className="space-y-4">
-                  <ResultCard
-                    eyebrow="Payment review — sign nothing yet"
-                    headline={`${proposal.valuePhrs} PHRS`}
-                    subline={proposal.label}
-                    rows={[
-                      {
-                        label: "To",
-                        value: <span title={proposal.to}>{shortHex(proposal.to)}</span>,
-                      },
-                      {
-                        label: "Invoice",
-                        value: invoice.invoice_id,
-                      },
-                      {
-                        label: "Reference",
-                        value: invoice.reference,
-                      },
-                      {
-                        label: "Wallet balance",
-                        value: coverage
-                          ? `${coverage.balancePhrs} PHRS`
-                          : "Shown in your wallet",
-                      },
-                    ]}
+                  <motion.section
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="rounded-2xl border border-hairline bg-white p-6 sm:p-8"
+                    aria-live="polite"
                   >
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <p className="text-sm font-semibold text-slate">
+                        The binding — the moment of commitment
+                      </p>
+                      <Seal word="BOUND" tone="pass" />
+                    </div>
+                    <h3 className="mt-3 font-display text-4xl leading-tight tracking-tight text-ink sm:text-5xl">
+                      {proposal.valuePhrs} <span className="tabular-nums">PHRS</span>
+                    </h3>
+                    <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">
+                      Your signature will settle exactly this — nothing else.
+                      Four fields are bound together below; read every line
+                      before you sign.
+                    </p>
+
+                    <dl className="mt-6 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+                      {[
+                        {
+                          label: "Payee",
+                          value: (
+                            <span className="font-mono" title={proposal.to}>
+                              {shortHex(proposal.to)}
+                            </span>
+                          ),
+                        },
+                        {
+                          label: "Amount",
+                          value: (
+                            <span className="font-mono">{proposal.valuePhrs} PHRS</span>
+                          ),
+                        },
+                        {
+                          label: "Invoice",
+                          value: (
+                            <span className="font-mono">{invoice.invoice_id}</span>
+                          ),
+                        },
+                        {
+                          label: "Reference",
+                          value: (
+                            <span className="font-mono">{invoice.reference}</span>
+                          ),
+                        },
+                      ].map((row) => (
+                        <div key={row.label} className="border-t border-hairline pt-3">
+                          <dt className="text-sm font-semibold text-slate">
+                            {row.label}
+                          </dt>
+                          <dd className="mt-1 break-words text-sm text-ink">
+                            {row.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+
+                    {/* Why this review exists — the no-memo-bytes honesty rule
+                        as a designed feature, not a footnote. */}
+                    <div className="mt-6 flex gap-3 rounded-2xl border border-hairline bg-porcelain p-4">
+                      <FileText size={20} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+                      <div>
+                        <p className="text-sm font-semibold text-ink">
+                          Why the review is the record
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-slate">
+                          A native PHRS transfer carries no memo bytes — the
+                          chain cannot hold your invoice reference. So the
+                          reference lives here, in this binding, sealed to the
+                          payee and amount before your signature. The reference
+                          lives here now, honestly labeled.
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Dust warning — amber, from the hook's own propose() gate */}
                     {error && (
-                      <p className="rounded-xl border border-golddeep/50 bg-golddeep/10 px-4 py-3 text-sm font-semibold text-golddeep">
+                      <p className="mt-4 rounded-xl border border-golddeep/50 bg-golddeep/10 px-4 py-3 text-sm font-semibold text-golddeep">
                         {error}
                       </p>
                     )}
-                    {coverage &&
-                      (coverage.covers ? (
-                        <p className="text-sm text-ink">
-                          <span className="chip chip-pass mr-2">Balance covers it</span>
-                          {coverage.balancePhrs} PHRS available in your wallet.
-                        </p>
-                      ) : (
-                        <p className="rounded-xl border border-golddeep/50 bg-golddeep/10 px-4 py-3 text-sm font-semibold text-golddeep">
-                          Your wallet shows {coverage.balancePhrs} PHRS — this
-                          invoice is {proposal.valuePhrs} PHRS. Nothing is
-                          blocked: your wallet will simply refuse to sign what
-                          you don't have.
-                        </p>
-                      ))}
-                    {coverageNote && (
-                      <p className="text-sm text-slate">{coverageNote}</p>
+                    {coverage && (
+                      <div className="mt-4">
+                        {coverage.covers ? (
+                          <p className="text-sm text-ink">
+                            <span className="chip chip-pass mr-2">Balance covers it</span>
+                            {coverage.balancePhrs} PHRS available in your wallet —
+                            read from the chain, not assumed.
+                          </p>
+                        ) : (
+                          <p className="rounded-xl border border-golddeep/50 bg-golddeep/10 px-4 py-3 text-sm font-semibold text-golddeep">
+                            Your wallet shows {coverage.balancePhrs} PHRS — this
+                            invoice is {proposal.valuePhrs} PHRS. Nothing is
+                            blocked: your wallet will simply refuse to sign what
+                            you don't have.
+                          </p>
+                        )}
+                      </div>
                     )}
-                    <p className="text-sm text-slate">
+                    {coverageNote && (
+                      <p className="mt-4 text-sm text-slate">{coverageNote}</p>
+                    )}
+                    <p className="mt-4 text-sm text-slate">
                       Signing happens 100% in YOUR wallet — LIGHTKEEPER never
                       sees or asks for private keys. Testnet only (Pharos
                       Atlantic, chain 688689).
                     </p>
-                  </ResultCard>
+                  </motion.section>
                   <div className="sticky bottom-3 z-10 flex gap-2 rounded-2xl border border-hairline bg-white/95 p-3 shadow-lg backdrop-blur">
                     <button
                       className="btn-primary min-h-[44px] flex-1"
@@ -553,7 +802,7 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
                 <ResultCard
                   eyebrow="Paid — confirmed on Atlantic"
                   headline="Payment settled"
-                  subline="Signed in your wallet — mined on Pharos Atlantic. The invoice reference lives in the review above and the payment label."
+                  subline="Signed in your wallet — mined on Pharos Atlantic. The invoice reference lives in the binding above and the payment label."
                   status="pass"
                   copyValue={txHash}
                   rows={[
