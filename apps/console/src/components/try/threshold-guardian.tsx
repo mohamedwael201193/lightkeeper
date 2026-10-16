@@ -12,6 +12,7 @@
  * broadcast) is one click away.
  */
 import { useEffect, useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { Lamp } from "../../types";
 import {
   ATLANTIC_CHAIN_ID,
@@ -29,7 +30,7 @@ import {
   StatStrip,
 } from "../ui";
 import type { FeedItem } from "../ui";
-import { Hourglass, ShieldCheck, ShieldX } from "lucide-react";
+import { Hourglass } from "lucide-react";
 
 /** From tasks/t05-threshold-guardian/policy.yaml — the real task policy. */
 const DEFAULT_POLICY = {
@@ -124,6 +125,121 @@ function TraceList({ trace }: { trace: CondResult[] }) {
   );
 }
 
+/**
+ * The flagship verdict: a physical gate stamp slamming the decision.
+ * Scale 1.15→1.0 + a soft thud-shadow in 0.3s maps to the real verdict
+ * arriving — never to a timer. A single ring expands once and is gone in
+ * 0.6s. prefers-reduced-motion ⇒ the stamp just appears.
+ */
+function VerdictStamp({ decision }: { decision: "ALLOW" | "BLOCK" }) {
+  const reduce = useReducedMotion();
+  const blocked = decision === "BLOCK";
+  const ringColor = blocked ? "border-fail" : "border-pass";
+  return (
+    <div className="relative flex justify-center py-4" role="status" aria-live="polite">
+      {!reduce && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <motion.span
+            className={`h-20 w-20 rounded-full border-2 ${ringColor}`}
+            initial={{ scale: 0.5, opacity: 0.6 }}
+            animate={{ scale: 2.4, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        </div>
+      )}
+      <motion.div
+        initial={reduce ? { opacity: 0 } : { scale: 1.15, opacity: 0, rotate: -3 }}
+        animate={
+          reduce
+            ? { opacity: 1 }
+            : {
+                scale: 1,
+                opacity: 1,
+                rotate: -2,
+                boxShadow: "0 4px 16px rgba(11,21,51,0.22)",
+              }
+        }
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className={`select-none rounded-xl border-4 px-6 py-3 font-display text-4xl font-black uppercase tracking-[0.2em] sm:px-10 sm:text-5xl ${
+          blocked ? "border-fail text-fail" : "border-pass text-pass"
+        }`}
+      >
+        {blocked ? "Blocked" : "Allowed"}
+      </motion.div>
+    </div>
+  );
+}
+
+/**
+ * The BLOCK double beat: the stamp lands first, then — 0.3s later — the
+ * reason card rises with the exact failing numbers. After it: silence.
+ */
+function BlockReason({ trace }: { trace: CondResult[] }) {
+  const reduce = useReducedMotion();
+  const failing = trace.filter((c) => !c.pass);
+  return (
+    <motion.div
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut", delay: reduce ? 0 : 0.3 }}
+      className="mt-4 overflow-hidden rounded-2xl border-2 border-fail/30 bg-white"
+    >
+      <p className="border-b border-hairline bg-[#fef2f2] px-5 py-3 text-sm font-bold text-fail">
+        Why it blocked — the failing gates, exact numbers
+      </p>
+      <ul className="divide-y divide-hairline">
+        {failing.map((c) => (
+          <li key={c.key} className="flex items-start gap-3 px-5 py-4">
+            <span className="chip chip-fail mt-0.5">Block</span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-ink">{c.name}</p>
+              <p className="mt-1 break-words font-mono text-xs text-slate">{c.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </motion.div>
+  );
+}
+
+/**
+ * Gates judging live — rendered inside the 02 act. Each row appears only when
+ * the read it depends on has actually resolved: the ticking is the machine
+ * working, not a timer.
+ */
+function LiveGates({ gates }: { gates: CondResult[] }) {
+  if (gates.length === 0) return null;
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border border-hairline bg-white">
+      <p className="border-b border-hairline bg-porcelain px-5 py-3 text-sm font-semibold text-slate">
+        Gates — judging live, each row as its read resolves
+      </p>
+      <ul className="divide-y divide-hairline">
+        {gates.map((c) => (
+          <motion.li
+            key={c.key}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="flex items-start gap-3 px-5 py-3"
+          >
+            <span className={c.pass ? "chip chip-pass mt-0.5" : "chip chip-fail mt-0.5"}>
+              {c.pass ? "Pass" : "Block"}
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-ink">{c.name}</p>
+              <p className="mt-0.5 break-words font-mono text-xs text-slate">{c.detail}</p>
+            </div>
+          </motion.li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
   const { state: wallet, connect } = useWallet();
   const address = wallet.status === "connected" || wallet.status === "wrong-network"
@@ -143,6 +259,9 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
   const [readError, setReadError] = useState<string | null>(null);
   const [trace, setTrace] = useState<CondResult[] | null>(null);
   const [decision, setDecision] = useState<"ALLOW" | "BLOCK" | null>(null);
+  /** Gates as they evaluate during the 02 act — each row appears when the
+   *  read it depends on resolves. The final trace keeps the canonical order. */
+  const [liveGates, setLiveGates] = useState<CondResult[]>([]);
   const [stats, setStats] = useState<LiveStats | null>(null);
   /** Visitor-confirmed guardian txs in this browser session — feeds the rolling-window check. */
   const [sessionSpend, setSessionSpend] = useState(0);
@@ -193,34 +312,40 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
 
     setRunning(true);
     setStep(0);
-    const conds: CondResult[] = [];
+    setLiveGates([]);
+    // Each gate evaluates the moment its inputs resolve — the 02 rows ticking
+    // in IS the machine working, never a timer. The final trace reassembles
+    // the canonical gate order with identical comparisons and fail-closed
+    // semantics.
+    const reveal = (g: CondResult) =>
+      setLiveGates((prev) => [...prev, g]);
+
+    // Input-only gates: evaluable the instant the inputs validate.
+    const senderGate: CondResult = {
+      key: "sender",
+      name: "Sender binding",
+      detail: `proposal sender = your address ${address.slice(0, 10)}… — only the bound sender may fire`,
+      pass: true,
+    };
+    const thresholdGate: CondResult = {
+      key: "threshold",
+      name: "Per-transaction threshold",
+      detail: `${fmtPhrs(valuePhrs)} PHRS ${valuePhrs <= capTx ? "≤" : ">"} ${fmtPhrs(capTx)} PHRS (max_per_tx)`,
+      pass: valuePhrs <= capTx,
+    };
+    let networkGate: CondResult | null = null;
+    let gasGate: CondResult | null = null;
+    let windowGate: CondResult | null = null;
+    let balanceGate: CondResult | null = null;
+    reveal(senderGate);
+    reveal(thresholdGate);
     try {
       // Live reads — Tier A, one real call per loader step. Anything unreadable
       // ⇒ fail closed. (Sequential so each loader step maps to a real call.)
       const chainHex = (await rpcCall("eth_chainId", [])) as string;
-      setStep(1);
-      const gasHex = (await rpcCall("eth_gasPrice", [])) as string;
-      setStep(2);
-      const balHex = (await rpcCall("eth_getBalance", [address, "latest"])) as string;
-      setStep(3);
-
       const chainId = parseInt(chainHex, 16);
-      const gasGwei = Number(BigInt(gasHex)) / 1e9;
-      const balPhrs = Number(BigInt(balHex)) / 1e18;
-      const feePhrs = (gasGwei * 21000) / 1e9;
-      const reservePhrs = feePhrs * 2; // worst-case fee reserve, per the guardian doctrine
-
-      // 1 · sender binding
-      conds.push({
-        key: "sender",
-        name: "Sender binding",
-        detail: `proposal sender = your address ${address.slice(0, 10)}… — only the bound sender may fire`,
-        pass: true,
-      });
-
-      // 2 · network / mainnet firewall
       const networkOk = chainId === ATLANTIC_CHAIN_ID;
-      conds.push({
+      networkGate = {
         key: "network",
         name: "Network / mainnet firewall",
         detail:
@@ -228,41 +353,54 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
             ? `live eth_chainId = 1672 (mainnet) — REFUSED unconditionally; there is no override flag`
             : `live eth_chainId = ${chainId} ${networkOk ? "== 688689 (Atlantic testnet)" : "≠ 688689 — refused"}`,
         pass: networkOk,
-      });
+      };
+      reveal(networkGate);
+      setStep(1);
 
-      // 3 · per-tx threshold
-      conds.push({
-        key: "threshold",
-        name: "Per-transaction threshold",
-        detail: `${fmtPhrs(valuePhrs)} PHRS ${valuePhrs <= capTx ? "≤" : ">"} ${fmtPhrs(capTx)} PHRS (max_per_tx)`,
-        pass: valuePhrs <= capTx,
-      });
-
-      // 4 · rolling window (session-scoped, honest: this browser session's guardian spend)
-      const inWindow = valuePhrs + sessionSpend;
-      conds.push({
-        key: "window",
-        name: `Rolling-window cap (${fmtPhrs(winMin)} min)`,
-        detail: `${fmtPhrs(valuePhrs)} proposed + ${fmtPhrs(sessionSpend)} spent this session = ${fmtPhrs(inWindow)} PHRS ${inWindow <= capWin ? "≤" : ">"} ${fmtPhrs(capWin)} PHRS (max_per_window)`,
-        pass: inWindow <= capWin,
-      });
-
-      // 5 · gas-price sanity
-      conds.push({
+      const gasHex = (await rpcCall("eth_gasPrice", [])) as string;
+      const gasGwei = Number(BigInt(gasHex)) / 1e9;
+      gasGate = {
         key: "gas",
         name: "Gas-price sanity",
         detail: `live eth_gasPrice = ${fmtGwei(gasGwei)} gwei ${gasGwei <= capGas ? "≤" : ">"} ${fmtPhrs(capGas)} gwei (max_gas_price)`,
         pass: gasGwei <= capGas,
-      });
+      };
+      reveal(gasGate);
+      setStep(2);
 
-      // 6 · balance sufficiency (value + worst-case fee reserve)
-      conds.push({
+      const balHex = (await rpcCall("eth_getBalance", [address, "latest"])) as string;
+      const balPhrs = Number(BigInt(balHex)) / 1e18;
+      const feePhrs = (gasGwei * 21000) / 1e9;
+      const reservePhrs = feePhrs * 2; // worst-case fee reserve, per the guardian doctrine
+
+      // Rolling-window check closes the loop with the real aggregate math
+      // (proposal + session spend vs the window cap).
+      const inWindow = valuePhrs + sessionSpend;
+      windowGate = {
+        key: "window",
+        name: `Rolling-window cap (${fmtPhrs(winMin)} min)`,
+        detail: `${fmtPhrs(valuePhrs)} proposed + ${fmtPhrs(sessionSpend)} spent this session = ${fmtPhrs(inWindow)} PHRS ${inWindow <= capWin ? "≤" : ">"} ${fmtPhrs(capWin)} PHRS (max_per_window)`,
+        pass: inWindow <= capWin,
+      };
+      balanceGate = {
         key: "balance",
         name: "Balance sufficiency",
         detail: `live balance = ${fmtPhrs(balPhrs)} PHRS ${balPhrs >= valuePhrs + reservePhrs ? "≥" : "<"} ${fmtPhrs(valuePhrs)} + ${fmtPhrs(reservePhrs)} PHRS fee reserve`,
         pass: balPhrs >= valuePhrs + reservePhrs,
-      });
+      };
+      reveal(windowGate);
+      reveal(balanceGate);
+      setStep(3);
 
+      // Canonical trace order, unchanged comparisons.
+      const conds: CondResult[] = [
+        senderGate,
+        networkGate,
+        thresholdGate,
+        windowGate,
+        gasGate,
+        balanceGate,
+      ];
       const allow = conds.every((c) => c.pass);
       setStats({ inWindow, capWin, gasGwei, balPhrs });
       setTrace(conds);
@@ -279,12 +417,22 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
       if (!allow) sign.cancel();
     } catch (e) {
       // Fail closed: stale or unreadable chain data ⇒ BLOCK, never guess.
-      conds.push({
+      const readsGate: CondResult = {
         key: "reads",
         name: "Live chain reads",
         detail: e instanceof Error ? e.message : "The Atlantic RPC did not answer.",
         pass: false,
-      });
+      };
+      const partial: CondResult[] = [
+        senderGate,
+        networkGate,
+        thresholdGate,
+        windowGate,
+        gasGate,
+        balanceGate,
+      ].filter((g): g is CondResult => g !== null);
+      const conds: CondResult[] = [...partial, readsGate];
+      reveal(readsGate);
       setTrace(conds);
       setDecision("BLOCK");
       setRanFor(fmtPhrs(valuePhrs ?? 0));
@@ -507,70 +655,83 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
           <div className="mt-3">
             <ProgressLoader steps={PROPOSE_STEPS} current={step} />
           </div>
+          <LiveGates gates={liveGates} />
         </section>
       )}
 
-      {/* 03 · Result — the verdict is the showpiece */}
+      {/* 03 · Result — the verdict stamp is the climax */}
       {!running && decision && trace && (
         <section>
           <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
             03 · Result — the gate's verdict
           </h4>
-          <div className="mt-3">
+
+          {/* The stamp lands — once. ALLOW fires on to the dust self-transfer;
+              BLOCK ends the story beautifully, reason then silence. */}
+          <div className="mt-3 rounded-2xl border border-hairline bg-white px-6 py-6 sm:px-8">
+            <p className="text-center text-sm text-slate">
+              Gate verdict — proposal of{" "}
+              <span className="font-mono font-semibold text-ink">{ranFor} PHRS</span>
+            </p>
+            <VerdictStamp decision={decision} />
             {decision === "ALLOW" ? (
-              <ResultCard
-                eyebrow={`Gate verdict — proposal of ${ranFor} PHRS`}
-                headline={
-                  <span className="inline-flex items-center gap-3">
-                    <ShieldCheck size={44} className="text-pass" aria-hidden />
-                    ALLOW
-                  </span>
-                }
-                status="pass"
-                subline="All six conditions pass on live Atlantic reads. The guardian would fire this transfer — and only a transfer you propose, review, and sign yourself."
-                rows={[
-                  {
-                    label: "Per-tx check",
-                    value: trace.find((c) => c.key === "threshold")?.detail ?? "—",
-                  },
-                  {
-                    label: "Rolling-window check",
-                    value: trace.find((c) => c.key === "window")?.detail ?? "—",
-                  },
-                  {
-                    label: "Balance check",
-                    value: trace.find((c) => c.key === "balance")?.detail ?? "—",
-                  },
-                  {
-                    label: "Gas sanity",
-                    value: trace.find((c) => c.key === "gas")?.detail ?? "—",
-                  },
-                ]}
-              />
+              <p className="mx-auto mt-1 max-w-xl text-center text-base leading-relaxed text-ink">
+                All six gates pass on{" "}
+                <strong className="text-ink">live Atlantic reads</strong>. The guardian
+                would fire this transfer — but only you can: propose it, review it,
+                sign it yourself.
+              </p>
             ) : (
-              <ResultCard
-                eyebrow={`Gate verdict — proposal of ${ranFor} PHRS`}
-                headline={
-                  <span className="inline-flex items-center gap-3">
-                    <ShieldX size={44} className="text-fail" aria-hidden />
-                    BLOCK
-                  </span>
-                }
-                status="fail"
-                subline="At least one condition failed on live Atlantic data. Nothing was proposed, nothing was signed, nothing was spent — that is the guardian doing its job. The trace below is the proof."
-                rows={[
-                  {
-                    label: "Failed on",
-                    value: trace.filter((c) => !c.pass).map((c) => c.name).join("; ") || "—",
-                  },
-                  {
-                    label: "Rolling-window check",
-                    value: trace.find((c) => c.key === "window")?.detail ?? "—",
-                  },
-                ]}
-              />
+              <p className="mx-auto mt-1 max-w-xl text-center text-base leading-relaxed text-ink">
+                The guardian refused —{" "}
+                <strong className="text-ink">
+                  {trace.filter((c) => !c.pass).map((c) => c.name).join("; ") || "—"}
+                </strong>
+                . That refusal is the product: nothing was proposed, signed, or
+                broadcast.
+              </p>
             )}
           </div>
+
+          {/* The BLOCK double beat: the reason, with the exact failing numbers. */}
+          {decision === "BLOCK" && <BlockReason trace={trace} />}
+
+          {/* …then the silence of nothing being broadcast. */}
+          {decision === "BLOCK" && (
+            <p className="mt-5 text-center font-mono text-sm text-slate">
+              — nothing proposed · nothing signed · nothing broadcast · nothing spent —
+            </p>
+          )}
+
+          {/* ALLOW keeps the four key comparisons up close — the numbers that fired it. */}
+          {decision === "ALLOW" && (
+            <dl className="mt-6 grid gap-x-8 gap-y-4 rounded-2xl border border-hairline bg-white p-6 sm:grid-cols-2 sm:p-8">
+              <div>
+                <dt className="text-sm font-semibold text-slate">Per-tx check</dt>
+                <dd className="mt-1 break-words font-mono text-sm text-ink">
+                  {trace.find((c) => c.key === "threshold")?.detail ?? "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-semibold text-slate">Rolling-window check</dt>
+                <dd className="mt-1 break-words font-mono text-sm text-ink">
+                  {trace.find((c) => c.key === "window")?.detail ?? "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-semibold text-slate">Balance check</dt>
+                <dd className="mt-1 break-words font-mono text-sm text-ink">
+                  {trace.find((c) => c.key === "balance")?.detail ?? "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-semibold text-slate">Gas sanity</dt>
+                <dd className="mt-1 break-words font-mono text-sm text-ink">
+                  {trace.find((c) => c.key === "gas")?.detail ?? "—"}
+                </dd>
+              </div>
+            </dl>
+          )}
 
           {stats && (
             <div className="mt-4">
