@@ -1,12 +1,17 @@
 /**
- * T19 — Invoice-to-Payment Agent (Tier B).
+ * T19 — Invoice-to-Payment Agent (Tier A live reads + Tier B visitor signing).
  *
  * "Invoice to money in one review": paste invoice text -> the console's
  * client-side extractor (same no-guess rules as the agent's parsers.py)
  * pulls payee / amount / token / reference from JSON, CSV, KEY:value, or
  * free-text formats -> structured preview with mismatch flags -> propose()
- * -> MANDATORY review (payee, amount, reference, amber dust warning) ->
- * the VISITOR signs in their own wallet -> receipt + explorer link.
+ * -> MANDATORY review (payee, amount, reference, wallet-balance coverage,
+ * amber dust warning) -> the VISITOR signs in their own wallet -> receipt +
+ * explorer link.
+ *
+ * Live Atlantic context (current block + gas price) is read from the RPC
+ * under the input — if the RPC is down the page says so plainly with a
+ * retry, never a dead end.
  *
  * LIGHTKEEPER never holds keys; the visitor's wallet signs and sends.
  * Honesty rule kept verbatim from the agent: a native PHRS transfer has no
@@ -18,6 +23,8 @@ import type { Lamp } from "../../types";
 import { useWallet } from "../WalletContext";
 import {
   EXPLORER_TX,
+  rpcCall,
+  useAtlanticRead,
   useProposeAndSign,
 } from "../../hooks/useAtlantic";
 
@@ -57,9 +64,19 @@ const TXT_KEYMAP: Record<string, keyof Omit<ExtractedInvoice, "format" | "flags"
 function validAmount(raw: string | undefined): string | null {
   if (raw == null || !raw.trim()) return null;
   const s = raw.trim();
-  if (!/^\d+(\.\d+)?$/.test(s)) return null;
+  // On-chain reality: wei has exactly 18 decimals — more precision can never
+  // settle, so it is flagged rather than silently rounded.
+  if (!/^\d+(\.\d{1,18})?$/.test(s)) return null;
   const n = parseFloat(s);
   return Number.isFinite(n) && n > 0 ? s : null;
+}
+
+/** Exact wei conversion for a validated decimal PHRS string; null when invalid. */
+function weiOf(phrs: string): bigint | null {
+  const s = phrs.trim();
+  if (!/^\d+(\.\d{1,18})?$/.test(s)) return null;
+  const [i, f = ""] = s.split(".");
+  return BigInt(i) * 10n ** 18n + BigInt((f + "0".repeat(18)).slice(0, 18));
 }
 
 function sharpenerHeuristics(text: string, flags: string[]): void {
@@ -154,7 +171,9 @@ function validateCommon(
     flags.push(
       /^-/.test(rawAmt)
         ? `amount ${rawAmt} PHRS is not > 0 — refused. Never pays zero or negative.`
-        : `amount '${rawAmt}' is not a positive number — flagged, not defaulted.`
+        : /\.\d{19,}/.test(rawAmt)
+          ? `amount '${rawAmt}' has more than 18 decimals — a PHRS transfer cannot express it; flagged, not rounded.`
+          : `amount '${rawAmt}' is not a positive number — flagged, not defaulted.`
     );
     fieldFlags.amount = "invalid";
   } else {
@@ -421,6 +440,11 @@ const SAMPLE_BROKEN = `{
 /* Component                                                          */
 /* ------------------------------------------------------------------ */
 
+interface ChainContext {
+  block: number;
+  gasGwei: number;
+}
+
 const FORMAT_LABEL: Record<ExtractedInvoice["format"], string> = {
   json: "JSON",
   csv: "CSV",
@@ -453,6 +477,23 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
   const [invoiceText, setInvoiceText] = useState("");
   const [analyzed, setAnalyzed] = useState(false);
 
+  // Tier A live read: current Atlantic block + gas price. Plain-language
+  // error with retry if the RPC is unreachable — never a silent dead end.
+  const chain = useAtlanticRead<ChainContext>(async () => {
+    const [blockHex, gasHex] = await Promise.all([
+      rpcCall("eth_blockNumber", []),
+      rpcCall("eth_gasPrice", []),
+    ]);
+    if (typeof blockHex !== "string" || typeof gasHex !== "string") {
+      throw new Error("The Atlantic RPC answered in an unexpected shape.");
+    }
+    const block = parseInt(blockHex, 16);
+    if (!Number.isFinite(block) || block <= 0) {
+      throw new Error("The Atlantic RPC answered in an unexpected shape.");
+    }
+    return { block, gasGwei: Number(BigInt(gasHex)) / 1e9 };
+  }, []);
+
   const invoice = useMemo(
     () => (analyzed ? extractInvoice(invoiceText) : null),
     [invoiceText, analyzed]
@@ -464,9 +505,20 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
     cancel();
     setInvoiceText(sample);
     setAnalyzed(true);
+    chain.refetch();
+  };
+
+  const analyze = () => {
+    setAnalyzed(true);
+    chain.refetch();
   };
 
   const clean = invoice != null && invoice.flags.length === 0;
+
+  // Wallet-balance coverage check for the review card (exact wei math).
+  const balancePhrs = wallet.status === "connected" ? wallet.balance : null;
+  const balanceWei = balancePhrs != null ? weiOf(balancePhrs) : null;
+  const proposalWei = proposal != null ? weiOf(proposal.valuePhrs) : null;
 
   const handlePropose = () => {
     if (!invoice || !clean) return;
@@ -511,9 +563,37 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
       {/* step 1 — input */}
       <div className="rounded-xl border border-hairline bg-porcelain p-4">
         <p className="smallcaps mb-2">Invoice text</p>
+
+        {/* Tier A live read: Atlantic now */}
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate">
+          <span className="smallcaps">Atlantic now</span>
+          {chain.loading && !chain.data && <span>reading the chain…</span>}
+          {chain.data && (
+            <span className="font-mono text-ink">
+              block {chain.data.block.toLocaleString("en-US")} · gas {chain.data.gasGwei.toFixed(2)} gwei
+            </span>
+          )}
+          {chain.data && !chain.loading && (
+            <button className="underline" onClick={chain.refetch}>
+              refresh
+            </button>
+          )}
+          {chain.error && !chain.loading && (
+            <span className="text-fail">
+              RPC unreachable: {chain.error}{" "}
+              <button className="underline" onClick={chain.refetch}>
+                Retry
+              </button>
+            </span>
+          )}
+        </div>
+
         <div className="mb-3 flex flex-wrap gap-2">
           <button className="btn-outline" onClick={() => pickSample(SAMPLE_JSON)}>
             Sample: JSON invoice
+          </button>
+          <button className="btn-outline" onClick={() => pickSample(SAMPLE_CSV)}>
+            Sample: CSV invoice
           </button>
           <button className="btn-outline" onClick={() => pickSample(SAMPLE_TXT)}>
             Sample: plaintext invoice
@@ -522,6 +602,23 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
             Sample: broken invoice
           </button>
         </div>
+        <p className="mb-3 text-xs text-slate">
+          The agent already settled these on Atlantic — real receipts:{" "}
+          {SETTLED.map((s, i) => (
+            <span key={s.tx}>
+              {i > 0 && " · "}
+              {s.label}{" "}
+              <a
+                className="font-mono text-accent hover:underline"
+                href={`${EXPLORER_TX}${s.tx}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {s.tx.slice(0, 6)}…{s.tx.slice(-4)} ↗
+              </a>
+            </span>
+          ))}
+        </p>
         <textarea
           className="code-block h-44 w-full resize-y font-mono text-xs"
           placeholder={`Paste invoice text here…
@@ -541,7 +638,7 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
           <button
             className="btn-primary"
             disabled={!invoiceText.trim()}
-            onClick={() => setAnalyzed(true)}
+            onClick={analyze}
           >
             Extract &amp; validate
           </button>
@@ -577,32 +674,36 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
             </p>
           )}
 
-          <table className="data-table">
-            <tbody>
-              <FieldRow name="invoice id" value={invoice.invoice_id} flag={invoice.fieldFlags.invoice_id} />
-              <FieldRow name="payee" value={invoice.payee} flag={invoice.fieldFlags.payee} />
-              <FieldRow name="amount" value={invoice.amount ? `${invoice.amount} PHRS` : ""} flag={invoice.fieldFlags.amount} />
-              <FieldRow name="token" value={invoice.currency} flag={invoice.fieldFlags.currency} />
-              <FieldRow name="reference" value={invoice.reference} flag={invoice.fieldFlags.reference} />
-              {invoice.memo && (
-                <FieldRow name="memo" value={invoice.memo} />
-              )}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <tbody>
+                <FieldRow name="invoice id" value={invoice.invoice_id} flag={invoice.fieldFlags.invoice_id} />
+                <FieldRow name="payee" value={invoice.payee} flag={invoice.fieldFlags.payee} />
+                <FieldRow name="amount" value={invoice.amount ? `${invoice.amount} PHRS` : ""} flag={invoice.fieldFlags.amount} />
+                <FieldRow name="token" value={invoice.currency} flag={invoice.fieldFlags.currency} />
+                <FieldRow name="reference" value={invoice.reference} flag={invoice.fieldFlags.reference} />
+                {invoice.memo && (
+                  <FieldRow name="memo" value={invoice.memo} />
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {invoice.lineItems.length > 0 && (
             <div className="mt-3">
               <p className="smallcaps mb-1">Line items</p>
-              <table className="data-table">
-                <tbody>
-                  {invoice.lineItems.map((li, i) => (
-                    <tr key={i}>
-                      <td className="text-ink">{li.description || <span className="text-slate">—</span>}</td>
-                      <td className="font-mono text-ink">{li.amount ? `${li.amount} PHRS` : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <tbody>
+                    {invoice.lineItems.map((li, i) => (
+                      <tr key={i}>
+                        <td className="text-ink">{li.description || <span className="text-slate">—</span>}</td>
+                        <td className="font-mono text-ink">{li.amount ? `${li.amount} PHRS` : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -652,6 +753,25 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
             <p className="mt-2 rounded-lg border border-golddeep/60 bg-golddeep/10 px-3 py-2 text-sm font-semibold text-golddeep">
               {error}
             </p>
+          )}
+          {walletConnected && proposalWei != null && (
+            balanceWei != null ? (
+              balanceWei < proposalWei ? (
+                <p className="mt-2 rounded-lg border border-golddeep/60 bg-golddeep/10 px-3 py-2 text-sm font-semibold text-golddeep">
+                  Your wallet shows {balancePhrs} PHRS — this invoice is {proposal.valuePhrs} PHRS.
+                  Nothing is blocked: your wallet will simply refuse to sign what you don't have.
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-ink">
+                  <span className="chip chip-pass mr-2">balance covers it</span>
+                  {balancePhrs} PHRS available in your wallet.
+                </p>
+              )
+            ) : (
+              <p className="mt-2 text-xs text-slate">
+                Wallet balance unavailable right now — your wallet will show it when you sign.
+              </p>
+            )
           )}
           <p className="mt-2 text-xs text-slate">
             Signing happens 100% in YOUR wallet — LIGHTKEEPER never sees or asks for private keys. Testnet only
@@ -716,8 +836,9 @@ Free text — "Invoice INV-9 for 0.003 PHRS to 0x… ref LK-…"`}
       )}
 
       <p className="text-xs text-slate">
-        {lamp.name} · interactive Tier B surface — every live control proposes a real Atlantic transaction
-        for your wallet, or is absent with a stated reason.
+        {lamp.name} · live Atlantic reads (Tier A) + visitor-signed settlement (Tier B) —
+        every live control proposes a real Atlantic transaction for your wallet, or is absent
+        with a stated reason.
       </p>
     </div>
   );
