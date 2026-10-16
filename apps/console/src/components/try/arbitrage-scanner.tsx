@@ -22,8 +22,19 @@
  * (scanner.py --execute); the two mined execution legs are linked below.
  */
 import { useEffect, useRef, useState } from "react";
+import { animate, useReducedMotion } from "framer-motion";
+import { Fuel, Layers, TrendingUp, Zap } from "lucide-react";
 import type { Lamp } from "../../types";
 import { EXPLORER_ADDRESS, EXPLORER_TX, rpcCall, useAtlanticRead } from "../../hooks/useAtlantic";
+import {
+  EmptyState,
+  ErrorState,
+  FeedList,
+  ProgressLoader,
+  ResultCard,
+  StatStrip,
+} from "../ui";
+import type { FeedItem } from "../ui";
 
 /* ---------- task sources (exact, from tasks/t07-arbitrage-scanner/evidence.json) ---------- */
 const VENUES = [
@@ -45,6 +56,33 @@ const EXEC_LEG1 =
 const EXEC_LEG2 =
   "0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad";
 
+/* ---------- scan steps: one per REAL async call or real pricing computation ---------- */
+const BASE_STEPS = [
+  "Pinning a scan block · eth_blockNumber",
+  "Reading reserves from all three venues · eth_call",
+  "Reading the live gas price · eth_gasPrice",
+  "Rechecking the chain tip for quote freshness · eth_blockNumber",
+];
+const CYCLE_STEPS: string[] = (() => {
+  const steps: string[] = [];
+  let n = 1;
+  for (const v1 of VENUES) {
+    for (const v2 of VENUES) {
+      if (v1.name === v2.name) continue;
+      steps.push(`Pricing cycle ${n}/12 · WPHRS via ${v1.name} → ${v2.name}`);
+      n++;
+      steps.push(`Pricing cycle ${n}/12 · TKB via ${v1.name} → ${v2.name}`);
+      n++;
+    }
+  }
+  return steps;
+})();
+const SCAN_STEPS = [
+  ...BASE_STEPS,
+  ...CYCLE_STEPS,
+  "Cross-checking the winning route on-chain · getAmountOut × 2",
+];
+
 /* ---------- bigint money helpers ---------- */
 function parseUnits(s: string): bigint {
   const t = s.trim();
@@ -60,6 +98,16 @@ function fmt(wei: bigint, digits = 6): string {
   const int = a / 10n ** 18n;
   const frac = (a % 10n ** 18n).toString().padStart(18, "0").slice(0, digits).replace(/0+$/, "");
   return (neg ? "-" : "") + int.toString() + (frac ? "." + frac : "");
+}
+
+/** Signed float formatter with trimmed decimals, e.g. "+0.138". */
+function fmtSignedNum(n: number, digits = 6): string {
+  const sign = n < 0 ? "−" : "+";
+  const s = Math.abs(n)
+    .toFixed(digits)
+    .replace(/(\.\d*?)0+$/, "$1")
+    .replace(/\.$/, "");
+  return sign + s;
 }
 
 /** Contract-identical quote: out = (amountIn·9970·rOut) / (rIn·10000 + amountIn·9970). */
@@ -133,13 +181,25 @@ interface LogEntry {
   onChainVerified: boolean | null;
 }
 
-async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number): Promise<ScanResult> {
+/** Yield one macrotask so React can paint the progress step between real work. */
+const paint = () => new Promise<void>((r) => setTimeout(r, 0));
+
+async function runScan(
+  sizeWei: bigint,
+  thresholdWei: bigint,
+  guardBps: number,
+  onProgress?: (i: number) => void
+): Promise<ScanResult> {
   // 1. Pin one block for the whole scan.
+  onProgress?.(0);
+  await paint();
   const tipHex = (await rpcCall("eth_blockNumber", [])) as string;
   const pinned = Number(BigInt(tipHex));
   const blockTag = "0x" + pinned.toString(16);
 
   // 2. Read all three venues at the pinned block, in parallel.
+  onProgress?.(1);
+  await paint();
   const reads = await Promise.all(
     VENUES.map(async (v): Promise<VenueRead> => {
       const hex = (await rpcCall("eth_call", [{ to: v.address, data: GET_RESERVES_SEL }, blockTag])) as string;
@@ -154,9 +214,13 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
     })
   );
 
+  onProgress?.(2);
+  await paint();
   const gasPriceWei = BigInt((await rpcCall("eth_gasPrice", [])) as string);
 
   // 3. Fresh tip for the staleness check (pinned >50 behind tip = STALE_QUOTE).
+  onProgress?.(3);
+  await paint();
   const tipHex2 = (await rpcCall("eth_blockNumber", [])) as string;
   const tipBlock = Number(BigInt(tipHex2));
   const lag = tipBlock - pinned;
@@ -177,10 +241,13 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
   const guardWei = (sizeWei * BigInt(guardBps)) / 10000n;
   const cyclesWphrs: Cycle[] = [];
   const cyclesTkb: Cycle[] = [];
+  let ci = 0;
   for (const v1 of reads) {
     for (const v2 of reads) {
       if (v1.name === v2.name) continue;
       // WPHRS-start cycle
+      onProgress?.(BASE_STEPS.length + ci);
+      await paint();
       {
         const leg1Out = quote(sizeWei, v1.r0, v1.r1);
         if (leg1Out > 0n) {
@@ -205,7 +272,10 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
           }
         }
       }
+      ci++;
       // TKB-start cycle (same wei size, denominated in TKB — mirrors the CLI)
+      onProgress?.(BASE_STEPS.length + ci);
+      await paint();
       {
         const leg1Out = quote(sizeWei, v1.r1, v1.r0);
         if (leg1Out > 0n) {
@@ -230,6 +300,7 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
           }
         }
       }
+      ci++;
     }
   }
   cyclesWphrs.sort((a, b) => (b.net > a.net ? 1 : b.net < a.net ? -1 : 0));
@@ -249,6 +320,8 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
   let onChainMatch: boolean | null = null;
   let onChainNote = "not checked";
   if (best) {
+    onProgress?.(BASE_STEPS.length + CYCLE_STEPS.length);
+    await paint();
     try {
       const v1 = reads.find((v) => v.name === best.leg1Venue)!;
       const v2 = reads.find((v) => v.name === best.leg2Venue)!;
@@ -276,6 +349,7 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
     }
   }
 
+  onProgress?.(SCAN_STEPS.length);
   return {
     pinnedBlock: pinned,
     tipBlock,
@@ -301,55 +375,120 @@ async function runScan(sizeWei: bigint, thresholdWei: bigint, guardBps: number):
 const inputCls =
   "w-full rounded-lg border border-hairline bg-porcelain px-3 py-2 font-mono text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent/30";
 
-function CycleTable({
-  title,
-  cycles,
-  unit,
-  footnote,
-}: {
-  title: string;
-  cycles: Cycle[];
-  unit: string;
-  footnote: string;
-}) {
+/* ---------- presentation pieces ---------- */
+
+/** Animated hero number: ticks from 0 to the real net when the result arrives. */
+function HeroTicker({ valueWei }: { valueWei: bigint }) {
+  const reduce = useReducedMotion();
+  const [display, setDisplay] = useState(0);
+  const target = Number(valueWei) / 1e18;
+  useEffect(() => {
+    if (reduce) {
+      setDisplay(target);
+      return;
+    }
+    const controls = animate(0, target, {
+      duration: 0.7,
+      ease: "easeOut",
+      onUpdate: (v) => setDisplay(v),
+    });
+    return () => controls.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valueWei]);
+  return <span className="tabular-nums">{fmtSignedNum(display)}</span>;
+}
+
+function ActLabel({ n, title }: { n: string; title: string }) {
   return (
-    <div className="overflow-x-auto">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate">{title}</p>
-      <table className="data-table w-full">
-        <thead>
-          <tr>
-            <th>Cycle</th>
-            <th className="text-right">Leg 1 out</th>
-            <th className="text-right">Leg 2 out</th>
-            <th className="text-right">Gross</th>
-            <th className="text-right">Fees</th>
-            <th className="text-right">Net</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cycles.map((c, i) => (
-            <tr key={`${c.leg1Venue}-${c.leg2Venue}`} className={i === 0 ? "bg-accent/5" : undefined}>
-              <td className="font-mono text-xs">
-                {i === 0 && <span className="mr-1 chip chip-pass !px-1.5 !py-0.5">best</span>}
-                {c.leg1Venue} → {c.leg2Venue}
-              </td>
-              <td className="font-mono text-right">{fmt(c.leg1Out, 4)}</td>
-              <td className="font-mono text-right">{fmt(c.leg2Out, 4)}</td>
-              <td className="font-mono text-right">{fmt(c.gross, 4)}</td>
-              <td className="font-mono text-right">{fmt(c.fee1 + c.fee2, 4)}</td>
-              <td className={`font-mono text-right ${c.net > 0n ? "text-[#0f7a37]" : "text-fail"}`}>
-                {fmt(c.net, 4)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="mt-1 text-xs text-slate">
-        Figures in {unit}. {footnote}
+    <div className="mb-4 flex items-center gap-3">
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-display text-sm font-bold text-white"
+        aria-hidden
+      >
+        {n}
+      </span>
+      <h4 className="text-lg font-semibold text-ink">{title}</h4>
+    </div>
+  );
+}
+
+function CycleFeedItem({ c, rank }: { c: Cycle; rank: number }) {
+  const unit = c.start === "WPHRS" ? "WPHRS" : "TKB";
+  const pos = c.net > 0n;
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-sm font-semibold text-ink">
+          {rank === 0 && (
+            <span className="chip chip-pass mr-2 !px-1.5 !py-0.5">best</span>
+          )}
+          <span className="font-mono">
+            {c.leg1Venue} → {c.leg2Venue}
+          </span>
+        </p>
+        <p
+          className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
+            pos ? "text-[#0f7a37]" : "text-fail"
+          }`}
+        >
+          {fmtSignedNum(Number(c.net) / 1e18, 4)} {unit}
+        </p>
+      </div>
+      <p className="mt-1 font-mono text-xs text-slate">
+        gross {fmt(c.gross, 4)} · fees {fmt(c.fee1 + c.fee2, 4)} · slippage{" "}
+        {fmt(c.slip1 + c.slip2, 4)} {unit}
       </p>
     </div>
   );
 }
+
+function cycleFeedItems(cycles: Cycle[]): FeedItem[] {
+  return cycles.map((c, i) => ({
+    key: `${c.start}-${c.leg1Venue}-${c.leg2Venue}`,
+    node: <CycleFeedItem c={c} rank={i} />,
+  }));
+}
+
+/** Translate a failed scan into a plain-language error. Raw RPC text never renders. */
+function translateError(e: string): { title: string; message: string; hint?: string } {
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(e)) {
+    return {
+      title: "Atlantic didn't answer",
+      message:
+        "The scan couldn't reach the Atlantic RPC — the endpoint or your connection may be down. Nothing was priced; nothing was hidden.",
+      hint: "Check your connection and retry. Failed reads are errors, never zeros.",
+    };
+  }
+  if (/short reserve read/i.test(e)) {
+    return {
+      title: "A venue read came back broken",
+      message:
+        "One of the three pools returned a malformed reserves read, so the scan stopped instead of pricing from bad data.",
+      hint: "Retry — a single flaky call is common on testnet.",
+    };
+  }
+  return {
+    title: "The scan failed",
+    message:
+      e.length < 200
+        ? e
+        : "The Atlantic RPC returned an error this scan couldn't interpret. Nothing was priced.",
+    hint: "Retry the scan — if it keeps failing, the venue contracts may be mid-redeploy.",
+  };
+}
+
+const VERDICT_COPY: Record<string, string> = {
+  BELOW_THRESHOLD:
+    "Same real spread, your threshold says no — nothing is prepared. A truthful skip beats a fabricated opportunity.",
+  NEGATIVE_NET:
+    "The best route loses money after gas and your slippage guard — no trade is worth preparing.",
+  STALE_QUOTE:
+    "The pinned block lagged the tip too far — quotes are not trusted. Re-run the scan.",
+  NO_LIQUIDITY:
+    "A venue is empty — failed reads are errors, never zeros. Nothing was priced from thin air.",
+  SOURCE_DOWN:
+    "A price source failed — the scan treats failed reads as errors, never as zeros.",
+};
 
 export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
   const [size, setSize] = useState("10");
@@ -357,13 +496,14 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
   const [guard, setGuard] = useState("0.5");
   const [inputError, setInputError] = useState<string | null>(null);
   const [runId, setRunId] = useState(0);
+  const [step, setStep] = useState(0);
   const [log, setLog] = useState<LogEntry[]>([]);
   const lastLoggedRun = useRef(0);
 
   const { data, loading, error } = useAtlanticRead<ScanResult>(
     async () => {
       const guardBps = Math.round(parseFloat(guard) * 100);
-      return runScan(parseUnits(size), parseUnits(threshold), guardBps);
+      return runScan(parseUnits(size), parseUnits(threshold), guardBps, setStep);
     },
     [runId],
     { auto: runId > 0 }
@@ -400,6 +540,7 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
       if (t < 0n) throw new Error("Threshold cannot be negative.");
       if (!Number.isFinite(g) || g < 0 || g > 50)
         throw new Error("Slippage guard must be between 0 and 50%.");
+      setStep(0);
       setRunId((n) => n + 1);
     } catch (e) {
       setInputError(e instanceof Error ? e.message : "Invalid input.");
@@ -417,249 +558,373 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
     URL.revokeObjectURL(url);
   };
 
+  const noCycles =
+    data && data.cyclesWphrs.length === 0 && data.cyclesTkb.length === 0;
+  const profitRoutes = data
+    ? [...data.cyclesWphrs, ...data.cyclesTkb].filter((c) => c.net > 0n).length
+    : 0;
+
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="chip chip-dim">Tier A · live read</span>
-        <span className="chip chip-dim">No signature · costs nothing</span>
+    <div className="space-y-6">
+      <div>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="chip chip-dim">Tier A · live read</span>
+          <span className="chip chip-dim">No signature · costs nothing</span>
+        </div>
+
+        <h3 className="text-xl font-semibold text-ink">Live spread scanner</h3>
+        <p className="mb-5 mt-2 max-w-3xl text-sm leading-relaxed text-ink">
+          The T07 <strong>config → scan → verdict</strong> rhythm, live in your browser. One scan
+          pins a block, reads the three real T07 venues on Atlantic testnet via{" "}
+          <code className="font-mono text-xs">eth_call</code>, and prices{" "}
+          <strong>all twelve directed cycles</strong> — six WPHRS-start, six TKB-start, the same set
+          the CLI prices — with the contract-identical constant-product math (fees 30 bps/leg on the
+          notional), nets slippage + gas + your slippage guard — then rules{" "}
+          <strong>OPPORTUNITY</strong> above your threshold or <strong>SKIP</strong> with the honest
+          reason. Most arb panels show only the winner; this one shows the whole market — including
+          the losing routes — and appends every scan to a session evidence log below. Every number
+          below was just read from chain; nothing here is a mock.
+        </p>
       </div>
 
-      <h3 className="smallcaps !text-ink mb-2">Live spread scanner</h3>
-      <p className="mb-5 max-w-3xl text-sm leading-relaxed text-slate">
-        The T07 <strong className="text-ink">config → scan → verdict</strong> rhythm, live in your
-        browser. One scan pins a block, reads the three real T07 venues on Atlantic testnet via{" "}
-        <code className="font-mono text-xs">eth_call</code>, and prices{" "}
-        <strong className="text-ink">all twelve directed cycles</strong> — six WPHRS-start, six
-        TKB-start, the same set the CLI prices — with the contract-identical constant-product math
-        (fees 30 bps/leg on the notional), nets slippage + gas + your slippage guard — then rules{" "}
-        <strong className="text-ink">OPPORTUNITY</strong> above your threshold or{" "}
-        <strong className="text-ink">SKIP</strong> with the honest reason. Most arb panels show only
-        the winner; this one shows the whole market — including the losing routes — and appends every
-        scan to a session evidence log below. Every number below was just read from chain; nothing
-        here is a mock.
-      </p>
-
-      {/* config */}
-      <div className="mb-5 grid gap-3 rounded-xl border border-hairline bg-porcelain p-4 md:grid-cols-4">
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
-            Trade size (WPHRS)
-          </span>
-          <input className={inputCls} value={size} onChange={(e) => setSize(e.target.value)} inputMode="decimal" />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
-            Profit threshold (WPHRS)
-          </span>
-          <input className={inputCls} value={threshold} onChange={(e) => setThreshold(e.target.value)} inputMode="decimal" />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
-            Slippage guard (%)
-          </span>
-          <input className={inputCls} value={guard} onChange={(e) => setGuard(e.target.value)} inputMode="decimal" />
-        </label>
-        <div className="flex items-end">
-          <button className="btn-primary w-full" onClick={start} disabled={loading}>
-            {loading ? "Scanning Atlantic…" : "Run scan"}
-          </button>
-        </div>
-      </div>
-      {inputError && <p className="mb-4 text-sm text-fail">{inputError}</p>}
-      {error && (
-        <div className="mb-4 rounded-xl border border-hairline bg-porcelain p-4">
-          <p className="text-sm text-fail">{error}</p>
-          <button className="btn-outline mt-3" onClick={start} disabled={loading}>
-            Retry scan
-          </button>
-        </div>
-      )}
-      {loading && <p className="mb-4 text-sm text-slate">Reading venues at a pinned block…</p>}
-
-      {/* results */}
-      {data && !loading && (
-        <div className="space-y-5">
-          <p className="font-mono text-xs text-slate">
-            pinned block {data.pinnedBlock} · tip {data.tipBlock} (lag {data.lag}) · gas price{" "}
-            {fmt(data.gasPriceWei, 4)} gwei · size {fmt(data.sizeWei)} WPHRS
-          </p>
-
-          {/* venues */}
-          <div>
-            <h4 className="smallcaps !text-ink mb-2">The venues, just read</h4>
-            <div className="overflow-x-auto">
-              <table className="data-table w-full">
-                <thead>
-                  <tr>
-                    <th>Venue</th>
-                    <th>Reserves (WPHRS / TKB)</th>
-                    <th>Implied price (TKB per WPHRS)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.venues.map((v) => (
-                    <tr key={v.name}>
-                      <td className="font-semibold">
-                        <a
-                          className="font-mono text-xs text-accent hover:underline"
-                          href={`${EXPLORER_ADDRESS}${v.address}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {v.name}
-                        </a>
-                      </td>
-                      <td className="font-mono">{fmt(v.r0, 2)} / {fmt(v.r1, 2)}</td>
-                      <td className="font-mono">{v.r0 > 0n ? (Number(v.r1) / Number(v.r0)).toFixed(4) : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* the whole market: both leaderboards */}
-          <div className="space-y-4">
-            <h4 className="smallcaps !text-ink mb-2">The whole market — every cycle, losers included</h4>
-            <CycleTable
-              title="WPHRS-start cycles (verdict runs on these)"
-              cycles={data.cyclesWphrs}
-              unit="WPHRS"
-              footnote="Leg 1 swaps WPHRS → TKB, leg 2 swaps back. Net = gross − gas − your slippage guard."
-            />
-            <CycleTable
-              title="TKB-start cycles"
-              cycles={data.cyclesTkb}
-              unit="TKB"
-              footnote="Priced with the same wei size, denominated in TKB — the CLI's second half. Ranked separately: WPHRS and TKB are different units and are never mixed. Gas is paid in PHRS and subtracted 1:1 by test construction."
-            />
-          </div>
-
-          {/* best route + decomposition */}
-          {data.best && (
-            <div>
-              <h4 className="smallcaps !text-ink mb-2">Best route &amp; cost decomposition</h4>
-              <p className="mb-3 text-sm text-slate">
-                <strong className="text-ink">{data.best.leg1Venue}</strong> →{" "}
-                <strong className="text-ink">{data.best.leg2Venue}</strong>: swap{" "}
-                <span className="font-mono">{fmt(data.sizeWei)}</span> WPHRS →{" "}
-                <span className="font-mono">{fmt(data.best.leg1Out)}</span> TKB, then back to{" "}
-                <span className="font-mono">{fmt(data.best.leg2Out)}</span> WPHRS.
-              </p>
-              <div className="overflow-x-auto">
-                <table className="data-table w-full">
-                  <tbody>
-                    <tr><td>Gross spread (leg2 out − size)</td><td className="font-mono text-right">{fmt(data.best.gross)} WPHRS</td></tr>
-                    <tr><td>Fee, leg 1 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee1)} WPHRS</td></tr>
-                    <tr><td>Fee, leg 2 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee2)} WPHRS</td></tr>
-                    <tr><td>Slippage leg 1 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip1)} TKB</td></tr>
-                    <tr><td>Slippage leg 2 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip2)} WPHRS</td></tr>
-                    <tr><td>Gas — 2 legs × {GAS_PER_LEG.toString()} gas × live price (PHRS 1:1 by test construction)</td><td className="font-mono text-right">{fmt(data.gasWei)} WPHRS</td></tr>
-                    <tr><td>Slippage guard — your {data.guardBps / 100}% buffer on size</td><td className="font-mono text-right">{fmt(data.guardWei)} WPHRS</td></tr>
-                    <tr><td className="font-semibold text-ink">Net</td><td className="font-mono text-right font-semibold text-ink">{fmt(data.net)} WPHRS</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-2 text-xs text-slate">
-                Contract cross-check: {data.onChainNote}.
-                {data.onChainMatch === false && " The scan above is untrusted — the on-chain quotes disagreed."}
-              </p>
-            </div>
-          )}
-
-          {/* verdict */}
-          <div className="rounded-xl border border-hairline bg-porcelain p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className={data.verdict === "OPPORTUNITY" ? "chip chip-pass" : "chip chip-fail"}>
-                {data.verdict === "OPPORTUNITY" ? "◉ OPPORTUNITY" : `○ SKIP — ${data.skipReason}`}
-              </span>
-              <span className="text-sm text-slate">
-                net <span className="font-mono">{fmt(data.net)} WPHRS</span> vs threshold{" "}
-                <span className="font-mono">{fmt(data.thresholdWei)} WPHRS</span>
-              </span>
-            </div>
-            <p className="mt-2 text-xs text-slate">
-              {data.verdict === "OPPORTUNITY"
-                ? "This scan's economics clear your threshold. Acting is the CLI's job — this panel never signs or broadcasts."
-                : data.skipReason === "BELOW_THRESHOLD"
-                  ? "Same real spread, your threshold says no — nothing is prepared. A truthful skip beats a fabricated opportunity."
-                  : data.skipReason === "NEGATIVE_NET"
-                    ? "The best route loses money after gas and your slippage guard — no trade is worth preparing."
-                    : data.skipReason === "STALE_QUOTE"
-                      ? "The pinned block lagged the tip too far — quotes are not trusted. Re-run the scan."
-                      : "A price source failed or a venue is empty — failed reads are errors, never zeros."}
-            </p>
-            <button className="btn-outline mt-3" onClick={start} disabled={loading}>
-              Re-run scan (free)
+      {/* ---------- 01 · Configure ---------- */}
+      <section aria-label="Configure the scan">
+        <ActLabel n="01" title="Configure" />
+        <div className="grid gap-3 rounded-2xl border border-hairline bg-porcelain p-4 sm:p-5 md:grid-cols-4">
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate">
+              Trade size (WPHRS)
+            </span>
+            <input className={inputCls} value={size} onChange={(e) => setSize(e.target.value)} inputMode="decimal" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate">
+              Profit threshold (WPHRS)
+            </span>
+            <input className={inputCls} value={threshold} onChange={(e) => setThreshold(e.target.value)} inputMode="decimal" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate">
+              Slippage guard (%)
+            </span>
+            <input className={inputCls} value={guard} onChange={(e) => setGuard(e.target.value)} inputMode="decimal" />
+          </label>
+          <div className="flex items-end">
+            <button className="btn-primary w-full justify-center" onClick={start} disabled={loading}>
+              {loading ? "Scanning Atlantic…" : "Run scan"}
             </button>
           </div>
+        </div>
+        <p className="mt-2 text-sm text-slate">
+          The scan always prices the full universe: all 12 directed cycles across poolA · poolB ·
+          poolC, ranked within their own start token.
+        </p>
+        {inputError && <p className="mt-3 text-sm font-medium text-fail">{inputError}</p>}
+      </section>
+
+      {/* ---------- 02 · Run ---------- */}
+      {loading && (
+        <section aria-label="Scan in progress">
+          <ActLabel n="02" title="Run" />
+          <ProgressLoader
+            steps={SCAN_STEPS}
+            current={step}
+            title="Scanning Atlantic — pinning one block, reading three venues, pricing twelve cycles"
+          />
+        </section>
+      )}
+
+      {/* ---------- error state ---------- */}
+      {error && !loading && (
+        <section aria-label="Scan failed">
+          <ErrorState
+            title={translateError(error).title}
+            message={translateError(error).message}
+            hint={translateError(error).hint}
+            retryLabel="Retry scan"
+            onRetry={start}
+          />
+        </section>
+      )}
+
+      {/* ---------- 03 · Result ---------- */}
+      {data && !loading && !error && (
+        <section aria-label="Scan result" className="space-y-6">
+          <div>
+            <ActLabel n="03" title="Result" />
+            {noCycles ? (
+              <EmptyState
+                title="No cycles priced"
+                message="Every price source failed or every venue read empty this scan — the panel treats failed reads as errors, never as zeros, so there is no market to rank."
+                actionLabel="Re-run scan"
+                onAction={start}
+              />
+            ) : (
+              <ResultCard
+                eyebrow={`Scan ${runId} · Atlantic testnet · block ${data.pinnedBlock}`}
+                headline={
+                  <>
+                    <HeroTicker valueWei={data.net} />{" "}
+                    <span className="text-3xl sm:text-4xl">WPHRS</span>
+                  </>
+                }
+                subline={
+                  data.verdict === "OPPORTUNITY" ? (
+                    <>
+                      <strong>OPPORTUNITY</strong> — {data.best!.leg1Venue} →{" "}
+                      {data.best!.leg2Venue} clears your {fmt(data.thresholdWei)} WPHRS threshold.
+                      This panel never signs or broadcasts; acting is the CLI&apos;s job.
+                    </>
+                  ) : (
+                    <>
+                      <strong>SKIP — {data.skipReason}</strong>.{" "}
+                      {VERDICT_COPY[data.skipReason ?? ""] ?? "No route cleared your threshold."}
+                    </>
+                  )
+                }
+                rows={[
+                  {
+                    label: "Best route",
+                    value: `${data.best!.leg1Venue} → ${data.best!.leg2Venue}`,
+                  },
+                  {
+                    label: "Pinned block / chain tip",
+                    value: `${data.pinnedBlock} / ${data.tipBlock} (lag ${data.lag})`,
+                  },
+                  {
+                    label: "Gas price",
+                    value: `${fmt(data.gasPriceWei, 4)} gwei`,
+                  },
+                  {
+                    label: "Trade size",
+                    value: `${fmt(data.sizeWei)} WPHRS`,
+                  },
+                  {
+                    label: "Threshold",
+                    value: `${fmt(data.thresholdWei)} WPHRS`,
+                  },
+                  {
+                    label: "Slippage guard",
+                    value: `${fmt(data.guardWei)} WPHRS (${data.guardBps / 100}%)`,
+                  },
+                  {
+                    label: "Contract cross-check",
+                    value: data.onChainNote,
+                  },
+                ]}
+                copyValue={fmt(data.net)}
+                status={data.verdict === "OPPORTUNITY" ? "pass" : "fail"}
+                links={[
+                  { label: "Arb leg 1 — view on explorer", href: `${EXPLORER_TX}${EXEC_LEG1}` },
+                  { label: "Arb leg 2 — view on explorer", href: `${EXPLORER_TX}${EXEC_LEG2}` },
+                ]}
+              >
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-ink">
+                    Best route &amp; cost decomposition
+                  </p>
+                  <p className="mb-3 text-sm text-slate">
+                    <strong className="text-ink">{data.best!.leg1Venue}</strong> →{" "}
+                    <strong className="text-ink">{data.best!.leg2Venue}</strong>: swap{" "}
+                    <span className="font-mono">{fmt(data.sizeWei)}</span> WPHRS →{" "}
+                    <span className="font-mono">{fmt(data.best!.leg1Out)}</span> TKB, then back to{" "}
+                    <span className="font-mono">{fmt(data.best!.leg2Out)}</span> WPHRS.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="data-table w-full">
+                      <tbody>
+                        <tr><td>Gross spread (leg2 out − size)</td><td className="font-mono text-right">{fmt(data.best!.gross)} WPHRS</td></tr>
+                        <tr><td>Fee, leg 1 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best!.fee1)} WPHRS</td></tr>
+                        <tr><td>Fee, leg 2 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best!.fee2)} WPHRS</td></tr>
+                        <tr><td>Slippage leg 1 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best!.slip1)} TKB</td></tr>
+                        <tr><td>Slippage leg 2 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best!.slip2)} WPHRS</td></tr>
+                        <tr><td>Gas — 2 legs × {GAS_PER_LEG.toString()} gas × live price (PHRS 1:1 by test construction)</td><td className="font-mono text-right">{fmt(data.gasWei)} WPHRS</td></tr>
+                        <tr><td>Slippage guard — your {data.guardBps / 100}% buffer on size</td><td className="font-mono text-right">{fmt(data.guardWei)} WPHRS</td></tr>
+                        <tr><td className="font-semibold text-ink">Net</td><td className="font-mono text-right font-semibold text-ink">{fmt(data.net)} WPHRS</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <button className="btn-outline mt-4" onClick={start} disabled={loading}>
+                    Re-run scan (free)
+                  </button>
+                </div>
+              </ResultCard>
+            )}
+          </div>
+
+          {!noCycles && data && (
+            <>
+              <StatStrip
+                stats={[
+                  {
+                    label: "Cycles priced",
+                    value: data.cyclesWphrs.length + data.cyclesTkb.length,
+                    icon: <Layers size={14} aria-hidden />,
+                  },
+                  {
+                    label: "Routes in profit",
+                    value: profitRoutes,
+                    icon: <TrendingUp size={14} aria-hidden />,
+                  },
+                  {
+                    label: "Best net",
+                    value: Number(data.net) / 1e18,
+                    format: (n) => fmtSignedNum(n, 3),
+                    suffix: "WPHRS",
+                    icon: <Zap size={14} aria-hidden />,
+                  },
+                  {
+                    label: "Gas · 2 legs",
+                    value: Number(data.gasWei) / 1e18,
+                    format: (n) => n.toFixed(6),
+                    suffix: "PHRS",
+                    icon: <Fuel size={14} aria-hidden />,
+                  },
+                ]}
+              />
+
+              {/* the venues, just read */}
+              <div>
+                <p className="mb-3 text-sm font-semibold text-ink">The venues, just read</p>
+                <div className="overflow-x-auto rounded-2xl border border-hairline bg-white">
+                  <table className="data-table w-full">
+                    <thead>
+                      <tr>
+                        <th>Venue</th>
+                        <th>Reserves (WPHRS / TKB)</th>
+                        <th className="text-right">Implied price (TKB per WPHRS)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.venues.map((v) => (
+                        <tr key={v.name}>
+                          <td className="font-semibold">
+                            <a
+                              className="font-mono text-xs text-accent hover:underline"
+                              href={`${EXPLORER_ADDRESS}${v.address}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={v.address}
+                            >
+                              {v.name}
+                            </a>
+                          </td>
+                          <td className="font-mono">{fmt(v.r0, 2)} / {fmt(v.r1, 2)}</td>
+                          <td className="font-mono text-right">
+                            {v.r0 > 0n ? (Number(v.r1) / Number(v.r0)).toFixed(4) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* the whole market: both leaderboards */}
+              <div className="space-y-5">
+                <p className="text-sm font-semibold text-ink">
+                  The whole market — every cycle, losers included
+                </p>
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-slate">
+                    WPHRS-start cycles — the verdict runs on these
+                  </p>
+                  <FeedList
+                    items={cycleFeedItems(data.cyclesWphrs)}
+                    emptyText="No WPHRS-start cycles priced this scan."
+                  />
+                  <p className="mt-1 text-xs text-slate">
+                    Leg 1 swaps WPHRS → TKB, leg 2 swaps back. Net = gross − gas − your slippage
+                    guard.
+                  </p>
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-semibold text-slate">TKB-start cycles</p>
+                  <FeedList
+                    items={cycleFeedItems(data.cyclesTkb)}
+                    emptyText="No TKB-start cycles priced this scan."
+                  />
+                  <p className="mt-1 text-xs text-slate">
+                    Priced with the same wei size, denominated in TKB — the CLI&apos;s second half.
+                    Ranked separately: WPHRS and TKB are different units and are never mixed.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* scan log */}
           {log.length > 0 && (
             <div>
-              <h4 className="smallcaps !text-ink mb-2">Scan log — every verdict, kept</h4>
-              <p className="mb-2 text-xs text-slate">
+              <p className="mb-2 text-sm font-semibold text-ink">Scan log — every verdict, kept</p>
+              <p className="mb-3 text-sm text-slate">
                 Each scan you run is appended here with its block, best route, net and verdict — the
                 same append-only discipline as the CLI&apos;s scans.jsonl. Export it any time.
               </p>
-              <div className="overflow-x-auto">
-                <table className="data-table w-full">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Block</th>
-                      <th>Best cycle</th>
-                      <th className="text-right">Net</th>
-                      <th>Verdict</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {log.map((e) => (
-                      <tr key={e.scan}>
-                        <td className="font-mono">{e.scan}</td>
-                        <td className="font-mono">{e.pinnedBlock}</td>
-                        <td className="font-mono text-xs">{e.bestCycle}</td>
-                        <td className="font-mono text-right">{e.netWphrs}</td>
-                        <td>
-                          <span className={e.verdict === "OPPORTUNITY" ? "chip chip-pass" : "chip chip-fail"}>
-                            {e.verdict}{e.skipReason ? ` — ${e.skipReason}` : ""}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button className="btn-outline" onClick={exportLog}>Export scan log (JSONL)</button>
-                <button className="btn-outline" onClick={() => { setLog([]); lastLoggedRun.current = runId; }}>
+              <FeedList
+                items={[...log].reverse().map((e) => ({
+                  key: `scan-${e.scan}`,
+                  node: (
+                    <div>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-ink">
+                          <span className="font-mono">#{e.scan}</span>
+                          {" · "}
+                          <span className="font-mono">block {e.pinnedBlock}</span>
+                          {" · "}
+                          <span className="font-mono text-xs">{e.bestCycle}</span>
+                        </p>
+                        <span
+                          className={
+                            e.verdict === "OPPORTUNITY" ? "chip chip-pass" : "chip chip-fail"
+                          }
+                        >
+                          {e.verdict}
+                          {e.skipReason ? ` — ${e.skipReason}` : ""}
+                        </span>
+                      </div>
+                      <p className="mt-1 font-mono text-xs text-slate">
+                        net {e.netWphrs} WPHRS · size {e.sizeWphrs} WPHRS · on-chain{" "}
+                        {e.onChainVerified === true
+                          ? "verified"
+                          : e.onChainVerified === false
+                            ? "MISMATCH"
+                            : "unverified"}
+                      </p>
+                    </div>
+                  ),
+                }))}
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button className="btn-outline" onClick={exportLog}>
+                  Export scan log (JSONL)
+                </button>
+                <button
+                  className="btn-outline"
+                  onClick={() => {
+                    setLog([]);
+                    lastLoggedRun.current = runId;
+                  }}
+                >
                   Clear log
                 </button>
               </div>
             </div>
           )}
 
-          {/* prior on-chain proof */}
-          <div className="text-xs text-slate">
-            <p className="mb-1 font-semibold text-ink">This venue set has already paid out on-chain:</p>
-            <p className="font-mono">
-              <a className="text-accent hover:underline" href={`${EXPLORER_TX}${EXEC_LEG1}`} target="_blank" rel="noreferrer">
-                arb leg 1 {EXEC_LEG1.slice(0, 10)}…{EXEC_LEG1.slice(-8)}
-              </a>{" · "}
-              <a className="text-accent hover:underline" href={`${EXPLORER_TX}${EXEC_LEG2}`} target="_blank" rel="noreferrer">
-                arb leg 2 {EXEC_LEG2.slice(0, 10)}…{EXEC_LEG2.slice(-8)}
-              </a>
-            </p>
-            <p className="mt-2">
+          {/* footer note */}
+          <div className="text-sm text-slate">
+            <p>
               Tier A — live reads only. LIGHTKEEPER never sees, holds, or asks for private keys.
-              Full scanner + execution harness: task <strong className="text-ink">{lamp.name}</strong> in the repo.
+              Full scanner + execution harness: task <strong className="text-ink">{lamp.name}</strong>{" "}
+              in the repo.
             </p>
           </div>
-        </div>
+        </section>
       )}
 
-      {!data && !loading && runId === 0 && (
-        <div className="empty-panel px-5 py-6 text-sm text-slate">
+      {!data && !loading && !error && runId === 0 && (
+        <div className="rounded-2xl border border-hairline bg-porcelain px-5 py-6 text-sm text-ink">
           Set your size, threshold and slippage guard, then run a scan — Atlantic&apos;s real venue
           reserves will appear here, priced at a pinned block, with every one of the twelve cycles
           laid out and each verdict kept in the scan log.
