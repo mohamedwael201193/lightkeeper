@@ -12,16 +12,19 @@
  * the winner is computed from live chain state, not from a screenshot of a
  * past run.
  *
- * Presentation (SHOWTIME op): 01 Configure → 02 Run → 03 Result.
+ * Presentation (FLAGSHIP op): 01 Configure → 02 Run → 03 The Arena.
+ * The 03 act is a head-to-head tournament: the two vaults staged as
+ * contenders across three horizon rounds, the raw-rate favorite losing to
+ * the runway cap and to friction, the net(H) ledger visible per round.
  * The net(H) math below is EXACTLY the pre-SHOWTIME math — only the
  * presentation changed.
  *
  * Honesty label (stated on the page): testnet mechanics demonstration —
  * rewards are valueless testnet PHRS, never real yield.
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Check, Fuel, Layers, Trophy, Zap } from "lucide-react";
+import { Check, CircleX, Fuel, Layers, Swords, Trophy } from "lucide-react";
 import type { Lamp } from "../../types";
 import {
   EXPLORER_ADDRESS,
@@ -233,6 +236,197 @@ interface Verdict {
   rateRatio: string;
 }
 
+/**
+ * THE UPSET, named. The tournament verdict card's headline is the sentence a
+ * human would say out loud: the raw-rate favorite loses to the runway cap
+ * (or to friction), and net math crowns the real winner. All inputs are the
+ * live-computed verdict — nothing hardcoded.
+ */
+function tournamentVerdict(v: Verdict): {
+  headline: ReactNode;
+  subline: ReactNode;
+  positive: boolean;
+  favoriteLosesToCap: boolean;
+} {
+  const hz = v.bestHorizon;
+  const w = v.bestRow;
+  if (hz.stayPutWins) {
+    return {
+      headline: "Stay put.",
+      positive: false,
+      favoriteLosesToCap: false,
+      subline: (
+        <>
+          <span className="font-semibold text-ink">
+            Every venue nets negative at every horizon.
+          </span>{" "}
+          A full stake → claim → withdraw round-trip costs real gas at today&rsquo;s {v.gasGwei} gwei,
+          and {hz.naive.v.name}&rsquo;s {v.rateRatio}× headline rate can&rsquo;t clear it. Its pool only
+          funds {hz.naive.v.runwayBlocks.toString()} more blocks anyway — the raw APY is theater twice
+          over. This is the optimizer&rsquo;s honest default, computed from live chain state.
+        </>
+      ),
+    };
+  }
+  const naiveLost = hz.naive.v.address !== w.v.address;
+  if (naiveLost) {
+    return {
+      headline: <>The {v.rateRatio}× favorite loses.</>,
+      positive: w.netGain > 0n,
+      favoriteLosesToCap: true,
+      subline: (
+        <>
+          <span className="font-semibold text-ink">
+            {hz.naive.v.name}&rsquo;s raw rate is {v.rateRatio}× {w.v.name}&rsquo;s
+          </span>{" "}
+          — but its reward pool only funds {hz.naive.v.runwayBlocks.toString()} more blocks, so the
+          runway cap ends its run. Net math crowns{" "}
+          <span className="font-semibold text-ink">
+            {w.v.name} at {hz.horizon} blocks: {fmtNet(w.netGain)} PHRS
+          </span>{" "}
+          after entry/exit fees and gas.
+        </>
+      ),
+    };
+  }
+  return {
+    headline: (
+      <>
+        {w.v.name} wins at {hz.horizon} blocks.
+      </>
+    ),
+    positive: w.netGain > 0n,
+    favoriteLosesToCap: false,
+    subline: (
+      <>
+        <span className="font-semibold text-ink">
+          {w.v.name}: net {fmtNet(w.netGain)} PHRS
+        </span>{" "}
+        after entry/exit fees and gas. The raw APY ranking agrees here — but the cap still bounds the
+        upside: the pool only funds {w.v.runwayBlocks.toString()} more blocks, so the gross is capped
+        at what the vault actually holds, never projected.
+      </>
+    ),
+  };
+}
+
+/**
+ * One contender's panel inside an arena round: the net figure as the
+ * headline, the compact net(H) ledger, and the one-line reason it won or
+ * lost the round. Every number comes from computeNetRow — untouched math.
+ */
+function RoundPanel({
+  row,
+  winner,
+  stayPutWins,
+  gasGwei,
+}: {
+  row: NetRow;
+  winner: boolean;
+  stayPutWins: boolean;
+  gasGwei: string;
+}) {
+  const capCut = row.grossRaw - row.capped;
+  const wonDespiteCap = winner && !stayPutWins && capCut > 0n;
+  const lostToCap = !winner && !stayPutWins && capCut > 0n;
+  const lostToFriction = !winner && !stayPutWins && !lostToCap && row.netGain <= 0n;
+  return (
+    <div
+      className={`rounded-xl border p-4 ${
+        winner && !stayPutWins
+          ? "border-accent bg-white shadow-sm"
+          : "border-hairline bg-porcelain/70"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-semibold text-ink">{row.v.name}</p>
+        {winner && !stayPutWins && (
+          <span className="chip chip-pass">
+            <Trophy size={12} aria-hidden />
+            Wins
+          </span>
+        )}
+      </div>
+      <p className="mt-1 font-mono text-[11px] text-slate">
+        {weiPhrs(row.v.rewardPerBlockWei, 8)} PHRS/block
+      </p>
+      <p className="mt-2 font-mono text-2xl tracking-tight text-ink">
+        {fmtNet(row.netGain)}{" "}
+        <span className="font-sans text-sm font-normal text-slate">PHRS net</span>
+      </p>
+      <dl className="mt-3 space-y-1.5 border-t border-hairline pt-3 text-sm">
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="text-slate">Gross, raw</dt>
+          <dd className="font-mono text-ink">{weiPhrs(row.grossRaw)}</dd>
+        </div>
+        {capCut > 0n && (
+          <div className="flex items-baseline justify-between gap-2">
+            <dt className="font-semibold text-fail">Runway cap takes</dt>
+            <dd className="font-mono font-semibold text-fail">−{weiPhrs(capCut)}</dd>
+          </div>
+        )}
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="text-slate">− Entry fee</dt>
+          <dd className="font-mono text-ink">{weiPhrs(row.entryFee)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="text-slate">− Exit fee</dt>
+          <dd className="font-mono text-ink">
+            {row.exitFee > 0n ? weiPhrs(row.exitFee) : "waived"}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="text-slate">− Gas, round-trip</dt>
+          <dd className="font-mono text-ink">{weiPhrs(row.gasCost)}</dd>
+        </div>
+      </dl>
+      <p className="mt-3 flex items-start gap-1.5 border-t border-hairline pt-3 text-sm leading-relaxed">
+        {stayPutWins ? (
+          <>
+            <CircleX size={14} className="mt-0.5 shrink-0 text-fail" aria-hidden />
+            <span className="text-slate">
+              Nets negative — the round-trip alone costs {weiPhrs(row.gasCost)} PHRS in gas at{" "}
+              {gasGwei} gwei.
+            </span>
+          </>
+        ) : wonDespiteCap ? (
+          <>
+            <Check size={14} className="mt-0.5 shrink-0 text-pass" aria-hidden />
+            <span className="text-ink">
+              Wins this round — even the runway cap couldn&rsquo;t stop it.
+            </span>
+          </>
+        ) : winner ? (
+          <>
+            <Check size={14} className="mt-0.5 shrink-0 text-pass" aria-hidden />
+            <span className="text-ink">
+              Wins this round — clears entry/exit fees and the round-trip gas.
+            </span>
+          </>
+        ) : lostToCap ? (
+          <>
+            <CircleX size={14} className="mt-0.5 shrink-0 text-fail" aria-hidden />
+            <span className="text-slate">
+              Loses to the runway cap — the pool only funds {row.v.runwayBlocks.toString()} more
+              blocks.
+            </span>
+          </>
+        ) : lostToFriction ? (
+          <>
+            <CircleX size={14} className="mt-0.5 shrink-0 text-fail" aria-hidden />
+            <span className="text-slate">Loses to friction — entry/exit fees and gas eat the gross.</span>
+          </>
+        ) : (
+          <>
+            <CircleX size={14} className="mt-0.5 shrink-0 text-fail" aria-hidden />
+            <span className="text-slate">Loses on rate — fewer rewards per block than the winner.</span>
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
 export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
   void lamp; // page shell renders the name — the module doesn't need it
   const [principal, setPrincipal] = useState<number>(0.02);
@@ -327,7 +521,11 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
     );
   };
 
-  const heroPositive = !!verdict && verdict.bestRow.netGain > 0n;
+  const tv = verdict ? tournamentVerdict(verdict) : null;
+  const favoriteLoses =
+    !!verdict &&
+    (verdict.bestHorizon.stayPutWins ||
+      verdict.bestHorizon.naive.v.address !== verdict.bestHorizon.winner.v.address);
   const stats: Stat[] | null =
     verdict && data
       ? [
@@ -339,22 +537,25 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
             icon: <Fuel size={14} aria-hidden />,
           },
           {
-            label: "Best net gain",
-            value: Number(verdict.bestRow.netGain) / 1e18,
-            format: (n) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(6)}`,
+            label: "Raw-rate favorite",
+            value: Number(verdict.rateRatio),
+            format: (n) => `${n.toFixed(1)}×`,
+            suffix: `${verdict.bestHorizon.naive.v.name} — ${favoriteLoses ? "loses" : "holds"}`,
+            icon: <Swords size={14} aria-hidden />,
+          },
+          {
+            label: verdict.bestHorizon.stayPutWins
+              ? "Best net — stay put"
+              : `Best net — ${verdict.bestRow.v.name} · ${verdict.bestHorizon.horizon} blocks`,
+            value: verdict.bestHorizon.stayPutWins ? 0 : Number(verdict.bestRow.netGain) / 1e18,
+            format: (n) =>
+              n === 0 ? "0" : `${n > 0 ? "+" : "−"}${Math.abs(n).toFixed(6)}`,
             suffix: "PHRS",
             icon: <Trophy size={14} aria-hidden />,
           },
           {
-            label: "Winner headline rate",
-            value: Number(verdict.bestRow.v.rewardPerBlockWei) / 1e18,
-            format: (n) => n.toFixed(8),
-            suffix: "PHRS/block",
-            icon: <Zap size={14} aria-hidden />,
-          },
-          {
-            label: "Venues priced",
-            value: data.vaults.length,
+            label: "Rounds priced live",
+            value: data.vaults.length * HORIZONS.length,
             format: (n) => Math.round(n).toString(),
             icon: <Layers size={14} aria-hidden />,
           },
@@ -371,11 +572,12 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
             Yield Optimizer
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-ink sm:text-base">
-            Net math, not APY theater. This module reads both live vault rate
-            cards off Atlantic and prices them with the optimizer&rsquo;s real
-            decision rule — runway-capped gross, minus entry and exit fees,
-            minus gas — against an honest stay-put baseline. The raw rate lies;
-            the net doesn&rsquo;t.
+            Two vaults enter, net math decides. This module reads both live
+            vault rate cards off Atlantic and prices them with the
+            optimizer&rsquo;s real decision rule — runway-capped gross, minus
+            entry and exit fees, minus gas — against an honest stay-put
+            baseline, across three holding horizons. The raw rate lies; the
+            net doesn&rsquo;t. Watch the high-APY favorite lose to fees and caps.
           </p>
         </div>
         <button
@@ -391,7 +593,30 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
       <section aria-label="01 Configure">
         <p className="text-sm font-semibold text-slate">01 · Configure</p>
         <div className="mt-2 rounded-2xl border border-hairline bg-porcelain p-5 sm:p-6">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+          {/* The contenders, staged before the run — names and addresses only,
+              no numbers until the live read lands. */}
+          <div className="grid items-stretch gap-3 sm:grid-cols-[1fr_auto_1fr]">
+            <div className="rounded-xl border border-hairline bg-white p-4">
+              <p className="font-semibold text-ink">Kelp</p>
+              <p className="mt-1 truncate font-mono text-xs text-slate" title={KELP}>
+                {KELP}
+              </p>
+              <p className="mt-2 text-sm text-slate">Rate card read live when you run.</p>
+            </div>
+            <div className="flex items-center justify-center" aria-hidden>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-white text-[11px] font-bold text-slate">
+                VS
+              </span>
+            </div>
+            <div className="rounded-xl border border-hairline bg-white p-4">
+              <p className="font-semibold text-ink">Kraken</p>
+              <p className="mt-1 truncate font-mono text-xs text-slate" title={KRAKEN}>
+                {KRAKEN}
+              </p>
+              <p className="mt-2 text-sm text-slate">Rate card read live when you run.</p>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-4">
             <div>
               <p className="text-sm font-semibold text-ink">Stake size</p>
               <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Stake size">
@@ -464,40 +689,36 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
             <p className="text-sm font-semibold text-slate">03 · Result</p>
             <div className="mt-2">
               <ResultCard
-                eyebrow={`Result — best net across all 3 horizons · ${verdict.bestHorizon.horizon} blocks`}
-                headline={
-                  verdict.bestHorizon.stayPutWins ? (
-                    "Stay put"
-                  ) : (
-                    <>
-                      {verdict.bestRow.v.name}
-                      <span className="mt-1 block font-display text-2xl tracking-tight text-slate sm:text-3xl">
-                        {fmtNet(verdict.bestRow.netGain)} PHRS net ·{" "}
-                        {verdict.bestHorizon.horizon} blocks
-                      </span>
-                    </>
-                  )
-                }
-                subline={narrative(verdict.bestHorizon)}
-                status={heroPositive ? "pass" : "neutral"}
+                eyebrow={`Tournament verdict — 2 vaults × 3 horizons · ${verdict.bestHorizon.horizon} blocks`}
+                headline={tv?.headline}
+                subline={tv?.subline}
+                status={tv && tv.positive ? "pass" : "neutral"}
                 rows={[
                   { label: "Live gas price", value: `${verdict.gasGwei} gwei` },
                   { label: "Stake priced", value: `${principal} PHRS` },
                   {
-                    label: "Entry fee paid",
+                    label: `${verdict.bestRow.v.name} entry fee`,
                     value: `${weiPhrs(verdict.bestRow.entryFee)} PHRS (${fmtBps(verdict.bestRow.v.entryFeeBps)})`,
                   },
                   {
-                    label: "Exit fee",
+                    label: `${verdict.bestRow.v.name} exit fee`,
                     value:
                       verdict.bestRow.exitFee > 0n
                         ? `${weiPhrs(verdict.bestRow.exitFee)} PHRS (below min hold)`
                         : "Waived — past min hold",
                   },
                   {
-                    label: "Gas, full round-trip",
+                    label: `${verdict.bestRow.v.name} gas, full round-trip`,
                     value: `${weiPhrs(verdict.bestRow.gasCost)} PHRS`,
                   },
+                  ...(tv?.favoriteLosesToCap
+                    ? [
+                        {
+                          label: "Why the favorite lost",
+                          value: `Runway cap — ${verdict.bestHorizon.naive.v.name}'s pool funds only ${verdict.bestHorizon.naive.v.runwayBlocks.toString()} more blocks`,
+                        },
+                      ]
+                    : []),
                 ]}
                 links={[
                   { label: "Kelp deploy on explorer", href: `${EXPLORER_TX}${PROOF.kelpDeploy}` },
@@ -513,12 +734,37 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
 
           {stats && <StatStrip stats={stats} />}
 
-          {/* Horizon comparison — the three horizons as elegant cards. */}
-          <section aria-label="Horizon comparison">
-            <p className="text-sm font-semibold text-slate">The three horizons, compared</p>
-            <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          {/* The rule — the thinking layer, net(H) shown as a structure. */}
+          <section aria-label="The decision rule">
+            <p className="text-sm font-semibold text-slate">The rule that decides every round</p>
+            <div className="mt-2 rounded-2xl border border-hairline bg-white p-5 sm:p-6">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-sm text-ink sm:text-base">
+                <span>net(H) =</span>
+                <span className="rounded-md bg-porcelain px-2 py-0.5">runway-capped gross</span>
+                <span aria-hidden>−</span>
+                <span className="rounded-md bg-porcelain px-2 py-0.5">entry fee</span>
+                <span aria-hidden>−</span>
+                <span className="rounded-md bg-porcelain px-2 py-0.5">exit fee(H)</span>
+                <span aria-hidden>−</span>
+                <span className="rounded-md bg-porcelain px-2 py-0.5">gas</span>
+              </p>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate">
+                The gross is capped at the vault&rsquo;s funded reward pool — never projected. The exit
+                fee applies only below the min hold. Gas is the measured live-run round-trip priced at
+                the live gas price. All of it in integer wei, exactly like the contracts. The honest
+                0% stay-put baseline costs nothing and is priced in every round.
+              </p>
+            </div>
+          </section>
+
+          {/* The arena — three rounds, head to head. Tap a round for its full ledger. */}
+          <section aria-label="The arena">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <p className="text-sm font-semibold text-slate">The arena — three rounds, head to head</p>
+              <p className="text-sm text-slate">Tap a round for its full ledger.</p>
+            </div>
+            <div className="mt-2 space-y-4">
               {verdict.horizons.map((hz, i) => {
-                const isHero = hz.horizon === verdict.bestHorizon.horizon;
                 const isActive = hz.horizon === activeHorizon;
                 return (
                   <motion.button
@@ -528,57 +774,63 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
                     aria-pressed={isActive}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: i * 0.07, ease: "easeOut" }}
-                    className={`rounded-2xl border bg-white p-5 text-left transition-colors ${
-                      isActive ? "border-accent shadow-md" : "border-hairline hover:border-slate/50"
+                    transition={{ duration: 0.3, delay: i * 0.08, ease: "easeOut" }}
+                    className={`block w-full rounded-2xl border bg-white p-5 text-left transition-colors sm:p-6 ${
+                      isActive ? "border-accent shadow-md" : "border-hairline hover:border-slate/40"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate">
-                        {hz.horizon} blocks
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="flex items-center gap-2 text-sm font-semibold text-slate">
+                        <Swords size={14} aria-hidden className="text-accent" />
+                        Round {i + 1} · {hz.horizon} blocks
                       </p>
-                      {isHero && (
-                        <span className="chip chip-pass inline-flex items-center gap-1">
+                      {hz.stayPutWins ? (
+                        <span className="chip chip-info">Stay put wins</span>
+                      ) : (
+                        <span className="chip chip-pass">
                           <Trophy size={12} aria-hidden />
-                          Best
+                          {hz.winner.v.name} wins
                         </span>
                       )}
                     </div>
-                    <p className="mt-3 text-lg font-bold text-ink">
-                      {hz.stayPutWins ? "Stay put" : hz.winner.v.name}
-                    </p>
-                    <p className="mt-1 font-mono text-2xl tracking-tight text-ink">
-                      {hz.stayPutWins ? "+0" : fmtNet(hz.winner.netGain)}{" "}
-                      <span className="font-sans text-sm font-normal text-slate">PHRS net</span>
-                    </p>
-                    <div className="mt-3 space-y-1 border-t border-hairline pt-3">
-                      {hz.rows.map((r) => (
-                        <div key={r.v.address} className="flex items-baseline justify-between gap-2">
-                          <span className="text-sm text-slate">{r.v.name}</span>
-                          <span className="font-mono text-sm text-ink">{fmtNet(r.netGain)}</span>
-                        </div>
-                      ))}
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-sm text-slate">Stay put</span>
-                        <span className="font-mono text-sm text-ink">+0</span>
+                    <div className="mt-4 grid items-stretch gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                      <RoundPanel
+                        row={hz.rows[0]}
+                        winner={!hz.stayPutWins && hz.winner.v.address === hz.rows[0].v.address}
+                        stayPutWins={hz.stayPutWins}
+                        gasGwei={verdict.gasGwei}
+                      />
+                      <div className="flex items-center justify-center" aria-hidden>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-porcelain text-[11px] font-bold text-slate">
+                          VS
+                        </span>
                       </div>
+                      <RoundPanel
+                        row={hz.rows[1]}
+                        winner={!hz.stayPutWins && hz.winner.v.address === hz.rows[1].v.address}
+                        stayPutWins={hz.stayPutWins}
+                        gasGwei={verdict.gasGwei}
+                      />
                     </div>
                     {isActive && (
-                      <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-accent">
+                      <p className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-accent">
                         <Check size={14} aria-hidden />
-                        Showing full breakdown below
+                        Full ledger below
                       </p>
                     )}
                   </motion.button>
                 );
               })}
             </div>
+          </section>
 
-            {/* Full net(H) breakdown for the selected horizon — same math, same table. */}
+          {/* Full ledger for the selected round — the complete net(H) receipt. */}
+          <section aria-label="Full ledger">
+            <p className="text-sm font-semibold text-slate">Full ledger — the complete net(H) receipt</p>
             {(() => {
               const hz = verdict.horizons.find((h) => h.horizon === activeHorizon) ?? verdict.horizons[0];
               return (
-                <div className="mt-4 rounded-2xl border border-hairline bg-white p-5 sm:p-6">
+                <div className="mt-2 rounded-2xl border border-hairline bg-white p-5 sm:p-6">
                   <p className="text-sm font-semibold text-ink">
                     Full breakdown — {hz.horizon} blocks
                   </p>
