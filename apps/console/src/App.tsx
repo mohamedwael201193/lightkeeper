@@ -6,11 +6,14 @@ import LampsSection from "./components/LampsSection";
 import ActivityFeed from "./components/ActivityFeed";
 import Header from "./components/Header";
 import { WalletProvider } from "./components/WalletContext";
+import { useFounderMode, useFounderNoindex, enableFounderMode } from "./hooks/useFounderMode";
 import lampsRaw from "./data/lamps.json";
 import type { LampsData } from "./types";
 
 // Lazy: react-markdown only lives in the task view, keeping the home bundle light.
 const TaskDetail = lazy(() => import("./components/TaskDetail"));
+// Lazy: the founder cockpit is never in the public chrome — loads only on #/founder.
+const FounderCockpit = lazy(() => import("./components/FounderCockpit"));
 
 const data = lampsRaw as LampsData;
 
@@ -65,6 +68,15 @@ function Footer() {
           {data.lamps_lit}/28 LAMPS LIT · {data.points_secured.toLocaleString()}/
           {data.total_points.toLocaleString()} PTS
         </p>
+        {/* discreet founder entry — local-only mode, never indexed, never advertised */}
+        <button
+          type="button"
+          onClick={() => enableFounderMode()}
+          aria-label="Enter founder mode"
+          className="text-[10px] lowercase tracking-widest text-slate/40 transition-colors hover:text-slate"
+        >
+          founder
+        </button>
       </div>
     </footer>
   );
@@ -73,6 +85,8 @@ function Footer() {
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const hash = useRoute();
+  const founder = useFounderMode();
+  useFounderNoindex(founder);
 
   const taskSlug = (() => {
     const m = hash.match(/^#\/task\/([\w-]+)/);
@@ -80,6 +94,8 @@ export default function App() {
   })();
 
   const task = taskSlug ? data.tasks.find((t) => t.slug === taskSlug) : undefined;
+
+  const isFounderRoute = /^#\/founder([?/]|$)/.test(hash);
 
   useEffect(() => {
     document.title = task
@@ -93,7 +109,19 @@ export default function App() {
         <Header menuOpen={menuOpen} onToggle={() => setMenuOpen((v) => !v)} />
         <div className="pt-[74px]">
           <StatusStrip data={data} />
-          {task ? (
+          {isFounderRoute ? (
+            <main>
+              <Suspense
+                fallback={
+                  <div className="mx-auto max-w-4xl px-5 py-24 text-center text-sm text-slate">
+                    Loading…
+                  </div>
+                }
+              >
+                <FounderCockpit data={data} />
+              </Suspense>
+            </main>
+          ) : task ? (
             <main>
               <Suspense
                 fallback={

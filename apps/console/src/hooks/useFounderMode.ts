@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export const FOUNDER_KEY = "lk_founder";
 const FOUNDER_PARAM = "founder";
@@ -81,9 +81,4 @@ export function useFounderNoindex(active: boolean): void {
       document.getElementById(TAG_ID)?.remove();
     };
   }, [active]);
-}
-
-/** Re-exported helper for sync enable from the footer link. */
-export function useEnableFounderMode() {
-  return useCallback(() => enableFounderMode(), []);
 }
