@@ -12,6 +12,7 @@ import {
 import type { Lamp } from "../types";
 import { ARENA_BOARD, arenaTaskUrl, explorerAddress, explorerTx, shortenAddress } from "../types";
 import Markdown from "./Markdown";
+import TryPanel from "./TryPanel";
 
 function SectionLabel({ n, title }: { n: string; title: string }) {
   return (
@@ -351,6 +352,9 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
         )}
       </section>
       <hr className="flow-rule my-2" />
+
+      {/* ── ◈ · Try it live — rendered only when tasks/<slug> has a try/ module ── */}
+      <TryPanel lamp={lamp} />
 
       {/* ── 03 · History ───────────────────────────────────────────── */}
       <section className="mb-2 rounded-2xl border border-hairline bg-paper p-6 md:p-8">
