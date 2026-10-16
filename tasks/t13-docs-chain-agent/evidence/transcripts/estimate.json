@@ -1,0 +1,33 @@
+{
+  "mode": "estimate",
+  "question": "How do I estimate gas for an ERC20 transfer on Pharos Atlantic?",
+  "answer": "To estimate gas on Pharos Atlantic, send the transaction's call object to the `eth_estimateGas` RPC method. The JSON-RPC reference documents it as 'Estimates the gas needed to execute a transaction' (input: transaction call object; output: estimated gas as hexadecimal). The Gas Model page \u2014 which notes Pharos follows the EIP-1559 model (base fee burned, priority fee to the validator) \u2014 advises developers to always use Estimation APIs and add a buffer: 'set a gas limit slightly higher than the expected gas usage' (their worked example adds ~20%). I will now estimate a real ERC-20 `transfer` call on WPHRS via `eth_estimateGas`, then show the buffered limit the docs recommend.",
+  "citations": [
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods.md",
+      "retrieval_date": "2026-10-16",
+      "section": "eth\\_estimateGas",
+      "excerpt": "eth\\_estimateGas  Estimates the gas needed to execute a transaction.  * Input:   * `Object` - Transaction call object   * `String` - Block number or tag (optional) * Output: `String` - Estimated gas as hexadecimal  **Example:**  ```json // Request {   \"jsonrpc\": \"2.0\",   \"method\": \"eth_estimateGas\",   \"params\": [     {       \"to\": \"0x4100000000000000000000000000000000000000\",       \"data\": \"0x76671808\"     }   ],   \"id\": 1 }  // Response {   \"id\": 1,   \"jsonrpc\": \"2.0\",   \"result\": \"0x9d4b\" } ```"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/gas-model.md",
+      "retrieval_date": "2026-10-16",
+      "section": "Best Practices for Developers",
+      "excerpt": "Best Practices for Developers  * **Set a slightly higher gas limit:** Allow extra gas beyond the expected execution cost.   * Example: If you expect 100,000 gas used before refund, set the gas limit to 120,000 to avoid failures. * **Use Estimation APIs:**   * When sending transactions via Web3 libraries (`ethers.js`, `web3.js`), always use `estimateGas()` and add a buffer.   * Example (`ethers.js`):  {% code fullWidth=\"false\" %}  ```javascript const estimatedGas = await contract.estimateGas.someFunction(); const gasLimit = estimatedGas.mul(12).div(10); // Adding a 20% buffer await contract.som"
+    }
+  ],
+  "execution": {
+    "estimate_raw": "40067",
+    "estimate_gas": 40067,
+    "buffered_limit_20pct": 48080,
+    "gas_price_wei": 10000000000,
+    "interpretation": "[INFERENCE] eth_estimateGas returned 40067 gas for WPHRS.transfer(self, 0.0001). Per the Gas Model page's 20% buffer guidance, the recommended gas limit is 48080. At the live gas price 10000000000 wei the execution cost would be ~0.000400670 PHRS. Estimation only: no transaction sent."
+  },
+  "ok": true,
+  "error": null,
+  "ran_at_utc": "2026-10-16T04:30:06.815890+00:00",
+  "chain_id": 688689,
+  "network": "Pharos Atlantic testnet"
+}

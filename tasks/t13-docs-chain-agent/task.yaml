@@ -1,0 +1,36 @@
+id: T13
+slug: t13-docs-chain-agent
+title: Docs MCP + Chain MCP Agent
+difficulty: Medium
+points: 100
+toolkit: Composition
+network: Pharos Atlantic testnet
+chain_id: 688689
+status: shipped
+deliverables:
+  - REQUIREMENTS.md
+  - README.md
+  - evidence.md
+  - evidence/evidence.json
+  - evidence/transcripts/balance.json
+  - evidence/transcripts/estimate.json
+  - evidence/transcripts/logs.json
+  - evidence/transcripts/failclosed.json
+  - REVIEWER_NOTES.md
+  - LINKS.md
+  - SUBMISSION.md
+  - VIDEO-GUIDE.md
+  - src/doc_agent.py
+  - src/run_transcripts.py
+  - src/build_evidence.py
+  - tests/test_transcripts.py
+  - corpus/ (6 docs pages, retrieved 2026-10-16)
+evidence_summary:
+  real_transactions: 2
+  tx_hashes:
+    - 0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b
+    - 0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7
+  phrs_spent: 0.000055914000055914
+  budget_phrs: 0.15
+  tests: 10/10 pass
+video: PENDING-VIDEO

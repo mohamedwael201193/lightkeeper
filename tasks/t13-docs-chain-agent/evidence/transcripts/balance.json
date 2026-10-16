@@ -1,0 +1,34 @@
+{
+  "mode": "balance",
+  "question": "How do I read an ERC20 token balance (balanceOf) on Pharos Atlantic?",
+  "answer": "To read an ERC-20 balance on Pharos Atlantic, call the token's `balanceOf(address)` view function \u2014 a read-only `eth_call` that executes no transaction and spends no gas. The official JSON-RPC reference documents `eth_call` as 'Executes a message call without creating a transaction. Useful for reading contract state.' The Foundry first-token guide shows the pattern directly: `uint256 balance = token.balanceOf(msg.sender);`. The Atlantic network page gives the RPC endpoint and chain ID 688689 to point your client at, and the Token Registry lists canonical Atlantic tokens \u2014 WPHRS (Wrapped Pharos) at 0x838800b758277CC111B2d48Ab01e5E164f8E9471 with 18 decimals. I will now run that exact procedure live: `balanceOf(wallet)` plus `decimals()` on WPHRS via `eth_call`.",
+  "citations": [
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods.md",
+      "retrieval_date": "2026-10-16",
+      "section": "eth\\_call",
+      "excerpt": "eth\\_call  Executes a message call without creating a transaction. Useful for reading contract state.  * Input:   * `Object` - Transaction call object (from, to, gas, gasPrice, value, data)   * `String` - Block number or tag * Output: `String` - Return data as hexadecimal  **Example:**  ```json // Request {   \"jsonrpc\": \"2.0\",   \"method\": \"eth_call\",   \"params\": [     {       \"to\": \"0x4100000000000000000000000000000000000000\",       \"data\": \"0x76671808\"     },     \"latest\"   ],   \"id\": 1 }  // Response {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x0000000000000000...\"} ```"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/token-registry.md",
+      "retrieval_date": "2026-10-16",
+      "section": "Atlantic Testnet Token Registry",
+      "excerpt": "Atlantic Testnet Token Registry  <table><thead><tr><th width=\"119.734375\">Symbol</th><th width=\"150.43359375\">Name</th><th width=\"120.29296875\">initsupply</th><th width=\"119.98828125\">Decimals</th><th>Address</th></tr></thead><tbody><tr><td>USDC</td><td>USD Coin</td><td>0</td><td>6</td><td>0xcfC8330f4BCAB529c625D12781b1C19466A9Fc8B</td></tr><tr><td>USDT</td><td>Tether USD</td><td>0</td><td>6</td><td>0xE7E84B8B4f39C507499c40B4ac199B050e2882d5</td></tr><tr><td>WBTC</td><td>Wrapped BTC</td><td>0</td><td>18</td><td>0x0c64F03EEa5c30946D5c55B4b532D08ad74638a4</td></tr><tr><td>WETH</td><td>Wrapped ET"
+    }
+  ],
+  "execution": {
+    "balanceOf_raw": "2500000000000000 [2.5e15]",
+    "decimals_raw": "18",
+    "block": 31482405,
+    "balance_wei": 2500000000000000,
+    "balance_WPHRS": 0.0025,
+    "interpretation": "[INFERENCE] balanceOf returned 2500000000000000 wei; with 18 decimals (from the live decimals() call) that is 0.002500 WPHRS at block 31482405. Read-only eth_call: no transaction, no gas spent."
+  },
+  "ok": true,
+  "error": null,
+  "ran_at_utc": "2026-10-16T04:29:08.047617+00:00",
+  "chain_id": 688689,
+  "network": "Pharos Atlantic testnet"
+}

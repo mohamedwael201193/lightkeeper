@@ -1,0 +1,46 @@
+{
+  "mode": "logs",
+  "question": "How do I get event logs (Transfer events) on Pharos Atlantic?",
+  "answer": "To get event logs on Pharos Atlantic, call `eth_getLogs` with a filter (address and/or topics). The JSON-RPC reference documents `eth_getLogs` with `fromBlock`/`toBlock`/`address`/`topics` parameters, and notes a block-range limit: 100 blocks when rate limiting is enabled (10,000 as a fallback cap). To make the demonstration verifiable I will first produce a REAL on-chain footprint \u2014 a dust `deposit()` into WPHRS, which emits `Transfer`/`Deposit` events \u2014 and then query `eth_getLogs` for the Transfer topic around that block and match the log's transaction hash to the deposit's hash.",
+  "citations": [
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods.md",
+      "retrieval_date": "2026-10-16",
+      "section": "eth\\_getLogs",
+      "excerpt": "eth\\_getLogs  Returns logs matching a given filter object.  * Input:   * `Object` - Filter parameters (fromBlock, toBlock, address, topics) * Output: `Array` - List of log entries  > **Note:** Block range is limited to 100 blocks when rate limiting is enabled, or 10,000 blocks as a fallback cap.  **Example:**  ```json // Request {   \"jsonrpc\": \"2.0\",   \"method\": \"eth_getLogs\",   \"params\": [     {       \"fromBlock\": \"0x1\",       \"toBlock\": \"0x64\",       \"address\": \"0x742d35Cc6634C0532925a3b844Bc454e4438f44e\",       \"topics\": [         \"0xddf252ad1be2c89b...\"       ]     }   ],   \"id\": 1 }  // R"
+    }
+  ],
+  "execution": {
+    "deposit_tx": "0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
+    "deposit_block": 31482314,
+    "deposit_status": "0x1",
+    "deposit_gas_used": 28138,
+    "deposit_gas_price_wei": 1000000001,
+    "transfer_tx": "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+    "transfer_block": 31482328,
+    "transfer_status": "0x1",
+    "transfer_gas_used": 27776,
+    "logs_window": "31482326..31482330",
+    "logs_found_in_window": 1,
+    "our_transfer_logs": 1,
+    "matched_tx": true,
+    "matched_log": {
+      "blockNumber": "0x1e061d8",
+      "logIndex": "0x0",
+      "topics": [
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "0x000000000000000000000000f76e6b0920e9332ff4410f6dd53f01722abc71a3",
+        "0x000000000000000000000000f76e6b0920e9332ff4410f6dd53f01722abc71a3"
+      ],
+      "data": "0x00000000000000000000000000000000000000000000000000005af3107a4000"
+    },
+    "balance_after_wei": 2500000000000000,
+    "interpretation": "[INFERENCE] Deposit tx 0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b mined in block 31482314 (status 0x1), transfer tx 0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7 mined in block 31482328 (status 0x1). eth_getLogs over [31482326, 31482330] for the Transfer topic returned 1 log(s); 1 match the transfer's tx hash \u2014 the query output exactly matches the on-chain footprint. balanceOf now reads 2500000000000000 wei."
+  },
+  "ok": true,
+  "error": null,
+  "ran_at_utc": "2026-10-16T04:27:33.090511+00:00",
+  "chain_id": 688689,
+  "network": "Pharos Atlantic testnet"
+}

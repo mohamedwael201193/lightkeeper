@@ -1,0 +1,20 @@
+{
+  "mode": "failclosed",
+  "question": "What is the live USD price of WPHRS on Atlantic?",
+  "answer": "I do not have a docs-grounded answer for this question. The corpus covers JSON-RPC methods, the gas model, network parameters, and a token registry, but it does not document a live price/oracle feed for WPHRS or any market-data API. [UNVERIFIED] The honest answer is: the docs do not say. I will not improvise a price or invent a procedure.",
+  "citations": [
+    {
+      "label": "UNVERIFIED",
+      "reason": "no corpus page documents WPHRS price data"
+    }
+  ],
+  "execution": {
+    "executed": false,
+    "interpretation": "[UNVERIFIED] No procedure executed. The docs corpus does not document a WPHRS price feed or market-data API, so there is nothing to ground an execution on. Fail-closed as designed."
+  },
+  "ok": true,
+  "error": null,
+  "ran_at_utc": "2026-10-16T04:30:10.110914+00:00",
+  "chain_id": 688689,
+  "network": "Pharos Atlantic testnet"
+}
