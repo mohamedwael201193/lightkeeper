@@ -1,0 +1,2 @@
+OK: schedule 'tide-demo-01' paused
+SKIP: schedule 'tide-demo-01' is paused — no tick performed
