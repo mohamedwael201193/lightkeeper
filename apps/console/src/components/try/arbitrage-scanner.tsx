@@ -679,7 +679,7 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                   },
                   {
                     label: "Gas price",
-                    value: `${fmt(data.gasPriceWei, 4)} gwei`,
+                    value: `${(Number(data.gasPriceWei) / 1e9).toLocaleString("en-US", { maximumFractionDigits: 4 })} gwei`,
                   },
                   {
                     label: "Trade size",
