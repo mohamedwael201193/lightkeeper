@@ -1,0 +1,3 @@
+{"type": "native_transfer", "network": "atlantic", "chain_id": 688689,
+ "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+ "value_wei": "1000000000000000", "note": "RUN C: 0.001 PHRS to allowlisted deployer self"}

@@ -83,18 +83,22 @@ directly, and it does not claim to.
 
 `audit/check-log.jsonl`: append-only, each entry carrying `prev_hash` and a
 sha256 `entry_hash` over its canonical content. `audit-verify` recomputes the
-whole chain (verified: 5 entries intact). Tampering is detected and proven in
+whole chain (verified: 7 entries intact). Tampering is detected and proven in
 unit tests.
 
 ## 7. Evidence — how to verify in 60 seconds
 
-1. `python3 gatekeeper.py audit-verify` → chain intact, 5 entries.
+1. `python3 gatekeeper.py audit-verify` → chain intact, 7 entries.
 2. Entry 1: DENY — destination `0x1111…1111` not allowlisted (named rule).
 3. Entries 2+5: APPROVE → EXECUTED, tx
    [`0xc471c8…159bb`](https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb)
    (block 31481699, 0.001 PHRS to the dust sink).
 4. Entry 4: REFUSED_MAINNET — proof the mainnet path refuses without broadcast.
-5. `python3 tests/test_policy_engine.py` → 22/22.
+5. Entries 6+7: APPROVE → EXECUTED again, tx
+   [`0x42c4a3…05b6329`](https://atlantic.pharosscan.xyz/tx/0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329)
+   (block 31486909, 0.001 PHRS to the *other* allowlisted recipient, deployer
+   self — the allowlist has two live entries, both proven).
+6. `python3 tests/test_policy_engine.py` → 22/22.
 
 ## 8. Honest limits
 

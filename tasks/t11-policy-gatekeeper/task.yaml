@@ -34,9 +34,10 @@ deliverables:
 
 budget:
   max_phrs: 0.15
-  spent_phrs: 0.00102100021   # from T11's own receipt (value + gas); shared wallet, balance deltas not attributable
+  spent_phrs: 0.00204200021   # from T11's own receipts (RUN B + RUN C: value + gas); shared wallet, balance deltas not attributable
 
 evidence:
   atlantic_explorer: https://atlantic.pharosscan.xyz/
   txs:
     - 0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb
+    - 0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329

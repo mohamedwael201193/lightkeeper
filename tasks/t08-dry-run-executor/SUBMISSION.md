@@ -109,9 +109,9 @@ New filming shots for the console demo are in `VIDEO-GUIDE.md` (§ Shot 4).
 
 ## Repo link (commit-pinned)
 
-`https://github.com/mohamedwael201193/lightkeeper/tree/e47ac9a0edaadb3af4d076005001c968138be373/tasks/t08-dry-run-executor`
+`https://github.com/mohamedwael201193/lightkeeper/tree/4fd33e2facdb1d3cc975efabc6776fbc2ace3db3/tasks/t08-dry-run-executor`
 
-*(Replace `1c91003e035f7d62cd8bdf8749a331e51c425dcb` with the commit hash after committing; do not paste unpinned `main`.)*
+*(Commit 4fd33e2 = T08 harden: scenario C broadcast, prediction ledger, console track-record strip.)*
 
 ## Share / demo links
 

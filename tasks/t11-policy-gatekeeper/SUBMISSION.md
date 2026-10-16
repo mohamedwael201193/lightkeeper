@@ -25,13 +25,19 @@ refusal itself is audit-logged. Every decision — approve, deny, refuse — is
 appended to a hash-chained audit trail verifiable with one command.
 
 Evidence on Atlantic testnet: one violating action DENIED (destination
-`0x1111…1111` not allowlisted — no broadcast, honestly logged) and one
-compliant action APPROVED then executed as a real dust transaction
-(0.001 PHRS → `0x0000…dEaD`, tx
+`0x1111…1111` not allowlisted — no broadcast, honestly logged) and TWO
+compliant actions APPROVED then executed as real dust transactions
+(RUN B: 0.001 PHRS → `0x0000…dEaD`, tx
 0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb, block
-31481699). Unit tests: 22/22 covering every rule type, fail-closed policy
+31481699; RUN C: 0.001 PHRS → the *other* allowlisted recipient, deployer
+self `0xf76e…bC71a3`, tx
+0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329, block
+31486909 — the destination allowlist has two live entries, both proven).
+Audit trail: 7 hash-chained entries (DENY → APPROVE → REFUSE →
+REFUSED_MAINNET → EXECUTED → APPROVE → EXECUTED), verified with one
+command. Unit tests: 22/22 covering every rule type, fail-closed policy
 handling, mainnet refusal purity, stamp no-bypass, and audit tamper
-detection. Total spend: 0.00102100021 PHRS of the 0.15 budget.
+detection. Total spend: 0.00204200042 PHRS of the 0.15 budget.
 
 ## Repo link (commit-pinned)
 https://github.com/mohamedwael201193/lightkeeper/tree/626f4d6bd9244e01d81a8fd1b4c7b28dff351c18/tasks/t11-policy-gatekeeper
@@ -42,14 +48,16 @@ https://github.com/mohamedwael201193/lightkeeper/tree/626f4d6bd9244e01d81a8fd1b4
 - Interactive console demo (Tier B): the LIGHTKEEPER console's T11 "Try it live"
   panel — `apps/console/src/components/try/policy-gatekeeper.tsx`. Visitors propose
   a native transfer; the policy engine evaluates it client-side against LIVE Atlantic
-  reads (chain id, gas price, their wallet balance) and renders all six gate
-  conditions as a PASS/BLOCK trace with exact numbers. ALLOW path: propose →
+  reads (chain id, gas price, their wallet balance) and renders all seven gate
+  conditions as a PASS/BLOCK trace with exact numbers — including the
+  destination allowlist as its own named-rule row. ALLOW path: propose →
   mandatory review → the visitor signs in their own wallet. BLOCK path: the named
   blocking rule, the exact breached number, and refusal to propose — including a
   mainnet (1672) preview that demonstrates the unconditional REFUSE.
 
 ## Transaction hashes
-- `0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb` — APPROVED dust broadcast (Atlantic, block 31481699, status 0x1)
+- `0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb` — APPROVED dust broadcast (RUN B, dust sink; Atlantic, block 31481699, status 0x1)
+- `0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329` — APPROVED dust broadcast (RUN C, deployer self; Atlantic, block 31486909, status 0x1)
 - (no hash for RUN A — DENIED actions are never broadcast, by design)
 
 ## Video

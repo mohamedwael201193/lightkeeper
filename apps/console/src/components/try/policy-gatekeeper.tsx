@@ -4,7 +4,7 @@
  * Tier B module. The visitor proposes a native_transfer; the task's real
  * policy engine (policy t11-policy-v1) evaluates it client-side against LIVE
  * Atlantic reads (chain id, gas price, the visitor's balance) and renders the
- * six gate conditions as a named PASS/BLOCK trace — the gate shows its work.
+ * seven gate conditions as a named PASS/BLOCK trace — the gate shows its work.
  *
  * ALLOW path: propose() -> MANDATORY review (to/value, amber dust warning) ->
  * the VISITOR signs in their own wallet with their own testnet PHRS.
@@ -290,18 +290,50 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
       });
     }
 
-    // Destination allowlist — the policy's named-rule gate on recipients.
+    // Condition 7 — recipient (destination_allowlist): the policy's named-rule
+    // gate on where value may go. Evaluated here as a full trace row so the
+    // BLOCK demo shows the failing condition inline, with the exact rule.
     let namedRule: string | null = null;
     let blockReason: string | null = null;
     if (!isValidAddress(to)) {
+      rows.push({
+        key: "recipient",
+        name: "recipient",
+        status: "block",
+        numbers: to.length > 20 ? `${to.slice(0, 10)}…${to.slice(-6)}` : to || "(empty)",
+        note: "Not a valid 0x address — the gate refuses to evaluate it.",
+        rule: "destination_allowlist",
+      });
       namedRule = "destination_allowlist";
       blockReason = `"${to}" is not a valid 0x address — the gate refuses to evaluate it.`;
-    } else if (!DEST_ALLOWLIST[to.toLowerCase()]) {
-      namedRule = "destination_allowlist";
-      blockReason = `${short(to)} is not allowlisted. Allowed recipients: the dust sink (${short(DUST_SINK)}) and the deployer (${short(DEPLOYER_SELF)}).`;
+    } else {
+      const label = DEST_ALLOWLIST[to.toLowerCase()];
+      if (label) {
+        rows.push({
+          key: "recipient",
+          name: "recipient",
+          status: "pass",
+          numbers: `${short(to)} · ${label}`,
+          note: "Recipient is on the destination allowlist — the only two addresses the policy will ever pay.",
+          rule: "destination_allowlist",
+        });
+      } else {
+        rows.push({
+          key: "recipient",
+          name: "recipient",
+          status: "block",
+          numbers: short(to),
+          note: `Not allowlisted. The policy pays only the dust sink (${short(DUST_SINK)}) and the deployer (${short(DEPLOYER_SELF)}).`,
+          rule: "destination_allowlist",
+        });
+        namedRule = "destination_allowlist";
+        blockReason = `${short(to)} is not allowlisted. Allowed recipients: the dust sink (${short(DUST_SINK)}) and the deployer (${short(DEPLOYER_SELF)}).`;
+      }
     }
 
     // Decision: REFUSE mainnet first, then any block, else APPROVE.
+    // The recipient row above already sets namedRule/blockReason when it blocks;
+    // otherwise the first blocked row names the rule.
     const blockedRows = rows.filter((r) => r.status === "block");
     let decision: GateResult["decision"];
     if (asMainnet || effectiveChain === MAINNET_CHAIN_ID) {
@@ -329,7 +361,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
     gate?.decision === "APPROVE" ? (
       <div className="rounded-xl border border-[#9fd8b4] bg-[#eefaf3] p-4">
         <p className="text-sm font-bold text-[#0f7a37]">
-          APPROVE — all six conditions pass. The gate minted a decision: you may propose this transfer.
+          APPROVE — all seven conditions pass. The gate minted a decision: you may propose this transfer.
         </p>
       </div>
     ) : gate?.decision === "DENY" ? (
@@ -356,7 +388,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate">
           Propose a native transfer and the gatekeeper's policy engine ({POLICY_ID}) evaluates it
           against <span className="font-semibold text-ink">live Atlantic reads</span> — chain id,
-          gas price, your wallet balance — then shows its work: six conditions, each PASS or BLOCK
+          gas price, your wallet balance — then shows its work: seven conditions, each PASS or BLOCK
           with the exact numbers.{" "}
           <span className="font-semibold text-ink">{lamp.name}</span> says no before anything
           touches the chain.
@@ -439,9 +471,10 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         {readError && <p className="mt-2 text-sm text-fail">{readError}</p>}
       </div>
 
-      {/* Trace */}
+      {/* Trace — horizontally scrollable so the 4-column table stays sane on 390px phones */}
       {gate && (
         <div className="space-y-4">
+          <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
@@ -466,6 +499,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
               ))}
             </tbody>
           </table>
+          </div>
 
           <div className="code-block">
             {JSON.stringify(
