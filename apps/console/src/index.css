@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --abyss: #1414c8;
+  --abyss-deep: #0d0d8f;
+  --gold: #d9a821;
+  --gold-soft: #e8c766;
+  --porcelain: #f4f6ff;
+  --porcelain-blue: #dfe6ff;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--abyss);
+  color: #fff;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Giant DIDONE display type — ALL CAPS, gold, letterspaced */
+.display-hero {
+  font-family: "Playfair Display", Didot, Georgia, serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+  line-height: 0.95;
+  text-shadow: 0 2px 40px rgba(217, 168, 33, 0.25);
+}
+
+.display-section {
+  font-family: "Playfair Display", Didot, Georgia, serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+}
+
+/* Thin diagonal white lines — signature motif */
+.diag-line {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  transform: rotate(30deg);
+  pointer-events: none;
+}
+
+/* Dashed empty states */
+.empty-panel {
+  border: 1.5px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 1rem;
+}
+
+/* Lamp card base (porcelain) */
+.lamp-card {
+  background: var(--porcelain);
+  color: #10104a;
+  border: 1px solid var(--porcelain-blue);
+  border-radius: 1rem;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.lamp-card.lit {
+  box-shadow: 0 0 0 1px rgba(217, 168, 33, 0.55), 0 12px 44px rgba(217, 168, 33, 0.22);
+}
+.lamp-card:not(.lit) {
+  box-shadow: 0 4px 18px rgba(8, 8, 100, 0.25);
+}
+.lamp-card:hover {
+  transform: translateY(-3px);
+}
+
+/* Premium glossy gold button sheen */
+.btn-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.btn-sheen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-160%) skewX(-20deg);
+  pointer-events: none;
+}
+.btn-sheen:hover::after {
+  animation: sheen 1s ease;
+}
+
+/* Thin scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(13, 13, 143, 0.4);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(217, 168, 33, 0.45);
+  border-radius: 4px;
+}
+
+/* Selection */
+::selection {
+  background: var(--gold);
+  color: #0d0d8f;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty,
+  .animate-glowpulse {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}

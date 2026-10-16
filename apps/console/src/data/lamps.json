@@ -1,0 +1,2207 @@
+{
+  "generated_at": "2026-10-16T04:27:51.590Z",
+  "source": "../../tasks/*/evidence.json + task.yaml — statuses from real evidence only",
+  "total_points": 3200,
+  "lamps_lit": 12,
+  "points_secured": 1050,
+  "tasks": [
+    {
+      "id": "T01",
+      "slug": "read-contract-state",
+      "name": "Read Contract State",
+      "tier": "Easy",
+      "points": 50,
+      "toolkit": "Chain MCP",
+      "dir": "t01-read-contract-state",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:4px;\">\n<h1 style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;letter-spacing:0.35em;font-size:42px;margin:0;\">T01 · READ CONTRACT STATE</h1>\n<p style=\"color:#ffffff;font-style:italic;font-size:18px;margin:16px 0 0;\">The keeper reads the stone before lighting the lamp.</p>\n<p style=\"color:#b9c2f5;font-size:13px;margin:12px 0 0;\">LIGHTKEEPER · Lamp 1 of 28 · Pharos Agent Arena · Atlantic testnet</p>\n</div>\n\n1 · The 30-second verdict\n\nA contract-state reader that reads **8 typed values** from one live contract on\nPharos Atlantic, **all pinned to a single block**, with raw hex, decoded values,\nhuman formatting (decimals read from the contract itself), address labels, and\nan independently-verified storage-slot proof. Failure states fail loudly —\nnever silent zeros.",
+      "has_evidence_json": true,
+      "evidence": {
+        "budgetPHRS": 0.15,
+        "budgetPhases": [
+          {
+            "action": "deploy KeeperRegistry",
+            "costPHRS": 0.000399603000399603,
+            "gasPriceWei": 1000000001,
+            "gasUsed": 399603,
+            "txHash": "0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b"
+          },
+          {
+            "action": "reads (eth_call)",
+            "costPHRS": 0,
+            "note": "reads are free, no transactions"
+          }
+        ],
+        "chainId": 688689,
+        "chainName": "Pharos Atlantic testnet",
+        "contractAddress": "0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD",
+        "deployBlock": 31481260,
+        "deployTxHash": "0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b",
+        "explorerContract": "https://atlantic.pharosscan.xyz/address/0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD",
+        "explorerTx": "https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b",
+        "liveReads": {
+          "blockReadAt": 31481725,
+          "decimals": 6,
+          "keeper": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "lampBalanceOfKeeper": "3000000",
+          "lampBearer": [
+            "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+            "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+            "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+          ],
+          "realmName": "Atlantic Deep",
+          "totalLamps": 3
+        },
+        "noMockAttestation": "all values are live eth_call results from Atlantic at the pinned block; no mocks, no fixtures, no placeholders",
+        "slotCheck": "VERIFIED: eth_getStorageAt(keccak256(keeper ++ slot4)) == lampBalanceOf(keeper) view result",
+        "spendLogPHRS": 0.000399603000399603,
+        "task": "t01-read-contract-state"
+      },
+      "txs": [
+        "0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b",
+        "https://atlantic.pharosscan.xyz/address/0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Live contract reads",
+          "detail": "block read at 31481725",
+          "at": "",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b"
+        }
+      ]
+    },
+    {
+      "id": "T02",
+      "slug": "event-log-monitor",
+      "name": "Event/Log Monitor",
+      "tier": "Easy",
+      "points": 50,
+      "toolkit": "Chain MCP",
+      "dir": "t02-event-log-monitor",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:12px;\">\n<h1 style=\"font-family:Georgia,serif;color:#d9a821;letter-spacing:0.35em;\">LIGHTKEEPER</h1>\n<p style=\"font-family:Georgia,serif;color:#e8c766;font-style:italic;\">One lighthouse. Twenty-eight lamps. One octopus to tend them.</p>\n<p style=\"color:#b9c2f5;\">T02 · Event/Log Monitor · the second lamp is lit</p>\n</div>\n\nT02 — Event/Log Monitor\n\n**Live on Atlantic testnet (chain 688689).** A persistent, reorg-tolerant event monitor\nfor a purpose-deployed emitter contract — it polls chunked `eth_getLogs`, decodes every\nevent into readable fields, never duplicates, and survives a `kill -9` without re-emission.",
+      "has_evidence_json": true,
+      "evidence": {
+        "artifacts": [
+          "src/LogEmitter.sol",
+          "monitor.py",
+          "poll.log",
+          "alerts.jsonl",
+          "state.json"
+        ],
+        "chain_id": 688689,
+        "contract_explorer": "https://atlantic.pharosscan.xyz/address/0x2C1dB0C436B72D94a4112f321DFbD13a976D8831",
+        "deploy": {
+          "block": 31481148,
+          "cost_phrs": 0.0035901,
+          "gas_price_gwei": 10,
+          "gas_used": 359010,
+          "tx": "0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf",
+          "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf"
+        },
+        "emitter_contract": "0x2C1dB0C436B72D94a4112f321DFbD13a976D8831",
+        "emitter_txs": [
+          {
+            "block": 31481161,
+            "call": "ping(42,\"t02-keepalive\")",
+            "cost_phrs": 0.00025054,
+            "decoded": {
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "note": "t02-keepalive",
+              "value": "42"
+            },
+            "event": "Ping",
+            "gas_used": 25054,
+            "tx": "0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba",
+            "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba"
+          },
+          {
+            "block": 31481165,
+            "call": "zap(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3,7)",
+            "cost_phrs": 0.00024125,
+            "decoded": {
+              "amount": "7",
+              "sender": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "target": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3"
+            },
+            "event": "Zap",
+            "gas_used": 24125,
+            "tx": "0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893",
+            "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893"
+          },
+          {
+            "block": 31481176,
+            "call": "mark(9001,0x4c4b32303236544f326d...,0xdeadbeef)",
+            "cost_phrs": 0.00025397,
+            "decoded": {
+              "id": "9001",
+              "payload": "0xdeadbeef",
+              "tag": "0x4c4b32303236544f326d00000000000000000000000000000000000000000000"
+            },
+            "event": "Marker",
+            "gas_used": 25397,
+            "tx": "0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186",
+            "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186"
+          },
+          {
+            "block": 31481324,
+            "call": "ping(2718,\"t02-live-catch\")",
+            "cost_phrs": 0.00025078,
+            "decoded": {
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "note": "t02-live-catch",
+              "value": "2718"
+            },
+            "event": "Ping",
+            "gas_used": 25078,
+            "note": "fired WHILE the poller was running; caught live in the next cycle",
+            "tx": "0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c",
+            "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c"
+          }
+        ],
+        "monitor": {
+          "chunk_cap_blocks": 1000,
+          "confirm_lag_blocks": 2,
+          "kill9_restart": "killed with kill -9 mid-run; restarted -> cursor restored at 31481379, 0 re-emissions (alerts 1 -> 1)",
+          "live_catch": "Ping block=31481324 tx=0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c decoded in next poll cycle",
+          "poll_interval_s": 8,
+          "test": "monitor.py test --from-block=31481148 --to-block=<tip> --expect=Ping,Ping,Zap,Marker -> TEST PASS (exactly the 4 expected events, blocks+txhashes+decoded fields)"
+        },
+        "network": "atlantic-testnet",
+        "spend": {
+          "budget_phrs": 0.15,
+          "budget_used_pct": 3.06,
+          "total_gas": 458664,
+          "total_phrs": 0.00458664
+        },
+        "task": "T02",
+        "title": "Event/Log Monitor",
+        "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      },
+      "txs": [
+        "0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf",
+        "0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba",
+        "0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893",
+        "0x4c4b32303236544f326d00000000000000000000000000000000000000000000",
+        "0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186",
+        "0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf",
+        "https://atlantic.pharosscan.xyz/tx/0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba",
+        "https://atlantic.pharosscan.xyz/tx/0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893",
+        "https://atlantic.pharosscan.xyz/tx/0x4c4b32303236544f326d00000000000000000000000000000000000000000000",
+        "https://atlantic.pharosscan.xyz/tx/0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186",
+        "https://atlantic.pharosscan.xyz/tx/0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c",
+        "https://atlantic.pharosscan.xyz/address/0x2C1dB0C436B72D94a4112f321DFbD13a976D8831",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Contract deployed",
+          "detail": "0x5ee42464c0…",
+          "at": "31481148",
+          "link": "https://atlantic.pharosscan.xyz/tx/0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf"
+        },
+        {
+          "title": "Emitter tx: ping(42,\"t02-keepalive\")",
+          "detail": "block 31481161",
+          "at": ""
+        },
+        {
+          "title": "Emitter tx: zap(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3,7)",
+          "detail": "block 31481165",
+          "at": ""
+        },
+        {
+          "title": "Emitter tx: mark(9001,0x4c4b32303236544f326d...,0xdeadbeef)",
+          "detail": "block 31481176",
+          "at": ""
+        }
+      ]
+    },
+    {
+      "id": "T03",
+      "slug": "docs-mcp-onboarding",
+      "name": "Docs MCP Onboarding",
+      "tier": "Easy",
+      "points": 50,
+      "toolkit": "Developer Docs MCP",
+      "dir": "t03-docs-mcp-onboarding",
+      "status": "in-progress",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:8px;\">\n\n<span style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;letter-spacing:0.35em;\">DOCS&nbsp;MCP&nbsp;ONBOARDING</span>\n\n<span style=\"color:#f4f6ff;font-style:italic;\">\"One lighthouse. Twenty-eight lamps — and the keeper reads the manual first.\"</span>",
+      "has_evidence_json": true,
+      "evidence": {
+        "runs": [
+          {
+            "run_at": "2026-10-16T04:09:18Z",
+            "runner": "scripts/query_log.py",
+            "surface_note": "GitBook ?ask= endpoint on docs.pharos.xyz (publicly reachable). Portal-embedded Docs MCP chat (ai.pharos.xyz) requires wallet sign-in and is not reachable by this runner — documented in evidence.md.",
+            "queries": [
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/faqs",
+                "question": "How do I sign in to the Pharos AI Agent Arena portal at ai.pharos.xyz to submit a task?",
+                "goal": "submitting to the agent arena",
+                "url": "https://docs.pharos.xyz/getting-started/faqs.md?ask=How%20do%20I%20sign%20in%20to%20the%20Pharos%20AI%20Agent%20Arena%20portal%20at%20ai.pharos.xyz%20to%20submit%20a%20task%3F&goal=submitting%20to%20the%20agent%20arena",
+                "attempted_at": "2026-10-16T04:06:54Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# How do I sign in to the Pharos AI Agent Arena portal at ai.pharos.xyz to submit a task?\n\nI cannot find information about signing in to the Pharos AI Agent Arena or submitting tasks at `ai.pharos.xyz` in the docs. The available [Anvita Flow](/tooling-and-infrastructure/overview.md) covers a separate developer portal, not the Agent Arena.\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [Where is the Agent Arena login page?](https://docs.pharos.xyz?ask=Where%20is%20the%20Agent%20Arena%20login%20page%3F&goal=submitting%20to%20the%20agent%20arena)\n- [How to submit a task there?](https://docs.pharos.xyz?ask=How%20to%20submit%20a%20task%20there%3F&goal=submitting%20to%20the%20agent%20arena)\n- [What should I do if I can't sign in?](https://docs.pharos.xyz?ask=What%20should%20I%20do%20if%20I%20can't%20sign%20in%3F&goal=submitting%20to%20the%20agent%20arena)\n\n# Sources:\n\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af.md)\n- [Anvita Flow](https://docs.pharos.xyz/tooling-and-infrastructure/overview.md)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md)\n- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy.md)\n- [Using Binary](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/using-binary-deployment.md)\n- [x402](https://docs.pharos.xyz/developer-guide/x402.md)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp.md)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md)\n- [Goldsky](https://docs.pharos.xyz/tooling-and-infrastructure/indexing/goldsky.md)\n- [Safe MultiSig](https://docs.pharos.xyz/tooling-and-infrastructure/wallets/safe.md)\n- [Nirvana RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/nirvana.md)\n\n",
+                "outcome": "ANSWERED"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/network/atlantic-testnet",
+                "question": "What is the Atlantic testnet chain ID, RPC URL and native currency?",
+                "goal": "connecting a wallet and RPC client",
+                "url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet.md?ask=What%20is%20the%20Atlantic%20testnet%20chain%20ID%2C%20RPC%20URL%20and%20native%20currency%3F&goal=connecting%20a%20wallet%20and%20RPC%20client",
+                "attempted_at": "2026-10-16T04:07:11Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# What is the Atlantic testnet chain ID, RPC URL and native currency?\n\nAtlantic Testnet settings:\n\n* **Chain ID:** `688689`\n* **RPC URL:** `https://atlantic.dplabs-internal.com`\n* **Native currency:** `PHRS`\n\nSee [Atlantic Testnet network information](/getting-started/network/atlantic-testnet.md) and the [Pharos Skill Engine](/tooling-and-infrastructure/pharos-skill-engine-guide.md).\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [What is the Atlantic testnet chain ID?](https://docs.pharos.xyz?ask=What%20is%20the%20Atlantic%20testnet%20chain%20ID%3F&goal=connecting%20a%20wallet%20and%20RPC%20client)\n- [Where can I find the Atlantic RPC URL?](https://docs.pharos.xyz?ask=Where%20can%20I%20find%20the%20Atlantic%20RPC%20URL%3F&goal=connecting%20a%20wallet%20and%20RPC%20client)\n- [What is the native currency on Atlantic testnet?](https://docs.pharos.xyz?ask=What%20is%20the%20native%20currency%20on%20Atlantic%20testnet%3F&goal=connecting%20a%20wallet%20and%20RPC%20client)\n\n# Sources:\n\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet.md)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry.md)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management.md)\n- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan.md)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token.md)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-nft.md)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token.md)\n- [RPC Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/rpc.md)\n- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain.md)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp.md)\n- [Get PROS Gas](https://docs.pharos.xyz/getting-started/get-pros-gas.md)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-nft.md)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md)\n- [Pacific Mainnet](https://docs.pharos.xyz/getting-started/network/pacific-mainnet.md)\n\n",
+                "outcome": "ANSWERED"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/faqs",
+                "question": "Where can I get Atlantic testnet PHRS from the official faucet?",
+                "goal": "funding a testnet wallet",
+                "url": "https://docs.pharos.xyz/getting-started/faqs.md?ask=Where%20can%20I%20get%20Atlantic%20testnet%20PHRS%20from%20the%20official%20faucet%3F&goal=funding%20a%20testnet%20wallet",
+                "attempted_at": "2026-10-16T04:07:29Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# Where can I get Atlantic testnet PHRS from the official faucet?\n\nThe docs don’t provide a direct URL for the official faucet. They say to get Atlantic testnet PHRS from the Pharos faucet or directly from the team; see [Piggy Bank Tutorial](/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md).\n\nFor the correct network, Atlantic Testnet uses chain ID `688689` and RPC `https://atlantic.dplabs-internal.com` ([Atlantic Testnet](/getting-started/network/atlantic-testnet.md)).\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [Where is the official faucet link?](https://docs.pharos.xyz?ask=Where%20is%20the%20official%20faucet%20link%3F&goal=funding%20a%20testnet%20wallet)\n- [What faucet alternatives exist for PHRS?](https://docs.pharos.xyz?ask=What%20faucet%20alternatives%20exist%20for%20PHRS%3F&goal=funding%20a%20testnet%20wallet)\n- [How to verify faucet PHRS receipt steps?](https://docs.pharos.xyz?ask=How%20to%20verify%20faucet%20PHRS%20receipt%20steps%3F&goal=funding%20a%20testnet%20wallet)\n\n# Sources:\n\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry.md)\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet.md)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md)\n- [Pharos Network Snapshots](https://docs.pharos.xyz/node-and-validator-guide/pharos-network-snapshots.md)\n- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan.md)\n- [Network](https://docs.pharos.xyz/getting-started/network.md)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token.md)\n- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy.md)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management.md)\n- [Rapid Node Initialization(Testnet)](https://docs.pharos.xyz/node-and-validator-guide/rapid-node-initialization/rapid-node-initialization-testnet.md)\n- [Pharos Testnet: Rebuild Node with Preserved Node Info](https://docs.pharos.xyz/pharos-testnet-rebuild-node-with-preserved-node-info.md)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md)\n\n",
+                "outcome": "ANSWERED"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "tooling-and-infrastructure/overview",
+                "question": "What is the Pharos Chain MCP and which read tools does it expose for an AI agent?",
+                "goal": "building an AI agent on Pharos",
+                "url": "https://docs.pharos.xyz/tooling-and-infrastructure/overview.md?ask=What%20is%20the%20Pharos%20Chain%20MCP%20and%20which%20read%20tools%20does%20it%20expose%20for%20an%20AI%20agent%3F&goal=building%20an%20AI%20agent%20on%20Pharos",
+                "attempted_at": "2026-10-16T04:07:47Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# What is the Pharos Chain MCP and which read tools does it expose for an AI agent?\n\nThe **Pharos Chain MCP** is a public Model Context Protocol server that lets AI agents query Pharos chain data and perform on-chain operations through MCP-compatible clients. Its hosted endpoint is `https://mcp.pharos.xyz/mcp`; it requires no API key and connects to chain ID `1672` (`0x688`). See [Pharos MCP](/tooling-and-infrastructure/mcp.md).\n\nIts read and query tools are:\n\n* **Chain and blocks:** `get_chain_info`, `get_block_number`, `get_block`, `get_gas_price`\n* **Accounts and transactions:** `get_balance` (native PROS), `get_transaction_count`, `get_transaction`, `get_transaction_receipt`\n* **Contracts and events:** `eth_call` (read-only contract calls), `get_code`, `get_storage_at`, `get_logs`\n* **Gas estimation:** `estimate_gas` estimates gas without sending a transaction.\n\n`send_raw_transaction` is also exposed, but it broadcasts a signed transaction rather than reading data. The hosted service allows 120 requests per minute per IP.\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [How to call a block's details?](https://docs.pharos.xyz?ask=How%20to%20call%20a%20block's%20details%3F&goal=building%20an%20AI%20agent%20on%20Pharos)\n- [What’s latest chain info?](https://docs.pharos.xyz?ask=What%E2%80%99s%20latest%20chain%20info%3F&goal=building%20an%20AI%20agent%20on%20Pharos)\n- [Show me an example get_logs call?](https://docs.pharos.xyz?ask=Show%20me%20an%20example%20get_logs%20call%3F&goal=building%20an%20AI%20agent%20on%20Pharos)\n\n# Sources:\n\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp.md)\n- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain.md)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md)\n- [About Pharos](https://docs.pharos.xyz/introduction/readme.md)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md)\n- [Enable AutoPruning in Pharos Node](https://docs.pharos.xyz/enable-pruning-in-pharos-node.md)\n- [Fordefi](https://docs.pharos.xyz/tooling-and-infrastructure/wallets/fordefi.md)\n- [Solidity](https://docs.pharos.xyz/resources/solidity.md)\n- [x402](https://docs.pharos.xyz/developer-guide/x402.md)\n- [Using Binary](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/using-binary-deployment.md)\n\n",
+                "outcome": "ANSWERED"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "tooling-and-infrastructure/indexing",
+                "question": "What are the block range limits for eth_getLogs queries on Pharos?",
+                "goal": "building an on-chain event monitor",
+                "url": "https://docs.pharos.xyz/tooling-and-infrastructure/indexing.md?ask=What%20are%20the%20block%20range%20limits%20for%20eth_getLogs%20queries%20on%20Pharos%3F&goal=building%20an%20on-chain%20event%20monitor",
+                "attempted_at": "2026-10-16T04:08:03Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# What are the block range limits for eth_getLogs queries on Pharos?\n\nPharos documents an `eth_getLogs` block-range limit of **100 blocks when rate limiting is enabled**, with a **10,000-block fallback cap**. For a monitor, use batches of 100 blocks to stay within the rate-limited limit. See [JSON-RPC API Methods](/api-and-sdk/json-rpc-methods.md).\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [Is 100-block batch enough for my monitor?](https://docs.pharos.xyz?ask=Is%20100-block%20batch%20enough%20for%20my%20monitor%3F&goal=building%20an%20on-chain%20event%20monitor)\n- [How to paginate 10k-block ranges safely?](https://docs.pharos.xyz?ask=How%20to%20paginate%2010k-block%20ranges%20safely%3F&goal=building%20an%20on-chain%20event%20monitor)\n- [What error if range exceeds limit?](https://docs.pharos.xyz?ask=What%20error%20if%20range%20exceeds%20limit%3F&goal=building%20an%20on-chain%20event%20monitor)\n\n# Sources:\n\n- [JSON-RPC API Methods](https://docs.pharos.xyz/api-and-sdk/json-rpc-methods.md)\n- [Rollback Blocks](https://docs.pharos.xyz/node-and-validator-guide/rollback-blocks.md)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp.md)\n- [Block Explorer](https://docs.pharos.xyz/tooling-and-infrastructure/block-explorer.md)\n- [eth_getProof — Storage State Verification (SPV)](https://docs.pharos.xyz/api-and-sdk/eth-getproof.md)\n- [Node Debugging & Configuration](https://docs.pharos.xyz/node-and-validator-guide/node-debugging-and-configuration.md)\n- [About Pharos](https://docs.pharos.xyz/introduction/readme.md)\n- [Why Pharos](https://docs.pharos.xyz/introduction/why-pharos.md)\n- [Node Configuration](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/node-configuration.md)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md)\n\n",
+                "outcome": "ANSWERED"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "tooling-and-infrastructure/pharos-skill-engine-guide",
+                "question": "How do I install, build and publish a skill with the Pharos Skill Engine?",
+                "goal": "publishing an agent skill",
+                "url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md?ask=How%20do%20I%20install%2C%20build%20and%20publish%20a%20skill%20with%20the%20Pharos%20Skill%20Engine%3F&goal=publishing%20an%20agent%20skill",
+                "attempted_at": "2026-10-16T04:08:18Z",
+                "http_status": null,
+                "outcome": "ATTEMPTED-ERROR",
+                "error": "IncompleteRead: IncompleteRead(3295 bytes read)"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/faqs",
+                "question": "How do I submit my solution for an Agent Arena task?",
+                "goal": "submitting to the agent arena",
+                "url": "https://docs.pharos.xyz/getting-started/faqs.md?ask=How%20do%20I%20submit%20my%20solution%20for%20an%20Agent%20Arena%20task%3F&goal=submitting%20to%20the%20agent%20arena",
+                "attempted_at": "2026-10-16T04:08:41Z",
+                "http_status": null,
+                "outcome": "ATTEMPTED-ERROR",
+                "error": "IncompleteRead: IncompleteRead(0 bytes read)"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/network",
+                "question": "Is the Pharos Atlantic testnet chain ID 688689 or 1672, and which token does it use, PHRS or PROS?",
+                "goal": "connecting a wallet with correct chain parameters",
+                "url": "https://docs.pharos.xyz/getting-started/network.md?ask=Is%20the%20Pharos%20Atlantic%20testnet%20chain%20ID%20688689%20or%201672%2C%20and%20which%20token%20does%20it%20use%2C%20PHRS%20or%20PROS%3F&goal=connecting%20a%20wallet%20with%20correct%20chain%20parameters",
+                "attempted_at": "2026-10-16T04:08:59Z",
+                "http_status": null,
+                "outcome": "ATTEMPTED-ERROR",
+                "error": "HTTPError: HTTP Error 403: Forbidden"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/faqs",
+                "question": "How do I create and share a session link for my agent work on ai.pharos.xyz?",
+                "goal": "sharing agent work with reviewers",
+                "url": "https://docs.pharos.xyz/getting-started/faqs.md?ask=How%20do%20I%20create%20and%20share%20a%20session%20link%20for%20my%20agent%20work%20on%20ai.pharos.xyz%3F&goal=sharing%20agent%20work%20with%20reviewers",
+                "attempted_at": "2026-10-16T04:09:07Z",
+                "http_status": null,
+                "outcome": "ATTEMPTED-ERROR",
+                "error": "IncompleteRead: IncompleteRead(0 bytes read)"
+              }
+            ]
+          },
+          {
+            "run_at": "2026-10-16T04:12Z (retry of failed queries from run 1)",
+            "runner": "scripts/query_log.py logic (manual retry)",
+            "surface_note": "same GitBook ?ask= endpoint; longer inter-query delay (20s)",
+            "queries": [
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "tooling-and-infrastructure/pharos-skill-engine-guide",
+                "question": "How do I install, build and publish a skill with the Pharos Skill Engine?",
+                "goal": "publishing an agent skill",
+                "url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md?ask=How%20do%20I%20install%2C%20build%20and%20publish%20a%20skill%20with%20the%20Pharos%20Skill%20Engine%3F&goal=publishing%20an%20agent%20skill",
+                "attempted_at": "2026-10-16T04:10:38Z",
+                "http_status": null,
+                "outcome": "ATTEMPTED-ERROR",
+                "error": "IncompleteRead: IncompleteRead(3295 bytes read)"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/faqs",
+                "question": "How do I submit my solution for an Agent Arena task?",
+                "goal": "submitting to the agent arena",
+                "url": "https://docs.pharos.xyz/getting-started/faqs.md?ask=How%20do%20I%20submit%20my%20solution%20for%20an%20Agent%20Arena%20task%3F&goal=submitting%20to%20the%20agent%20arena",
+                "attempted_at": "2026-10-16T04:11:01Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# How do I submit my solution for an Agent Arena task?\n\nI cannot find Agent Arena task submission instructions in the docs. The available [Publish Service Agent](/tooling-and-infrastructure/overview/publish-skill-af.md) covers publishing a Pharos Skill to Anvita Flow, not submitting an Agent Arena solution.\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [How do I submit to the Arena?](https://docs.pharos.xyz?ask=How%20do%20I%20submit%20to%20the%20Arena%3F&goal=submitting%20to%20the%20agent%20arena)\n- [Where is the Agent Arena submission guide?](https://docs.pharos.xyz?ask=Where%20is%20the%20Agent%20Arena%20submission%20guide%3F&goal=submitting%20to%20the%20agent%20arena)\n- [What counts as a valid Arena submission?](https://docs.pharos.xyz?ask=What%20counts%20as%20a%20valid%20Arena%20submission%3F&goal=submitting%20to%20the%20agent%20arena)\n\n# Sources:\n\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af.md)\n- [Anvita Flow](https://docs.pharos.xyz/tooling-and-infrastructure/overview.md)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management.md)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md)\n- [x402](https://docs.pharos.xyz/developer-guide/x402.md)\n- [Wallet](https://docs.pharos.xyz/tooling-and-infrastructure/wallets.md)\n- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain.md)\n- [Why Pharos](https://docs.pharos.xyz/introduction/why-pharos.md)\n- [Rust](https://docs.pharos.xyz/developer-guide/rust.md)\n- [Canonical Contracts](https://docs.pharos.xyz/getting-started/canonical-contracts.md)\n- [EVM](https://docs.pharos.xyz/resources/evm.md)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp.md)\n- [Network](https://docs.pharos.xyz/getting-started/network.md)\n- [Pharos Node Monitoring](https://docs.pharos.xyz/pharos-node-monitoring.md)\n\n",
+                "outcome": "ANSWERED"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/network",
+                "question": "Is the Pharos Atlantic testnet chain ID 688689 or 1672, and which token does it use, PHRS or PROS?",
+                "goal": "connecting a wallet with correct chain parameters",
+                "url": "https://docs.pharos.xyz/getting-started/network.md?ask=Is%20the%20Pharos%20Atlantic%20testnet%20chain%20ID%20688689%20or%201672%2C%20and%20which%20token%20does%20it%20use%2C%20PHRS%20or%20PROS%3F&goal=connecting%20a%20wallet%20with%20correct%20chain%20parameters",
+                "attempted_at": "2026-10-16T04:11:22Z",
+                "http_status": null,
+                "outcome": "ATTEMPTED-ERROR",
+                "error": "HTTPError: HTTP Error 403: Forbidden"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/faqs",
+                "question": "How do I create and share a session link for my agent work on ai.pharos.xyz?",
+                "goal": "sharing agent work with reviewers",
+                "url": "https://docs.pharos.xyz/getting-started/faqs.md?ask=How%20do%20I%20create%20and%20share%20a%20session%20link%20for%20my%20agent%20work%20on%20ai.pharos.xyz%3F&goal=sharing%20agent%20work%20with%20reviewers",
+                "attempted_at": "2026-10-16T04:11:43Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# How do I create and share a session link for my agent work on ai.pharos.xyz?\n\nI cannot find information about creating or sharing agent session links on **ai.pharos.xyz** in the docs.\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [Where to find session-link docs?](https://docs.pharos.xyz?ask=Where%20to%20find%20session-link%20docs%3F&goal=sharing%20agent%20work%20with%20reviewers)\n- [What permissions are needed to share a session?](https://docs.pharos.xyz?ask=What%20permissions%20are%20needed%20to%20share%20a%20session%3F&goal=sharing%20agent%20work%20with%20reviewers)\n- [Can I revoke a shared session link?](https://docs.pharos.xyz?ask=Can%20I%20revoke%20a%20shared%20session%20link%3F&goal=sharing%20agent%20work%20with%20reviewers)\n\n# Sources:\n\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af.md)\n- [Anvita Flow](https://docs.pharos.xyz/tooling-and-infrastructure/overview.md)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md)\n- [x402](https://docs.pharos.xyz/developer-guide/x402.md)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp.md)\n- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan.md)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management.md)\n- [Using Binary](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/using-binary-deployment.md)\n- [Hemera SocialScan](https://docs.pharos.xyz/tooling-and-infrastructure/block-explorer/hemera-socialscan.md)\n- [Chainlink CCIP](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/chainlink-ccip.md)\n- [Pharos Network Snapshots](https://docs.pharos.xyz/node-and-validator-guide/pharos-network-snapshots.md)\n- [Node Debugging & Configuration](https://docs.pharos.xyz/node-and-validator-guide/node-debugging-and-configuration.md)\n- [Encyclopedia](https://docs.pharos.xyz/introduction/encyclopedia.md)\n- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy.md)\n- [Node Configuration](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/node-configuration.md)\n- [About Pharos](https://docs.pharos.xyz/introduction/readme.md)\n\n",
+                "outcome": "ANSWERED"
+              }
+            ]
+          },
+          {
+            "run_at": "2026-10-16T04:15Z (final: narrowed Q6 + Q8 retry)",
+            "runner": "scripts/query_log.py logic (manual retry)",
+            "surface_note": "same GitBook ?ask= endpoint; 30s inter-query delay",
+            "queries": [
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "tooling-and-infrastructure/pharos-skill-engine-guide",
+                "question": "What is the first step to install the Pharos Skill Engine?",
+                "goal": "installing the skill engine",
+                "url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide.md?ask=What%20is%20the%20first%20step%20to%20install%20the%20Pharos%20Skill%20Engine%3F&goal=installing%20the%20skill%20engine",
+                "attempted_at": "2026-10-16T04:14:21Z",
+                "http_status": null,
+                "outcome": "ATTEMPTED-ERROR",
+                "error": "IncompleteRead: IncompleteRead(2145 bytes read)"
+              },
+              {
+                "surface": "docs-pharos-xyz-ask",
+                "page": "getting-started/network",
+                "question": "Is the Atlantic testnet chain ID 688689 and its token PHRS?",
+                "goal": "confirming testnet parameters",
+                "url": "https://docs.pharos.xyz/getting-started/network.md?ask=Is%20the%20Atlantic%20testnet%20chain%20ID%20688689%20and%20its%20token%20PHRS%3F&goal=confirming%20testnet%20parameters",
+                "attempted_at": "2026-10-16T04:14:59Z",
+                "http_status": 200,
+                "body_truncated": false,
+                "body_verbatim": "# Is the Atlantic testnet chain ID 688689 and its token PHRS?\n\nYes. Atlantic Testnet uses **chain ID `688689`** and the native token symbol **`PHRS`**. See [Atlantic Testnet](/getting-started/network/atlantic-testnet.md) and the [Piggy Bank Tutorial](/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md).\n\n# Suggested Follow-up Questions:\n\nIf you need more information, consider asking one of these follow-up questions by performing an HTTP GET request on the URL:\n\n- [What other Atlantic params exist?](https://docs.pharos.xyz?ask=What%20other%20Atlantic%20params%20exist%3F&goal=confirming%20testnet%20parameters)\n- [PHRS faucet address for Atlantic?](https://docs.pharos.xyz?ask=PHRS%20faucet%20address%20for%20Atlantic%3F&goal=confirming%20testnet%20parameters)\n- [Where to verify chain/asset on explorer?](https://docs.pharos.xyz?ask=Where%20to%20verify%20chain%2Fasset%20on%20explorer%3F&goal=confirming%20testnet%20parameters)\n\n# Sources:\n\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry.md)\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet.md)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token.md)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token.md)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management.md)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-nft.md)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide.md)\n- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain.md)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-nft.md)\n- [Rapid Node Initialization(Testnet)](https://docs.pharos.xyz/node-and-validator-guide/rapid-node-initialization/rapid-node-initialization-testnet.md)\n\n",
+                "outcome": "ANSWERED"
+              }
+            ]
+          }
+        ]
+      },
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        }
+      ]
+    },
+    {
+      "id": "T04",
+      "slug": "doc-search-cli",
+      "name": "Doc-Search CLI",
+      "tier": "Easy",
+      "points": 50,
+      "toolkit": "Developer Docs MCP",
+      "dir": "t04-doc-search-cli",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T05",
+      "slug": "threshold-guardian",
+      "name": "Threshold Guardian",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "SkillEngine",
+      "dir": "t05-threshold-guardian",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:12px;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:42px;letter-spacing:0.18em;\">THRESHOLD GUARDIAN</div>\n  <div style=\"color:#f4f6ff;font-size:14px;margin-top:12px;letter-spacing:0.06em;\">LIGHTKEEPER · T05 · lamp five of twenty-eight</div>\n</div>\n\n*The keeper's hand stays the lamp it cannot vouch for — every transfer passes\nthe gate, or it does not pass at all.*\n\nA **policy gate that intercepts proposed transfers and BLOCKS any write that\nbreaches configured thresholds**. It is not a demo of a guardian — it *is*\nthe guardian that signed this task's only broadcast. A proposal enters;\nsix independent conditions are read live from the chain; a decision trace\nis emitted; and only `ALLOW` reaches `cast send` — under a nonce lock, once,\nwith a receipt. `BLOCK` and `REFUSE` never…",
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_phrs": 0.15,
+        "budget_remaining_phrs": 0.14969,
+        "built_utc": "2026-10-16T04:10:00Z",
+        "guardian_wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "honesty_notes": [
+          "Thresholds (0.005 max_per_tx, 0.05 blocked proposal, 0.0001 fired proposal) were chosen UP FRONT to exercise both branches — symmetric disclosure, no post-hoc rigging.",
+          "BLOCK/REFUSE runs broadcast nothing and spend nothing; logged honestly as blocked/refused.",
+          "The single FIRE tx is a self-transfer of dust; it is the only spend."
+        ],
+        "link_checks": [
+          {
+            "checked_utc": "2026-10-16T04:12Z",
+            "http": 200,
+            "url": "https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c"
+          },
+          {
+            "checked_utc": "2026-10-16T04:12Z",
+            "http": 200,
+            "url": "https://atlantic.pharosscan.xyz/"
+          },
+          {
+            "checked_utc": "2026-10-16T04:12Z",
+            "http": 200,
+            "url": "https://github.com/mohamedwael201193/lightkeeper"
+          }
+        ],
+        "name": "Threshold Guardian",
+        "network": {
+          "chain_id": 688689,
+          "name": "atlantic-testnet",
+          "native": "PHRS"
+        },
+        "runs": [
+          {
+            "broadcast": false,
+            "decision": "BLOCK",
+            "exit_code": 2,
+            "label": "HOLD — above threshold",
+            "log": "run-logs/hold.log",
+            "proposal": "0.05 PHRS (policy max_per_tx 0.005 PHRS)",
+            "reason": "0.050000 PHRS > max_per_tx 0.005 PHRS",
+            "tx_hash": null
+          },
+          {
+            "block": 31481282,
+            "broadcast": true,
+            "decision": "ALLOW",
+            "exit_code": 0,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c",
+            "gas_used": 21000,
+            "label": "FIRE — below threshold",
+            "log": "run-logs/fire.log",
+            "proposal": "0.0001 PHRS self-transfer",
+            "status": 1,
+            "tx_hash": "0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c"
+          },
+          {
+            "broadcast": false,
+            "decision": "REFUSE",
+            "exit_code": 3,
+            "label": "REFUSE — mainnet-class action (no re-confirmation)",
+            "log": "run-logs/mainnet-refusal.log",
+            "proposal": "--network mainnet, 0.0001 PHRS",
+            "reason": "live chain id 1672 at the mainnet RPC; policy.mainnet.enabled=false — refusal unconditional",
+            "tx_hash": null
+          },
+          {
+            "broadcast": false,
+            "decision": "REFUSE",
+            "exit_code": 3,
+            "label": "REFUSE — mainnet-class action (explicit re-confirmation supplied)",
+            "log": "run-logs/mainnet-refusal.log",
+            "proposal": "--network mainnet --confirm-mainnet \"...\", 0.0001 PHRS",
+            "reason": "refusal holds even with explicit re-confirmation — there is no override flag",
+            "tx_hash": null
+          }
+        ],
+        "spend_log_phrs": [
+          {
+            "item": "FIRE broadcast value",
+            "phrs": 0.0001
+          },
+          {
+            "item": "FIRE broadcast gas (21000 gas @ 10 gwei)",
+            "phrs": 0.00021
+          },
+          {
+            "item": "TOTAL",
+            "phrs": 0.00031
+          }
+        ],
+        "spent_phrs": 0.00031,
+        "task": "T05",
+        "unit_tests": "tests/test_policy_engine.py — 13/13 pass (offline, mocked chain)"
+      },
+      "txs": [
+        "0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Run: HOLD — above threshold",
+          "detail": "BLOCK",
+          "at": "2026-10-16T04:10:00Z",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c"
+        },
+        {
+          "title": "Run: FIRE — below threshold",
+          "detail": "ALLOW",
+          "at": "2026-10-16T04:10:00Z"
+        },
+        {
+          "title": "Run: REFUSE — mainnet-class action (no re-confirmation)",
+          "detail": "REFUSE",
+          "at": "2026-10-16T04:10:00Z"
+        },
+        {
+          "title": "Run: REFUSE — mainnet-class action (explicit re-confirmation supplied)",
+          "detail": "REFUSE",
+          "at": "2026-10-16T04:10:00Z"
+        },
+        {
+          "title": "Verified link — HTTP 200",
+          "detail": "explorer…/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c",
+          "at": "2026-10-16T04:12Z",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c"
+        },
+        {
+          "title": "Verified link — HTTP 200",
+          "detail": "explorer…/",
+          "at": "2026-10-16T04:12Z",
+          "link": "https://atlantic.pharosscan.xyz/"
+        },
+        {
+          "title": "Verified link — HTTP 200",
+          "detail": "https://github.com/mohamedwael201193/lightkeeper",
+          "at": "2026-10-16T04:12Z",
+          "link": "https://github.com/mohamedwael201193/lightkeeper"
+        }
+      ]
+    },
+    {
+      "id": "T06",
+      "slug": "saga-executor",
+      "name": "Saga Executor",
+      "tier": "Hard",
+      "points": 200,
+      "toolkit": "SkillEngine",
+      "dir": "t06-saga-executor",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T07",
+      "slug": "arbitrage-scanner",
+      "name": "Arbitrage Scanner",
+      "tier": "Hard",
+      "points": 200,
+      "toolkit": "SkillEngine",
+      "dir": "t07-arbitrage-scanner",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T08",
+      "slug": "dry-run-executor",
+      "name": "Dry-Run Executor",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "SkillEngine",
+      "dir": "t08-dry-run-executor",
+      "status": "in-progress",
+      "has_task_yaml": true,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T09",
+      "slug": "swell-line",
+      "name": "Trend Watcher",
+      "tier": "Hard",
+      "points": 200,
+      "toolkit": "SkillEngine",
+      "dir": "t09-trend-watcher",
+      "status": "in-progress",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div style=\"background:#1414c8;padding:48px 32px;text-align:center;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:44px;letter-spacing:10px;\">SWELL LINE</div>\n  <div style=\"color:#f4f6ff;font-size:13px;letter-spacing:3px;margin-top:10px;\">T09 — TREND WATCHER · HARD · 200 PTS · SKILLENGINE</div>\n  <div style=\"color:#b9c2f5;font-size:14px;font-style:italic;margin-top:18px;\">\"The sea never lies about its direction — only about its timing.\"</div>\n</div>\n\n1. Verdict in 30 seconds\n\nSwell Line watches Atlantic's fee market and answers one question honestly:\n**is gas trending up, or is that just a wave?** It samples real `baseFeePerGas`\nper block, runs a 5/15 moving-average crossover with a 0.5% confirmation band,\nand FIRES only after **3 consecutive above-band readings** — a single spike\ncan never trigger it (the streak resets, proven by demo and by test).",
+      "has_evidence_json": true,
+      "evidence": {
+        "artifact": "t09-trend-watcher evidence packet",
+        "chain": {
+          "chainId": 688689,
+          "explorer": "https://atlantic.pharosscan.xyz/",
+          "name": "Atlantic testnet",
+          "nativeToken": "PHRS",
+          "rpc": "https://atlantic.dplabs-internal.com"
+        },
+        "claim": "Swell Line detects fee-market trends with a 5/15 MA crossover + raw-reading confirmation band; FIRES only after 3 consecutive above-band readings; single spikes provably do not trigger.",
+        "claimKind": "LIVE",
+        "demoA_spikeHarness": {
+          "fired": false,
+          "label": "SYNTHETIC-CONTROLLED",
+          "mode": "synthetic",
+          "run": "node bin/run.mjs spike-demo",
+          "series": "14x 10 gwei, 1x 50 gwei spike, 6x 10 gwei",
+          "spikeStreak": 1,
+          "streakAfterDip": 0,
+          "transcript": "sample-output/spike-demo-synthetic.txt"
+        },
+        "demoB_sustainedHarness": {
+          "cooldownHolds": true,
+          "firedAtSyntheticBlock": 99000016,
+          "label": "SYNTHETIC-CONTROLLED",
+          "mode": "synthetic",
+          "reason": "CONFIRMED_3X_ABOVE_BAND",
+          "run": "node bin/run.mjs sustained-demo",
+          "transcript": "sample-output/sustained-demo-synthetic.txt"
+        },
+        "gasSpentWei": "0",
+        "liveRuns": [
+          {
+            "blockRange": [
+              31481567,
+              31481596
+            ],
+            "chainId": 688689,
+            "command": "node bin/run.mjs observe",
+            "cycle": "2026-10-16T04:13Z approx",
+            "decision": "HOLD",
+            "gasSpotGwei": [
+              10,
+              10,
+              10,
+              10,
+              10
+            ],
+            "gasSpotNote": "context only, not in MA math",
+            "metric": "baseFeePerGas",
+            "mode": "LIVE",
+            "observationsPersisted": 30,
+            "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+            "samples": [
+              {
+                "blockNumber": 31481567,
+                "fastMAWei": null,
+                "mode": "LIVE",
+                "slowMAWei": null,
+                "trend": "WARMUP",
+                "valueWei": "1000000000"
+              },
+              {
+                "blockNumber": 31481586,
+                "fastMAWei": "1000000000",
+                "mode": "LIVE",
+                "slowMAWei": "1000000000",
+                "trend": "FLAT",
+                "valueWei": "1000000000"
+              },
+              {
+                "blockNumber": 31481596,
+                "fastMAWei": "1000000000",
+                "mode": "LIVE",
+                "slowMAWei": "1000000000",
+                "trend": "FLAT",
+                "valueWei": "1000000000"
+              }
+            ],
+            "signal": "NO SIGNAL — market flat inside the 0.5% band"
+          },
+          {
+            "blockRange": [
+              31481649,
+              31481678
+            ],
+            "chainId": 688689,
+            "command": "node bin/run.mjs observe",
+            "cycle": "2026-10-16T04:15Z approx",
+            "decision": "HOLD",
+            "gasSpotGwei": [
+              10,
+              10,
+              10,
+              10,
+              10
+            ],
+            "gasSpotNote": "context only, not in MA math",
+            "metric": "baseFeePerGas",
+            "mode": "LIVE",
+            "observationsPersisted": 30,
+            "priorsLoadedFrom": "state/runtime.json (samplesTotal 30 -> 60)",
+            "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+            "signal": "NO SIGNAL — market flat inside the 0.5% band"
+          }
+        ],
+        "metric": {
+          "name": "baseFeePerGas",
+          "source": "eth_feeHistory",
+          "unit": "wei (displayed gwei)"
+        },
+        "mode": "LIVE",
+        "priors": {
+          "cooldownBlocks": 20,
+          "lastFireBlock": null,
+          "samplesTotal": 60,
+          "streak": 0
+        },
+        "requirementsCoverage": {
+          "1_persistBetweenRuns": "state/observations.jsonl + runtime.json; run2 samplesTotal 30->60 proves load",
+          "2_loadPriorsAndThresholdRule": "store.loadPriors + decide() dual-condition rule",
+          "3_multipleConfirmations": "FIRE only at streak>=3; unit test + demoB",
+          "4_singleSpikeNoTrigger": "demoA + unit test",
+          "5_summaryAndWhy": "node bin/run.mjs report -> sample-output/live-report.txt"
+        },
+        "task": "T09 Trend Watcher (Swell Line)",
+        "trendParams": {
+          "bandBps": 50,
+          "confirmations": 3,
+          "cooldownBlocks": 20,
+          "fastWindow": 5,
+          "slowWindow": 15
+        },
+        "unitTests": {
+          "command": "npm test",
+          "mode": "synthetic-math-only",
+          "pass": 12,
+          "total": 12
+        }
+      },
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": []
+    },
+    {
+      "id": "T10",
+      "slug": "t10-batch-executor",
+      "name": "Batch Executor",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "SkillEngine",
+      "dir": "t10-batch-executor",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:12px;\">\n  <p style=\"color:#b9c2f5;letter-spacing:6px;font-size:12px;margin:0 0 8px 0;\">LIGHTKEEPER · TWENTY-EIGHT LAMPS</p>\n  <h1 style=\"color:#d9a821;font-family:Georgia,'Times New Roman',serif;font-size:52px;letter-spacing:10px;margin:0;\">FLOTILLA</h1>\n  <p style=\"color:#ffffff;font-size:15px;margin:16px 0 0 0;font-style:italic;\">One signature launches the fleet — every ship accounted for, even the one that sinks.</p>\n</div>\n\nT10 — Batch Executor (\"Flotilla\")\n\n1. Verdict (the 30-second test)",
+      "has_evidence_json": true,
+      "evidence": {
+        "chain_id": 688689,
+        "contracts": {
+          "BatchDistributor": {
+            "address": "0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4",
+            "deploy_gas_used": 608947,
+            "deploy_tx": "0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30"
+          },
+          "RevertingReceiver": {
+            "address": "0x49b26d4685262e7756cbE623f134cFa97d142B94",
+            "deploy_gas_used": 99083,
+            "deploy_tx": "0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b",
+            "purpose": "partial-failure fixture: refuses native transfers so the batch can prove isolation"
+          }
+        },
+        "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "final_balances_wei": {
+          "0x107DCf4CdDCB1a092f728D46A900D7e474C224BE": "3500000000000000",
+          "0x174CFa52Eb47368A74Aa194471ADC745B6b248cA": "3500000000000000",
+          "0x25b3471a368F52A12169f7BCC7b9cd424950355b": "2500000000000000",
+          "0x5dc79689CAADc7B92588F8fE6FD2bBAb35945981": "2500000000000000",
+          "0x74B8CEf859d3B34b05285F9865D398EB5DE6B8aE": "2500000000000000",
+          "0x857ECee811EE5C421c489A38B66A077418948dA5": "2500000000000000",
+          "0x8735119FFC44d0dfed808260265686Aa96f7c155": "2500000000000000",
+          "0xb106705378ADb7BC179CD28c939Bc7d10d15bb5A": "2500000000000000",
+          "0xd5c0032d4561CcD1B0268391eA98F2F5a84Ed12A": "2500000000000000",
+          "0xe05388e4BDC339e9dD265204998c20EFc93683a7": "2500000000000000",
+          "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3": "5919898423316398420"
+        },
+        "gas_report": {
+          "breakeven_recipients": "~11 (matches the SkillEngine 11-200 mode boundary)",
+          "individual_baseline_gas_per_send": 21000,
+          "individual_baseline_source": "3 live sequential sends on Atlantic (receipts), confirmed by cast estimate",
+          "marginal_per_recipient_gas": "~13866 (from live estimates at n=1/2/3: 87416/100979/115148)",
+          "projected_saving_at_n200_pct": "~32",
+          "saving_gas_at_n12": 21595,
+          "saving_pct_at_n12": 8.6,
+          "single_batch_12_existing_recipients_gas": 230405,
+          "twelve_individual_sends_gas": 252000
+        },
+        "links_verified_http200": 11,
+        "network": "atlantic-testnet",
+        "portal_share_link": "PENDING-PORTAL",
+        "runs": [
+          {
+            "mode": "simple",
+            "recipients": 3,
+            "txs": [
+              {
+                "gas_used": 21000,
+                "hash": "0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea",
+                "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+                "value_wei": "1000000000000000"
+              },
+              {
+                "gas_used": 21000,
+                "hash": "0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965",
+                "to": "0x174CFa52Eb47368A74Aa194471ADC745B6b248cA",
+                "value_wei": "1000000000000000"
+              },
+              {
+                "gas_used": 21000,
+                "hash": "0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee",
+                "to": "0x107DCf4CdDCB1a092f728D46A900D7e474C224BE",
+                "value_wei": "1000000000000000"
+              }
+            ]
+          },
+          {
+            "mode": "single-batch",
+            "note": "recipient #11 is the RevertingReceiver fixture (intentional failure, clearly labeled)",
+            "recipients": 12,
+            "txs": [
+              {
+                "batch_executed": {
+                  "failed": 1,
+                  "succeeded": 11,
+                  "total": 12,
+                  "total_value_wei": "12000000000000000"
+                },
+                "block": 31481710,
+                "failed_recipient": "0x49b26d4685262e7756cbE623f134cFa97d142B94",
+                "first_touch_note": "8 recipients were brand-new addresses; 8x25000 G_newaccount = 200000 of the gas",
+                "gas_used": 430405,
+                "hash": "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b",
+                "status": "0x1"
+              },
+              {
+                "gas_used": 230405,
+                "hash": "0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94",
+                "note": "repeat of the same 12-recipient batch after all recipients exist; proves the 200000 first-touch delta",
+                "status": "0x1"
+              }
+            ]
+          },
+          {
+            "chunk_size": 6,
+            "chunk_size_note": "reduced from 200 for the live demo so the chunking path executes on-chain; honestly labeled",
+            "mode": "multi-batch",
+            "recipients": 12,
+            "txs": [
+              {
+                "chunk": "1/2",
+                "gas_used": 115163,
+                "hash": "0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913",
+                "recipients": 6
+              },
+              {
+                "chunk": "2/2",
+                "gas_used": 121208,
+                "hash": "0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8",
+                "note": "chunk 2/2 includes the RevertingReceiver: 5 succeeded, 1 isolated failure",
+                "recipients": 6
+              }
+            ]
+          }
+        ],
+        "spend_log_phrs": {
+          "budget_cap": 0.15,
+          "dust_net_sent": "0.0305",
+          "gas_by_tx": {
+            "0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94": "0.000230405230405",
+            "0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913": "0.000115163115163",
+            "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b": "0.000430405430405",
+            "0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b": "0.000099083099083",
+            "0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30": "0.000608947608947",
+            "0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8": "0.000121208121208",
+            "simple_x3": "0.000189000000189"
+          },
+          "gas_total": "0.001668211668211",
+          "grand_total": "0.032168211668211",
+          "within_budget": true
+        },
+        "task": "t10-batch-executor",
+        "task_title": "Flotilla — Batch Executor",
+        "tests": {
+          "forge": "12/12 passed",
+          "node_mode_selection": "9/9 passed"
+        },
+        "video_slot": "PENDING-VIDEO"
+      },
+      "txs": [
+        "0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30",
+        "0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b",
+        "0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea",
+        "0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965",
+        "0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee",
+        "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b",
+        "0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94",
+        "0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913",
+        "0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30",
+        "https://atlantic.pharosscan.xyz/tx/0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b",
+        "https://atlantic.pharosscan.xyz/tx/0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea",
+        "https://atlantic.pharosscan.xyz/tx/0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965",
+        "https://atlantic.pharosscan.xyz/tx/0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee",
+        "https://atlantic.pharosscan.xyz/tx/0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b",
+        "https://atlantic.pharosscan.xyz/tx/0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94",
+        "https://atlantic.pharosscan.xyz/tx/0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913",
+        "https://atlantic.pharosscan.xyz/tx/0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8",
+        "https://atlantic.pharosscan.xyz/address/0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4",
+        "https://atlantic.pharosscan.xyz/address/0x49b26d4685262e7756cbE623f134cFa97d142B94",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0x174CFa52Eb47368A74Aa194471ADC745B6b248cA",
+        "https://atlantic.pharosscan.xyz/address/0x107DCf4CdDCB1a092f728D46A900D7e474C224BE"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": "",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30"
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        }
+      ]
+    },
+    {
+      "id": "T11",
+      "slug": "policy-gatekeeper",
+      "name": "Policy Gatekeeper",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "SkillEngine",
+      "dir": "t11-policy-gatekeeper",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div style=\"background:#1414c8;padding:48px 32px;text-align:center;border-radius:4px\">\n<div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:44px;letter-spacing:10px\">POLICY GATEKEEPER</div>\n<div style=\"color:#f4f6ff;font-family:Georgia,serif;font-style:italic;font-size:17px;margin-top:14px\">One lighthouse. Twenty-eight lamps. — <b>T11</b>, the arm that says <i>no</i>.</div>\n<div style=\"color:#b9c2f5;font-size:13px;margin-top:10px;letter-spacing:2px\">LIGHTKEEPER · PHAROS AGENT ARENA · TASK 11 · 100 PTS</div>\n</div>\n\n*No agent writes to the chain until the policy has spoken — and every word is written down.*\n\nThe Policy Gatekeeper is a pre-execution policy engine for **agent write\nactions**. Before any write is proposed to the chain, the gate evaluates it\nagainst a versioned `policy.json` and returns **APPROVE** (with a gate\nstamp) or **DENY** (with the named rul…",
+      "has_evidence_json": true,
+      "evidence": {
+        "_note": "Spend is computed from the receipt of T11's own broadcast (value + gasUsed*effectiveGasPrice). The wallet is shared by 28 workers, so raw balance deltas are NOT attributable and are not used.",
+        "audit": {
+          "chain_verified": true,
+          "entries": 5,
+          "file": "audit/check-log.jsonl"
+        },
+        "budget_phrs_max": 0.15,
+        "evidence_runs": [
+          {
+            "action": "native_transfer 0.001 PHRS to non-allowlisted 0x1111...1111",
+            "audit_seq": 1,
+            "broadcast": false,
+            "decision": "DENIED",
+            "name": "RUN A (violating)",
+            "reason_rule": "destination_allowlist"
+          },
+          {
+            "action": "native_transfer 0.001 PHRS to allowlisted dust sink 0x0000...dEaD",
+            "audit_seq": [
+              2,
+              5
+            ],
+            "broadcast": true,
+            "decision": "APPROVED then EXECUTED",
+            "name": "RUN B (compliant)",
+            "reason_rule": "all 8 rules PASS"
+          },
+          {
+            "action": "native_transfer on chain_id 1672 (mainnet)",
+            "audit_seq": 4,
+            "broadcast": false,
+            "decision": "REFUSED_MAINNET",
+            "name": "mainnet proposal",
+            "reason_rule": "network_firewall (mainnet.enabled=false)"
+          },
+          {
+            "action": "execute with tampered gate stamp",
+            "audit_seq": 3,
+            "broadcast": false,
+            "decision": "REFUSED (no-bypass)",
+            "name": "no-bypass demo",
+            "reason_rule": "stamp signature mismatch"
+          }
+        ],
+        "policy_hash": "403e6395e173008667cd68d8bcc1876ce20c746fa32a8e55b717294a7243515d",
+        "policy_id": "t11-policy-v1",
+        "spend_log": [
+          {
+            "amount_phrs": 0.001,
+            "block": 31481699,
+            "detail": "dust transfer to allowlisted sink after APPROVE",
+            "effective_gas_price_wei": 1000000001,
+            "gas_cost_phrs": 0.00002100021,
+            "gas_used": 21000,
+            "tx_hash": "0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb"
+          }
+        ],
+        "tests": "22/22 pass (tests/test_policy_engine.py)",
+        "total_spent_phrs": 0.00102100021,
+        "txs": [
+          {
+            "block": 31481699,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb",
+            "hash": "0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb",
+            "kind": "APPROVED dust broadcast (RUN B)",
+            "status": "0x1 success",
+            "value_phrs": 0.001
+          }
+        ]
+      },
+      "txs": [
+        "0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": []
+    },
+    {
+      "id": "T12",
+      "slug": "skill-chain-flow",
+      "name": "Skill + Chain MCP Flow",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Composition",
+      "dir": "t12-skill-chain-flow",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:8px;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:52px;letter-spacing:14px;font-weight:bold;\">T12 · SKILL + CHAIN FLOW</div>\n  <div style=\"color:#f4f6ff;font-size:15px;margin-top:16px;letter-spacing:2px;\"><i>The keeper reads the sea before it lets the hand cast a single coin.</i></div>\n</div>\n\n> LIGHTKEEPER · Task 12 — **Skill + Chain MCP Flow** (Medium · 100 pts · Composition)\n\nOne end-to-end composition flow that reproduces the portal pattern from MEGA §240:\n**read live state via Chain MCP-class tools → invoke a skill action on that data → verify via chain queries** — all from a single user request, in one session.",
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_phrs": "0.15",
+        "contrast_runs": [
+          {
+            "broadcast": true,
+            "label": "allow",
+            "live_balance_phrs_at_read": "5.91989842331639842",
+            "live_gas_gwei_at_read": 10,
+            "live_pingCount_at_read": 0,
+            "pingCount_after": 1,
+            "proposed_amount_phrs": "0.0001",
+            "tx_hash": "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+            "verdict": "ALLOW"
+          },
+          {
+            "blocked_by": [
+              "RULE-AMOUNT"
+            ],
+            "broadcast": false,
+            "label": "block",
+            "live_balance_phrs_at_read": "5.868857845315957842",
+            "live_gas_gwei_at_read": 10,
+            "live_pingCount_at_read": 1,
+            "pingCount_after": 1,
+            "proposed_amount_phrs": "0.1",
+            "verdict": "BLOCK"
+          }
+        ],
+        "network": {
+          "chain_id": 688689,
+          "chain_id_hex": "0xa8231",
+          "explorer": "https://atlantic.pharosscan.xyz/",
+          "name": "atlantic-testnet",
+          "native_token": "PHRS",
+          "rpc_url": "https://atlantic.dplabs-internal.com"
+        },
+        "notes": [
+          "All txs on Atlantic testnet (chain 688689) only. No mainnet touched.",
+          "allow-1 (run_id allow-1-1792124095): skill BLOCKED on RULE-FRESHNESS (10-block window too tight for Atlantic's ~1s blocks); verified pingCount 0->0. This run exposed the window issue and the policy was corrected BEFORE any execution.",
+          "allow-1 (run_id allow-1-1792124145): skill ALLOWed but broadcast crashed on a cast --value encoding bug (ether-decimal passed where wei-integer is required); NO tx was broadcast. Both runs are preserved in the transcript as authentic run history.",
+          "Balance changes between runs are visible in transcripts; the shared deployer key is used by other T-workers concurrently, so the wallet balance moves independently of T12.",
+          "Portal Chain MCP hosted endpoint is mainnet-only (verdict P-patch); T12 reproduces the portal pattern locally with cast against Atlantic (same tool boundaries: read via chain queries -> skill action on that data -> verify via chain queries)."
+        ],
+        "runs": [
+          {
+            "block": 31481433,
+            "effective_gas_price_wei": 1000000001,
+            "explorer_tx": "https://atlantic.pharosscan.xyz/tx/0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3",
+            "fee_phrs": "0.0002683053",
+            "gas_used": 268305,
+            "purpose": "deploy KeeperPing (composition target contract)",
+            "run_label": "deploy",
+            "status": 1,
+            "tx_hash": "0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3",
+            "value_phrs": "0"
+          },
+          {
+            "block": 31482141,
+            "effective_gas_price_wei": 1000000001,
+            "explorer_tx": "https://atlantic.pharosscan.xyz/tx/0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+            "fee_phrs": "0.0000678987",
+            "gas_used": 67898,
+            "purpose": "skill verdict ALLOW -> ping() dust tx (0.0001 PHRS)",
+            "run_label": "allow-3",
+            "status": 1,
+            "tx_hash": "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+            "value_phrs": "0.0001",
+            "verify": "pingCount() 0 -> 1, as expected"
+          },
+          {
+            "block": null,
+            "purpose": "skill verdict BLOCK (RULE-AMOUNT: 0.1 > 0.005 PHRS max) -> no broadcast",
+            "run_label": "block-1",
+            "status": null,
+            "tx_hash": null,
+            "verify": "pingCount() 1 -> 1 (unchanged), as expected"
+          }
+        ],
+        "sender": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "slug": "skill-chain-flow",
+        "spend_log": [
+          {
+            "entry": "deploy KeeperPing",
+            "fee_phrs": "0.0002683053",
+            "tx": "0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3",
+            "value_phrs": "0"
+          },
+          {
+            "entry": "allow-3 ping() dust execute",
+            "fee_phrs": "0.0000678987",
+            "tx": "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+            "value_phrs": "0.0001"
+          },
+          {
+            "entry": "block-1",
+            "fee_phrs": "0",
+            "tx": null,
+            "value_phrs": "0"
+          }
+        ],
+        "target_contract": "0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1",
+        "task": "T12",
+        "total_spent_phrs": "0.0004362040",
+        "transcript": "run-logs/flow-transcript.jsonl",
+        "under_budget": true,
+        "unit_tests": "tests/test_policy.py (8/8 pass)"
+      },
+      "txs": [
+        "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+        "0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+        "https://atlantic.pharosscan.xyz/tx/0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": "",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349"
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        }
+      ]
+    },
+    {
+      "id": "T13",
+      "slug": "docs-chain-agent",
+      "name": "Docs MCP + Chain MCP Agent",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Composition",
+      "dir": "t13-docs-chain-agent",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T14",
+      "slug": "t14",
+      "name": "Portfolio Assistant",
+      "tier": "Hard",
+      "points": 200,
+      "toolkit": "DeFi / Portfolio",
+      "dir": "t14",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": true,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T15",
+      "slug": "t15",
+      "name": "Yield Optimizer",
+      "tier": "Hard",
+      "points": 200,
+      "toolkit": "DeFi / Portfolio",
+      "dir": "t15",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": true,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T16",
+      "slug": "liquidation-watchdog",
+      "name": "Liquidation Watchdog",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "DeFi / Portfolio",
+      "dir": "t16-liquidation-watchdog",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:4px;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:42px;letter-spacing:14px;\">LIQUIDATION&nbsp;WATCHDOG</div>\n  <div style=\"color:#ffffff;font-size:15px;margin-top:18px;font-style:italic;\">The octopus never blinks — one arm on every position, one lamp for every warning.</div>\n  <div style=\"color:#b9c2f5;font-size:12px;margin-top:10px;letter-spacing:3px;\">LIGHTKEEPER · T16 · PHAROS ATLANTIC</div>\n</div>\n\nA liquidation watchdog for on-chain lending positions. A minimal lending pool\n(`MiniLend`) computes a **real Aave-style health factor on-chain**; an off-chain\nwatcher reads it live, evaluates it against configurable thresholds, and fires a\n**single transition-only Telegram alert** carrying a **concrete action** —\nrepay $X of debt, or add Y PHRS collateral. Proven end-to-end…",
+      "has_evidence_json": true,
+      "evidence": {
+        "chain_id": 688689,
+        "contract": "0x108989a165a446e1d89CEe3C9936344ea7ADbf4a",
+        "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "explorer": "https://atlantic.pharosscan.xyz/",
+        "links_curl_verified": true,
+        "network": "Pharos Atlantic testnet",
+        "secrets_in_repo": false,
+        "spend": {
+          "budget_phrs": 0.15,
+          "dust_value_locked_in_position_phrs": 0.001,
+          "note": "Budget counts gas. 0.002 PHRS deposited as collateral; 0.001 PHRS borrowed out; 0.000000267 PHRS repaid. Net locked in pool: 0.001 PHRS collateral + $0.0016 debt.",
+          "total_gas_phrs": 0.001643544001643544
+        },
+        "task": "T16 Liquidation Watchdog",
+        "telegram": {
+          "alert_block": 31481762,
+          "alert_health_factor": 1.2,
+          "alert_zone": "WARNING",
+          "alerts_sent": 1,
+          "bot_validated_via_getMe": true,
+          "channel": "Telegram",
+          "concrete_action_in_alert": "repay $0.000400 of debt OR add 0.000267 PHRS collateral to restore HF >= 1.5",
+          "duplicate_alerts": 0,
+          "message_id": 716,
+          "note": "Transition-only: re-runs in WARNING sent nothing; recovery run logged RECOVERED with no alert."
+        },
+        "transactions": [
+          {
+            "block": 31481451,
+            "curl_http": 200,
+            "description": "Deploy MiniLend with initial oracle price $2.00 (200000000, 8dp)",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+            "gas_cost_phrs": 0.001476456001476456,
+            "gas_price_wei": 1000000001,
+            "gas_used": 1476456,
+            "hash": "0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+            "step": "1-deploy"
+          },
+          {
+            "block": 31481508,
+            "curl_http": 200,
+            "description": "Open position: deposit 0.002 PHRS collateral",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+            "gas_cost_phrs": 0.00004522000004522,
+            "gas_price_wei": 1000000001,
+            "gas_used": 45220,
+            "hash": "0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+            "step": "2-deposit",
+            "value_phrs": 0.002
+          },
+          {
+            "block": 31481539,
+            "curl_http": 200,
+            "description": "Borrow $0.002 (200000 units, 8dp) against collateral — HF 1.6, healthy",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+            "gas_cost_phrs": 0.000059838000059838,
+            "gas_price_wei": 1000000001,
+            "gas_used": 59838,
+            "hash": "0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+            "step": "3-borrow"
+          },
+          {
+            "block": 31481741,
+            "curl_http": 200,
+            "description": "REAL state change: oracle setPrice $2.00 -> $1.50 — HF 1.6 -> 1.2 (WARNING zone)",
+            "event": "PriceUpdated(old=200000000, new=150000000, block=31481741)",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+            "gas_cost_phrs": 0.000030848000030848,
+            "gas_price_wei": 1000000001,
+            "gas_used": 30848,
+            "hash": "0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+            "step": "4-price-drop"
+          },
+          {
+            "block": 31481869,
+            "curl_http": 200,
+            "description": "Repay $0.0004 of debt (266666666666667 wei) — HF 1.2 -> 1.5, position recovered",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4",
+            "gas_cost_phrs": 0.000031182000031182,
+            "gas_price_wei": 1000000001,
+            "gas_used": 31182,
+            "hash": "0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4",
+            "step": "5-repay-recovery",
+            "value_phrs": 2.66666666667e-7
+          }
+        ],
+        "unit_tests": {
+          "failed": 0,
+          "passed": 9,
+          "suite": "forge test"
+        },
+        "watcher_runs": [
+          {
+            "alert": false,
+            "at": "2026-10-16T04:13:33Z",
+            "block": 31481623,
+            "hf": 1.6,
+            "zone": "OK"
+          },
+          {
+            "alert": true,
+            "at": "2026-10-16T04:15:51Z",
+            "block": 31481762,
+            "hf": 1.2,
+            "telegram_message_id": 716,
+            "zone": "WARNING"
+          },
+          {
+            "alert": false,
+            "at": "2026-10-16T04:16:18Z",
+            "block": 31481788,
+            "hf": 1.2,
+            "note": "no duplicate alert",
+            "zone": "WARNING"
+          },
+          {
+            "alert": false,
+            "at": "2026-10-16T04:18:32Z",
+            "block": 31481892,
+            "hf": 1.5,
+            "note": "RECOVERED after real repay",
+            "zone": "OK"
+          }
+        ]
+      },
+      "txs": [
+        "0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+        "0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+        "0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+        "0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+        "0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+        "https://atlantic.pharosscan.xyz/tx/0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+        "https://atlantic.pharosscan.xyz/tx/0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+        "https://atlantic.pharosscan.xyz/tx/0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+        "https://atlantic.pharosscan.xyz/tx/0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4",
+        "https://atlantic.pharosscan.xyz/address/0x108989a165a446e1d89CEe3C9936344ea7ADbf4a",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": []
+    },
+    {
+      "id": "T17",
+      "slug": "nl-payment-agent",
+      "name": "Natural-Language Payment Agent",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Payments",
+      "dir": "t17-nl-payment-agent",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:8px;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:42px;letter-spacing:14px;\">T17</div>\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:20px;letter-spacing:6px;margin-top:12px;\">NATURAL-LANGUAGE PAYMENT AGENT</div>\n  <div style=\"color:#f4f6ff;font-size:14px;margin-top:16px;font-style:italic;\">One lamp of twenty-eight — the octopus reads your words, and never moves a coin it was not told to move.</div>\n</div>\n\nA natural-language payment agent for **Pharos Atlantic testnet** (chain id\n688689). You type `send 0.01 PHRS to 0x…`; the agent parses it into a\nstructured plan, validates it against the chain, shows you a human-readable\n**REVIEW** card, and only moves funds after you type the exact phrase\n`CONFIRM <plan_id>`. Ambiguous input is **refu…",
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_max_phrs": 0.15,
+        "budget_remaining_phrs": 0.124958,
+        "chain": "Pharos Atlantic testnet",
+        "chain_id": 688689,
+        "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "explorer": "https://atlantic.pharosscan.xyz",
+        "name": "Natural-Language Payment Agent",
+        "notes": [
+          "Recipients are unspendable test fixtures (random addresses, no keys); dust only, testnet only.",
+          "Key material: never in repo, never in logs, never in transcripts; broadcasts used ATLANTIC_DEPLOYER_KEY from env via flock /tmp/lk-nonce.lock nonce-safe pattern.",
+          "No secrets appear in this file or any committed file."
+        ],
+        "runs": [
+          {
+            "amount_phrs": "0.01",
+            "block_number": "0x1e05fd7",
+            "effective_gas_price_wei": "0x3b9aca01",
+            "gas_used": "0x5208",
+            "input": "send 0.01 PHRS to 0x0b0da9286706fa44be3d845b1ecf2cdd8df93625",
+            "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt",
+            "plan_id": "ce4ba5f352f56718",
+            "receipt_status": "0x1",
+            "recipient": "0x0b0Da9286706fa44Be3d845b1eCf2cDD8df93625",
+            "run_id": "27845082",
+            "tx_hash": "0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+            "tx_url": "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+            "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+          },
+          {
+            "input": "send 0.01 PHRS or 0.02 PHRS to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+            "outcome": "REFUSED at parse: multiple PHRS amounts, will not pick one; review aborts; no broadcast; no tx",
+            "plan_id": null,
+            "run_id": "f8e7894d",
+            "tx_hash": null,
+            "verification": "n/a — nothing broadcast"
+          },
+          {
+            "amount_phrs": "0.015",
+            "block_number": "0x1e060b1",
+            "effective_gas_price_wei": "0x3b9aca01",
+            "gas_used": "0x5208",
+            "input": "pay 0.015 phrs to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+            "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt",
+            "plan_id": "ac03460074cdc321",
+            "receipt_status": "0x1",
+            "recipient": "0x709d6964E15D52b392Ad17e7fFF848C9733FA329",
+            "run_id": "4cd4dfc6",
+            "tx_hash": "0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+            "tx_url": "https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+            "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+          }
+        ],
+        "spend_log": [
+          {
+            "item": "run 27845082 dust transfer",
+            "phrs": 0.01
+          },
+          {
+            "item": "run 27845082 gas (21000 @ 1000000001 wei)",
+            "phrs": 0.000021
+          },
+          {
+            "item": "run 4cd4dfc6 dust transfer",
+            "phrs": 0.015
+          },
+          {
+            "item": "run 4cd4dfc6 gas (21000 @ 1000000001 wei)",
+            "phrs": 0.000021
+          },
+          {
+            "item": "run f8e7894d (refused, no broadcast)",
+            "phrs": 0
+          }
+        ],
+        "task": "T17",
+        "total_spent_phrs": 0.025042,
+        "transcripts": [
+          "runs/27845082/transcript.log",
+          "runs/f8e7894d/transcript.log",
+          "runs/4cd4dfc6/transcript.log"
+        ],
+        "unit_tests": "20/20 PASS (tests/test_parser.py: valid, invalid, ambiguous, prompt-injection, no-signing-code grep)"
+      },
+      "txs": [
+        "0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+        "0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+        "https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0x0b0Da9286706fa44Be3d845b1eCf2cDD8df93625",
+        "https://atlantic.pharosscan.xyz/address/0x709d6964E15D52b392Ad17e7fFF848C9733FA329"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": "",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f"
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run: guardian run",
+          "detail": "",
+          "at": ""
+        }
+      ]
+    },
+    {
+      "id": "T18",
+      "slug": "t18-recurring-payment-agent",
+      "name": "Recurring Payment Agent",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Payments",
+      "dir": "t18-recurring-payment-agent",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8; padding:48px 24px; border-radius:12px;\">\n\n<span style=\"color:#b9c2f5; letter-spacing:6px; font-size:12px;\">LIGHTKEEPER · TASK 18 · ONE OF TWENTY-EIGHT LAMPS</span>\n\n<h1 style=\"font-family:Georgia,'Times New Roman',serif; color:#d9a821; letter-spacing:10px; font-size:52px; margin:16px 0;\">TIDE</h1>",
+      "has_evidence_json": true,
+      "evidence": {
+        "arena": {
+          "difficulty": "Medium",
+          "points": 100,
+          "task": "T18",
+          "title": "Recurring Payment Agent (TIDE)",
+          "toolkit": "Payments"
+        },
+        "chain": {
+          "chain_id": 688689,
+          "explorer": "https://atlantic.pharosscan.xyz/",
+          "network": "atlantic-testnet"
+        },
+        "cron": {
+          "installed": false,
+          "installer": "scripts/install-cron.sh",
+          "note": "SkillEngine has no native cron (confirmed-absent primitive G1). Ticks run on the operator's system cron; the installer script prints the line and docs but installs nothing. No schedule is running."
+        },
+        "honesty": {
+          "demo_recipient": "self-payment dust to the operator wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 — a real on-chain transfer (nonce 55, gas paid) that keeps funds in the shared test wallet",
+          "erc20": "NOT supported in this build (native PHRS only) — roadmap, not a claim",
+          "mocks": "none",
+          "post_evidence": "schedule tide-demo-01 CANCELLED after evidence capture so no future cron install can pay from it",
+          "secrets_in_repo": "none"
+        },
+        "live_installment": {
+          "amount_phrs": "0.0005",
+          "block": 31481497,
+          "chain_id": 688689,
+          "explorer_curl": "HTTP 200",
+          "explorer_url": "https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10",
+          "fee_phrs": "0.000021",
+          "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "installment": 0,
+          "receipt_status": "0x1",
+          "schedule_id": "tide-demo-01",
+          "sender_nonce": 55,
+          "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "tx_hash": "0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10",
+          "value_wei": "500000000000000"
+        },
+        "schedule": {
+          "amount_phrs": "0.0005",
+          "interval": "weekly",
+          "max_runs": 4,
+          "recipient": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "schedule_id": "tide-demo-01",
+          "start_time": "2026-10-16T00:00:00Z",
+          "stop_conditions": {
+            "expires_at": null,
+            "min_balance_after_phrs": "1.0"
+          },
+          "token": "PHRS",
+          "token_type": "native"
+        },
+        "spend_log": [
+          {
+            "item": "installment 0 value",
+            "phrs": "0.0005"
+          },
+          {
+            "item": "installment 0 fee (21000 gas)",
+            "phrs": "0.000021"
+          }
+        ],
+        "spend_total_phrs": "0.000521",
+        "tests": {
+          "command": "python3 tests/test_idempotency.py",
+          "idempotency": "3 ticks -> 1 broadcast (double-tick pays exactly once)",
+          "passed": 12,
+          "total": 12
+        },
+        "transcripts": {
+          "01": "evidence/01-status-before.txt",
+          "02": "evidence/02-tick-paid.txt",
+          "03": "evidence/03-tick-skip-rerun.txt",
+          "04": "evidence/04-pause.txt",
+          "05": "evidence/05-resume.txt",
+          "06": "evidence/06-cancel.txt",
+          "07": "evidence/07-status-final.txt"
+        },
+        "unit_tests_note": "pure logic, no network; chain functions stubbed and labeled as such"
+      },
+      "txs": [
+        "0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": []
+    },
+    {
+      "id": "T19",
+      "slug": "invoice-to-payment-agent",
+      "name": "Invoice-to-Payment Agent",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Payments",
+      "dir": "t19-invoice-to-payment-agent",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div style=\"background:#1414c8;padding:56px 32px;text-align:center;border-radius:4px;\">\n<div style=\"font-family:Didot,'Bodoni MT',Georgia,serif;color:#d9a821;font-size:44px;letter-spacing:0.35em;margin:0;\">INVOICE&nbsp;ARM</div>\n<div style=\"font-family:Didot,'Bodoni MT',Georgia,serif;color:#e8c766;font-size:15px;letter-spacing:0.5em;margin-top:10px;\">T19 &middot; THE OCTOPUS PAYS ITS DEBTS</div>\n<div style=\"color:#ffffff;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.9;margin-top:22px;font-style:italic;\">One tentacle reads the bill. One tentacle checks it twice.<br/>No coin leaves the lighthouse unreviewed.</div>\n</div>\n\nT19 — Invoice-to-Payment Agent\n\nA payment agent that turns an invoice file into a real on-chain payment on\nPharos Atlantic testnet — with a human review step, explicit confirmation,\nand a paid-stamp ledger that makes double-payment impossible.",
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_phrs": "0.15",
+        "chain_id": 688689,
+        "duplicate_refusal": {
+          "invoice_id": "INV-2026-001",
+          "message": "REFUSED: invoice 'INV-2026-001' was already paid (tx 0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9, stamped 2026-10-16T04:11:16Z). Double-payment prevented.",
+          "second_broadcast_attempted": false
+        },
+        "malformed_battery": [
+          {
+            "file": "samples/invoice-bad-amount.json",
+            "result": "refused: amount -5.0 not > 0"
+          },
+          {
+            "file": "samples/invoice-bad-address.csv",
+            "result": "refused: invalid payee address"
+          },
+          {
+            "file": "samples/invoice-bad-currency.txt",
+            "result": "flagged: unsupported currency USD"
+          },
+          {
+            "file": "samples/invoice-bad-missing.json",
+            "result": "flagged: missing reference"
+          },
+          {
+            "file": "samples/invoice-bad-mismatch.json",
+            "result": "flagged: line-item total mismatch"
+          }
+        ],
+        "net_spent_phrs": "0.000021000021",
+        "paid_stamp": {
+          "amount_phrs": "0.001",
+          "chain_id": 688689,
+          "currency": "PHRS",
+          "effective_gas_price_wei": "1000000001",
+          "explorer": "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+          "gas_used": "21000",
+          "invoice_id": "INV-2026-001",
+          "paid_at_utc": "2026-10-16T04:11:16Z",
+          "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "reference": "LK-T19-DEMO-001",
+          "status": "paid",
+          "tx_hash": "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9"
+        },
+        "payment": {
+          "amount_phrs": "0.001",
+          "amount_wei": "1000000000000000",
+          "block_number": 31491203,
+          "chain": "atlantic-testnet",
+          "chain_id": 688689,
+          "effective_gas_price_wei": "1000000001",
+          "explorer": "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+          "explorer_curl_http": 200,
+          "gas_used": "21000",
+          "invoice_id": "INV-2026-001",
+          "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "reference": "LK-T19-DEMO-001",
+          "status": "0x1",
+          "tx_hash": "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9"
+        },
+        "task": "T19",
+        "tests": {
+          "command": "python3 -m unittest discover -s tests",
+          "passed": 19,
+          "total": 19
+        }
+      },
+      "txs": [
+        "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": []
+    },
+    {
+      "id": "T20",
+      "slug": "onchain-alert-bot",
+      "name": "On-Chain Alert Bot",
+      "tier": "Easy",
+      "points": 50,
+      "toolkit": "Trading / Monitoring",
+      "dir": "t20-onchain-alert-bot",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:56px 24px;border-radius:14px;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:44px;letter-spacing:14px;\">LIGHTKEEPER</div>\n  <div style=\"color:#f4f6ff;font-size:15px;font-style:italic;margin-top:14px;\">One lighthouse. Twenty-eight lamps. This arm watches the chain — and calls out when it moves.</div>\n  <div style=\"color:#b9c2f5;font-size:12px;letter-spacing:6px;margin-top:18px;\">T20 · ON-CHAIN ALERT BOT · 50 PTS</div>\n</div>\n\nT20 — On-Chain Alert Bot\n\nA config-driven on-chain watcher for Pharos Atlantic testnet. It polls block by\nblock, matches transactions against configurable alert conditions, and delivers\neach hit to a real Telegram channel with the tx hash, explorer link, value, and\nblock number — exactly once per event, never twice.",
+      "has_evidence_json": true,
+      "evidence": {
+        "alert": {
+          "bodyIncludes": [
+            "condition",
+            "watched address",
+            "amount in PHRS",
+            "tx hash",
+            "explorer link",
+            "block number",
+            "timestamp"
+          ],
+          "botUsername": "OctaneShift_Bot",
+          "channel": "Telegram sendMessage",
+          "chatId": "1434154285",
+          "condition": "incoming-transfer",
+          "deliveredAt": "2026-10-16T04:19:24Z",
+          "messageId": 717,
+          "tokenValidatedBy": "getMe (ok=true, no secret echoed)"
+        },
+        "artifacts": {
+          "config": "config.yaml",
+          "logs": [
+            "logs/watch.log",
+            "state/alerts.log (runtime, git-ignored)"
+          ],
+          "source": [
+            "src/lib.sh",
+            "src/match.sh",
+            "src/alert.sh",
+            "src/watch.sh",
+            "src/trigger.sh"
+          ],
+          "tests": [
+            "test/match_test.sh"
+          ]
+        },
+        "network": {
+          "chainId": 688689,
+          "chainIdVerifiedBy": "eth_chainId -> 0xa8231 = 688689 (live RPC)",
+          "explorer": "https://atlantic.pharosscan.xyz/",
+          "name": "atlantic-testnet",
+          "nativeToken": "PHRS",
+          "rpc": "https://atlantic.dplabs-internal.com"
+        },
+        "spend": {
+          "budgetPHRS": 0.15,
+          "entries": [
+            {
+              "phrs": "0.000021000000021",
+              "what": "dust trigger tx 0xe6c9f52c... (21000 gas @ 1000000001 wei)"
+            }
+          ],
+          "totalPHRS": "0.000021000000021",
+          "withinBudget": true
+        },
+        "task": "t20-onchain-alert-bot",
+        "tests": {
+          "live": "trigger tx -> watcher detection -> Telegram alert, all real",
+          "unit": "test/match_test.sh",
+          "unitNote": "synthetic fixtures only; NOT live evidence",
+          "unitResult": "16 passed, 0 failed (2026-10-16)"
+        },
+        "trigger": {
+          "blockNumber": 31481424,
+          "effectiveGasPriceWei": "1000000001",
+          "explorerUrl": "https://atlantic.pharosscan.xyz/tx/0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084",
+          "explorerUrlCurlVerified": "HTTP 200 (2026-10-16)",
+          "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "gasUsed": 21000,
+          "kind": "REAL self-test dust transfer (disclosed, Atlantic testnet only)",
+          "status": "0x1",
+          "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "txHash": "0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084",
+          "valuePHRS": "0.001",
+          "valueWei": "1000000000000000"
+        },
+        "video": "PENDING-VIDEO (see VIDEO-GUIDE.md)",
+        "watcher": {
+          "config": "config.yaml (3 conditions; large-transfer threshold 0.5 PHRS)",
+          "confirmBlocks": 2,
+          "crashRecovery": "SENDING-without-SENT treated as delivered on restart (never re-sent)",
+          "dedupeKey": "<condition>:<txhash>",
+          "run1": "blocks 31481424..31481430 -> 1 alert sent (message_id 717), cursor advanced to 31481431",
+          "run2_restart": "restart from cursor 31481431 -> zero re-emission (see logs/watch.log)",
+          "writeAheadMarker": "SENDING persisted to state/alerts.log BEFORE Telegram send"
+        }
+      },
+      "txs": [
+        "0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T21",
+      "slug": "whale-watching-agent",
+      "name": "Whale-Watching Agent",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Trading / Monitoring",
+      "dir": "t21-whale-watching-agent",
+      "status": "in-progress",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8; padding:56px 28px; border-radius:14px;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif; color:#d9a821; font-size:44px; letter-spacing:14px; font-weight:bold;\">T21 · WHALE-WATCHING AGENT</div>\n  <div style=\"color:#f4f6ff; font-style:italic; margin-top:18px; font-size:17px; line-height:1.7;\">One lighthouse. Twenty-eight lamps.<br/>This arm of the octopus never sleeps — it watches the deep water of Atlantic,<br/>and names every leviathan that moves.</div>\n  <div style=\"color:#b9c2f5; margin-top:14px; font-size:13px; letter-spacing:3px;\">PHAROS SEASON OF AI · AGENT ARENA · 100 PTS · TRADING / MONITORING</div>\n</div>\n\nThe Whale-Watching Agent monitors Atlantic testnet (chain ID **688689**, native token **PHRS**)\nfor large transfers and produces a **ranked watch report**: every significant move explained\n(what moved, how much, from whe…",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": []
+    },
+    {
+      "id": "T22",
+      "slug": "gas-fee-optimizer",
+      "name": "Gas Fee Optimizer",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Trading / Monitoring",
+      "dir": "t22-gas-fee-optimizer",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:8px;\">\n  <p style=\"color:#d9a821;font-family:Georgia,'Times New Roman',serif;font-size:56px;letter-spacing:0.35em;margin:0;\">GAS FEE OPTIMIZER</p>\n  <p style=\"color:#f4f6ff;font-family:Georgia,serif;font-style:italic;font-size:18px;margin:16px 0 0;\">🐙 <i>One lighthouse. Twenty-eight lamps.</i> This lamp watches the tide of fees — and only spends when the water is right.</p>\n</div>\n\nT22 — Gas Fee Optimizer (LIGHTKEEPER lamp 22/28)\n\nA gas-fee optimizer for **Pharos Atlantic testnet (chain 688689)**. It polls real\nfee data, computes explicit speed tiers, recommends a price for a given urgency,\nand executes real dust transactions — one through a favorable window, one forced\nat the deadline — reporting the receipt's `effectiveGasPrice` against the tiers\nwith honest, real-number savings math.",
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_phrs": 0.15,
+        "chain_id": 688689,
+        "fee_snapshot": {
+          "file": "evidence/fee-snapshot.json",
+          "first_block": 31481423,
+          "last_block": 31481529,
+          "max_wei": 10000000000,
+          "method": "eth_gasPrice agent-side polling, block-pinned",
+          "min_wei": 10000000000,
+          "samples": 12
+        },
+        "jobs": [
+          {
+            "block_number": 31481582,
+            "cost_wei": 21000000021000,
+            "deadline_s": 45,
+            "effective_gas_price_wei": 1000000001,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050",
+            "gas_used": 21000,
+            "job": "A-favorable-window",
+            "price_at_request_wei": 10000000000,
+            "submit_elapsed_s": 3.9,
+            "submit_reason": "favorable_window",
+            "submitted_gas_price_wei": 10000000000,
+            "threshold_wei": 10000000000,
+            "tx_hash": "0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050"
+          },
+          {
+            "block_number": 31481636,
+            "cost_wei": 21000000021000,
+            "deadline_s": 30,
+            "effective_gas_price_wei": 1000000001,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366",
+            "gas_used": 21000,
+            "job": "B-deadline-forced",
+            "price_at_request_wei": 10000000000,
+            "submit_elapsed_s": 24.9,
+            "submit_reason": "deadline_reached_forced_submit",
+            "submitted_gas_price_wei": 10000000000,
+            "threshold_wei": 1,
+            "tx_hash": "0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366"
+          }
+        ],
+        "network": "Pharos Atlantic testnet",
+        "run_at": "2026-10-16T07:10-07:15+03:00",
+        "savings_vs_fast_tier_per_tx_phrs": 0.000188999999979,
+        "savings_vs_fast_tier_per_tx_wei": 188999999979000,
+        "secrets_in_evidence": false,
+        "spend_log_phrs_total": 0.000062000000042,
+        "spend_log_wei": {
+          "dust_values": 20000000000000,
+          "gas_job_a": 21000000021000,
+          "gas_job_b": 21000000021000,
+          "total": 62000000042000
+        },
+        "task": "T22 Gas Fee Optimizer",
+        "tiers": {
+          "fast_wei": 10000000000,
+          "file": "evidence/tier-table.json",
+          "method": "nearest-rank percentiles: slow=p25, standard=p50, fast=p75",
+          "slow_wei": 10000000000,
+          "standard_wei": 10000000000
+        },
+        "unit_tests": "tests/test_tiers.py — 18/18 pass",
+        "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      },
+      "txs": [
+        "0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050",
+        "0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050",
+        "https://atlantic.pharosscan.xyz/tx/0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": []
+    },
+    {
+      "id": "T23",
+      "slug": "wallet-risk-checker",
+      "name": "Wallet Risk Checker",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Compliance / Security",
+      "dir": "t23-wallet-risk-checker",
+      "status": "in-progress",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:52px 24px;border-radius:10px;\">\n  <div style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:44px;letter-spacing:0.32em;\">WALLET RISK CHECKER</div>\n  <div style=\"color:#ffffff;font-size:14px;margin-top:14px;letter-spacing:0.22em;\">T23 &nbsp;·&nbsp; COMPLIANCE / SECURITY &nbsp;·&nbsp; 100 PTS</div>\n  <p style=\"color:#f4f6ff;font-style:italic;font-family:Georgia,serif;font-size:17px;margin-top:18px;\">\"Trust nothing. Verify everything — one check at a time.\"</p>\n  <div style=\"color:#b9c2f5;font-size:12px;margin-top:10px;letter-spacing:0.12em;\">ONE LIGHTHOUSE · TWENTY-EIGHT LAMPS · THE KEEPER'S TWENTY-THIRD</div>\n</div>\n\nA **read-only wallet risk checker for Pharos Atlantic testnet**. Give it an address; it runs **8 real on-chain checks** — account age, tx count / funding pattern, native balance, contract-vs-EOA with…",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T24",
+      "slug": "audit-log-agent",
+      "name": "Audit-Log Agent",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Compliance / Security",
+      "dir": "t24-audit-log-agent",
+      "status": "in-progress",
+      "has_task_yaml": true,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T25",
+      "slug": "dapp-support-agent",
+      "name": "dApp Support Agent",
+      "tier": "Easy",
+      "points": 50,
+      "toolkit": "Support / Reporting",
+      "dir": "t25-dapp-support-agent",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T26",
+      "slug": "weekly-digest-agent",
+      "name": "t26-weekly-digest-agent",
+      "tier": "Medium",
+      "points": 100,
+      "toolkit": "Support / Reporting",
+      "dir": "t26-weekly-digest-agent",
+      "status": "in-progress",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "<div align=\"center\" style=\"background:#1414c8;padding:48px 24px;border-radius:12px;\">\n<h1 style=\"font-family:Georgia,'Times New Roman',serif;color:#d9a821;letter-spacing:0.35em;font-size:40px;margin:0;\">T26 · WEEKLY DIGEST</h1>\n<p style=\"color:#f4f6ff;font-style:italic;font-size:18px;margin:16px 0 0;\">The keeper counts the week's ripples before the tide takes them.</p>\n<p style=\"color:#b9c2f5;font-size:13px;margin:12px 0 0;\">LIGHTKEEPER · Lamp 26 of 28 · Pharos Agent Arena · Medium · 100 pts · Atlantic testnet</p>\n</div>\n\n1 · The 30-second verdict\n\nA weekly digest agent that compiles **real on-chain activity** for a watched\naddress over a real 7-day block window — tx count, native volume in/out, gas\nspent, ERC20 Transfer events via chain-direct `eth_getLogs` — diffs it against\na persisted previous-period snapshot, ranks a deterministic **TOP 3** of notable\nevents, and delivers the digest…",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T27",
+      "slug": "doc-grounded-builder-agent",
+      "name": "Doc-Grounded Builder Agent",
+      "tier": "Hard",
+      "points": 200,
+      "toolkit": "Cross-tool / Advanced",
+      "dir": "t27-doc-grounded-builder-agent",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    },
+    {
+      "id": "T28",
+      "slug": "multi-protocol-aggregator",
+      "name": "Multi-Protocol Aggregator",
+      "tier": "Hard",
+      "points": 200,
+      "toolkit": "Cross-tool / Advanced",
+      "dir": "t28-multi-protocol-aggregator",
+      "status": "in-progress",
+      "has_task_yaml": false,
+      "has_readme": false,
+      "readme_summary": "",
+      "has_evidence_json": false,
+      "evidence": null,
+      "txs": [],
+      "explorer_links": [],
+      "has_submission": false,
+      "submission_status": "not started",
+      "activity": []
+    }
+  ]
+}
