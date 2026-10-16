@@ -17,12 +17,15 @@
  * topic0 is computed at runtime via keccak256(eventSignature) — never hardcoded,
  * mirroring the Python monitor.
  *
- * SHOWTIME presentation: 01 Configure → 02 Run (ProgressLoader with real
- * chunk progress) → 03 Result (ResultCard → StatStrip → FeedList). Every
- * animation maps to a real state; every number came from a real RPC call.
+ * SHOWTIME presentation: 01 Configure → 02 Run (a sonar sweep — one horizontal
+ * block-range bar where each chunk is one real eth_getLogs call, filling chunk
+ * by chunk with the real block ranges labeled) → 03 Result (the "caught live"
+ * panel as the climax when anything landed after the watch began, then
+ * ResultCard → StatStrip → FeedList). Every animation maps to a real state;
+ * every number came from a real RPC call.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { Blocks, History, Layers, Radio } from "lucide-react";
 import type { Lamp } from "../../types";
 import {
@@ -33,7 +36,6 @@ import {
 } from "../../hooks/useAtlantic";
 import {
   ResultCard,
-  ProgressLoader,
   EmptyState,
   ErrorState,
   StatStrip,
@@ -230,6 +232,171 @@ interface ScanOpts {
   signature?: string;
 }
 
+/**
+ * 02 · The sonar sweep. A horizontal block-range bar that fills chunk by
+ * chunk — each chunk is one real eth_getLogs call, labeled with its real
+ * block range. The pulsing head + the step label are the only motion, and
+ * both map to the RPC call currently in flight.
+ */
+function SonarSweep({
+  title,
+  chunks,
+  completed,
+  tipPinned,
+  lag,
+}: {
+  title: string;
+  chunks: Array<[number, number]>;
+  completed: number;
+  tipPinned: number | null;
+  lag: number;
+}) {
+  const total = chunks.length;
+  const from = chunks[0]?.[0] ?? 0;
+  const to = chunks[chunks.length - 1]?.[1] ?? 0;
+  const span = Math.max(1, to - from + 1);
+  const done = Math.max(0, Math.min(completed, total));
+  const doneBlocks = chunks
+    .slice(0, done)
+    .reduce((s, [a, b]) => s + (b - a + 1), 0);
+  const [curA, curB] = chunks[Math.min(done, Math.max(0, total - 1))] ?? [0, 0];
+  const phase: "tip" | "sweep" | "decode" =
+    tipPinned === null ? "tip" : done >= total ? "decode" : "sweep";
+  return (
+    <section
+      aria-live="polite"
+      className="rounded-2xl border border-hairline bg-white p-5 sm:p-6"
+    >
+      <div className="flex items-center gap-2.5">
+        <motion.span
+          animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+          className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent"
+          aria-hidden
+        />
+        <p className="text-sm font-semibold text-ink">02 · {title}</p>
+      </div>
+      {tipPinned !== null && (
+        <p className="mt-2 text-sm text-slate">
+          Tip pinned at block <span className="font-mono text-ink">{fmt(tipPinned)}</span>
+          {lag > 0 && <> · {lag}-block reorg buffer applied</>} — the watch starts here.
+        </p>
+      )}
+      <div className="mt-4">
+        <div
+          className="relative h-4 overflow-hidden rounded-full border border-hairline bg-porcelain"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={done}
+          aria-label="Block range scan progress"
+        >
+          {chunks.map(([a, b], i) => {
+            const left = ((a - from) / span) * 100;
+            const w = ((b - a + 1) / span) * 100;
+            const isDone = i < done;
+            const isCurrent = i === done && done < total;
+            if (!isDone && !isCurrent) return null;
+            return isCurrent ? (
+              <motion.div
+                key={i}
+                className="absolute inset-y-0 bg-accent"
+                style={{ left: `${left}%`, width: `${w}%` }}
+                animate={{ opacity: [0.35, 1, 0.35] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            ) : (
+              <div
+                key={i}
+                className="absolute inset-y-0 bg-accent"
+                style={{ left: `${left}%`, width: `${w}%` }}
+              />
+            );
+          })}
+        </div>
+        <div className="mt-1.5 flex justify-between font-mono text-sm text-slate">
+          <span>{fmt(from)}</span>
+          <span>{fmt(to)}</span>
+        </div>
+      </div>
+      <p className="mt-2 text-sm text-slate">
+        {phase === "tip" && "Pinning the chain tip…"}
+        {phase === "sweep" && (
+          <>
+            Chunk <span className="font-semibold text-ink">{done + 1} of {total}</span>{" "}
+            — blocks{" "}
+            <span className="font-mono text-ink">{fmt(curA)} → {fmt(curB)}</span>{" "}
+            · one real <span className="font-mono">eth_getLogs</span> call
+          </>
+        )}
+        {phase === "decode" && "Scan complete — decoding the events…"}
+      </p>
+      <p className="mt-1 text-sm text-slate">
+        {fmt(doneBlocks)} of {fmt(span)} blocks swept.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * 03 · The climax: CAUGHT LIVE. The count ticks up from 0 to the real number
+ * once (The Tick), and each newly caught event fires a single expanding ring —
+ * the signature instant is the panel going from empty to not-empty.
+ */
+function CaughtLivePanel({ count, watchStart }: { count: number; watchStart: number }) {
+  const reduceMotion = useReducedMotion();
+  const mv = useMotionValue(0);
+  const rounded = useTransform(mv, (v) => Math.round(v).toLocaleString("en-US"));
+  useEffect(() => {
+    const controls = animate(mv, count, {
+      duration: reduceMotion ? 0 : 0.8,
+      ease: "easeOut",
+    });
+    return () => controls.stop();
+  }, [count, mv, reduceMotion]);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="rounded-2xl border border-pass/50 bg-[#F0FBF4] p-5 sm:p-6"
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-4">
+        <span className="relative flex h-4 w-4 shrink-0" aria-hidden>
+          {/* One beat per newly caught event — gone in 0.6s. */}
+          <motion.span
+            key={count}
+            initial={{ scale: 0.8, opacity: 0.6 }}
+            animate={{ scale: 2.4, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="absolute inline-flex h-full w-full rounded-full bg-pass"
+          />
+          <motion.span
+            animate={
+              reduceMotion ? undefined : { scale: [1, 1.35, 1], opacity: [1, 0.7, 1] }
+            }
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            className="relative inline-flex h-4 w-4 rounded-full bg-pass"
+          />
+        </span>
+        <div>
+          <p className="font-display text-4xl leading-none tracking-tight text-ink sm:text-5xl">
+            <motion.span>{rounded}</motion.span>
+          </p>
+          <p className="mt-1.5 text-sm font-semibold text-ink">
+            {count === 1 ? "event" : "events"} caught live
+          </p>
+        </div>
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-slate">
+        These landed on-chain <em>after</em> you started watching — your watch began
+        at block {fmt(watchStart)}. Anything below the feed marked Historical was
+        already there: context, not new.
+      </p>
+    </motion.div>
+  );
+}
 function FieldRow({ field, value }: { field: string; value: string }) {
   const isAddr = ADDRESS_FIELDS.has(field) && isValidAddress(value);
   return (
@@ -312,10 +479,12 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
   const [autoStopped, setAutoStopped] = useState<string | null>(null);
   const [meta, setMeta] = useState<ScanMeta | null>(null);
   const [auto, setAuto] = useState(false);
-  // 02 · Run state: ProgressLoader steps map 1:1 onto real RPC calls.
-  const [steps, setSteps] = useState<string[]>([]);
+  // 02 · Run state: the sonar sweep maps 1:1 onto real RPC calls — one chunk
+  // per eth_getLogs call, labeled with its real block range.
   const [stepIdx, setStepIdx] = useState(0);
   const [scanLabel, setScanLabel] = useState("");
+  const [chunks, setChunks] = useState<Array<[number, number]>>([]);
+  const [tipPinned, setTipPinned] = useState<number | null>(null);
   // Background auto-refresh tick: a one-line honest status, not a full loader.
   const [autoTick, setAutoTick] = useState(false);
   const [autoProgress, setAutoProgress] = useState<{ current: number; total: number } | null>(null);
@@ -340,6 +509,8 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
     setMeta(null);
     setError(null);
     setAutoStopped(null);
+    setChunks([]);
+    setTipPinned(null);
   }, []);
 
   const stopAuto = useCallback(() => {
@@ -370,7 +541,8 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         setError(null);
         setAutoStopped(null);
         setScanLabel(`${eventName} on ${shorten(effContract)}`);
-        setSteps(["Reading the latest block"]);
+        setChunks([]);
+        setTipPinned(null);
         setStepIdx(0);
       } else {
         setAutoTick(true);
@@ -382,6 +554,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         if (!alive()) return;
         const lag = reorgLag ? REORG_LAG : 0;
         const tip = Math.max(0, chainTip - lag);
+        if (manual) setTipPinned(tip);
         if (watchStartRef.current === null) watchStartRef.current = tip;
         const watchStart = watchStartRef.current;
         const win = Math.max(1, Math.min(200000, parseInt(windowBlocks, 10) || DEFAULT_WINDOW));
@@ -393,11 +566,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         const chunks: Array<[number, number]> = [];
         for (let s = from; s <= tip; s += CHUNK_CAP)
           chunks.push([s, Math.min(s + CHUNK_CAP - 1, tip)]);
-        const labels = chunks.map(
-          ([a, b], i) =>
-            `Scanning blocks ${a.toLocaleString("en-US")} → ${b.toLocaleString("en-US")} — chunk ${i + 1} of ${chunks.length}`
-        );
-        if (manual) setSteps(["Reading the latest block", ...labels]);
+        if (manual) setChunks(chunks);
         // One real eth_getLogs call per chunk — the loader advances per call.
         const all: LogEntry[] = [];
         for (let i = 0; i < chunks.length; i++) {
@@ -414,7 +583,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
           if (!alive()) return; // a newer scan owns the state now
           all.push(...logs);
         }
-        if (manual) setStepIdx(labels.length + 1);
+        if (manual) setStepIdx(chunks.length + 1);
         const decoded = all
           .map((l) => {
             const d = decodeLog(l, effSig);
@@ -519,11 +688,11 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
   return (
     <div className="space-y-6">
       <p className="max-w-3xl text-sm leading-relaxed text-ink">
-        <span className="font-semibold text-ink">{lamp.name}.</span> Point LIGHTKEEPER at
-        any contract, pick an event, and watch it live — filtered, decoded, traceable.
-        Reads are free and need no wallet. The lamp's own on-chain emitter already has
-        real events you can catch right now. Anything that lands <em>after</em> you hit
-        Watch now is flagged{" "}
+        <span className="font-semibold text-ink">{lamp.name}.</span> Point it at any
+        contract, pick an event, and watch events land live — filtered, decoded,
+        traceable. Reads are free and need no wallet. The lamp's own on-chain
+        emitter already has real events you can catch right now. Green means it
+        happened <em>after</em> you started watching{" "}
         <span className="chip chip-lit whitespace-nowrap">Caught live</span> — the rest
         is historical context.
       </p>
@@ -666,9 +835,15 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         </p>
       </section>
 
-      {/* 02 · Run — one ProgressLoader step per real RPC call */}
+      {/* 02 · Run — the sonar sweep: one bar, one chunk per real eth_getLogs call */}
       {loading && (
-        <ProgressLoader steps={steps} current={stepIdx} title={`Watching ${scanLabel}`} />
+        <SonarSweep
+          title={`Watching ${scanLabel}`}
+          chunks={chunks}
+          completed={stepIdx - 1}
+          tipPinned={tipPinned}
+          lag={reorgLag ? REORG_LAG : 0}
+        />
       )}
       {autoTick && !loading && (
         <div className="flex items-center gap-2.5" aria-live="polite">
@@ -704,31 +879,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
           <p className="text-sm font-semibold text-slate">03 · Result</p>
 
           {liveRows.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="rounded-2xl border border-pass/50 bg-[#F0FBF4] p-5 sm:p-6"
-              aria-live="polite"
-            >
-              <div className="flex items-center gap-3">
-                <motion.span
-                  animate={{ scale: [1, 1.35, 1], opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                  className="h-3 w-3 shrink-0 rounded-full bg-pass"
-                  aria-hidden
-                />
-                <p className="text-lg font-semibold text-ink">
-                  {liveRows.length} {liveRows.length === 1 ? "event" : "events"} caught
-                  live
-                </p>
-              </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate">
-                These landed on-chain after you started watching (your watch began at
-                block {fmt(meta.watchStart)}). Anything below the feed marked Historical
-                was already there — context, not new.
-              </p>
-            </motion.div>
+            <CaughtLivePanel count={liveRows.length} watchStart={meta.watchStart} />
           )}
 
           <ResultCard
