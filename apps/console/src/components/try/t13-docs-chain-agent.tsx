@@ -4,28 +4,31 @@
  * Tier A: live read-only eth_call reads on Pharos Atlantic (chain 688689).
  * No wallet, no signature, costs nothing.
  *
- * The visitor types a contract address + a function signature (e.g. totalSupply()).
- * The panel shows the docs-grounded EXPLANATION (every claim labeled
- * DOC-GROUNDED / INFERENCE / UNVERIFIED with the doc URL, retrieval date and
- * verbatim excerpt — from the task's own corpus) side by side with the LIVE
- * on-chain execution of that exact function, decoded and interpreted — and
- * then closes the loop with a VERDICT: does the live chain value agree with
- * what the docs claimed? (It doesn't always — the panel says so.)
+ * FLAGSHIP REBUILD (2026-10-16) — THE COURTROOM. The old comparison panel
+ * couldn't carry a verdict, so the 03 act was rebuilt from scratch as a
+ * trial: the docs testify in the left column (claim, evidence grade,
+ * verbatim excerpt, doc URL, retrieval date), the chain answers in the right
+ * column (the function executed NOW, decoded, interpreted), and the verdict
+ * Stamp falls in the middle — AGREES or CONTRADICTS.
  *
- * Fail-closed: when the docs don't cover the function, the panel says
- * [UNVERIFIED] and executes NOTHING.
+ * The star witness is real: the Atlantic token registry documents WPHRS as
+ * "Wrapped PHRS", but the contract answers "Wrapped Pharos" live — verified
+ * on-chain again for this rebuild. The prefilled name() lands the visitor on
+ * the mismatch on the very first run; the hero gets the default.
  *
- * SHOWTIME redesign (2026-10-16): presentation rebuilt on the shared standard —
- * 01 Configure → 02 Run (ProgressLoader with one step per REAL rpc call) →
- * 03 Result (ResultCard showpiece with the docs-vs-chain verdict as the hero).
- * All read/decode/verdict logic is unchanged.
+ * All read/decode/verdict logic is byte-identical to the previous revision:
+ * same Tier A eth_call flow, same ABIs/selectors, same fail-closed
+ * UNVERIFIED when the docs don't cover the function (Beautiful Refusal:
+ * the double-beat stamp, the plain reason, the dignity of a designed
+ * verdict — nothing executes on-chain in that state).
  *
- * The prefilled function is name(): it lands the visitor on the real
- * docs-vs-chain mismatch on the very first run (docs say "Wrapped PHRS",
- * the contract answers "Wrapped Pharos" live) — the verdict is the hero,
- * so the hero gets the default.
+ * Every motion maps to a real state: the two columns Split when the verdict
+ * resolves, the Stamp falls (1.15→1.0) when the verdict computes, and the
+ * reason line rises once after it. No timer theater anywhere.
  */
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Activity, BookOpen, Check, Copy, ExternalLink, Gavel } from "lucide-react";
 import type { Lamp } from "../../types";
 import {
   EXPLORER_ADDRESS,
@@ -33,7 +36,7 @@ import {
   rpcCall,
   useAtlanticRead,
 } from "../../hooks/useAtlantic";
-import { ResultCard, ProgressLoader, EmptyState, ErrorState } from "../ui";
+import { ProgressLoader, EmptyState, ErrorState } from "../ui";
 
 const WPHRS = "0x838800b758277CC111B2d48Ab01e5E164f8E9471";
 const RETRIEVAL_DATE = "2026-10-16";
@@ -252,6 +255,127 @@ function makeVerdict(g: GroundedFn, decoded: string): [VerdictStatus, string, st
   ];
 }
 
+// ---------------------------------------------------------------------------
+// VerdictStamp — the climactic reveal of the courtroom.
+//
+// The Stamp transition (brief §1.1): the chip scales 1.15→1.0 with a soft
+// thud-shadow when the real verdict computes. Under prefers-reduced-motion
+// it lands instantly. The double beat (stamp, then the reason rising) is the
+// Beautiful Refusal grammar for CONTRADICTS and UNVERIFIED.
+// ---------------------------------------------------------------------------
+
+type StampStatus = VerdictStatus | "unverified";
+
+const STAMP_COPY: Record<StampStatus, string> = {
+  agree: "AGREES",
+  disagree: "CONTRADICTS",
+  unchecked: "PROVEN",
+  unverified: "UNVERIFIED",
+};
+
+const STAMP_STYLE: Record<StampStatus, string> = {
+  agree: "border-pass text-pass bg-emerald-50",
+  disagree: "border-fail text-fail bg-[#FEF2F2]",
+  unchecked: "border-accent text-accent bg-blue-50",
+  unverified: "border-accent text-accent bg-blue-50",
+};
+
+function VerdictStamp({ status }: { status: StampStatus }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.15, rotate: -4 }}
+      animate={{ opacity: 1, scale: 1, rotate: -4 }}
+      transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut" }}
+      className={`inline-block rounded-xl border-[3px] border-double px-6 py-4 shadow-[0_12px_30px_rgba(0,0,0,0.14)] ${STAMP_STYLE[status]}`}
+      role="status"
+      aria-label={`Verdict: ${STAMP_COPY[status]}`}
+    >
+      <Gavel size={20} className="mx-auto mb-1" aria-hidden />
+      <p className="whitespace-nowrap text-center text-2xl font-extrabold tracking-[0.18em] sm:text-3xl">
+        {STAMP_COPY[status]}
+      </p>
+    </motion.div>
+  );
+}
+
+/** Reason line — the second beat after the stamp (the reason, then stillness). */
+function VerdictReason({ children, delay = 0.45 }: { children: React.ReactNode; delay?: number }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.p
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduce ? 0 : 0.3, delay: reduce ? 0 : delay, ease: "easeOut" }}
+      className="mx-auto mt-6 max-w-2xl text-center text-base leading-relaxed text-ink"
+    >
+      {children}
+    </motion.p>
+  );
+}
+
+/** The Split transition (brief §1.1): a witness column resolving into place. */
+function WitnessColumn({
+  side,
+  children,
+}: {
+  side: "left" | "right";
+  children: React.ReactNode;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduce ? { opacity: 0 } : { opacity: 0, x: side === "left" ? -24 : 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut" }}
+      className="rounded-2xl border border-hairline bg-white p-5 sm:p-6"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function EvidenceGradeChip({ label }: { label: "DOC-GROUNDED" | "INFERENCE" }) {
+  return (
+    <span
+      className={`inline-block rounded px-1.5 py-0.5 font-mono text-xs font-semibold ${
+        label === "DOC-GROUNDED" ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function CopyRawButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="btn-outline inline-flex items-center gap-2 !min-h-[40px] !px-3 !text-sm"
+      aria-label="Copy raw return data"
+    >
+      {copied ? <Check size={16} className="text-pass" /> : <Copy size={16} />}
+      {copied ? "Copied" : "Copy raw"}
+    </button>
+  );
+}
+
 export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
   void lamp; // page shell renders the name — the module doesn't need it
   const [address, setAddress] = useState(WPHRS);
@@ -419,20 +543,21 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-base font-semibold text-ink">Explain then prove</h3>
-        <p className="mt-1 text-sm leading-relaxed text-ink">
-          The T13 agent loop, live in your browser: the panel <strong>explains</strong> what a
-          contract function does — every claim labeled DOC-GROUNDED, INFERENCE, or UNVERIFIED —
-          then <strong>proves</strong> it by calling that exact function on Pharos Atlantic
-          (chain 688689), and finally <strong>verdicts</strong>: does the live chain value agree
-          with what the docs claimed? Free reads, no wallet.
+        <h3 className="font-display text-3xl tracking-tight text-ink sm:text-4xl">
+          The courtroom
+        </h3>
+        <p className="mt-2 text-base leading-relaxed text-ink">
+          The docs testify. The chain answers. The verdict falls between them.
+        </p>
+        <p className="mt-1 text-sm font-semibold text-slate">
+          Tier A — live reads, no wallet, costs nothing
         </p>
       </div>
 
-      {/* 01 · CONFIGURE — pick the claim to verify */}
+      {/* 01 · CONFIGURE — file the question */}
       <section>
         <p className="mb-2 text-sm font-semibold text-slate">
-          01 · Configure — pick the claim to verify
+          01 · Configure — file the question
         </p>
         <div className="rounded-2xl border border-hairline bg-white p-5 sm:p-6">
           <div className="grid gap-4 md:grid-cols-2">
@@ -505,24 +630,19 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
           </div>
 
           <button className="btn-primary mt-4 w-full sm:w-auto" onClick={askAgent} disabled={loading}>
-            {loading ? "Proving on Atlantic…" : "Explain then prove"}
+            {loading ? "Proving on Atlantic…" : "Open the trial"}
           </button>
         </div>
 
         {!ask && (
           <div className="mt-4 rounded-2xl border border-hairline bg-porcelain p-5">
-            <p className="text-sm font-semibold text-ink">No question asked yet.</p>
+            <p className="text-sm font-semibold text-ink">No case on the docket yet.</p>
             <p className="mt-1 text-sm leading-relaxed text-slate">
-              Enter a contract address and a function signature — try{" "}
-              <button
-                className="font-mono text-accent hover:underline"
-                onClick={() => setSigInput("name()")}
-              >
-                name()
-              </button>{" "}
-              on WPHRS — then press <strong>Explain then prove</strong>. First you get the
-              docs-grounded explanation, then the live on-chain proof, then a docs-vs-chain
-              verdict.
+              Press <strong>Open the trial</strong> — the prefilled{" "}
+              <span className="font-mono text-accent">name()</span> lands you on a real,
+              reproduced mismatch: the docs say &ldquo;Wrapped PHRS&rdquo;, the contract
+              answers &ldquo;Wrapped Pharos&rdquo;. First comes the docs-grounded
+              explanation, then the live proof, then the verdict stamp.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button className="btn-outline" onClick={tryUnverified}>
@@ -536,7 +656,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
         )}
       </section>
 
-      {/* 02 · RUN — read the claim, prove it on-chain */}
+      {/* 02 · RUN — two named tracks: read the claim, prove it on-chain */}
       {ask && grounded && (
         <section>
           <p className="mb-2 text-sm font-semibold text-slate">
@@ -544,31 +664,29 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
           </p>
           <div className="space-y-4">
             <div className="rounded-2xl border border-hairline bg-white p-5 sm:p-6">
-              <p className="text-sm font-semibold text-slate">Reading the claim — from the docs</p>
+              <p className="text-sm font-semibold text-slate">
+                Track one — reading the claim, from the docs
+              </p>
               <p className="mt-2 font-mono text-base font-semibold text-ink">{grounded.sig}</p>
               <p className="mt-2 text-sm leading-relaxed text-ink">{grounded.explanation}</p>
               <div className="mt-4 space-y-2">
                 {grounded.citations.map((c, i) => (
                   <div key={i} className="rounded-xl border border-hairline bg-porcelain p-3 text-sm">
-                    <span
-                      className={`mr-2 inline-block rounded px-1.5 py-0.5 font-mono text-xs font-semibold ${
-                        c.label === "DOC-GROUNDED"
-                          ? "bg-emerald-100 text-emerald-900"
-                          : "bg-amber-100 text-amber-900"
-                      }`}
-                    >
-                      {c.label}
+                    <EvidenceGradeChip label={c.label} />
+                    <span className="ml-2">
+                      <a
+                        className="font-mono text-accent hover:underline"
+                        href={c.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {c.url.replace("https://", "")}
+                      </a>
                     </span>
-                    <a
-                      className="font-mono text-accent hover:underline"
-                      href={c.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {c.url.replace("https://", "")}
-                    </a>
                     <span className="text-slate"> · retrieved {RETRIEVAL_DATE}</span>
-                    <p className="mt-1 text-sm italic leading-relaxed text-slate">“{c.excerpt}”</p>
+                    <p className="mt-1 text-sm italic leading-relaxed text-slate">
+                      &ldquo;{c.excerpt}&rdquo;
+                    </p>
                   </div>
                 ))}
               </div>
@@ -578,7 +696,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
               <ProgressLoader
                 steps={steps}
                 current={stepIdx}
-                title={`Proving ${grounded.sig} — contract ${shortAddr(ask.address)}`}
+                title={`Track two — proving ${grounded.sig} live at ${shortAddr(ask.address)}`}
               />
             )}
 
@@ -595,99 +713,177 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
         </section>
       )}
 
-      {/* 03 · RESULT — the verdict showpiece */}
-      {fresh && (
-        <section>
-          <p className="mb-2 text-sm font-semibold text-slate">03 · Result</p>
-          <ResultCard
-            eyebrow={hasClaim ? "Verdict — docs vs chain" : `Result — ${data.sig} proven on-chain`}
-            headline={
-              hasClaim
-                ? data.verdict === "agree"
-                  ? "Docs ≡ chain"
-                  : "Docs ≠ chain"
-                : data.humanValue
-            }
-            status={data.verdict === "agree" ? "pass" : data.verdict === "disagree" ? "fail" : "neutral"}
-            subline={hasClaim ? data.verdictNote : data.interpretation}
-            rows={
-              hasClaim
-                ? [
-                    { label: "On-chain answer", value: data.decoded },
-                    { label: "Function selector", value: data.selector },
-                    { label: "Block", value: data.blockNum.toLocaleString("en-US") },
-                    {
-                      label: "Contract",
-                      value: (
-                        <span title={data.address} className="break-all">
-                          {data.address}
-                        </span>
-                      ),
-                    },
-                  ]
-                : [
-                    { label: "Function", value: data.sig },
-                    { label: "Function selector", value: data.selector },
-                    { label: "Block", value: data.blockNum.toLocaleString("en-US") },
-                    {
-                      label: "Contract",
-                      value: (
-                        <span title={data.address} className="break-all">
-                          {data.address}
-                        </span>
-                      ),
-                    },
-                  ]
-            }
-            links={[
-              { label: "View contract on the explorer", href: `${EXPLORER_ADDRESS}${data.address}` },
-            ]}
-            copyValue={data.raw}
-          >
-            {hasClaim && grounded?.docClaim.value && (
-              <div>
-                <p className="mb-3 text-sm font-semibold text-slate">Docs vs chain — side by side</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-hairline bg-porcelain p-4">
-                    <p className="text-sm font-semibold text-slate">What the docs claim</p>
-                    <p className="mt-2 break-words font-mono text-xl font-semibold text-ink">
-                      {grounded.docClaim.value}
-                    </p>
-                    <p className="mt-2 text-sm leading-relaxed text-slate">
-                      {grounded.docClaim.claim}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-hairline bg-porcelain p-4">
-                    <p className="text-sm font-semibold text-slate">What the chain answered</p>
-                    <p className="mt-2 break-words font-mono text-xl font-semibold text-ink">
-                      {data.decoded}
-                    </p>
-                    <p className="mt-2 text-sm leading-relaxed text-slate">
-                      Live eth_call at block {data.blockNum.toLocaleString("en-US")} — read-only,
-                      zero gas.
-                    </p>
-                  </div>
-                </div>
-                {data.verdict === "disagree" && (
-                  <p className="mt-3 text-sm font-medium leading-relaxed text-ink">
-                    The contract is the live truth — the docs are wrong here, and this panel says
-                    so instead of smoothing it over.
-                  </p>
-                )}
+      {/* 03 · RESULT — the trial: docs testify, the chain answers, the verdict falls */}
+      {fresh && grounded && (
+        <section aria-live="polite">
+          <p className="mb-2 text-sm font-semibold text-slate">03 · Result — the trial</p>
+
+          <div className="grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1fr]">
+            {/* The docs — the written testimony */}
+            <WitnessColumn side="left">
+              <div className="flex items-center gap-2">
+                <BookOpen size={18} className="text-slate" aria-hidden />
+                <p className="text-sm font-semibold text-slate">The docs — the written claim</p>
               </div>
+              {hasClaim && grounded.docClaim.value ? (
+                <>
+                  <p className="mt-3 break-words font-mono text-2xl font-bold text-ink">
+                    &ldquo;{grounded.docClaim.value}&rdquo;
+                  </p>
+                  <p className="mt-3 text-sm leading-relaxed text-slate">
+                    {grounded.docClaim.claim}
+                  </p>
+                  <div className="mt-4 space-y-2">
+                    {grounded.citations.map((c, i) => (
+                      <div key={i}>
+                        <EvidenceGradeChip label={c.label} />
+                        <p className="mt-1 text-sm italic leading-relaxed text-slate">
+                          &ldquo;{c.excerpt}&rdquo;
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm text-slate">
+                    Source: the Atlantic token-registry docs · retrieved {RETRIEVAL_DATE}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-3 text-lg font-semibold text-ink">No claim on record</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate">
+                    The docs corpus lists this token&apos;s registry row ({REGISTRY_ROW}) but
+                    makes no claim about <span className="font-mono">{grounded.sig}</span> —
+                    honest by omission. The live proof opposite still stands on its own.
+                  </p>
+                </>
+              )}
+            </WitnessColumn>
+
+            {/* The verdict — the stamp falls in the middle */}
+            <div className="flex items-center justify-center py-3 lg:py-0">
+              <VerdictStamp status={data.verdict} />
+            </div>
+
+            {/* The chain — the live testimony */}
+            <WitnessColumn side="right">
+              <div className="flex items-center gap-2">
+                <Activity size={18} className="text-slate" aria-hidden />
+                <p className="text-sm font-semibold text-slate">The chain — the live answer</p>
+              </div>
+              <p className="mt-3 break-words font-mono text-2xl font-bold text-ink">
+                &ldquo;{data.humanValue}&rdquo;
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate">{data.interpretation}</p>
+              <dl className="mt-4 space-y-2 border-t border-hairline pt-3 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="font-semibold text-slate">Method</dt>
+                  <dd className="font-mono text-ink">eth_call — read-only</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="font-semibold text-slate">Block</dt>
+                  <dd className="font-mono text-ink">{data.blockNum.toLocaleString("en-US")}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="font-semibold text-slate">Contract</dt>
+                  <dd className="font-mono text-ink" title={data.address}>
+                    {shortAddr(data.address)}
+                  </dd>
+                </div>
+              </dl>
+            </WitnessColumn>
+          </div>
+
+          {/* The second beat — the reason, then stillness */}
+          <VerdictReason>
+            {data.verdict === "disagree" && (
+              <>
+                The docs claim &ldquo;{grounded.docClaim.value}&rdquo; — the contract answered
+                &ldquo;{data.decoded}&rdquo;, live. The contract is the live truth: the docs
+                are wrong here, and this panel flags the mismatch instead of smoothing it over.
+              </>
             )}
-          </ResultCard>
+            {data.verdict === "agree" && (
+              <>
+                The docs claimed &ldquo;{grounded.docClaim.value}&rdquo;, and the contract
+                answered &ldquo;{data.decoded}&rdquo; live. Explanation and chain agree —
+                trust earned, not assumed.
+              </>
+            )}
+            {data.verdict === "unchecked" && (
+              <>
+                The docs made no claim about <span className="font-mono">{data.sig}</span> —
+                so there is nothing to check. The live proof above stands on its own.
+              </>
+            )}
+          </VerdictReason>
+
+          {/* The evidence trail — the chain is the receipt, not the story */}
+          <div className="mt-6 rounded-2xl border border-hairline bg-porcelain p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-slate">
+                The evidence trail — receipts, not the story
+              </p>
+              <CopyRawButton value={data.raw} />
+            </div>
+            <dl className="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+              <div className="border-t border-hairline pt-3">
+                <dt className="text-sm font-semibold text-slate">Function selector</dt>
+                <dd className="mt-1 break-words font-mono text-sm text-ink">{data.selector}</dd>
+              </div>
+              <div className="border-t border-hairline pt-3">
+                <dt className="text-sm font-semibold text-slate">Calldata sent</dt>
+                <dd className="mt-1 break-all font-mono text-sm text-ink">{data.calldata}</dd>
+              </div>
+              <div className="border-t border-hairline pt-3">
+                <dt className="text-sm font-semibold text-slate">Raw return</dt>
+                <dd className="mt-1 break-all font-mono text-sm text-ink">{data.raw}</dd>
+              </div>
+              <div className="border-t border-hairline pt-3">
+                <dt className="text-sm font-semibold text-slate">Contract</dt>
+                <dd className="mt-1 break-all font-mono text-sm text-ink">{data.address}</dd>
+              </div>
+            </dl>
+            <a
+              href={`${EXPLORER_ADDRESS}${data.address}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-hairline bg-white px-3 text-sm font-medium text-accent hover:bg-tint"
+            >
+              View contract on the explorer
+              <ExternalLink size={14} aria-hidden />
+            </a>
+          </div>
+
+          <p className="mt-4 text-sm text-slate">
+            Blind spot, stated plainly: the docs are a corpus snapshot (retrieved{" "}
+            {RETRIEVAL_DATE}), not a live query — and the verdict compares exact strings,
+            nothing more. It does not decide which name is &ldquo;correct&rdquo;.
+          </p>
         </section>
       )}
 
-      {/* FAIL-CLOSED */}
+      {/* FAIL-CLOSED — the Beautiful Refusal */}
       {unverified && ask && (
-        <EmptyState
-          title={`No docs coverage for “${ask.sig}”`}
-          message={`This panel fails closed, exactly like the T13 agent: no docs-grounded explanation, no execution. The corpus covers ${PRESETS.join(", ")} — pick one of those. Nothing was executed on-chain.`}
-          actionLabel="Back to a covered function"
-          onAction={backToCovered}
-        />
+        <section>
+          <p className="mb-2 text-sm font-semibold text-slate">03 · Result — the refusal</p>
+          <div className="rounded-2xl border border-hairline bg-white p-6 text-center sm:p-8">
+            <VerdictStamp status="unverified" />
+            <VerdictReason delay={0.35}>
+              No docs coverage for <span className="font-mono">&ldquo;{ask.sig}&rdquo;</span> —
+              so nothing was executed on-chain. This panel fails closed, exactly like the
+              T13 agent: no docs-grounded explanation, no proof, no guessing. The corpus
+              covers {PRESETS.join(", ")}.
+            </VerdictReason>
+            <div className="mt-6">
+              <EmptyState
+                title="No testimony without evidence."
+                message="Pick one of the covered functions and the trial opens again — explanation first, proof second, verdict third."
+                actionLabel="Back to a covered function"
+                onAction={backToCovered}
+              />
+            </div>
+          </div>
+        </section>
       )}
 
       <p className="text-sm text-slate">
