@@ -55,7 +55,8 @@ body {
   margin: 0;
 }
 
-/* Thin royal page frame — the ONLY place #1414c8 appears as a surface */
+/* Thin royal page frame (header top line). #1414c8 also fills the hero stage —
+   brief §0A: blue = the stage (hero), light = the workbench (everything else). */
 .royal-frame {
   background: var(--royal);
 }

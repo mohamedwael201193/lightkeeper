@@ -64,7 +64,8 @@ function ConnectButton() {
 
 /**
  * Header — small octopus mark + serif wordmark, nav, Connect Wallet button.
- * Thin royal frame line on top is the only royal-blue surface on the page.
+ * Porcelain light theme; the hero below carries the royal-blue OCTOPUS spectacle
+ * (brief §0A: blue = the stage, light = the workbench).
  */
 export default function Header({ menuOpen, onToggle }: { menuOpen: boolean; onToggle: () => void }) {
   return (
