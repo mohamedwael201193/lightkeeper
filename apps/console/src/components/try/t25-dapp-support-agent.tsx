@@ -18,8 +18,10 @@
  * LIGHTKEEPER never sees, holds, or asks for private keys.
  */
 import { useState } from "react";
+import { Wrench } from "lucide-react";
 import type { Lamp } from "../../types";
 import { ATLANTIC_RPC_URL, EXPLORER_TX, rpcCall } from "../../hooks/useAtlantic";
+import { ErrorState, ProgressLoader, ResultCard } from "../ui";
 
 /* ------------------------------------------------------------------ */
 /* Evidence presets — real mined Atlantic txs (tasks/t25-dapp-support-agent/evidence.json) */
@@ -50,6 +52,24 @@ const PRESETS: Preset[] = [
     label: "Solidity panic",
     note: "block 31482171 · Panic(0x11) arithmetic overflow · gas 23,108 / 100,000",
     hash: "0x2c78309c41ce0bd53f611ac5a1ad5e2bfa0e29b7f5e3514b9f0a429c2dcab048",
+  },
+  {
+    id: "allowance",
+    label: "transferFrom — allowance too small",
+    note: "block 31486989 · transferFrom of 1 SDT, 0 approved · allowance read at block−1",
+    hash: "0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01",
+  },
+  {
+    id: "token-balance",
+    label: "transferFrom — owner held too few tokens",
+    note: "block 31487003 · transferFrom of 2,000 SDT, 10,000 approved, 1,000 held",
+    hash: "0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613",
+  },
+  {
+    id: "constructor",
+    label: "Constructor reverted",
+    note: "block 31487042 · constructor reverted with reason · init code replayed",
+    hash: "0x1e70dc673ec96753bf6c45962186a4586db0b663c0ff81912707d53958f4e167",
   },
   {
     id: "success",
@@ -206,8 +226,18 @@ interface ReceiptLike {
 }
 
 /** Diagnosis engine entry — exported for the live-chain test harness. */
-export async function diagnose(hash: string): Promise<Diagnosis> {
+export async function diagnose(
+  hash: string,
+  /**
+   * Presentation hook only: fires 0 → "Reading the transaction",
+   * 1 → "Reading the receipt", 2 → "Diagnosing the failure" as each real
+   * RPC phase starts. Never affects the verdict or its evidence.
+   */
+  onStep?: (phase: number) => void
+): Promise<Diagnosis> {
+  onStep?.(0);
   const tx = (await rpcCall("eth_getTransactionByHash", [hash])) as TxLike | null;
+  onStep?.(1);
   const receipt = (await rpcCall("eth_getTransactionReceipt", [hash])) as ReceiptLike | null;
 
   const baseStats = (r: ReceiptLike, t: TxLike): Stat[] => {
@@ -311,6 +341,7 @@ export async function diagnose(hash: string): Promise<Diagnosis> {
   }
 
   /* ---- failure path: gather evidence (best effort, never fatal) -- */
+  onStep?.(2);
   const stats = baseStats(r, t);
 
   // (a) intrinsic gas: a simple transfer needs 21,000; below that nothing can run.
@@ -681,15 +712,59 @@ export async function diagnose(hash: string): Promise<Diagnosis> {
 }
 
 /* ------------------------------------------------------------------ */
-/* Component                                                          */
+/* Component — presentation rebuilt on the LIGHTKEEPER standard.       */
+/* 01 Configure (hash + real mined presets) → 02 Run (ProgressLoader,  */
+/* one step per real RPC phase) → 03 Result (ResultCard showpiece:     */
+/* the named root cause as the headline, the evidence as elegant rows, */
+/* the fix as a callout). The diagnosis engine above is untouched.     */
 /* ------------------------------------------------------------------ */
 
 const HASH_RE = /^0x[0-9a-fA-F]{64}$/;
 
-function chipClass(kind: VerdictKind): string {
-  if (kind === "success") return "chip chip-pass";
-  if (kind === "failure") return "chip chip-fail";
-  return "chip chip-info";
+/** ProgressLoader phases — one entry per real async phase in diagnose(). */
+const STEPS = ["Reading the transaction", "Reading the receipt", "Diagnosing the failure"];
+
+/** The named root cause, short enough to fit two lines at 390px. */
+const HEADLINES: Record<string, string> = {
+  not_found: "No such transaction on Atlantic",
+  pending_or_dropped: "Broadcast — not yet mined",
+  success: "Confirmed — executed successfully",
+  intrinsic_gas_too_low: "Gas limit below the 21,000 minimum",
+  out_of_gas: "Out of gas",
+  insufficient_balance: "Sender couldn't cover value + fee",
+  insufficient_allowance: "transferFrom rejected — allowance too small",
+  insufficient_token_balance: "transferFrom rejected — owner held too few tokens",
+  no_code_at_destination: "No contract at the destination",
+  revert_with_reason: "Contract reverted — with a reason",
+  revert_panic: "Solidity panic",
+  revert_custom: "Custom error",
+  revert_constructor_reason: "Deployment reverted — with a reason",
+  revert_constructor_panic: "Deployment hit a Solidity panic",
+  revert_constructor_custom: "Deployment reverted — custom error",
+  revert_constructor: "Contract deployment reverted",
+  revert_silent: "Silent revert — no reason given",
+  unknown: "Unknown cause — raw receipt below",
+};
+
+function statusOf(kind: VerdictKind): "pass" | "fail" | "neutral" {
+  if (kind === "success") return "pass";
+  if (kind === "failure") return "fail";
+  return "neutral";
+}
+
+function shortAddr(v: string): string {
+  return /^0x[0-9a-fA-F]{40}$/.test(v) ? `${v.slice(0, 10)}…${v.slice(-6)}` : v;
+}
+
+/** Raw RPC/network errors never reach the user — translate before rendering. */
+function translateError(e: unknown): string {
+  const m = e instanceof Error ? e.message : "";
+  if (/HTTP \d+/.test(m)) return m; // already plain-language from the hardened RPC layer
+  if (/timed out|timeout/i.test(m))
+    return "The Atlantic RPC stopped responding before the diagnosis finished — retry in a moment.";
+  if (/fetch|network|Failed/i.test(m))
+    return "Your connection couldn't reach the Atlantic RPC — check you're online and retry.";
+  return m || "The Atlantic RPC did not answer — retry in a moment.";
 }
 
 export default function TrySupport({ lamp }: { lamp: Lamp }) {
@@ -697,6 +772,7 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
   const [activeHash, setActiveHash] = useState<string | null>(null);
   const [diag, setDiag] = useState<Diagnosis | null>(null);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -713,165 +789,194 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
     setDiag(null);
     setShowRaw(false);
     setCopied(false);
+    setStep(0);
     setActiveHash(h);
     try {
-      setDiag(await diagnose(h));
+      setDiag(await diagnose(h, (s) => setStep(s)));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The Atlantic RPC did not answer — retry in a moment.");
+      setError(translateError(e));
     } finally {
       setLoading(false);
     }
   };
 
+  const copySummary = async () => {
+    if (!diag || !activeHash) return;
+    const text =
+      `${diag.title}\n\n${diag.explanation}\n\nWhat to do next:\n` +
+      diag.fixes.map((f) => `- ${f}`).join("\n") +
+      `\n\nProvenance: ${diag.provenance}\nExplorer: ${EXPLORER_TX}${activeHash}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  const rows =
+    diag?.stats.map((s) => ({
+      label: s.label,
+      value: <span title={s.value}>{shortAddr(s.value)}</span>,
+    })) ?? [];
+
   return (
     <div className="space-y-6">
-      {/* Tier A honesty header */}
-      <div className="rounded-xl border border-hairline bg-porcelain p-4">
-        <p className="smallcaps mb-2">Tier A — live reads, paste any hash</p>
-        <p className="text-sm text-ink">
-          <strong>{lamp.name}</strong>: every failed tx, explained. Paste{" "}
-          <strong>any</strong> Pharos Atlantic transaction hash — one of the
-          presets below, or <strong>your own failed transaction</strong> — and
-          get a plain-language diagnosis with the receipt to prove it.
-        </p>
-        <p className="mt-2 text-xs text-slate">
-          Live JSON-RPC reads against Atlantic (chain 688689). No wallet, no
-          signature, costs nothing. LIGHTKEEPER never sees, holds, or asks for
-          private keys. Unknown cases say "unknown" and show the raw receipt —
-          nothing is invented.
-        </p>
-      </div>
+      {/* 01 — Configure */}
+      <section aria-label="Configure the diagnosis">
+        <p className="smallcaps mb-3">01 · Configure — the transaction to diagnose</p>
 
-      {/* Input */}
-      <div>
-        <label className="smallcaps mb-2 block" htmlFor="t25-hash">
-          Transaction hash
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            id="t25-hash"
-            className="min-w-0 flex-1 rounded-xl border border-hairline bg-white px-4 py-3 font-mono text-sm text-ink placeholder:text-slate/60"
-            placeholder="0x… (64 hex characters)"
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              setTouched(true);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") run(input);
-            }}
-            spellCheck={false}
-            autoComplete="off"
-          />
-          <button className="btn-primary shrink-0" onClick={() => run(input)} disabled={loading}>
-            {loading ? "Reading Atlantic…" : "Diagnose"}
-          </button>
-        </div>
-        {touched && input.trim() !== "" && !valid && (
-          <p className="mt-1 text-xs text-fail">
-            That doesn't look like a tx hash — expected 0x followed by exactly 64 hex characters.
+        <div className="rounded-2xl border border-hairline bg-porcelain p-4 sm:p-5">
+          <p className="text-sm leading-relaxed text-ink">
+            <strong>{lamp.name}</strong>: every failed tx, explained. Paste{" "}
+            <strong>any</strong> Pharos Atlantic transaction hash — a preset
+            below or <strong>your own failed transaction</strong> — and get a
+            plain-language diagnosis with the receipt to prove it.
           </p>
-        )}
-      </div>
+          <p className="mt-2 text-sm leading-relaxed text-slate">
+            Live JSON-RPC reads against Atlantic (chain 688689). No wallet, no
+            signature, costs nothing. Unknown cases say "unknown" and show the
+            raw receipt — nothing is invented.
+          </p>
+        </div>
 
-      {/* Presets — the real evidence txs */}
-      <div>
-        <p className="smallcaps mb-2">Try a real failure — mined on Atlantic</p>
-        <div className="grid gap-2 md:grid-cols-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              className={`rounded-xl border bg-white p-3 text-left transition-colors hover:border-accent ${
-                activeHash === p.hash ? "border-accent" : "border-hairline"
-              }`}
-              onClick={() => {
-                setInput(p.hash);
-                run(p.hash);
+        <div className="mt-4">
+          <label className="mb-2 block text-sm font-semibold text-slate" htmlFor="t25-hash">
+            Transaction hash
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              id="t25-hash"
+              className="min-w-0 flex-1 rounded-xl border border-hairline bg-white px-4 py-3 font-mono text-sm text-ink placeholder:text-slate/60"
+              placeholder="0x… (64 hex characters)"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setTouched(true);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") run(input);
+              }}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <button
+              className="btn-primary min-h-[44px] shrink-0"
+              onClick={() => run(input)}
               disabled={loading}
             >
-              <span className="block text-sm font-bold text-ink">{p.label}</span>
-              <span className="mt-0.5 block font-mono text-xs text-slate">
-                {p.hash.slice(0, 14)}…{p.hash.slice(-8)}
-              </span>
-              <span className="mt-1 block text-xs text-slate">{p.note}</span>
+              {loading ? "Diagnosing…" : "Diagnose"}
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="rounded-xl border border-fail bg-white p-4">
-          <p className="text-sm font-bold text-fail">Couldn't read Atlantic</p>
-          <p className="mt-1 text-sm text-slate">{error}</p>
-          {activeHash && (
-            <button className="btn-outline mt-3" onClick={() => run(activeHash)}>
-              Retry
-            </button>
+          </div>
+          {touched && input.trim() !== "" && !valid && (
+            <p className="mt-2 text-sm text-fail">
+              That doesn't look like a tx hash — expected 0x followed by exactly
+              64 hex characters.
+            </p>
           )}
         </div>
-      )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="empty-panel px-5 py-6">
-          <p className="text-sm text-slate">
-            Fetching the transaction + receipt from Atlantic, then running the diagnosis engine…
+        <div className="mt-4">
+          <p className="mb-2 text-sm font-semibold text-slate">
+            Try a real failure — mined on Atlantic
           </p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`rounded-xl border bg-white p-3 text-left transition-colors hover:border-accent ${
+                  activeHash === p.hash ? "border-accent" : "border-hairline"
+                }`}
+                onClick={() => {
+                  setInput(p.hash);
+                  run(p.hash);
+                }}
+                disabled={loading}
+              >
+                <span className="block text-sm font-bold text-ink">{p.label}</span>
+                <span className="mt-0.5 block font-mono text-xs text-slate">
+                  {p.hash.slice(0, 12)}…{p.hash.slice(-8)}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-slate">{p.note}</span>
+              </button>
+            ))}
+          </div>
         </div>
+      </section>
+
+      {/* 02 — Run */}
+      {loading && (
+        <section aria-label="Diagnosis in progress">
+          <p className="smallcaps mb-3">02 · Run</p>
+          <ProgressLoader
+            steps={STEPS}
+            current={step}
+            title={`Diagnosing ${activeHash?.slice(0, 14)}…${activeHash?.slice(-6)}`}
+          />
+        </section>
       )}
 
-      {/* Diagnosis result */}
-      {diag && !loading && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-hairline bg-white p-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={chipClass(diag.kind)}>{diag.verdictId.replace(/_/g, " ")}</span>
-              <a
-                className="font-mono text-xs text-accent hover:underline"
-                href={`${EXPLORER_TX}${activeHash}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {activeHash?.slice(0, 18)}…{activeHash?.slice(-8)} ↗
-              </a>
-            </div>
-            <h3 className="mt-3 text-lg font-bold text-ink">{diag.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-ink">{diag.explanation}</p>
+      {error && !loading && (
+        <section aria-label="Diagnosis failed">
+          <p className="smallcaps mb-3">02 · Run</p>
+          <ErrorState
+            title="Couldn't read Atlantic"
+            message={error}
+            hint="This panel only reads the chain — nothing was signed and nothing was spent."
+            retryLabel="Retry"
+            onRetry={activeHash ? () => run(activeHash) : undefined}
+          />
+        </section>
+      )}
 
-            {diag.stats.length > 0 && (
-              <div className="mt-4 overflow-x-auto rounded-xl border border-hairline">
-                <table className="data-table">
-                  <tbody>
-                    {diag.stats.map((s) => (
-                      <tr key={s.label}>
-                        <td className="whitespace-nowrap font-semibold text-slate">{s.label}</td>
-                        <td className="break-all font-mono text-xs text-ink">{s.value}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+      {/* 03 — Result */}
+      {diag && !loading && !error && activeHash && (
+        <section aria-label="Diagnosis result">
+          <p className="smallcaps mb-3">03 · Result</p>
+
+          <ResultCard
+            eyebrow="Diagnosis — Pharos Atlantic"
+            headline={HEADLINES[diag.verdictId] ?? diag.title}
+            subline={diag.explanation}
+            rows={rows}
+            links={[
+              { label: "View on the Atlantic explorer", href: `${EXPLORER_TX}${activeHash}` },
+            ]}
+            copyValue={activeHash}
+            status={statusOf(diag.kind)}
+          >
+            {/* The fix, as a callout */}
+            <div className="rounded-xl border-l-4 border-accent bg-tint p-4 sm:p-5">
+              <p className="flex items-center gap-2 text-sm font-bold text-ink">
+                <Wrench size={16} className="shrink-0 text-accent" aria-hidden />
+                What to do next
+              </p>
+              <ol className="mt-2 space-y-1.5">
+                {diag.fixes.map((f, i) => (
+                  <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-ink">
+                    <span className="font-bold text-accent" aria-hidden>
+                      {i + 1}.
+                    </span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
             {diag.revertData && (
-              <div className="mt-4">
-                <p className="smallcaps mb-1">Revert payload (from replay)</p>
-                <div className="code-block break-all font-mono text-xs">{diag.revertData}</div>
+              <div className="mt-5">
+                <p className="mb-1.5 text-sm font-semibold text-slate">
+                  Revert payload (from replay)
+                </p>
+                <div className="break-all rounded-xl border border-hairline bg-porcelain p-3 font-mono text-xs leading-relaxed text-ink">
+                  {diag.revertData}
+                </div>
               </div>
             )}
 
-            <div className="mt-4 rounded-xl bg-porcelain p-4">
-              <p className="smallcaps mb-2">What to do next</p>
-              <ul className="list-disc space-y-1 pl-5 text-sm text-ink">
-                {diag.fixes.map((f, i) => (
-                  <li key={i}>{f}</li>
-                ))}
-              </ul>
-            </div>
-
-            <p className="mt-3 text-xs text-slate">
+            <p className="mt-5 text-xs leading-relaxed text-slate">
               <span className="font-bold text-ink">Provenance: </span>
               {diag.provenance}
             </p>
@@ -879,53 +984,31 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
             {diag.rawReceipt != null && (
               <div className="mt-3">
                 <button
+                  type="button"
                   className="btn-outline !min-h-0 !px-3 !py-1.5 text-xs"
                   onClick={() => setShowRaw((v) => !v)}
                 >
                   {showRaw ? "Hide raw receipt" : "Show raw receipt"}
                 </button>
                 {showRaw && (
-                  <div className="code-block mt-2 max-h-72 overflow-auto whitespace-pre font-mono text-xs">
+                  <pre className="mt-2 max-h-72 overflow-auto whitespace-pre rounded-xl border border-hairline bg-porcelain p-3 font-mono text-xs leading-relaxed text-ink">
                     {JSON.stringify(diag.rawReceipt, null, 2)}
-                  </div>
+                  </pre>
                 )}
               </div>
             )}
-          </div>
+          </ResultCard>
 
-          <div className="flex flex-wrap gap-2">
-            <button className="btn-outline" onClick={() => run(activeHash ?? "")}>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" className="btn-outline" onClick={() => run(activeHash)}>
               Re-run diagnosis
             </button>
-            <button
-              className="btn-outline"
-              onClick={async () => {
-                if (!diag) return;
-                const text =
-                  `${diag.title}\n\n${diag.explanation}\n\nWhat to do next:\n` +
-                  diag.fixes.map((f) => `- ${f}`).join("\n") +
-                  `\n\nProvenance: ${diag.provenance}\nExplorer: ${EXPLORER_TX}${activeHash}`;
-                try {
-                  await navigator.clipboard.writeText(text);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                } catch {
-                  setCopied(false);
-                }
-              }}
-            >
+            <button type="button" className="btn-outline" onClick={copySummary}>
               {copied ? "Copied to clipboard" : "Copy plain-language summary"}
             </button>
           </div>
-        </div>
+        </section>
       )}
-
-      <p className="text-xs text-slate">
-        The diagnosis engine is the same one the T25 agent runs — mirrored
-        here. Every number above is read live from Atlantic and provable on
-        the explorer; the task's on-chain receipts live in the proof section
-        below.
-      </p>
     </div>
   );
 }
