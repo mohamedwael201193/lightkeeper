@@ -51,7 +51,7 @@ function ConnectButton() {
   }
 
   return (
-    <button onClick={connect} className="btn-primary" disabled={state.status === "connecting"}>
+    <button onClick={connect} className="btn-primary whitespace-nowrap" disabled={state.status === "connecting"}>
       <Wallet size={16} />
       {state.status === "connecting"
         ? "Connecting…"
@@ -89,7 +89,7 @@ export default function Header({ menuOpen, onToggle }: { menuOpen: boolean; onTo
             <a href="#/stack" className="transition-colors hover:text-ink">The Stack</a>
             <a href="#/activity" className="transition-colors hover:text-ink">Keeper's log</a>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <span className="chip chip-info hidden lg:inline-flex">{ATLANTIC.name}</span>
             <ConnectButton />
             <button

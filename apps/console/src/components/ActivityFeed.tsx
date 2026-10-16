@@ -1,10 +1,11 @@
 import { ExternalLink, FileText } from "lucide-react";
 import type { Lamp, LampActivity } from "../types";
+import { taskRoute } from "../types";
 
 /** Keeper's log — activity feed fed ONLY by real evidence.json events. */
 export default function ActivityFeed({ lamps }: { lamps: Lamp[] }) {
-  const events: (LampActivity & { lampId: string })[] = lamps
-    .flatMap((l) => l.activity.map((a) => ({ ...a, lampId: l.id })))
+  const events: (LampActivity & { lamp: Lamp })[] = lamps
+    .flatMap((l) => l.activity.map((a) => ({ ...a, lamp: l })))
     .slice(0, 24);
 
   return (
@@ -23,7 +24,7 @@ export default function ActivityFeed({ lamps }: { lamps: Lamp[] }) {
           <ul className="flex flex-col gap-3">
             {events.map((e, i) => (
               <li
-                key={`${e.lampId}-${i}-${e.title}`}
+                key={`${e.lamp.id}-${i}-${e.title}`}
                 className="flex items-start gap-4 rounded-2xl border border-hairline bg-paper p-4"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint text-accent">
@@ -31,14 +32,19 @@ export default function ActivityFeed({ lamps }: { lamps: Lamp[] }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">
-                      {e.lampId}
-                    </span>
+                    <a
+                      href={taskRoute(e.lamp)}
+                      className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent hover:underline"
+                    >
+                      {e.lamp.id}
+                    </a>
                     {e.at && <span className="font-mono text-[11px] text-slate">{e.at}</span>}
                   </div>
-                  <div className="truncate text-sm font-semibold text-ink">{e.title}</div>
+                  <div className="break-words text-sm font-semibold text-ink">{e.title}</div>
                   {e.detail && (
-                    <div className="truncate font-mono text-xs text-slate">{e.detail}</div>
+                    <div className="break-all font-mono text-xs leading-relaxed text-slate">
+                      {e.detail}
+                    </div>
                   )}
                 </div>
                 {e.link && (

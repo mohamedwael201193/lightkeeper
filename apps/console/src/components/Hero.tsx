@@ -33,7 +33,7 @@ export default function Hero({ data }: { data: LampsData }) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-6 text-[11px] font-bold uppercase tracking-[0.45em] text-white/70"
+          className="mb-6 text-[11px] font-bold uppercase tracking-[0.28em] text-white/70 sm:tracking-[0.45em]"
         >
           Lightkeeper · 28 autonomous agent skills
         </motion.p>
@@ -75,9 +75,9 @@ export default function Hero({ data }: { data: LampsData }) {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mx-auto mt-4 max-w-xl text-[14px] leading-relaxed text-white/65"
         >
-          One octopus to tend them. Every lamp below is a real Arena task; it burns gold
-          only when the task lands real on-chain evidence. Anything else stays dim —
-          honestly in progress, never mocked.
+          One lighthouse, twenty-eight lamps — and all of them are lit. Each lamp burns
+          gold only because its task landed real on-chain evidence. Nothing simulated,
+          nothing mocked.
         </motion.p>
 
         <motion.p
@@ -121,6 +121,27 @@ export default function Hero({ data }: { data: LampsData }) {
               {dim} in progress
             </span>
           )}
+        </motion.div>
+
+        {/* First-time-judge CTAs — real anchor actions, no dead buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.44 }}
+          className="mt-8 flex flex-wrap items-center justify-center gap-3"
+        >
+          <a
+            href="#/lamps"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#1414c8] transition-transform hover:-translate-y-0.5"
+          >
+            <Flame size={16} /> Explore the lamps
+          </a>
+          <a
+            href="#/stack"
+            className="inline-flex min-h-[44px] items-center rounded-xl border border-white/40 px-6 text-sm font-semibold text-white transition-colors hover:border-white hover:bg-white/10"
+          >
+            The Stack
+          </a>
         </motion.div>
       </div>
     </section>

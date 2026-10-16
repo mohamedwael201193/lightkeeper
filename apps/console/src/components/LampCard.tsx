@@ -32,7 +32,7 @@ export default function LampCard({ lamp, index }: { lamp: Lamp; index: number })
       <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate">
         {lamp.id} · {lamp.toolkit}
       </div>
-      <h3 className="mt-1 font-display text-xl font-semibold leading-snug text-ink">
+      <h3 className="mt-1 break-words font-display text-lg font-semibold leading-snug text-ink md:text-xl">
         {lamp.name}
       </h3>
 
