@@ -1,0 +1,26 @@
+id: t08
+slug: dry-run-executor
+title: Dry-Run Executor
+tier: Medium
+points: 100
+toolkit: SkillEngine
+status: ready-for-review
+chain: atlantic-testnet
+chain_id: 688689
+budget_phrs_max: 0.15
+spent_phrs: 0.00029803
+contracts:
+  - name: DryRunProbe
+    address: 0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f
+    deploy_tx: 0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44
+    network: atlantic-testnet
+evidence:
+  scenario_a_predict_revert: runs/receipt-A.json
+  scenario_a_blocked_log: runs/blocked-execution.log
+  scenario_b_predict_success: runs/receipt-B.json
+  scenario_b_forge_simulation: runs/forge-dryrun.log
+  scenario_b_real_tx: 0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee
+  unit_tests: tests/test_estimation_parsing.py
+requirements_ref: REQUIREMENTS.md
+reviewer_notes: REVIEWER_NOTES.md
+video: PENDING-VIDEO

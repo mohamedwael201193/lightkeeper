@@ -1,0 +1,34 @@
+{
+  "tool": "t08-dry-run-executor",
+  "schema": "SimulationReceipt/1",
+  "startedUtc": "2026-10-16T04:10:14Z",
+  "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "to": "0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f",
+  "sig": "ping()",
+  "sigArgs": [],
+  "valueWei": "0",
+  "gasSafetyFactor": 1.2,
+  "chainModified": false,
+  "chainId": 688689,
+  "blockNumber": 31481413,
+  "callStdout": "0x0000000000000000000000000000000000000000000000000000000000000001",
+  "callOk": true,
+  "stateBefore": {
+    "count": "0",
+    "balanceWei": "0"
+  },
+  "stateBeforeNote": "on-chain read; chain unmodified by dry-run",
+  "status": "PASS",
+  "gasEstimate": 58219,
+  "gasLimit": 69863,
+  "gasPriceWei": 10000000000,
+  "predictedCostWei": 698630000000000,
+  "predictedCostPHRS": 0.00069863,
+  "revertReason": null,
+  "stateAfterProjected": {
+    "count": "0",
+    "balanceWei": "0",
+    "note": "projected: ping() increments count by 1; boom() leaves state unchanged (it reverts)"
+  },
+  "stateAfterNote": "projection only; chain unmodified by dry-run"
+}

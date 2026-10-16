@@ -7,7 +7,7 @@ base_points: 50
 video_bonus: 50
 toolkit: Developer Docs MCP
 status: built
-commit: 9ec5f2169a1cf97da891a0055156e6d51a185651
+commit: 58ed09028eed0914f1afc9c2ce0bc2d6853ab970
 
 summary: >
   A stdlib-only CLI (`pharos-docs`) that answers Pharos developer questions

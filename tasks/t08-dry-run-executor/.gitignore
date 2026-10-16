@@ -1,0 +1,10 @@
+# Foundry build artifacts
+lib/
+out/
+cache/
+broadcast/
+# Local env / secrets — NEVER commit
+.env
+*.key
+# Local run caches
+runs/rpc-proxy.log

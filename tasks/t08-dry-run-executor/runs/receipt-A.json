@@ -1,0 +1,37 @@
+{
+  "tool": "t08-dry-run-executor",
+  "schema": "SimulationReceipt/1",
+  "startedUtc": "2026-10-16T04:09:11Z",
+  "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "to": "0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f",
+  "sig": "boom()",
+  "sigArgs": [],
+  "valueWei": "0",
+  "gasSafetyFactor": 1.2,
+  "chainModified": false,
+  "chainId": 688689,
+  "blockNumber": 31481344,
+  "callStdout": "",
+  "callOk": false,
+  "stateBefore": {
+    "count": "0",
+    "balanceWei": "0"
+  },
+  "stateBeforeNote": "on-chain read; chain unmodified by dry-run",
+  "status": "FAIL",
+  "gasEstimate": null,
+  "gasLimit": null,
+  "gasPriceWei": null,
+  "predictedCostWei": null,
+  "predictedCostPHRS": null,
+  "revertReason": "DryRunProbe: forced boom, data: \"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001844727952756e50726f62653a20666f7263656420626f6f6d0000000000000000\"",
+  "estimateStderrTail": [
+    "Error: server returned an error response: error code 3: execution reverted: DryRunProbe: forced boom, data: \"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001844727952756e50726f62653a20666f7263656420626f6f6d0000000000000000\""
+  ],
+  "stateAfterProjected": {
+    "count": "0",
+    "balanceWei": "0",
+    "note": "projected: revert -> state unchanged"
+  },
+  "stateAfterNote": "projection only; chain unmodified by dry-run"
+}
