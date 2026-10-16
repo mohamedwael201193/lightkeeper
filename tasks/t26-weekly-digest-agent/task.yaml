@@ -1,0 +1,44 @@
+name: t26-weekly-digest-agent
+title: Weekly Digest Agent
+arena_task: T26
+difficulty: Medium
+points: 100
+toolkit: Support / Reporting
+chain: pharos-atlantic-testnet
+chain_id: 688689
+status: shipped
+version: 1.0.0
+
+summary: >
+  Compiles REAL on-chain activity for a watched address over a real 7-day
+  block window (tx count, native volume in/out, gas spent, ERC20 Transfer
+  events via chain-direct chunked eth_getLogs), diffs it against a persisted
+  previous-period snapshot in state.json, ranks a deterministic TOP 3 of
+  notable events, and delivers the digest to a REAL Telegram channel.
+
+pipeline:
+  - src/digest.py --backfill   # previous-window digest from real history -> state.json baseline
+  - src/digest.py --run        # current-window digest + deltas -> digests/*.md
+  - src/digest.py --deliver    # ONE Telegram sendMessage; message_id is the receipt
+
+scheduling:
+  note: "No SkillEngine cron exists (verified). Scheduling is external:"
+  installer: cron/install-weekly-cron.sh   # operator-run; NOT installed by the builder
+  github_actions: cron/weekly-digest.github.yml  # alternative, copy into .github/workflows/
+
+data_sources:
+  - "eth_getLogs in <=1000-block chunks (RPC-enforced limit), Transfer topic filter"
+  - "explorer indexer API (same data the PharosScan frontend shows)"
+  - "eth_getBlockByNumber for honest window timestamps"
+  - "state.json previous-period snapshot for deltas"
+
+env_required:
+  - TELEGRAM_BOT_TOKEN   # deliver only; env-only, never in repo
+  - TELEGRAM_CHAT_ID     # deliver only
+env_optional:
+  - WATCH_ADDRESS        # default 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+  - ATLANTIC_RPC_URL     # default https://atlantic.dplabs-internal.com
+  - WINDOW_DAYS          # default 7
+
+tests: python3 -m unittest tests.test_digest   # 13 tests, offline, recorded REAL fixture
+spend_phrs: 0   # read-only; no transactions broadcast

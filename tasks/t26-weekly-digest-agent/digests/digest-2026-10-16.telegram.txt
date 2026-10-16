@@ -1,0 +1,15 @@
+📊 Weekly Digest — 0xf76e…71a3
+Atlantic testnet · 2026-10-09 → 2026-10-16
+
+Txs: 110 (+110 (prev 0))
+Sent: 109 · Received: 1
+Native in/out: 0.05/0.139866667 PHRS
+Gas spent: 0.022912577 PHRS
+Creations: 25 · Failed: 7 · Token xfers: 31
+
+TOP 3 notable:
+1. [FAILED TX] tx 0x91f7e02125… reverted/failed (receipt_status=0) in block 31482534
+2. [FAILED TX] tx 0x31993dc871… reverted/failed (receipt_status=0) in block 31482265
+3. [FAILED TX] tx 0x1a968603d0… reverted/failed (receipt_status=0) in block 31482202
+
+Full digest: see LIGHTKEEPER t26 deliverable.

@@ -1,0 +1,41 @@
+# T26 — Weekly Digest Agent: GitHub Actions schedule (ALTERNATIVE to cron).
+#
+# Copy this file to <repo>/.github/workflows/weekly-digest.yml on the
+# OPERATOR's own clone. It runs the digest pipeline every Monday 08:00 UTC.
+#
+# Required repository secrets (Settings -> Secrets -> Actions):
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+# Optional variables: WATCH_ADDRESS, WINDOW_DAYS
+#
+# HONESTY NOTE: this is an external scheduler driving the skill — Pharos
+# SkillEngine itself has no cron primitive. The builder does NOT install this.
+name: t26-weekly-digest
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # Mondays 08:00 UTC
+  workflow_dispatch: {}   # manual trigger
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tasks/t26-weekly-digest-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Build weekly digest
+        env:
+          ATLANTIC_RPC_URL: https://atlantic.dplabs-internal.com
+          WATCH_ADDRESS: ${{ vars.WATCH_ADDRESS }}
+          WINDOW_DAYS: ${{ vars.WINDOW_DAYS }}
+        run: python3 src/digest.py --run
+      - name: Deliver to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python3 src/digest.py --deliver
