@@ -12,8 +12,10 @@
 ## One-liner
 
 Type "send 0.01 PHRS to 0x…" and get a validated, human-reviewed payment plan
-that only broadcasts after an explicit `CONFIRM <plan_id>` — ambiguous input
-is refused, never guessed.
+that only broadcasts after explicit approval — ambiguous input is refused,
+never guessed. Also live in the console as a Tier B "try it live" surface:
+the same deterministic parser runs in the browser and the VISITOR signs the
+reviewed plan in their own wallet.
 
 ## Description
 
@@ -27,6 +29,17 @@ human-readable REVIEW card is rendered before an unsigned-tx artifact
 `CONFIRM <plan_id>` gate bound to the reviewed plan hash (the human-in-the-loop
 wallet signing request), wrapped in flock nonce-safety, followed by receipt
 read-back verification.
+
+**New — browser Tier B surface (2026-10-16):** `apps/console/src/components/try/nl-payment-agent.tsx`
+adds "Type it, review it, sign it" to the T17 task page ("Try it live — with
+your own wallet"). The exact parser grammar (deepened: 10 verbs, order-free
+slots, comma-number/word-amount/percentage/injection traps → refusal) runs
+client-side and renders the parsed intent as structured chips with a
+confidence note; ambiguous input asks a clarifying question, never guesses —
+and a recipient is never inferred. A valid plan goes through the mandatory
+review step (what moves, where, exact amount, amber dust warning above 0.01
+PHRS) before the visitor approves and signs in their own wallet. No keys are
+ever held or requested by the console.
 
 Real evidence on Atlantic: two full dust flows
 (parse → review → confirm → broadcast → verified receipt) plus one refused
@@ -45,6 +58,10 @@ the parser/validator/reviewer/gate/verifier.
 - Run 2 (ambiguous → refused, no tx): `runs/f8e7894d/transcript.log` in repo
 - Run 3 receipt (0.015 PHRS, verified 4/4):
   https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2
+- Interactive demo: LIGHTKEEPER console → open T17 → "Try it live — with your
+  own wallet" (module `apps/console/src/components/try/nl-payment-agent.tsx`):
+  type a phrase, see the parsed-intent chips, pass the mandatory review, and
+  sign in your own wallet — the console never holds keys.
 - Video: PENDING-VIDEO
 
 ## Transaction hashes
