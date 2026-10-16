@@ -47,7 +47,7 @@ no wallet. Fixed 2026-10-16: this RPC rejects `eth_getBlockNumber` (HTTP 400,
 ## Links
 
 - Code (commit-pinned):
-  https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t13-docs-chain-agent
+  https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t13-docs-chain-agent
 - Deposit tx (Q3 footprint): https://atlantic.pharosscan.xyz/tx/0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b
 - Transfer tx (Q3 Transfer log): https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7
 - Demo video: PENDING-VIDEO

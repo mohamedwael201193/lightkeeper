@@ -15,7 +15,7 @@ A single user request (`flow.py --amount-phrs X`) drives READ → SKILL → EXEC
 Dependency proven by contrast runs on the same contract: 0.0001 PHRS → ALLOW → real tx → pingCount 0→1; 0.1 PHRS → BLOCK quoting the live balance → no broadcast → pingCount unchanged. Post-harden re-runs (2026-10-16) re-executed the full pair live: allow-4 → ALLOW → real tx 0x022bc47b…fd7128 (block 31486412) → pingCount 1→2; block-2 → BLOCK against a fresh live balance (5.870589420313178416 PHRS) → no broadcast. Honest run history (one freshness-BLOCK, one broadcast crash before any tx) preserved in the transcript. Unit tests 8/8. Budget 0.0005699020 of 0.15 PHRS.
 
 **Repo link (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t12-skill-chain-flow
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t12-skill-chain-flow
 
 **Share/demo links:**
 https://atlantic.pharosscan.xyz/tx/0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3 (deploy)

@@ -26,7 +26,7 @@ the CLI refuses (UNVERIFIED, exit 2) when the index has no covering passage, and
 quoted excerpt is traceable verbatim to the fetched corpus. README includes install/usage and 4
 live-pasted example Q&As plus a miss-path demo. Zero chain interaction, 0 PHRS spent (read-only).
 
-**Code (commit-pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/58ed09028eed0914f1afc9c2ce0bc2d6853ab970/tasks/t04-doc-search-cli
+**Code (commit-pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t04-doc-search-cli
 
 **Share/demo links:**
 - README (install, usage, 4 live examples): `tasks/t04-doc-search-cli/README.md`

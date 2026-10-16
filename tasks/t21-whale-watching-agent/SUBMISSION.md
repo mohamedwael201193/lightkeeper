@@ -27,7 +27,7 @@ transfer executed on Atlantic (block 31482165, tx
 the report as self-seeded, never presented as organic. 16 unit tests green.
 
 **Repo link (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/050bfbf/tasks/t21-whale-watching-agent
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t21-whale-watching-agent
 
 **Proof link:**
 https://atlantic.pharosscan.xyz/tx/0xf566e34c25ca3c32dc4f6c687b7345501ea8da065398d71e9b87bc246371ba70

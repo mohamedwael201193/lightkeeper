@@ -48,7 +48,7 @@ made on net.
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/ec2a9b4d1bd18e7d2dbcb20f3e8197767e760e89/tasks/t15-yield-optimizer
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t15-yield-optimizer
 
 ## Proof links
 

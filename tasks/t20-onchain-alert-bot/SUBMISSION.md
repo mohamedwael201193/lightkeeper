@@ -48,7 +48,7 @@ Live proof (all real, 2026-10-16):
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/04fdd4c554ae5878bb4b15fc2a0b55492850080b/tasks/t20-onchain-alert-bot
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t20-onchain-alert-bot
 
 ## Proof link
 

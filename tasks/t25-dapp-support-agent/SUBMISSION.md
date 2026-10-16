@@ -31,7 +31,7 @@ Tests: `python3 tests/test_agent.py` → 8/8 PASS, every diagnostic value assert
 
 ## Links
 
-- Repo (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/ae37f9a/tasks/t25-dapp-support-agent
+- Repo (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t25-dapp-support-agent
 - Share/demo link: PENDING (portal share-link mechanics unverified — fallback: explorer tx links above, all curl-verified HTTP 200)
 - Video: PENDING-VIDEO (guide: VIDEO-GUIDE.md)
 

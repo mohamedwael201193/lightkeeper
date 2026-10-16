@@ -32,7 +32,7 @@ snapshot + synthetic boundary cases. Total spend ≈0.000062 PHRS of the
 0.15 budget.
 
 **Repo (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb58b20c6fcc6cbc/tasks/t22-gas-fee-optimizer
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t22-gas-fee-optimizer
 
 **Proof links:**
 - Job A (favorable window): https://atlantic.pharosscan.xyz/tx/0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050

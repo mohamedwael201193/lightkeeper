@@ -42,7 +42,7 @@ a discovery run, never hard-coded).
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/2972d1c/tasks/t28-multi-protocol-aggregator
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t28-multi-protocol-aggregator
 
 ## Proof link (tx hashes)
 

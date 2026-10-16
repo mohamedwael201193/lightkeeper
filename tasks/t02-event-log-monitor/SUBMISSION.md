@@ -33,7 +33,7 @@ Poller left running with live `poll.log`. Honest gaps: confirmation-lag reorg to
 
 ## Commit-pinned code
 
-https://github.com/mohamedwael201193/lightkeeper/tree/9ded8f2e69c089b69d9a054c9212b9ecbf685652/tasks/t02-event-log-monitor
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t02-event-log-monitor
 
 ## Share / demo links
 

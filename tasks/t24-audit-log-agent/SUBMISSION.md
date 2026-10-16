@@ -26,7 +26,7 @@ mocks, no placeholders. Total on-chain spend: 0.000363512000063512 PHRS
 (budget 0.15).
 
 ## Proof link (repo, commit-pinned)
-https://github.com/mohamedwael201193/lightkeeper/tree/3b9a8ef/tasks/t24-audit-log-agent
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t24-audit-log-agent
 
 ## Demo / share links
 Video: PENDING-VIDEO (see VIDEO-GUIDE.md for the 60-second shot plan)

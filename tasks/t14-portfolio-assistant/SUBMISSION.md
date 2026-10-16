@@ -37,7 +37,7 @@ LPK deployment tx 0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/8dcebf3/tasks/t14-portfolio-assistant
+https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t14-portfolio-assistant
 
 ## Share / demo links
 

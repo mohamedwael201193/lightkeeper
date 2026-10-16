@@ -1,7 +1,7 @@
 # T09 — Arena Submission Pack (copy-paste ready)
 
 > Video slot: **PENDING-VIDEO** — record per VIDEO-GUIDE.md, then paste the link below.
-> Pinned tree: `https://github.com/mohamedwael201193/lightkeeper/tree/1523a7b78eef5a8206575340a7af8ac6557a8f29/tasks/t09-trend-watcher`
+> Pinned tree: `https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t09-trend-watcher`
 
 ---
 
@@ -34,7 +34,7 @@ Read-only: 0 gas spent, no keys, no broadcast. FIRE is an off-chain signal.
 
 ## Links
 
-- **Repo (pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/1523a7b78eef5a8206575340a7af8ac6557a8f29/tasks/t09-trend-watcher
+- **Repo (pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t09-trend-watcher
 - **Proof — explorer, sampled window (curl-verified 200):**
   https://atlantic.pharosscan.xyz/block/31481567 ·
   https://atlantic.pharosscan.xyz/block/31481678

@@ -58,7 +58,7 @@ the parser/validator/reviewer/gate/verifier.
 
 ## Repo link (commit-pinned)
 
-`https://github.com/mohamedwael201193/lightkeeper/tree/cefa397710530677a6ab7a61e29afed868d0e41b/tasks/t17-nl-payment-agent`
+`https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t17-nl-payment-agent`
 
 ## Share / demo links
 
