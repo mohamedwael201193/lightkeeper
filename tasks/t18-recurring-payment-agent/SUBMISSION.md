@@ -34,7 +34,7 @@ running. Evidence: live installment tx
 pause/resume/cancel transcripts, and 12/12 passing idempotency unit tests.
 
 **Repo Link (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/<COMMIT>/tasks/t18-recurring-payment-agent
+https://github.com/mohamedwael201193/lightkeeper/tree/742ad8ddfd5f175c91d196f79fdfa1d235751e38/tasks/t18-recurring-payment-agent
 
 **Proof Link (live tx):**
 https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10
