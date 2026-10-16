@@ -1,4 +1,6 @@
 {
+  "shipped": true,
+  "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
   "generated": "2026-10-16",
   "corpus_retrieved": "2026-10-16",
   "index_passages": 438,

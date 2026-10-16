@@ -132,7 +132,7 @@ function buildActivity(ev) {
     acts.push({ title, detail, at, ...(link ? { link } : {}) });
   if (Array.isArray(ev.runs))
     for (const r of ev.runs.slice(0, 4))
-      push(`Run: ${r.label ?? r.name ?? "guardian run"}`, String(r.decision ?? r.proposal ?? ""), String(ev.built_utc ?? ""));
+      push(r.label ?? r.name ?? "Run", String(r.decision ?? r.proposal ?? ""), String(ev.built_utc ?? ""));
   if (ev.deploy && ev.deploy.tx)
     push("Contract deployed", `${String(ev.deploy.tx).slice(0, 12)}…`, String(ev.deploy.block ?? ""));
   if (Array.isArray(ev.emitter_txs))
@@ -225,7 +225,8 @@ const lamps = MATRIX.map(([id, name, tier, points, toolkit]) => {
   if (existsSync(join(d, "task.yaml"))) {
     lamp.has_task_yaml = true;
     const y = readYamlSimple(join(d, "task.yaml"));
-    if (typeof y.name === "string" && y.name) lamp.name = y.name;
+    if (typeof y.title === "string" && y.title) lamp.name = y.title;
+    else if (typeof y.name === "string" && y.name) lamp.name = y.name;
     if (typeof y.points === "number") lamp.points = y.points;
     if (typeof y.toolkit === "string" && y.toolkit) lamp.toolkit = y.toolkit;
     if (typeof y.slug === "string" && y.slug) lamp.slug = y.slug;
@@ -243,10 +244,13 @@ const lamps = MATRIX.map(([id, name, tier, points, toolkit]) => {
       ? "draft"
       : "written — founder submits";
   }
-  if (existsSync(join(d, "evidence.json"))) {
+  const evPath = existsSync(join(d, "evidence.json"))
+    ? join(d, "evidence.json")
+    : join(d, "evidence", "evidence.json");
+  if (existsSync(evPath)) {
     lamp.has_evidence_json = true;
     try {
-      const ev = JSON.parse(readFileSync(join(d, "evidence.json"), "utf8"));
+      const ev = JSON.parse(readFileSync(evPath, "utf8"));
       lamp.evidence = ev;
       const harvested = { txs: new Set(), contracts: new Set(), urls: new Set() };
       harvestEvidence(ev, harvested);

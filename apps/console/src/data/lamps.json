@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-16T05:15:39.143Z",
+  "generated_at": "2026-10-16T05:22:48.010Z",
   "source": "../../tasks/*/evidence.json + task.yaml — statuses from real evidence only",
   "total_points": 3200,
-  "lamps_lit": 23,
-  "points_secured": 2700,
+  "lamps_lit": 28,
+  "points_secured": 3200,
   "tasks": [
     {
       "id": "T01",
@@ -249,7 +249,7 @@
       "points": 50,
       "toolkit": "Developer Docs MCP",
       "dir": "t03-docs-mcp-onboarding",
-      "status": "in-progress",
+      "status": "shipped",
       "has_task_yaml": true,
       "has_readme": true,
       "readme_summary": "A **feedback-task deliverable** built with ONLY Docs MCP surfaces: a verbatim step-by-step log of\nqueries asked → answers received, **5 confirmed gaps** each with the EXACT query and a suggested fix,\nand a runnable query-log runner plus a \"First 5 Queries\" onboarding quickstart derived solely from\nreal answers. No mocks, no invented answers — where the docs couldn't answer, the log says so.\n\n2. Official requirements → where they live\n\n| Official requirement (MEGA §3.2, quoted in `REQUIREMENTS.md`) | Location |\n|---|---|\n| (1) Step-by-step log: tried → asked → received | `evidence.md` §1 · `evidence.json` (raw verbatim) |\n| (2) ≥3 concrete gaps, each with the EXACT query | `evidence.md` §2 (G1–G5) |\n| (3) Suggested fix per gap | Same table, \"what the docs should have said\" |\n| (4) What you built / ran | `QUICKSTART.md` + `scripts/query_log.py` (§5 below) |\n| CONSTRAINT: ONLY Docs MCP | `e…",
@@ -259,6 +259,8 @@
       "run_log_files": [],
       "has_evidence_json": true,
       "evidence": {
+        "shipped": true,
+        "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
         "runs": [
           {
             "run_at": "2026-10-16T04:09:18Z",
@@ -454,7 +456,10 @@
               }
             ]
           }
-        ]
+        ],
+        "spend_phrs": 0,
+        "spend_note": "read-only task: docs Q&A runs only, zero chain calls, zero gas spent",
+        "budget_phrs": 0.15
       },
       "txs": [],
       "explorer_links": [],
@@ -462,17 +467,17 @@
       "submission_status": "written — founder submits",
       "activity": [
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         }
@@ -486,7 +491,7 @@
       "points": 50,
       "toolkit": "Developer Docs MCP",
       "dir": "t04-doc-search-cli",
-      "status": "in-progress",
+      "status": "shipped",
       "has_task_yaml": true,
       "has_readme": true,
       "readme_summary": "`pharos-docs` is a small command-line tool that answers Pharos developer questions **with citations**.\nIt reads a local passage index built from the live Pharos documentation (fetched 2026-10-16:\n`llms.txt`, the full GitBook corpus `llms-full.txt`, and `sitemap.md`), scores passages with BM25,\nand prints an answer card. Every technical answer carries exactly one label:\n\n- **DOC-GROUNDED** — quoted verbatim from the indexed docs, with doc URL + retrieval date\n- **INFERENCE** — the tool's own synthesis, explicitly marked as such\n- **UNVERIFIED** — no covering passage found; the tool refuses to answer (exit code 2)\n\nIt is **not** a wrapper around the GitBook `?ask=` endpoint (see §2). It makes **zero network\ncalls** when answering — the index ships in the repo. Stdlib Python only. Read-only task: zero\nchain interaction, zero spend.",
@@ -494,8 +499,290 @@
       "task_config_text": "id: T04\nslug: doc-search-cli\ntitle: Doc-Search CLI\ntrack: Pharos Season of AI Agent Arena\ndifficulty: Easy\nbase_points: 50\nvideo_bonus: 50\ntoolkit: Developer Docs MCP\nstatus: built\ncommit: 58ed09028eed0914f1afc9c2ce0bc2d6853ab970\n\nsummary: >\n  A stdlib-only CLI (`pharos-docs`) that answers Pharos developer questions\n  from a LOCAL passage index built from the live docs (llms.txt +\n  llms-full.txt + sitemap, fetched 2026-10-16). BM25 retrieval with synonym\n  expansion, recommendation boost, and an honest-miss gate. Every answer\n  carries exactly one citation label: DOC-GROUNDED (doc URL + retrieval date\n  + verbatim excerpt), INFERENCE (explicitly marked synthesis), or UNVERIFIED\n  (exit 2, no invented content). NOT a thin HTTP wrapper around the GitBook\n  ?ask= endpoint.\n\ndeliverables:\n  - task.yaml\n  - REQUIREMENTS.md\n  - README.md\n  - evidence.md\n  - evidence/evidence.json\n  - evidence/run_evidence.py\n  - evidence/transcripts/\n  - REVIEWER_NOTES.md\n  - LINKS.md\n  - SUBMISSION.md\n  - VIDEO-GUIDE.md\n  - pharos-docs\n  - src/build_index.py\n  - fetch_corpus.sh\n  - index/index.json\n  - corpus/\n  - tests/test_cli.py\n  - tests/probe_scores.py\n\nevidence:\n  log: evidence.md §1 + evidence/evidence.json (9 queries: 7 grounded, 2 honest misses)\n  replay: python3 evidence/run_evidence.py\n  tests: python3 -m unittest tests.test_cli  (14 tests, all pass)\n\nconstraints:\n  - no mock/demo/placeholder/fake success; never fabricate doc content\n  - no secrets in repo; read-only task; spend 0 PHRS (budget cap 0.15)\n  - CLI makes zero network calls at answer time (local index)\n\nnotes: >\n  The GitBook ?ask= endpoint was reachable (HTTP 200) during this build but\n  has 403'd before (verdict team, first-hand) and is undocumented; the CLI\n  deliberately does not depend on it. Retrieval date for all citations:\n  2026-10-16.\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
+      "has_evidence_json": true,
+      "evidence": {
+        "shipped": true,
+        "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
+        "generated": "2026-10-16",
+        "corpus_retrieved": "2026-10-16",
+        "index_passages": 438,
+        "queries": [
+          {
+            "id": "E1",
+            "query": "how do I deploy a contract?",
+            "expected": "DOC-GROUNDED",
+            "label": "DOC-GROUNDED",
+            "expectation_check": "PASS",
+            "exit_code": 0,
+            "stdout": "{\n  \"question\": \"how do I deploy a contract?\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Write Your First Uniswap Contract\",\n      \"section\": \"\",\n      \"page_url\": \"https://docs.pharos.xyz/developer-guide/foundry/write-your-first-uniswap-contract\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 7.846,\n      \"excerpt\": \"function swapAToB(uint256 amountA) external {\\n        uint256 amountB = (amountA * reserveB) / reserveA;\\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \\\"Transfer failed\\\");\\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \\\"Transfer failed\\\");\\n\\nreserveA += amountA;\\n        reserveB -= amountB;\\n    }\\n\\nfunction swapBToA(uint256 amountB) external {\\n        uint256 amountA = (amountB * reserveA) / reserveB;\\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \\\"Transfer failed\\\");\\n        require(IERC20(tokenA).transfer(msg.send\"\n    },\n    {\n      \"page_title\": \"Write Your First Uniswap Contract\",\n      \"section\": \"\",\n      \"page_url\": \"https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-uniswap-contract\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 7.846,\n      \"excerpt\": \"function swapAToB(uint256 amountA) external {\\n        uint256 amountB = (amountA * reserveB) / reserveA;\\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \\\"Transfer failed\\\");\\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \\\"Transfer failed\\\");\\n\\nreserveA += amountA;\\n        reserveB -= amountB;\\n    }\\n\\nfunction swapBToA(uint256 amountB) external {\\n        uint256 amountA = (amountB * reserveA) / reserveB;\\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \\\"Transfer failed\\\");\\n        require(IERC20(tokenA).transfer(msg.send\"\n    },\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Developer Guide\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 7.165,\n      \"excerpt\": \"Framework Tutorials\\n- Foundry: Setting up Foundry to build and deploy on Pharos.\\n- Foundry: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Foundry.\\n- Foundry: Write Your First Token: Deploy an ERC-20-style token with Foundry.\\n- Foundry: Write Your First NFT: Deploy an NFT contract with Foundry.\\n- Foundry: Write Your First Uniswap Contract: Deploy a Uniswap-style contract with Foundry.\\n- Hardhat: Setting up Hardhat to build and deploy on Pharos.\\n- Hardhat: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Hardhat.\\n- Hardhat: Write Your First To\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [
+              {
+                "page_title": "Write Your First Uniswap Contract",
+                "section": "",
+                "page_url": "https://docs.pharos.xyz/developer-guide/foundry/write-your-first-uniswap-contract",
+                "retrieved": "2026-10-16",
+                "score": 7.846,
+                "excerpt": "function swapAToB(uint256 amountA) external {\n        uint256 amountB = (amountA * reserveB) / reserveA;\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \"Transfer failed\");\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \"Transfer failed\");\n\nreserveA += amountA;\n        reserveB -= amountB;\n    }\n\nfunction swapBToA(uint256 amountB) external {\n        uint256 amountA = (amountB * reserveA) / reserveB;\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \"Transfer failed\");\n        require(IERC20(tokenA).transfer(msg.send"
+              },
+              {
+                "page_title": "Write Your First Uniswap Contract",
+                "section": "",
+                "page_url": "https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-uniswap-contract",
+                "retrieved": "2026-10-16",
+                "score": 7.846,
+                "excerpt": "function swapAToB(uint256 amountA) external {\n        uint256 amountB = (amountA * reserveB) / reserveA;\n        require(IERC20(tokenA).transferFrom(msg.sender, address(this), amountA), \"Transfer failed\");\n        require(IERC20(tokenB).transfer(msg.sender, amountB), \"Transfer failed\");\n\nreserveA += amountA;\n        reserveB -= amountB;\n    }\n\nfunction swapBToA(uint256 amountB) external {\n        uint256 amountA = (amountB * reserveA) / reserveB;\n        require(IERC20(tokenB).transferFrom(msg.sender, address(this), amountB), \"Transfer failed\");\n        require(IERC20(tokenA).transfer(msg.send"
+              },
+              {
+                "page_title": "Pharos Documentation Index",
+                "section": "Developer Guide",
+                "page_url": "https://www.pharos.xyz/llms.txt",
+                "retrieved": "2026-10-16",
+                "score": 7.165,
+                "excerpt": "Framework Tutorials\n- Foundry: Setting up Foundry to build and deploy on Pharos.\n- Foundry: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Foundry.\n- Foundry: Write Your First Token: Deploy an ERC-20-style token with Foundry.\n- Foundry: Write Your First NFT: Deploy an NFT contract with Foundry.\n- Foundry: Write Your First Uniswap Contract: Deploy a Uniswap-style contract with Foundry.\n- Hardhat: Setting up Hardhat to build and deploy on Pharos.\n- Hardhat: Write Your First dApp: End-to-end walkthrough deploying a basic dApp with Hardhat.\n- Hardhat: Write Your First To"
+              }
+            ],
+            "note": null
+          },
+          {
+            "id": "E2",
+            "query": "what is the Atlantic testnet chain id and RPC url",
+            "expected": "DOC-GROUNDED",
+            "label": "DOC-GROUNDED",
+            "expectation_check": "PASS",
+            "exit_code": 0,
+            "stdout": "{\n  \"question\": \"what is the Atlantic testnet chain id and RPC url\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Atlantic Testnet\",\n      \"section\": \"Network Information\",\n      \"page_url\": \"https://docs.pharos.xyz/getting-started/network/atlantic-testnet\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 17.119,\n      \"excerpt\": \"| Parameter              | Value                                  |\\n| ---------------------- | -------------------------------------- |\\n| RPC Public Endpoint    |  |\\n| WSS Public Endpoint    |    |\\n| Explorer               |      |\\n| ChainID                | 688689                                 |\\n| Environment            | Atlantic Testnet                       |\\n| Ratelimit              | 500 times/5m                           |\\n| Max Pending TXs (Addr) | 64                                     |\\n\\n> For the current node binary and Docker image versions, see Current Node Versions.\"\n    },\n    {\n      \"page_title\": \"ZAN RPC\",\n      \"section\": \"How to Access Pharos Testnet RPC from ZAN?\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 15.314,\n      \"excerpt\": \"| Network          | HTTPS URL                                                | WSS URL                                                 |\\n| ---------------- | -------------------------------------------------------- | ------------------------------------------------------- |\\n| Atlantic Testnet |     | wss\\\\://api.zan.top/node/ws/v1/pharos/testnet/{apikey}   |\\n| Pacific Mainnet  |  | wss\\\\://api.zan.top/node/ws/v1/pharos/mainnet/{api\\\\_key} |\\n\\nVideo Reference: Pharos RPC.mp4\"\n    },\n    {\n      \"page_title\": \"Pharos Skill Engine\",\n      \"section\": \"Part 6 \\u2014 Quick Reference\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 15.113,\n      \"excerpt\": \"\\u2500\\u2500 VERIFY \\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\nsleep 10\\nforge verify-contract  src/: \\\\\\n  --chain-id 688689 \\\\\\n  --verifier-url https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract \\\\\\n  --verifier blockscout\\n\\n\\u2500\\u2500 EVENTS \\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\ncast logs --from-block 0 --address  \\\"\\\" --rpc-url $RPC\\n\\n\\u2500\\u2500 AIRDROP (large scale) \\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\nCSV_PATH=airdrop.csv BATCH_SIZE=200 \\\\\\n  forge script assets/airdrop/BatchAirdrop.s.sol:BatchAirdrop \\\\\\n  --rpc-url $RPC --private-key $PRIVATE_KEY --broa\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [
+              {
+                "page_title": "Atlantic Testnet",
+                "section": "Network Information",
+                "page_url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+                "retrieved": "2026-10-16",
+                "score": 17.119,
+                "excerpt": "| Parameter              | Value                                  |\n| ---------------------- | -------------------------------------- |\n| RPC Public Endpoint    |  |\n| WSS Public Endpoint    |    |\n| Explorer               |      |\n| ChainID                | 688689                                 |\n| Environment            | Atlantic Testnet                       |\n| Ratelimit              | 500 times/5m                           |\n| Max Pending TXs (Addr) | 64                                     |\n\n> For the current node binary and Docker image versions, see Current Node Versions."
+              },
+              {
+                "page_title": "ZAN RPC",
+                "section": "How to Access Pharos Testnet RPC from ZAN?",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan",
+                "retrieved": "2026-10-16",
+                "score": 15.314,
+                "excerpt": "| Network          | HTTPS URL                                                | WSS URL                                                 |\n| ---------------- | -------------------------------------------------------- | ------------------------------------------------------- |\n| Atlantic Testnet |     | wss\\://api.zan.top/node/ws/v1/pharos/testnet/{apikey}   |\n| Pacific Mainnet  |  | wss\\://api.zan.top/node/ws/v1/pharos/mainnet/{api\\_key} |\n\nVideo Reference: Pharos RPC.mp4"
+              },
+              {
+                "page_title": "Pharos Skill Engine",
+                "section": "Part 6 — Quick Reference",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide",
+                "retrieved": "2026-10-16",
+                "score": 15.113,
+                "excerpt": "── VERIFY ─────────────────────────────────────────────────────────\nsleep 10\nforge verify-contract  src/: \\\n  --chain-id 688689 \\\n  --verifier-url https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract \\\n  --verifier blockscout\n\n── EVENTS ─────────────────────────────────────────────────────────\ncast logs --from-block 0 --address  \"\" --rpc-url $RPC\n\n── AIRDROP (large scale) ──────────────────────────────────────────\nCSV_PATH=airdrop.csv BATCH_SIZE=200 \\\n  forge script assets/airdrop/BatchAirdrop.s.sol:BatchAirdrop \\\n  --rpc-url $RPC --private-key $PRIVATE_KEY --broa"
+              }
+            ],
+            "note": null
+          },
+          {
+            "id": "E3",
+            "query": "how do I get testnet tokens for gas",
+            "expected": "DOC-GROUNDED",
+            "label": "DOC-GROUNDED",
+            "expectation_check": "PASS",
+            "exit_code": 0,
+            "stdout": "{\n  \"question\": \"how do I get testnet tokens for gas\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Piggy Bank Tutorial\",\n      \"section\": \"Common Errors and Fixes\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 17.568,\n      \"excerpt\": \"| Error                              | Cause                       | Fix                                                 |\\n| ---------------------------------- | --------------------------- | --------------------------------------------------- |\\n| Still locked                     | Too early to withdraw       | Run timeLeft() and wait                           |\\n| Not owner                        | Wrong wallet                | Check $PRIVATE_KEY matches the deployer address   |\\n| Must send PHRS                   | Missing --value flag      | Add --value 0.1ether to the deposit command       |\"\n    },\n    {\n      \"page_title\": \"Piggy Bank Tutorial\",\n      \"section\": \"Prerequisites\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 12.526,\n      \"excerpt\": \"Tools to Install\\n\\nFoundry \\u2014 compiles and deploys Solidity contracts\\n\\n``bash\\ncurl -L https://foundry.paradigm.xyz | bash\\nsource ~/.zshenv && foundryup\\n`\\n\\nVerify installation:\\n\\n`bash\\ncast --version\\nforge --version\\n`\\n\\nBoth should print a version number. If either fails, re-run foundryup.\\n\\nClaude Code \\u2014 the AI CLI that runs your skill\\n\\n`bash\\nnpm install -g @anthropic-ai/claude-code\\n`\\n\\nVerify:\\n\\n`bash\\nclaude --version\\n`\\n\\nWallet Setup\\n\\n1. Create an EVM-compatible wallet (MetaMask or any EVM wallet)\\n2. Add the Pharos Atlantic Testnet to your wallet:\\n   * Network Name: Pharos Atlantic Testnet\\n   * RPC \"\n    },\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Available Tools\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 10.122,\n      \"excerpt\": \"| Tool                      | JSON-RPC method             | Description                       |\\n| ------------------------- | --------------------------- | --------------------------------- |\\n| get_balance             | eth_getBalance            | Native PROS balance of an address |\\n| get_transaction_count   | eth_getTransactionCount   | Address nonce                     |\\n| get_transaction         | eth_getTransactionByHash  | Transaction by hash               |\\n| get_transaction_receipt | eth_getTransactionReceipt | Transaction receipt               |\\n\\nContracts\\n\\n| Tool             | JSON-RP\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [
+              {
+                "page_title": "Piggy Bank Tutorial",
+                "section": "Common Errors and Fixes",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide",
+                "retrieved": "2026-10-16",
+                "score": 17.568,
+                "excerpt": "| Error                              | Cause                       | Fix                                                 |\n| ---------------------------------- | --------------------------- | --------------------------------------------------- |\n| Still locked                     | Too early to withdraw       | Run timeLeft() and wait                           |\n| Not owner                        | Wrong wallet                | Check $PRIVATE_KEY matches the deployer address   |\n| Must send PHRS                   | Missing --value flag      | Add --value 0.1ether to the deposit command       |"
+              },
+              {
+                "page_title": "Piggy Bank Tutorial",
+                "section": "Prerequisites",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide",
+                "retrieved": "2026-10-16",
+                "score": 12.526,
+                "excerpt": "Tools to Install\n\nFoundry — compiles and deploys Solidity contracts\n\n``bash\ncurl -L https://foundry.paradigm.xyz | bash\nsource ~/.zshenv && foundryup\n`\n\nVerify installation:\n\n`bash\ncast --version\nforge --version\n`\n\nBoth should print a version number. If either fails, re-run foundryup.\n\nClaude Code — the AI CLI that runs your skill\n\n`bash\nnpm install -g @anthropic-ai/claude-code\n`\n\nVerify:\n\n`bash\nclaude --version\n`\n\nWallet Setup\n\n1. Create an EVM-compatible wallet (MetaMask or any EVM wallet)\n2. Add the Pharos Atlantic Testnet to your wallet:\n   * Network Name: Pharos Atlantic Testnet\n   * RPC "
+              },
+              {
+                "page_title": "Pharos MCP",
+                "section": "Available Tools",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+                "retrieved": "2026-10-16",
+                "score": 10.122,
+                "excerpt": "| Tool                      | JSON-RPC method             | Description                       |\n| ------------------------- | --------------------------- | --------------------------------- |\n| get_balance             | eth_getBalance            | Native PROS balance of an address |\n| get_transaction_count   | eth_getTransactionCount   | Address nonce                     |\n| get_transaction         | eth_getTransactionByHash  | Transaction by hash               |\n| get_transaction_receipt | eth_getTransactionReceipt | Transaction receipt               |\n\nContracts\n\n| Tool             | JSON-RP"
+              }
+            ],
+            "note": null
+          },
+          {
+            "id": "E4",
+            "query": "which oracle should I use for price feeds on Pharos",
+            "expected": "DOC-GROUNDED",
+            "label": "DOC-GROUNDED",
+            "expectation_check": "PASS",
+            "exit_code": 0,
+            "stdout": "{\n  \"question\": \"which oracle should I use for price feeds on Pharos\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Defaults\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 26.561,\n      \"excerpt\": \"- For RPC access, start with Pharos's official public RPC endpoint (see Pacific Mainnet / Atlantic Testnet under Live Data) for basic development and testing. For production workloads needing higher rate limits or stronger reliability, prefer ZAN RPC as the default production provider \\u2014 Pharos works closely with the ZAN team and can provide faster support. If ZAN doesn't meet a specific requirement, Alchemy RPC is the recommended alternative. Nirvana RPC is also available.\\n- For price/market data, prefer Chainlink as the default oracle provider \\u2014 use Chainlink Push Engine Feeds when your contr\"\n    },\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Tooling & Infrastructure\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 25.798,\n      \"excerpt\": \"Block Explorer\\n- Block Explorer: Overview of block explorer options on Pharos.\\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\\n\\nRPC Providers\\n- RPC Infrastructure: Overview of available RPC providers \\u2014 see Defaults above for production guidance.\\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\\n\\nIndexing\\n- Indexer: Overview of indexing options on Pharos.\\n- Goldsky: High-performance data indexing to e\"\n    },\n    {\n      \"page_title\": \"Supra\",\n      \"section\": \"Overview\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 21.001,\n      \"excerpt\": \"Supra provides high-performance oracle services that deliver real-time price feeds and external data to decentralized applications.\\n\\nOn Pharos, Supra\\u2019s DORA Pull Oracle is deployed on Pacific Mainnet and Atlantic Testnet, enabling smart contracts to securely fetch off-chain data directly from the oracle network.\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [
+              {
+                "page_title": "Pharos Documentation Index",
+                "section": "Defaults",
+                "page_url": "https://www.pharos.xyz/llms.txt",
+                "retrieved": "2026-10-16",
+                "score": 26.561,
+                "excerpt": "- For RPC access, start with Pharos's official public RPC endpoint (see Pacific Mainnet / Atlantic Testnet under Live Data) for basic development and testing. For production workloads needing higher rate limits or stronger reliability, prefer ZAN RPC as the default production provider — Pharos works closely with the ZAN team and can provide faster support. If ZAN doesn't meet a specific requirement, Alchemy RPC is the recommended alternative. Nirvana RPC is also available.\n- For price/market data, prefer Chainlink as the default oracle provider — use Chainlink Push Engine Feeds when your contr"
+              },
+              {
+                "page_title": "Pharos Documentation Index",
+                "section": "Tooling & Infrastructure",
+                "page_url": "https://www.pharos.xyz/llms.txt",
+                "retrieved": "2026-10-16",
+                "score": 25.798,
+                "excerpt": "Block Explorer\n- Block Explorer: Overview of block explorer options on Pharos.\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\n\nRPC Providers\n- RPC Infrastructure: Overview of available RPC providers — see Defaults above for production guidance.\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\n\nIndexing\n- Indexer: Overview of indexing options on Pharos.\n- Goldsky: High-performance data indexing to e"
+              },
+              {
+                "page_title": "Supra",
+                "section": "Overview",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra",
+                "retrieved": "2026-10-16",
+                "score": 21.001,
+                "excerpt": "Supra provides high-performance oracle services that deliver real-time price feeds and external data to decentralized applications.\n\nOn Pharos, Supra’s DORA Pull Oracle is deployed on Pacific Mainnet and Atlantic Testnet, enabling smart contracts to securely fetch off-chain data directly from the oracle network."
+              }
+            ],
+            "note": null
+          },
+          {
+            "id": "E5",
+            "query": "how do I bridge USDC from Ethereum to Pharos",
+            "expected": "DOC-GROUNDED",
+            "label": "DOC-GROUNDED",
+            "expectation_check": "PASS",
+            "exit_code": 0,
+            "stdout": "{\n  \"question\": \"how do I bridge USDC from Ethereum to Pharos\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Tooling & Infrastructure\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 15.664,\n      \"excerpt\": \"Cross-Chain\\n- Cross Chain Infrastructure: Overview of cross-chain messaging/bridging options \\u2014 see Defaults above for guidance.\\n- Chainlink CCIP: Using Chainlink CCIP for cross-chain messaging and token transfers on Pharos, including the live Pharos\\u2194Ethereum lane.\\n- Circle CCTP: Using Circle's CCTP for native USDC transfers on Pharos.\\n- LayerZero: Using LayerZero for cross-chain messaging on Pharos.\\n\\nWallets\\n- Wallet: Overview of wallet integrations on Pharos.\\n- Safe MultiSig: Deploying and using Safe multisig wallets on Pharos.\\n- Fordefi: Using Fordefi's MPC wallet infrastructure on Pharos.\\n\\n\"\n    },\n    {\n      \"page_title\": \"Circle CCTP\",\n      \"section\": \"Overview\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 12.971,\n      \"excerpt\": \"Circle\\u2019s Cross-Chain Transfer Protocol (CCTP) enables secure transfer of USDC across blockchains using a native burn-and-mint mechanism.\\n\\nOn Pharos, CCTP allows developers to move USDC between supported networks without relying on traditional bridges or wrapped tokens.\\n\\nUnlike lock-and-mint bridges, CCTP burns USDC on the source chain and mints native USDC on the destination chain, ensuring a 1:1 transfer with no liquidity fragmentation.\"\n    },\n    {\n      \"page_title\": \"Token Registry\",\n      \"section\": \"Pacific Mainnet Token Registry\",\n      \"page_url\": \"https://docs.pharos.xyz/getting-started/token-registry\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 11.047,\n      \"excerpt\": \"| Symbol                 | Name            | Pharos Address                             | Ethereum Address                           | Base Address                               |\\n| ---------------------- | --------------- | ------------------------------------------ | ------------------------------------------ | ------------------------------------------ |\\n| WPROS                  | Wrapped PROS    | 0x52c48d4213107b20bc583832b0d951fb9ca8f0b0 | 0xB197E02499e6502733C6bCE2eb39013C39A03147 | 0x8B7DdE054BE9D180c1Be7FaE0874697374A49832 |\\n| USDC (Circle Deployed) | USDC            | 0xc879c018db605\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [
+              {
+                "page_title": "Pharos Documentation Index",
+                "section": "Tooling & Infrastructure",
+                "page_url": "https://www.pharos.xyz/llms.txt",
+                "retrieved": "2026-10-16",
+                "score": 15.664,
+                "excerpt": "Cross-Chain\n- Cross Chain Infrastructure: Overview of cross-chain messaging/bridging options — see Defaults above for guidance.\n- Chainlink CCIP: Using Chainlink CCIP for cross-chain messaging and token transfers on Pharos, including the live Pharos↔Ethereum lane.\n- Circle CCTP: Using Circle's CCTP for native USDC transfers on Pharos.\n- LayerZero: Using LayerZero for cross-chain messaging on Pharos.\n\nWallets\n- Wallet: Overview of wallet integrations on Pharos.\n- Safe MultiSig: Deploying and using Safe multisig wallets on Pharos.\n- Fordefi: Using Fordefi's MPC wallet infrastructure on Pharos.\n\n"
+              },
+              {
+                "page_title": "Circle CCTP",
+                "section": "Overview",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp",
+                "retrieved": "2026-10-16",
+                "score": 12.971,
+                "excerpt": "Circle’s Cross-Chain Transfer Protocol (CCTP) enables secure transfer of USDC across blockchains using a native burn-and-mint mechanism.\n\nOn Pharos, CCTP allows developers to move USDC between supported networks without relying on traditional bridges or wrapped tokens.\n\nUnlike lock-and-mint bridges, CCTP burns USDC on the source chain and mints native USDC on the destination chain, ensuring a 1:1 transfer with no liquidity fragmentation."
+              },
+              {
+                "page_title": "Token Registry",
+                "section": "Pacific Mainnet Token Registry",
+                "page_url": "https://docs.pharos.xyz/getting-started/token-registry",
+                "retrieved": "2026-10-16",
+                "score": 11.047,
+                "excerpt": "| Symbol                 | Name            | Pharos Address                             | Ethereum Address                           | Base Address                               |\n| ---------------------- | --------------- | ------------------------------------------ | ------------------------------------------ | ------------------------------------------ |\n| WPROS                  | Wrapped PROS    | 0x52c48d4213107b20bc583832b0d951fb9ca8f0b0 | 0xB197E02499e6502733C6bCE2eb39013C39A03147 | 0x8B7DdE054BE9D180c1Be7FaE0874697374A49832 |\n| USDC (Circle Deployed) | USDC            | 0xc879c018db605"
+              }
+            ],
+            "note": null
+          },
+          {
+            "id": "E6",
+            "query": "does Pharos support confidential transactions",
+            "expected": "DOC-GROUNDED",
+            "label": "DOC-GROUNDED",
+            "expectation_check": "PASS",
+            "exit_code": 0,
+            "stdout": "{\n  \"question\": \"does Pharos support confidential transactions\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"About Pharos\",\n      \"section\": \"Ecosystem Architecture\",\n      \"page_url\": \"https://docs.pharos.xyz/introduction/readme.md\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 18.996,\n      \"excerpt\": \"The Pharos ecosystem is structured across three key layers:\\n\\n1. Transaction Layer: Facilitates secure, confidential, and efficient cross-chain asset and account interactions via the secure and confidential cross-chain interoperability protocol.\\n2. Consensus Layer: Integrates with external restaking protocols through the Adaptive Restaking Interaction Protocol, enabling shared security and liquidity. This includes circulating assets like stBTC and stETH within the Pharos DeFi ecosystem.\\n3. Data Layer: Uses the Decentralized Data Exchange Protocol to synchronize and collaborate with external dat\"\n    },\n    {\n      \"page_title\": \"x402\",\n      \"section\": \"Development Recommendations\",\n      \"page_url\": \"https://docs.pharos.xyz/developer-guide/x402\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 8.311,\n      \"excerpt\": \"* Temporary Access Authorization based on JWT: After the user completes payment verification, the server can issue a short-term valid JSON Web Token (JWT) as a credential for subsequent resource access. This token should have a reasonable expiration time to avoid repeated payments while reducing the overhead of frequent on-chain verification by the server.\\n* Security Management of Sensitive Information: All confidential data such as private keys and API keys should be injected into the application through environment variables or dedicated secret management services. Hardcoding them in source \"\n    },\n    {\n      \"page_title\": \"Pharos Documentation Index\",\n      \"section\": \"Tooling & Infrastructure\",\n      \"page_url\": \"https://www.pharos.xyz/llms.txt\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 6.52,\n      \"excerpt\": \"Block Explorer\\n- Block Explorer: Overview of block explorer options on Pharos.\\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\\n\\nRPC Providers\\n- RPC Infrastructure: Overview of available RPC providers \\u2014 see Defaults above for production guidance.\\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\\n\\nIndexing\\n- Indexer: Overview of indexing options on Pharos.\\n- Goldsky: High-performance data indexing to e\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [
+              {
+                "page_title": "About Pharos",
+                "section": "Ecosystem Architecture",
+                "page_url": "https://docs.pharos.xyz/introduction/readme.md",
+                "retrieved": "2026-10-16",
+                "score": 18.996,
+                "excerpt": "The Pharos ecosystem is structured across three key layers:\n\n1. Transaction Layer: Facilitates secure, confidential, and efficient cross-chain asset and account interactions via the secure and confidential cross-chain interoperability protocol.\n2. Consensus Layer: Integrates with external restaking protocols through the Adaptive Restaking Interaction Protocol, enabling shared security and liquidity. This includes circulating assets like stBTC and stETH within the Pharos DeFi ecosystem.\n3. Data Layer: Uses the Decentralized Data Exchange Protocol to synchronize and collaborate with external dat"
+              },
+              {
+                "page_title": "x402",
+                "section": "Development Recommendations",
+                "page_url": "https://docs.pharos.xyz/developer-guide/x402",
+                "retrieved": "2026-10-16",
+                "score": 8.311,
+                "excerpt": "* Temporary Access Authorization based on JWT: After the user completes payment verification, the server can issue a short-term valid JSON Web Token (JWT) as a credential for subsequent resource access. This token should have a reasonable expiration time to avoid repeated payments while reducing the overhead of frequent on-chain verification by the server.\n* Security Management of Sensitive Information: All confidential data such as private keys and API keys should be injected into the application through environment variables or dedicated secret management services. Hardcoding them in source "
+              },
+              {
+                "page_title": "Pharos Documentation Index",
+                "section": "Tooling & Infrastructure",
+                "page_url": "https://www.pharos.xyz/llms.txt",
+                "retrieved": "2026-10-16",
+                "score": 6.52,
+                "excerpt": "Block Explorer\n- Block Explorer: Overview of block explorer options on Pharos.\n- Hemera SocialScan: Hemera's SocialScan explorer for Pharos.\n\nRPC Providers\n- RPC Infrastructure: Overview of available RPC providers — see Defaults above for production guidance.\n- ZAN RPC: Stable, fast RPC connections plus enhanced data retrieval and contract/asset monitoring APIs.\n- Alchemy RPC: Alchemy's RPC endpoint and tooling support for Pharos.\n- Nirvana RPC: Nirvana's RPC endpoint support for Pharos.\n\nIndexing\n- Indexer: Overview of indexing options on Pharos.\n- Goldsky: High-performance data indexing to e"
+              }
+            ],
+            "note": null
+          },
+          {
+            "id": "E7",
+            "query": "how do I install the Pharos MCP server",
+            "expected": "DOC-GROUNDED",
+            "label": "DOC-GROUNDED",
+            "expectation_check": "PASS",
+            "exit_code": 0,
+            "stdout": "{\n  \"question\": \"how do I install the Pharos MCP server\",\n  \"label\": \"DOC-GROUNDED\",\n  \"citations\": [\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Self-Hosting\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 22.708,\n      \"excerpt\": \"Run your own instance when you need a private RPC provider, a higher rate limit, or your own operational control.\\n\\nRequires Node.js 20 or newer.\\n\\n``bash\\ngit clone https://github.com/PharosNetwork/pharos-mcp.git\\ncd pharos-mcp\\nnpm install\\nnpm run build\\nnpm start\\n`\\n\\nConnecting a local instance over stdio\\n\\n`json\\n{\\n  \\\"mcpServers\\\": {\\n    \\\"pharos\\\": {\\n      \\\"command\\\": \\\"node\\\",\\n      \\\"args\\\": [\\\"/absolute/path/to/pharos-mcp/dist/src/index.js\\\"],\\n      \\\"env\\\": {\\n        \\\"PHAROS_RPC_URL\\\": \\\"https://rpc.pharos.xyz\\\",\\n        \\\"PHAROS_CHAIN_ID\\\": \\\"1672\\\",\\n        \\\"PHAROS_NATIVE_SYMBOL\\\": \\\"PROS\\\"\\n      }\\n    }\\n  }\\n}\\n`\\n\"\n    },\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Quick Start\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 19.885,\n      \"excerpt\": \"Add the server to your MCP client configuration:\\n\\n``json\\n{\\n  \\\"mcpServers\\\": {\\n    \\\"pharos\\\": {\\n      \\\"type\\\": \\\"http\\\",\\n      \\\"url\\\": \\\"https://mcp.pharos.xyz/mcp\\\"\\n    }\\n  }\\n}\\n`\\n\\nNo API key is required.\\n\\nClients that only support stdio\\n\\nSome clients cannot connect to remote MCP servers directly. Bridge to the hosted endpoint with mcp-remote:\\n\\n`json\\n{\\n  \\\"mcpServers\\\": {\\n    \\\"pharos\\\": {\\n      \\\"command\\\": \\\"npx\\\",\\n      \\\"args\\\": [\\\"-y\\\", \\\"mcp-remote\\\", \\\"https://mcp.pharos.xyz/mcp\\\"]\\n    }\\n  }\\n}\\n`\\n\\nVerify the connection\\n\\n`bash\\ncurl https://mcp.pharos.xyz/health\\n`\\n\\n`json\\n{\\\"status\\\":\\\"ok\\\",\\\"chain\\\":\\\"Pharos\\\",\\\"chainId\\\":1\"\n    },\n    {\n      \"page_title\": \"Pharos MCP\",\n      \"section\": \"Sending Transactions\",\n      \"page_url\": \"https://docs.pharos.xyz/tooling-and-infrastructure/mcp\",\n      \"retrieved\": \"2026-10-16\",\n      \"score\": 14.935,\n      \"excerpt\": \"The server is non-custodial: it never receives, stores, or asks for a private key. Signing happens entirely in your own wallet or script; the server only relays the resulting signed bytes to the network.\\n\\n``\\nYour private key \\u2500\\u2500sign (locally)\\u2500\\u2500\\u25b6 0x02f86b\\u2026\\u2500\\u2500\\u25b6 MCP server \\u2500\\u2500\\u25b6 Pharos\\n`\\n\\nThe flow is:\\n\\n1. Build and sign a transaction locally with your own tooling (viem, ethers, a wallet).\\n2. Pass the resulting 0x-prefixed string to send_raw_transaction.\\n3. Use the returned transaction hash with get_transaction_receipt` to confirm inclusion.\\n\\nBecause signing is local, an AI agent connected to this ser\"\n    }\n  ],\n  \"note\": null,\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [
+              {
+                "page_title": "Pharos MCP",
+                "section": "Self-Hosting",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+                "retrieved": "2026-10-16",
+                "score": 22.708,
+                "excerpt": "Run your own instance when you need a private RPC provider, a higher rate limit, or your own operational control.\n\nRequires Node.js 20 or newer.\n\n``bash\ngit clone https://github.com/PharosNetwork/pharos-mcp.git\ncd pharos-mcp\nnpm install\nnpm run build\nnpm start\n`\n\nConnecting a local instance over stdio\n\n`json\n{\n  \"mcpServers\": {\n    \"pharos\": {\n      \"command\": \"node\",\n      \"args\": [\"/absolute/path/to/pharos-mcp/dist/src/index.js\"],\n      \"env\": {\n        \"PHAROS_RPC_URL\": \"https://rpc.pharos.xyz\",\n        \"PHAROS_CHAIN_ID\": \"1672\",\n        \"PHAROS_NATIVE_SYMBOL\": \"PROS\"\n      }\n    }\n  }\n}\n`\n"
+              },
+              {
+                "page_title": "Pharos MCP",
+                "section": "Quick Start",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+                "retrieved": "2026-10-16",
+                "score": 19.885,
+                "excerpt": "Add the server to your MCP client configuration:\n\n``json\n{\n  \"mcpServers\": {\n    \"pharos\": {\n      \"type\": \"http\",\n      \"url\": \"https://mcp.pharos.xyz/mcp\"\n    }\n  }\n}\n`\n\nNo API key is required.\n\nClients that only support stdio\n\nSome clients cannot connect to remote MCP servers directly. Bridge to the hosted endpoint with mcp-remote:\n\n`json\n{\n  \"mcpServers\": {\n    \"pharos\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"mcp-remote\", \"https://mcp.pharos.xyz/mcp\"]\n    }\n  }\n}\n`\n\nVerify the connection\n\n`bash\ncurl https://mcp.pharos.xyz/health\n`\n\n`json\n{\"status\":\"ok\",\"chain\":\"Pharos\",\"chainId\":1"
+              },
+              {
+                "page_title": "Pharos MCP",
+                "section": "Sending Transactions",
+                "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+                "retrieved": "2026-10-16",
+                "score": 14.935,
+                "excerpt": "The server is non-custodial: it never receives, stores, or asks for a private key. Signing happens entirely in your own wallet or script; the server only relays the resulting signed bytes to the network.\n\n``\nYour private key ──sign (locally)──▶ 0x02f86b…──▶ MCP server ──▶ Pharos\n`\n\nThe flow is:\n\n1. Build and sign a transaction locally with your own tooling (viem, ethers, a wallet).\n2. Pass the resulting 0x-prefixed string to send_raw_transaction.\n3. Use the returned transaction hash with get_transaction_receipt` to confirm inclusion.\n\nBecause signing is local, an AI agent connected to this ser"
+              }
+            ],
+            "note": null
+          },
+          {
+            "id": "M1",
+            "query": "what is the birthday of the Pharos CEO",
+            "expected": "UNVERIFIED",
+            "label": "UNVERIFIED",
+            "expectation_check": "PASS",
+            "exit_code": 2,
+            "stdout": "{\n  \"question\": \"what is the birthday of the Pharos CEO\",\n  \"label\": \"UNVERIFIED\",\n  \"citations\": [],\n  \"note\": \"covers 1 of 3 question terms (need 2)\",\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [],
+            "note": "covers 1 of 3 question terms (need 2)"
+          },
+          {
+            "id": "M2",
+            "query": "how do I run a Pharos node on a Raspberry Pi",
+            "expected": "UNVERIFIED",
+            "label": "UNVERIFIED",
+            "expectation_check": "PASS",
+            "exit_code": 2,
+            "stdout": "{\n  \"question\": \"how do I run a Pharos node on a Raspberry Pi\",\n  \"label\": \"UNVERIFIED\",\n  \"citations\": [],\n  \"note\": \"covers none of the question's distinctive terms\",\n  \"corpus_retrieved\": \"2026-10-16\",\n  \"index_passages\": 438\n}\n",
+            "citations": [],
+            "note": "covers none of the question's distinctive terms"
+          }
+        ]
+      },
       "txs": [],
       "explorer_links": [],
       "has_submission": true,
@@ -647,23 +934,23 @@
       "submission_status": "written — founder submits",
       "activity": [
         {
-          "title": "Run: HOLD — above threshold",
+          "title": "HOLD — above threshold",
           "detail": "BLOCK",
           "at": "2026-10-16T04:10:00Z",
           "link": "https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c"
         },
         {
-          "title": "Run: FIRE — below threshold",
+          "title": "FIRE — below threshold",
           "detail": "ALLOW",
           "at": "2026-10-16T04:10:00Z"
         },
         {
-          "title": "Run: REFUSE — mainnet-class action (no re-confirmation)",
+          "title": "REFUSE — mainnet-class action (no re-confirmation)",
           "detail": "REFUSE",
           "at": "2026-10-16T04:10:00Z"
         },
         {
-          "title": "Run: REFUSE — mainnet-class action (explicit re-confirmation supplied)",
+          "title": "REFUSE — mainnet-class action (explicit re-confirmation supplied)",
           "detail": "REFUSE",
           "at": "2026-10-16T04:10:00Z"
         },
@@ -690,7 +977,7 @@
     {
       "id": "T06",
       "slug": "saga-executor",
-      "name": "t06-saga-executor",
+      "name": "Saga Executor",
       "tier": "Hard",
       "points": 200,
       "toolkit": "SkillEngine",
@@ -1567,7 +1854,7 @@
       "points": 200,
       "toolkit": "SkillEngine",
       "dir": "t09-trend-watcher",
-      "status": "in-progress",
+      "status": "shipped",
       "has_task_yaml": true,
       "has_readme": true,
       "readme_summary": "1. Verdict in 30 seconds\n\nSwell Line watches Atlantic's fee market and answers one question honestly:\n**is gas trending up, or is that just a wave?** It samples real `baseFeePerGas`\nper block, runs a 5/15 moving-average crossover with a 0.5% confirmation band,\nand FIRES only after **3 consecutive above-band readings** — a single spike\ncan never trigger it (the streak resets, proven by demo and by test).\n\n**Live state:** 60 real observations across blocks 31481567–31481678, all HOLD —\nAtlantic's base fee sat flat at 1 gwei. The FIRE path is proven on the\ncontrolled synthetic harness (`sustained-demo`) and in 12/12 unit tests.",
@@ -1577,6 +1864,8 @@
       "run_log_files": [],
       "has_evidence_json": true,
       "evidence": {
+        "shipped": true,
+        "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
         "artifact": "t09-trend-watcher evidence packet",
         "chain": {
           "chainId": 688689,
@@ -1725,7 +2014,7 @@
     {
       "id": "T10",
       "slug": "t10-batch-executor",
-      "name": "Batch Executor",
+      "name": "Flotilla — Batch Executor",
       "tier": "Medium",
       "points": 100,
       "toolkit": "SkillEngine",
@@ -1911,18 +2200,18 @@
       "submission_status": "written — founder submits",
       "activity": [
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": "",
           "link": "https://atlantic.pharosscan.xyz/tx/0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30"
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         }
@@ -2194,18 +2483,18 @@
       "submission_status": "written — founder submits",
       "activity": [
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": "",
           "link": "https://atlantic.pharosscan.xyz/tx/0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349"
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         }
@@ -2219,7 +2508,7 @@
       "points": 100,
       "toolkit": "Composition",
       "dir": "t13-docs-chain-agent",
-      "status": "in-progress",
+      "status": "shipped",
       "has_task_yaml": true,
       "has_readme": true,
       "readme_summary": "T13 is the composition loop the Arena asks for: a developer asks a question,\nthe agent answers it **from the real Pharos docs with labeled citations**\n(DOC-GROUNDED = URL + retrieval date + excerpt), then **executes the answered\nprocedure live on Pharos Atlantic** (real `eth_call` / `eth_estimateGas` /\n`eth_getLogs` via `cast`), then **interprets the on-chain result in the\ncontext of the explanation**. If the docs don't cover the question, the agent\nsays so — `[UNVERIFIED]` — and executes nothing. It never improvises.\n\n2. How it maps to the official requirements\n\n| Official bullet | This build |\n|---|---|\n| (1) Explanation comes from Docs MCP **with sources referenced** | `src/doc_agent.py` retrieves from a local corpus of 6 real docs.pharos.xyz pages (fetched 2026-10-16, `corpus/SOURCES.json`); every answer carries citation objects with URL + retrieval date + verbatim excerpt |\n| (2) Ag…",
@@ -2227,10 +2516,67 @@
       "task_config_text": "id: T13\nslug: t13-docs-chain-agent\ntitle: Docs MCP + Chain MCP Agent\ndifficulty: Medium\npoints: 100\ntoolkit: Composition\nnetwork: Pharos Atlantic testnet\nchain_id: 688689\nstatus: shipped\ndeliverables:\n  - REQUIREMENTS.md\n  - README.md\n  - evidence.md\n  - evidence/evidence.json\n  - evidence/transcripts/balance.json\n  - evidence/transcripts/estimate.json\n  - evidence/transcripts/logs.json\n  - evidence/transcripts/failclosed.json\n  - REVIEWER_NOTES.md\n  - LINKS.md\n  - SUBMISSION.md\n  - VIDEO-GUIDE.md\n  - src/doc_agent.py\n  - src/run_transcripts.py\n  - src/build_evidence.py\n  - tests/test_transcripts.py\n  - corpus/ (6 docs pages, retrieved 2026-10-16)\nevidence_summary:\n  real_transactions: 2\n  tx_hashes:\n    - 0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b\n    - 0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7\n  phrs_spent: 0.000055914000055914\n  budget_phrs: 0.15\n  tests: 10/10 pass\nvideo: PENDING-VIDEO\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
+      "has_evidence_json": true,
+      "evidence": {
+        "task": "T13 Docs MCP + Chain MCP Agent",
+        "network": "Pharos Atlantic testnet",
+        "chain_id": 688689,
+        "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "token": {
+          "symbol": "WPHRS",
+          "address": "0x838800b758277CC111B2d48Ab01e5E164f8E9471",
+          "decimals": 18
+        },
+        "transactions": [
+          {
+            "purpose": "dust deposit 0.0005 PHRS -> WPHRS (real event-log footprint for Q3)",
+            "hash": "0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
+            "block": 31482314,
+            "gas_used": 28138,
+            "gas_price_wei": 1000000001,
+            "status": "0x1",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b"
+          },
+          {
+            "purpose": "dust transfer 0.0001 WPHRS self->self (real Transfer log for Q3)",
+            "hash": "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+            "block": 31482328,
+            "gas_used": 27776,
+            "gas_price_wei": 1000000001,
+            "status": "0x1",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7"
+          }
+        ],
+        "spend_log": {
+          "total_gas_wei": 55914000055914,
+          "total_phrs": 0.000055914000055914,
+          "budget_phrs": 0.15,
+          "within_budget": true,
+          "note": "Balance/estimate/failclosed transcripts are read-only (eth_call / eth_estimateGas): zero gas spent."
+        },
+        "transcripts": {
+          "logs": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/logs.json",
+          "balance": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/balance.json",
+          "estimate": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/estimate.json",
+          "failclosed": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/failclosed.json"
+        },
+        "transcripts_ok": {
+          "logs": true,
+          "balance": true,
+          "estimate": true,
+          "failclosed": true
+        }
+      },
+      "txs": [
+        "0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
+        "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
+        "https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+      ],
       "has_submission": true,
       "submission_status": "written — founder submits",
       "activity": []
@@ -3065,18 +3411,18 @@
       "submission_status": "written — founder submits",
       "activity": [
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": "",
           "link": "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f"
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         },
         {
-          "title": "Run: guardian run",
+          "title": "Run",
           "detail": "",
           "at": ""
         }
@@ -3085,7 +3431,7 @@
     {
       "id": "T18",
       "slug": "t18-recurring-payment-agent",
-      "name": "Recurring Payment Agent",
+      "name": "Recurring Payment Agent (TIDE)",
       "tier": "Medium",
       "points": 100,
       "toolkit": "Payments",
@@ -4062,18 +4408,160 @@
       "points": 100,
       "toolkit": "Compliance / Security",
       "dir": "t24-audit-log-agent",
-      "status": "in-progress",
+      "status": "shipped",
       "has_task_yaml": true,
       "has_readme": true,
       "readme_summary": "T24 · AUDIT-LOG AGENT\n\n*Every action the keeper takes, written in ink that cannot be unwritten.*\n\n1. Verdict (the 30-second test)",
-      "readme_markdown": "# T24 · AUDIT-LOG AGENT\n\n*Every action the keeper takes, written in ink that cannot be unwritten.*\n\n---\n\n## 1. Verdict (the 30-second test)\n\nAn append-only, **hash-chained audit log** that records REAL agent actions with\nREAL tx hashes on Pharos Atlantic testnet — plus a wallet-activity reporter\n(wallet + date range → grouped activity, totals, notable txs with links,\nMarkdown/CSV/PDF exports). Live demo: 2 real dust txs mined\n([tx1](https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1),\n[tx2](https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68)),\n14-entry chain verifies **PASS**, tampered copy verifies **FAIL** naming the\nexact entry, original untouched. Total spend: 0.000242000000042 PHRS of the\n0.15 budget. No mocks, no placeholders, no fake success.\n\n## 2. What it does\n\n- `audit-log log` — append one entry: `{index, timestamp, actor, action,\n  params, txHash, note, prevHash, entryHash}`. `entryHash = sha256(canonical\n  JSON of all fields)`; each entry's `prevHash` is the previous `entryHash`\n  (genesis = 64 zeros). Any edit to any field breaks that entry's hash and\n  every link after it.\n- `audit-log verify` — replays the whole chain; PASS only if every hash\n  recomputes and every link holds. Exit code 1 + named failures otherwise.\n- `audit-log transcript` — human-readable Markdown snapshot of the log.\n- `audit-log report --wallet ADDR --from-date/--to-date` — live chain scan:\n  native transfers in/out (block scan), ERC-20 transfers, approvals, swap\n  events (Uniswap V2/V3 topics), contract interactions; totals per category +\n  notable txs with explorer links; exports MD/CSV/PDF. Dates resolve to blocks\n  via live-measured average block time; coverage limits are disclosed in the\n  report header.\n\n## 3. How to run\n\n```bash\n# env: ATLANTIC_RPC_URL must be set (DEPLOYER_PRIVATE_KEY only for the demo writes)\nnode bin/audit-log.mjs log --actor lk-t24-agent --action read:chain-id \\\n  --params '{\"chainId\":688689}'\nnode bin/audit-log.mjs verify            # PASS / FAIL\nnode bin/audit-log.mjs transcript --out sample-output/audit-log.transcript.md\nnode bin/audit-log.mjs report --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 \\\n  --from-date 2026-10-16T02:00:00Z --to-date 2026-10-16T05:00:00Z \\\n  --export md,csv,pdf\nnode --test \"test/*.test.mjs\"                        # 7/7 hash-chain unit tests\n```\n\nLive demo (re-runnable, dust only): `demo/run-live-demo.sh`,\n`demo/broadcast-under-lock.sh`, `demo/finish.sh` document the exact run.\n\n## 4. Requirements coverage\n\n| Official requirement (verbatim) | Satisfied by |\n|---|---|\n| (1) Accepts wallet + date range | `report --wallet/--from-date/--to-date/--from-block/--to-block` |\n| (2) Groups activity (transfers in/out, swaps, approvals, contract interactions) | `src/report.mjs` classifier: native in/out, ERC-20 Transfer/Approval events, V2/V3 swap topics, non-empty-input wallet txs |\n| (3) Totals per category + notable txs with links | report totals table + notable-tx section with `atlantic.pharosscan.xyz/tx/<hash>` links |\n| (4) EXPORTS report as Markdown/PDF/CSV | `sample-output/audit-report-*.{md,csv,pdf}` — real data, hand-rolled PDF |\n\nPlus the task-specific bar: ≥2 real dust txs logged with real hashes, read\nactions logged around them, `verify` proving tamper-evidence on a tampered\nCOPY while the original stays PASS.\n\n## 5. Evidence\n\n- `evidence.md` — full narrative (≥300 words); `evidence.json` — machine\n  evidence: tx hashes, receipts, spend log, curl-verified links, test results.\n- `sample-output/verify-pass.txt` — 14 entries, PASS.\n- `sample-output/verify-fail-tampered-copy.txt` — FAIL naming entry #12.\n- `sample-output/audit-log.transcript.md` — the verified log.\n- `sample-output/audit-report-2026-10-16T05-13-57.{md,csv,pdf}` + `chain-scan-*.json`.\n\n## 6. Design notes\n\n- **Hashing:** sha256 over canonical (sorted-key, recursive) JSON — key order\n  can never change a hash. Pure Node stdlib, no dependencies.\n- **Append-only:** entries are JSONL lines; `verify` additionally checks index\n  sequence and required fields, so line deletion/reordering is detected.\n- **Nonce safety:** every broadcast wrapped in `flock /tmp/lk-nonce.lock`\n  (shared-key discipline across 28 workers); `--async` used after observing\n  that default polling mode never surfaced submissions in this environment.\n- **RPC quirks handled honestly:** topic-filtered `eth_getLogs` is rejected by\n  this Atlantic RPC — the reporter uses unfiltered 200-block chunks with\n  client-side filtering; native-transfer block scans are concurrency-limited\n  (3) and capped (default 4000 most-recent blocks), always disclosed.\n\n## 7. Honest limitations\n\n- The demo wallet is the **shared** LIGHTKEEPER deployer key: the activity\n  report reflects all workers' actions, and first broadcast attempts were\n  dropped by same-nonce replacement (disclosed in-log, then retried).\n- Swap detection covers Uniswap V2/V3 event topics only; 0 detected in the\n  window is a real finding, not a gap fill.\n- ERC-20 transfer amounts are raw units (decimals resolved per-token only\n  where the token contract is queried — not assumed).\n\n## 8. Files\n\n```\ntasks/t24-audit-log-agent/\n├── task.yaml  REQUIREMENTS.md  README.md  evidence.md  evidence.json\n├── REVIEWER_NOTES.md  LINKS.md  SUBMISSION.md  VIDEO-GUIDE.md\n├── package.json  .gitignore\n├── bin/audit-log.mjs          # CLI: log | verify | transcript | report\n├── src/lib.mjs                # hash chain, verify, RPC helpers\n├── src/report.mjs             # wallet scan, classifier, md/csv/pdf exporters\n├── src/wait-receipt.mjs       # receipt poller (no cast wait quirks)\n├── test/hashchain.test.mjs    # 7 unit tests (node:test)\n├── config/config.example.yaml\n├── demo/{run-live-demo,rebroadcast,broadcast-under-lock,finish}.sh\n└── sample-output/             # real artifacts: transcripts, reports, receipts\nstate/audit-log.jsonl          # runtime log (gitignored, never committed\n\n…",
+      "readme_markdown": "# T24 · AUDIT-LOG AGENT\n\n*Every action the keeper takes, written in ink that cannot be unwritten.*\n\n---\n\n## 1. Verdict (the 30-second test)\n\nAn append-only, **hash-chained audit log** that records REAL agent actions with\nREAL tx hashes on Pharos Atlantic testnet — plus a wallet-activity reporter\n(wallet + date range → grouped activity, totals, notable txs with links,\nMarkdown/CSV/PDF exports). Live demo: 2 real dust txs mined\n([tx1](https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1),\n[tx2](https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68)),\n14-entry chain verifies **PASS**, tampered copy verifies **FAIL** naming the\nexact entry, original untouched. Total spend: 0.000242000000042 PHRS of the\n0.15 budget. No mocks, no placeholders, no fake success.\n\n## 2. What it does\n\n- `audit-log log` — append one entry: `{index, timestamp, actor, action,\n  params, txHash, note, prevHash, entryHash}`. `entryHash = sha256(canonical\n  JSON of all fields)`; each entry's `prevHash` is the previous `entryHash`\n  (genesis = 64 zeros). Any edit to any field breaks that entry's hash and\n  every link after it.\n- `audit-log verify` — replays the whole chain; PASS only if every hash\n  recomputes and every link holds. Exit code 1 + named failures otherwise.\n- `audit-log transcript` — human-readable Markdown snapshot of the log.\n- `audit-log report --wallet ADDR --from-date/--to-date` — live chain scan:\n  native transfers in/out (block scan), ERC-20 transfers, approvals, swap\n  events (Uniswap V2/V3 topics), contract interactions; totals per category +\n  notable txs with explorer links; exports MD/CSV/PDF. Dates resolve to blocks\n  via live-measured average block time; coverage limits are disclosed in the\n  report header.\n\n## 3. How to run\n\n```bash\n# env: ATLANTIC_RPC_URL must be set (DEPLOYER_PRIVATE_KEY only for the demo writes)\nnode bin/audit-log.mjs log --actor lk-t24-agent --action read:chain-id \\\n  --params '{\"chainId\":688689}'\nnode bin/audit-log.mjs verify            # PASS / FAIL\nnode bin/audit-log.mjs transcript --out sample-output/audit-log.transcript.md\nnode bin/audit-log.mjs report --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 \\\n  --from-date 2026-10-16T02:00:00Z --to-date 2026-10-16T05:00:00Z \\\n  --export md,csv,pdf\nnode --test \"test/*.test.mjs\"                        # 7/7 hash-chain unit tests\n```\n\nLive demo (re-runnable, dust only): `demo/run-live-demo.sh`,\n`demo/broadcast-under-lock.sh`, `demo/finish.sh` document the exact run.\n\n## 4. Requirements coverage\n\n| Official requirement (verbatim) | Satisfied by |\n|---|---|\n| (1) Accepts wallet + date range | `report --wallet/--from-date/--to-date/--from-block/--to-block` |\n| (2) Groups activity (transfers in/out, swaps, approvals, contract interactions) | `src/report.mjs` classifier: native in/out, ERC-20 Transfer/Approval events, V2/V3 swap topics, non-empty-input wallet txs |\n| (3) Totals per category + notable txs with links | report totals table + notable-tx section with `atlantic.pharosscan.xyz/tx/<hash>` links |\n| (4) EXPORTS report as Markdown/PDF/CSV | `sample-output/audit-report-*.{md,csv,pdf}` — real data, hand-rolled PDF |\n\nPlus the task-specific bar: ≥2 real dust txs logged with real hashes, read\nactions logged around them, `verify` proving tamper-evidence on a tampered\nCOPY while the original stays PASS.\n\n## 5. Evidence\n\n- `evidence.md` — full narrative (≥300 words); `evidence.json` — machine\n  evidence: tx hashes, receipts, spend log, curl-verified links, test results.\n- `sample-output/verify-pass.txt` — 14 entries, PASS.\n- `sample-output/verify-fail-tampered-copy.txt` — FAIL naming entry #12.\n- `sample-output/audit-log.transcript.md` — the verified log.\n- `sample-output/audit-report-2026-10-16T05-13-57.{md,csv,pdf}` + `chain-scan-*.json`.\n\n## 6. Design notes\n\n- **Hashing:** sha256 over canonical (sorted-key, recursive) JSON — key order\n  can never change a hash. Pure Node stdlib, no dependencies.\n- **Append-only:** entries are JSONL lines; `verify` additionally checks index\n  sequence and required fields, so line deletion/reordering is detected.\n- **Nonce safety:** every broadcast wrapped in `flock /tmp/lk-nonce.lock`\n  (shared-key discipline across 28 workers); `--async` used after observing\n  that default polling mode never surfaced submissions in this environment.\n  Lock-timeout discipline: every hold is `timeout`-capped\n  (`timeout 600 flock -w 300 …`; the under-lock script caps the whole hold at\n  1500s) so a stuck broadcast fails loudly instead of hanging the shared lock.\n- **RPC quirks handled honestly:** topic-filtered `eth_getLogs` is rejected by\n  this Atlantic RPC — the reporter uses unfiltered 200-block chunks with\n  client-side filtering; native-transfer block scans are concurrency-limited\n  (3) and capped (default 4000 most-recent blocks), always disclosed.\n\n## 7. Honest limitations\n\n- The demo wallet is the **shared** LIGHTKEEPER deployer key: the activity\n  report reflects all workers' actions, and first broadcast attempts were\n  dropped by same-nonce replacement (disclosed in-log, then retried).\n- Swap detection covers Uniswap V2/V3 event topics only; 0 detected in the\n  window is a real finding, not a gap fill.\n- ERC-20 transfer amounts are raw units (decimals resolved per-token only\n  where the token contract is queried — not assumed).\n\n## 8. Files\n\n```\ntasks/t24-audit-log-agent/\n├── task.yaml  REQUIREMENTS.md  README.md  evidence.md  evidence.json\n├── REVIEWER_NOTES.md  LINKS.md  SUBMISSION.md  VIDEO-GUIDE.md\n├── package.json  .gitignore\n├── bin/audit-log.mjs          # CLI: log | verify | transcript | report\n├── src/lib.mjs                # hash chain, verify, RPC helpers\n├── src/report.mjs             # wallet scan, classifier, md/csv/pdf exporters\n├── src/wait-receipt.mjs       # receipt poller (no cast wait quirks)\n├── test/hashchain.test.mjs    # 7 unit tests (node:test)\n├── config/config.example.yaml\n├── de\n\n…",
       "task_config_text": "id: t24-audit-log-agent\narena_task: T24\ntitle: Audit-Log Agent\ntier: medium\npoints: 100\ntoolkit: Compliance / Security\nstatus: ready-for-review\nchain: atlantic-testnet\nchain_id: 688689\nrpc: https://atlantic.dplabs-internal.com\nexplorer: https://atlantic.pharosscan.xyz/\nwallet: 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3\nproof_kind: explorer-tx-links\nvideo_slot: PENDING-VIDEO\nno_mock_attestation: true\nbudget_phrs_max: 0.15\nentrypoints:\n  log: node bin/audit-log.mjs log --actor A --action ACT [--params JSON] [--tx HASH]\n  verify: node bin/audit-log.mjs verify [--log PATH]\n  transcript: node bin/audit-log.mjs transcript [--log PATH] [--out PATH]\n  report: node bin/audit-log.mjs report --wallet ADDR [--from-date ISO] [--to-date ISO] [--export md,csv,pdf]\ntests: node --test \"test/*.test.mjs\"\ndemo_script: demo/run-live-demo.sh\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
+      "has_evidence_json": true,
+      "evidence": {
+        "auditLog": {
+          "entriesChecked": 14,
+          "entrySchema": "index,timestamp,actor,action,params,txHash,note,prevHash,entryHash",
+          "genesisPrevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+          "hash": "sha256 over canonical(sorted-key) JSON of entry fields",
+          "tamperDemo": {
+            "copyFile": "sample-output/audit-log.tampered-copy.jsonl",
+            "copyVerifyResult": "FAIL",
+            "failureDetail": "entry #12: entryHash mismatch — field content was altered after logging",
+            "originalAfterTamper": "PASS (untouched)",
+            "transcriptFile": "sample-output/verify-fail-tampered-copy.txt"
+          },
+          "transcriptFile": "sample-output/audit-log.transcript.md",
+          "verifyResult": "PASS",
+          "verifyTranscriptFile": "sample-output/verify-pass.txt"
+        },
+        "budget": {
+          "limitPhrs": "0.15",
+          "spendLog": [
+            {
+              "action": "dust tx 1 fee (21000 gas x 1.000000001 gwei)",
+              "amountPhrs": "0.000021000000021",
+              "tx": "0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1"
+            },
+            {
+              "action": "dust tx 1 value moved",
+              "amountPhrs": "0.0001",
+              "tx": "0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1"
+            },
+            {
+              "action": "dust tx 2 fee (21000 gas x 1.000000001 gwei)",
+              "amountPhrs": "0.000021000000021",
+              "tx": "0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68"
+            },
+            {
+              "action": "dust tx 2 value moved",
+              "amountPhrs": "0.0001",
+              "tx": "0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68"
+            }
+          ],
+          "totalSpentPhrs": "0.000242000000042",
+          "withinBudget": true
+        },
+        "chain": {
+          "chainId": 688689,
+          "explorer": "https://atlantic.pharosscan.xyz",
+          "network": "atlantic-testnet",
+          "rpc": "https://atlantic.dplabs-internal.com"
+        },
+        "dustTransactions": [
+          {
+            "block": 31483610,
+            "curlHttp": 200,
+            "effectiveGasPriceWei": "1000000001",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1",
+            "gasUsed": 21000,
+            "hash": "0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1",
+            "status": "0x1",
+            "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+            "txFeePhrs": "0.000021000000021",
+            "valuePhrs": "0.0001"
+          },
+          {
+            "block": 31483646,
+            "curlHttp": 200,
+            "effectiveGasPriceWei": "1000000001",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68",
+            "gasUsed": 21000,
+            "hash": "0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68",
+            "status": "0x1",
+            "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+            "txFeePhrs": "0.000021000000021",
+            "valuePhrs": "0.0001"
+          }
+        ],
+        "generatedAt": "2026-10-16T08:15:00+03:00",
+        "honestDisclosures": [
+          "First broadcast attempts (audit-log entries 2-3, hashes 0x3327baea59…, 0x80a5506d…) were accepted by the RPC but never mined: 28 workers share one deployer key and same-nonce replacement dropped them. Retried with --async; both mined. The dropped attempts stay in the log as the true record, disclosed by the note:mempool-drop-disclosure entry.",
+          "cast send WITHOUT --async appeared to return hashes that never reached the mempool in this environment; with --async the tx was visible via eth_getTransactionByHash within 1s and mined within seconds. Root cause not fully determined; the mined receipts are the evidence.",
+          "The Atlantic RPC rejects eth_getLogs topic filters (PARAM_VERIFY_ERROR: invalid topic length, verified live) and HTTP-400s unfiltered ranges over a few hundred blocks. The report therefore scans unfiltered logs in 200-block chunks with client-side topic filtering, and caps native-transfer block scans (default 4000 most-recent blocks) — both disclosed in every report header.",
+          "The scanned wallet is the shared LIGHTKEEPER deployer key: the report reflects all 28 workers' activity, not only this agent's. Totals are real chain data for that wallet over the scanned window."
+        ],
+        "linksCurlVerified": {
+          "address": {
+            "http": 200,
+            "url": "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+          },
+          "tx1": {
+            "http": 200,
+            "url": "https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1"
+          },
+          "tx2": {
+            "http": 200,
+            "url": "https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68"
+          }
+        },
+        "report": {
+          "coverageNote": "native-transfer block scan capped at most-recent 4000 blocks (31479699–31483698); ERC-20/approval logs scanned over full requested range 31474623–31483698",
+          "csv": "sample-output/audit-report-2026-10-16T05-13-57.csv",
+          "dateRangeUtc": [
+            "2026-10-16T02:13:57Z",
+            "2026-10-16T05:13:57Z"
+          ],
+          "json": "sample-output/chain-scan-2026-10-16T05-13-57.json",
+          "md": "sample-output/audit-report-2026-10-16T05-13-57.md",
+          "pdf": "sample-output/audit-report-2026-10-16T05-13-57.pdf",
+          "totals": {
+            "approvals": 0,
+            "contractInteractions": 90,
+            "erc20Transfers": 0,
+            "failedTx": 7,
+            "gasPaidPhrs": "0.023225127018638487",
+            "inPhrs": "0.05",
+            "outPhrs": "0.174686666666666667",
+            "swapsDetected": 0,
+            "transfersIn": 1,
+            "transfersOut": 116
+          }
+        },
+        "task": "t24-audit-log-agent",
+        "tests": {
+          "command": "node --test \"test/*.test.mjs\"",
+          "liveReads": "chain-id/balance reads logged as audit entries 0-1 during the live demo",
+          "pass": 7,
+          "tamperFailPaths": [
+            "entryHash mismatch after params edit",
+            "prevHash link break after entry replacement",
+            "missing required field"
+          ],
+          "unit": "test/hashchain.test.mjs",
+          "verifyFailPath": "sample-output/verify-fail-tampered-copy.txt",
+          "verifyPassPath": "sample-output/verify-pass.txt"
+        },
+        "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      },
+      "txs": [
+        "0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1",
+        "0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1",
+        "https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
       "has_submission": true,
       "submission_status": "written — founder submits",
       "activity": []
@@ -4223,7 +4711,7 @@
     {
       "id": "T26",
       "slug": "weekly-digest-agent",
-      "name": "t26-weekly-digest-agent",
+      "name": "Weekly Digest Agent",
       "tier": "Medium",
       "points": 100,
       "toolkit": "Support / Reporting",
