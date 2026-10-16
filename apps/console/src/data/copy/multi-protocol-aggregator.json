@@ -1,0 +1,22 @@
+{
+  "one_liner": "One interface over fault-isolated on-chain venues: reads every venue's live state at one pinned block — TVL, rates, utilization — normalized and comparable.",
+  "what_it_does": "This lamp reads several independent yield venues at the exact same block and lines up their numbers in the same units so you can compare them fairly. One failing venue can't take the others down — each is isolated. Proven by 7 real transactions on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Venues compared",
+      "value": "3, at one pinned block"
+    },
+    {
+      "label": "Top rate",
+      "value": "5.20% (T28-VAULT-B)"
+    },
+    {
+      "label": "Fault isolation",
+      "value": "one dead venue can't block the rest"
+    },
+    {
+      "label": "Pinned block",
+      "value": "31,482,191"
+    }
+  ]
+}

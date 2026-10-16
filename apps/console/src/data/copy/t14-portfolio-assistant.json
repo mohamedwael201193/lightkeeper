@@ -1,0 +1,22 @@
+{
+  "one_liner": "Read-only portfolio reports in plain words: every number pinned to a block and cited to its source — it says \"I don't know\" instead of guessing, and refuses USD values on testnet assets.",
+  "what_it_does": "This lamp reads a wallet's holdings, transaction count, and gas headroom directly from the chain and explains them in plain words. Every number is pinned to one block and linked to its source, and it openly refuses to invent a dollar value for testnet tokens. Proven by live reads pinned to block 31,483,013 on the Atlantic testnet.",
+  "config_plain": [
+    {
+      "label": "Snapshot block",
+      "value": "31,483,013"
+    },
+    {
+      "label": "Transactions on wallet",
+      "value": "139"
+    },
+    {
+      "label": "Gas headroom",
+      "value": "~5.87 PHRS (~27,931 transfers)"
+    },
+    {
+      "label": "USD valuations",
+      "value": "refused — no price feed exists"
+    }
+  ]
+}

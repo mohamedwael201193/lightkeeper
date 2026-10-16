@@ -1,0 +1,22 @@
+{
+  "one_liner": "A command-line tool that answers developer questions with citations — every claim carries its source passage.",
+  "what_it_does": "Ask it a question about building on Pharos and it answers from the real documentation, not from memory. Every claim in the answer points to the exact doc passage it came from, and the tool says so plainly when the docs don't cover the question. Proven by real test queries over a 438-passage index built from the live docs.",
+  "config_plain": [
+    {
+      "label": "Doc passages indexed",
+      "value": "438"
+    },
+    {
+      "label": "Answer labels",
+      "value": "cited, or admitted unknown"
+    },
+    {
+      "label": "Sample question",
+      "value": "how do I deploy a contract?"
+    },
+    {
+      "label": "On-chain activity",
+      "value": "none — read-only by design"
+    }
+  ]
+}

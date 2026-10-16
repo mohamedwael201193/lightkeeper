@@ -1,0 +1,22 @@
+{
+  "one_liner": "Read-only risk check on any address: 8 real on-chain checks — age, transaction pattern, balance, contract-vs-wallet, activity window. No judgment, just data.",
+  "what_it_does": "Paste any address and this lamp runs 8 real on-chain checks — how old the account is, its transaction patterns, whether it's a contract or a wallet — and reports plain data, no verdicts. It costs nothing to run and moves no funds. Proven by live reads pinned to a real block on the Atlantic testnet.",
+  "config_plain": [
+    {
+      "label": "On-chain checks",
+      "value": "8"
+    },
+    {
+      "label": "Example account age",
+      "value": "~167.7 days"
+    },
+    {
+      "label": "Checks cost",
+      "value": "free — read-only"
+    },
+    {
+      "label": "Fund movement",
+      "value": "none, ever"
+    }
+  ]
+}

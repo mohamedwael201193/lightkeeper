@@ -1,0 +1,26 @@
+{
+  "one_liner": "A policy gate that intercepts proposed transfers and blocks any write that breaches thresholds — live chain checks, one plain policy file, mainnet refused outright.",
+  "what_it_does": "Before any transfer goes out, this guardian checks it against a written policy and can stop it cold. A too-large transfer is held, a mainnet attempt is refused outright — the blocked ones broadcast nothing and spend nothing. Proven by 1 real on-chain transaction (the allowed dust transfer), plus 3 blocked and refused proposals that spent nothing, all linked below.",
+  "config_plain": [
+    {
+      "label": "Max per transaction",
+      "value": "0.005 PHRS"
+    },
+    {
+      "label": "Max per time window",
+      "value": "0.02 PHRS"
+    },
+    {
+      "label": "Gas price cap",
+      "value": "50 gwei"
+    },
+    {
+      "label": "Mainnet transfers",
+      "value": "always refused"
+    },
+    {
+      "label": "Fail-closed",
+      "value": "yes — unreadable data means block"
+    }
+  ]
+}

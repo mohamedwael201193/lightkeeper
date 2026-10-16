@@ -1,0 +1,22 @@
+{
+  "one_liner": "Discovers which yield venues actually exist on the Atlantic testnet and reads their live rates — radically honest about what's real and what isn't.",
+  "what_it_does": "This lamp checks which yield venues genuinely exist and work on the testnet, reads their live rates, and tells you plainly which ones are real and which are dead. It ran a full stake → claim → withdraw cycle on live venues with exact wei-level math. Proven by 8 real transactions on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Full cycle",
+      "value": "stake → claim → withdraw"
+    },
+    {
+      "label": "Claim math",
+      "value": "exact to the wei"
+    },
+    {
+      "label": "Dead venues",
+      "value": "labeled as dead, not hidden"
+    },
+    {
+      "label": "Rewards honesty",
+      "value": "valueless testnet PHRS, never real yield"
+    }
+  ]
+}

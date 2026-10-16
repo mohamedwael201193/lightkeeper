@@ -1,0 +1,22 @@
+{
+  "one_liner": "Atomic batch payments in three modes — simple, single-batch, and multi-batch — where every batch lands together or the failing one reverts on-chain.",
+  "what_it_does": "This lamp bundles many payments into one atomic batch so they settle together instead of one by one. It demonstrated all three modes on the live testnet, including a batch that provably reverted when a receiver refused payment. Proven by 9 real transactions on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Batch modes",
+      "value": "3 (simple, single-batch, multi-batch)"
+    },
+    {
+      "label": "Largest batch",
+      "value": "12 recipients"
+    },
+    {
+      "label": "Failed batch",
+      "value": "reverted on-chain as designed"
+    },
+    {
+      "label": "Network",
+      "value": "Atlantic testnet"
+    }
+  ]
+}

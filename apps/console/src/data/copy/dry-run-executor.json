@@ -1,0 +1,22 @@
+{
+  "one_liner": "Answers \"what would happen if we sent this?\" by simulation — it predicts the outcome and never broadcasts a failing ticket.",
+  "what_it_does": "Before anything real happens, this lamp rehearses the transaction against live chain state and predicts whether it will succeed or fail. A failing ticket was refused outright — broadcast blocked, nothing spent — while a passing ticket ran for real after its passing receipt. Proven by 2 real transactions on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Simulation receipt",
+      "value": "issued, signed by nobody"
+    },
+    {
+      "label": "Failing ticket",
+      "value": "broadcast refused, nothing spent"
+    },
+    {
+      "label": "Passing ticket",
+      "value": "executed after simulation"
+    },
+    {
+      "label": "Gas safety factor",
+      "value": "1.2× the estimate"
+    }
+  ]
+}

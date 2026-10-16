@@ -1,0 +1,22 @@
+{
+  "one_liner": "Compiles real on-chain activity for a watched address over a 7-day block window — transaction count, volume in and out, gas spent — diffed against the previous period.",
+  "what_it_does": "This lamp watches one address for a full week and writes a plain-language summary of everything it did on-chain. It reads every transaction in the 7-day block window — count, volume in and out, gas spent — and diffs the totals against the previous week. Proven by 110 real transactions compiled from 7 days of Atlantic testnet blocks.",
+  "config_plain": [
+    {
+      "label": "Window",
+      "value": "7 days (blocks 31,186,577–31,482,619)"
+    },
+    {
+      "label": "Transactions compiled",
+      "value": "110"
+    },
+    {
+      "label": "Gas spent",
+      "value": "~0.0229 PHRS"
+    },
+    {
+      "label": "Previous period",
+      "value": "diffed, not just reported"
+    }
+  ]
+}

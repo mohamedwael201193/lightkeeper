@@ -1,0 +1,22 @@
+{
+  "one_liner": "A pre-execution policy engine: every proposed write is evaluated against a versioned policy file — approved with a gate stamp, or denied with the named rule.",
+  "what_it_does": "This lamp is a checkpoint that every proposed transaction must pass through before it goes out. A transfer to a non-allowlisted address was denied with the exact rule named; an allowed one passed with a gate stamp. Proven by 1 real on-chain transaction plus 4 evaluated runs including a live denial, all linked below.",
+  "config_plain": [
+    {
+      "label": "Policy version",
+      "value": "t11-policy-v1"
+    },
+    {
+      "label": "Decisions",
+      "value": "APPROVE with gate stamp, DENY with named rule"
+    },
+    {
+      "label": "Example denial",
+      "value": "non-allowlisted destination"
+    },
+    {
+      "label": "Policy fingerprint",
+      "value": "403e6395…"
+    }
+  ]
+}

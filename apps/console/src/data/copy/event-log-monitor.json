@@ -1,0 +1,26 @@
+{
+  "one_liner": "Watches a live contract's events block by block and turns every log into readable fields — never repeating an alert, even after a restart.",
+  "what_it_does": "Think of it as a doorbell for a blockchain contract: whenever the contract emits an event, this lamp rings with a readable summary. It scans every block in order and remembers its place, so a restart never causes a duplicate alert. Proven by 6 real transactions on the Atlantic testnet — the contract deploy plus 5 event-emitting calls — all linked below.",
+  "config_plain": [
+    {
+      "label": "Network",
+      "value": "Atlantic testnet"
+    },
+    {
+      "label": "Watched contract",
+      "value": "LogEmitter"
+    },
+    {
+      "label": "Scan mode",
+      "value": "block by block, reorg-tolerant"
+    },
+    {
+      "label": "Duplicates",
+      "value": "never — exactly once, survives restarts"
+    },
+    {
+      "label": "Events caught live",
+      "value": "5"
+    }
+  ]
+}

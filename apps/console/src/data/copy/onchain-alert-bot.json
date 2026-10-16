@@ -1,0 +1,22 @@
+{
+  "one_liner": "Watches the chain block by block and delivers each matching event to a real Telegram channel — tx hash, explorer link, value, block number — exactly once.",
+  "what_it_does": "This lamp watches a chosen address for incoming transfers and the moment one lands, it sends a real message to a Telegram channel with the details. It sends each event exactly once, even across restarts. Proven by 1 real trigger transaction plus 1 real delivered Telegram alert on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Trigger",
+      "value": "incoming transfer"
+    },
+    {
+      "label": "Delivered",
+      "value": "1 real Telegram message"
+    },
+    {
+      "label": "Duplicate alerts",
+      "value": "never — exactly once"
+    },
+    {
+      "label": "Bot credentials",
+      "value": "never shown publicly"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "one_liner": "Polls real fee data, computes speed tiers, recommends a price for your urgency — and proves it by sending real dust through a cheap window and at the deadline.",
+  "what_it_does": "This lamp watches live network fees and tells you the cheapest price to pay for the speed you need. It proved the point by sending real dust twice: once cheap through a favorable window, once forced at the deadline — and the cheap one won. Proven by 2 real transactions on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Speed tiers",
+      "value": "3 (slow, standard, fast)"
+    },
+    {
+      "label": "Fee samples",
+      "value": "12 real blocks"
+    },
+    {
+      "label": "Savings vs fast tier",
+      "value": "~0.00019 PHRS per tx"
+    },
+    {
+      "label": "Dust txs",
+      "value": "2 — one cheap, one forced"
+    }
+  ]
+}

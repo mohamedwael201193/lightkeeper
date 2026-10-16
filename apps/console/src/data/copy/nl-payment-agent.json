@@ -1,0 +1,22 @@
+{
+  "one_liner": "Type \"send 0.01 PHRS to 0x…\" — the agent parses it into a plan, shows a review card, and only moves funds after approval.",
+  "what_it_does": "Type a payment in plain English and this lamp turns it into a plan, shows you a review card with the exact recipient and amount, and only sends when you confirm. Ambiguous instructions are refused rather than guessed at. Proven by 2 real transactions on the Atlantic testnet plus 1 refused ambiguous request, all linked below.",
+  "config_plain": [
+    {
+      "label": "Largest parsed payment",
+      "value": "0.015 PHRS"
+    },
+    {
+      "label": "Ambiguous requests",
+      "value": "refused, not guessed"
+    },
+    {
+      "label": "Confirmation",
+      "value": "explicit review card first"
+    },
+    {
+      "label": "Network",
+      "value": "Atlantic testnet"
+    }
+  ]
+}

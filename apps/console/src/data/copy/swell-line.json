@@ -1,0 +1,26 @@
+{
+  "one_liner": "Watches the Atlantic fee market and fires only when the trend is real — 5/15 moving-average crossover with a confirmation band, never wave-chasing.",
+  "what_it_does": "This lamp watches how network fees move over time and only calls a trend when the short-term average crosses the long-term average and stays there. A single spike is never enough — it takes 3 consecutive above-band readings before it fires. Proven by 30 live base-fee observations across real blocks, all recorded below.",
+  "config_plain": [
+    {
+      "label": "Fast average",
+      "value": "5 blocks"
+    },
+    {
+      "label": "Slow average",
+      "value": "15 blocks"
+    },
+    {
+      "label": "Fires after",
+      "value": "3 consecutive confirmations"
+    },
+    {
+      "label": "Single spikes",
+      "value": "never trigger"
+    },
+    {
+      "label": "On-chain activity",
+      "value": "none — read-only by design"
+    }
+  ]
+}

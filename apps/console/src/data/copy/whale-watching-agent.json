@@ -1,0 +1,22 @@
+{
+  "one_liner": "Monitors the Atlantic testnet for large transfers and produces a ranked watch report — what moved, how much, from where, to where — labeled where known, never invented.",
+  "what_it_does": "This lamp scans recent blocks for unusually large transfers and ranks them by size into a readable watch report. Parties are labeled only when the data supports it — never invented. Proven by 3 real transactions examined on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Whale threshold",
+      "value": "0.05 PHRS (5× observed max)"
+    },
+    {
+      "label": "Watchlist",
+      "value": "6 addresses"
+    },
+    {
+      "label": "Top move seen",
+      "value": "0.05 PHRS"
+    },
+    {
+      "label": "Labels",
+      "value": "never invented"
+    }
+  ]
+}

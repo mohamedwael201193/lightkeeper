@@ -1,0 +1,22 @@
+{
+  "one_liner": "Hand it a failed transaction hash and it tells you why in plain words — with the receipt to prove it — plus doc-grounded Q&A that admits when the docs don't cover a question.",
+  "what_it_does": "Paste any failed transaction hash and this lamp reads the receipt, replays what happened, and explains the failure in plain English — like \"ran out of gas\" or \"the contract rejected it with this reason\". Its doc answers are cited, and it says so when the docs don't cover a question. Proven by 5 real transactions on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Diagnosed failures",
+      "value": "3 distinct types"
+    },
+    {
+      "label": "Example diagnosis",
+      "value": "revert with reason (tx 0x405295cd…)"
+    },
+    {
+      "label": "Doc answers",
+      "value": "cited, or admitted unknown"
+    },
+    {
+      "label": "Broadcasts",
+      "value": "never — read-only"
+    }
+  ]
+}

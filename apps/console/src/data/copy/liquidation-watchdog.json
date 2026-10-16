@@ -1,0 +1,22 @@
+{
+  "one_liner": "Watches a live on-chain lending pool's health score and fires a single alert on a real threshold transition — never twice.",
+  "what_it_does": "This lamp watches a lending pool's health score — a number that says how close a loan is to liquidation — and raises one alert when it crosses into the danger zone. It alerted exactly once on a real crossing, and later re-checks correctly said nothing new. Proven by 5 real transactions plus 1 real delivered alert on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Alert trigger",
+      "value": "health factor crossed 1.2 (warning zone)"
+    },
+    {
+      "label": "Duplicate alerts",
+      "value": "0 — transition-only"
+    },
+    {
+      "label": "Alert included",
+      "value": "exact repay or add-collateral action"
+    },
+    {
+      "label": "Watch target",
+      "value": "live lending-pool contract"
+    }
+  ]
+}

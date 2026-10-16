@@ -1,0 +1,22 @@
+{
+  "one_liner": "A builder that plans strictly from retrieved documentation — never from memory, never improvised.",
+  "what_it_does": "Ask it to build something and it first fetches the real docs, then writes a plan where every step cites what it read. It can't plan from memory — every claim traces to a doc passage, or the plan doesn't ship. Proven by 1 real transaction — an ERC20 token deployed and verified from a doc-cited plan — linked below.",
+  "config_plain": [
+    {
+      "label": "Docs retrieved",
+      "value": "5 official pages"
+    },
+    {
+      "label": "Plan coverage",
+      "value": "every step cited"
+    },
+    {
+      "label": "Built",
+      "value": "1 verified ERC20 token (MTK)"
+    },
+    {
+      "label": "Token supply",
+      "value": "1,000,000 MTK"
+    }
+  ]
+}

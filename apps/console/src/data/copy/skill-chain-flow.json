@@ -1,0 +1,18 @@
+{
+  "one_liner": "One end-to-end composition flow: read live state, act on that data, then verify through fresh chain queries — all from a single request.",
+  "what_it_does": "This lamp shows the full loop: read live data from the chain, run a skill action on what it found, then verify the result with new chain queries. Each stage's output feeds the next — nothing is hard-coded. Proven by 2 real transactions on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Flow",
+      "value": "read → act → verify"
+    },
+    {
+      "label": "Target contract",
+      "value": "KeeperPing"
+    },
+    {
+      "label": "Network",
+      "value": "Atlantic testnet"
+    }
+  ]
+}

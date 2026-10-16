@@ -1,0 +1,22 @@
+{
+  "one_liner": "Schedule-driven recurring payments: define recipient, amount, interval, and stop conditions — each tick pays the single due installment, exactly once.",
+  "what_it_does": "This lamp sets up a payment schedule — who gets paid, how much, how often, and when to stop — then pays exactly one installment per tick. It can't double-pay a tick, and the schedule stops itself at the configured limits. Proven by 1 real live installment payment on the Atlantic testnet, linked below.",
+  "config_plain": [
+    {
+      "label": "Amount per installment",
+      "value": "0.0005 PHRS"
+    },
+    {
+      "label": "Interval",
+      "value": "weekly"
+    },
+    {
+      "label": "Max installments",
+      "value": "4"
+    },
+    {
+      "label": "Minimum balance after",
+      "value": "1.0 PHRS"
+    }
+  ]
+}

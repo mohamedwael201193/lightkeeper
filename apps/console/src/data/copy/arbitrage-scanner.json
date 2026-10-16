@@ -1,0 +1,22 @@
+{
+  "one_liner": "Scans three live trading venues at one pinned block, prices every cross-venue cycle with real math, nets out fees and gas — then acts, or skips with a machine-readable reason.",
+  "what_it_does": "This lamp watches three live token pools for price differences and works out whether a buy-here-sell-there trade would actually profit after fees and gas. When the math said go, it executed; when it didn't, it skipped and recorded the exact reason. Proven by 21 real transactions on the Atlantic testnet, including the two legs of a live profitable arbitrage, all linked below.",
+  "config_plain": [
+    {
+      "label": "Venues scanned",
+      "value": "3 token pools"
+    },
+    {
+      "label": "Pricing",
+      "value": "real, fees and gas subtracted"
+    },
+    {
+      "label": "Execution threshold",
+      "value": "0.05 PHRS net profit"
+    },
+    {
+      "label": "Live arbitrage profit",
+      "value": "0.1398 WPHRS"
+    }
+  ]
+}

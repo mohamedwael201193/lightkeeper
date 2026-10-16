@@ -1,0 +1,22 @@
+{
+  "one_liner": "Turns an invoice into a real on-chain payment — with a human review step, explicit confirmation, and a paid-stamp ledger that makes double-payment impossible.",
+  "what_it_does": "This lamp reads an invoice, shows it to a human for review, and only pays after explicit confirmation. Once an invoice is paid, it gets a permanent paid stamp — a second attempt to pay the same invoice is refused, not paid again. Proven by 1 real payment plus 1 refused duplicate on the Atlantic testnet, all linked below.",
+  "config_plain": [
+    {
+      "label": "Paid invoice",
+      "value": "0.001 PHRS"
+    },
+    {
+      "label": "Double-payment",
+      "value": "refused — original tx linked"
+    },
+    {
+      "label": "Review step",
+      "value": "human confirms first"
+    },
+    {
+      "label": "Network",
+      "value": "Atlantic testnet"
+    }
+  ]
+}
