@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "kind": "plan",
+  "reason": "",
+  "clarification_question": "",
+  "warnings": [],
+  "plan": {
+    "action": "send",
+    "token": "PHRS",
+    "amount_phrs": "0.015",
+    "amount_wei": 15000000000000000,
+    "to": "0x709d6964e15d52b392ad17e7fff848c9733fa329",
+    "chain_id": 688689
+  },
+  "plan_id": "ac03460074cdc321",
+  "input": "pay 0.015 phrs to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+  "run_id": "4cd4dfc6",
+  "created_at": "2026-10-16T04:19:12Z"
+}

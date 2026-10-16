@@ -1,0 +1,66 @@
+# T17 Arena Submission Pack (copy-paste ready)
+
+> PENDING: replace `<commit>` with the commit hash after committing (do not push).
+> Video slot: PENDING-VIDEO (record per VIDEO-GUIDE.md, 45–90s, then paste link).
+
+---
+
+## Title
+
+`Natural-Language Payment Agent — parse, review, confirm, then pay (Atlantic)`
+
+## One-liner
+
+Type "send 0.01 PHRS to 0x…" and get a validated, human-reviewed payment plan
+that only broadcasts after an explicit `CONFIRM <plan_id>` — ambiguous input
+is refused, never guessed.
+
+## Description
+
+A natural-language payment agent for Pharos Atlantic testnet. A deterministic,
+no-LLM slot-extraction parser turns free text into a structured payment plan —
+amount, token, destination — or refuses ambiguous input with a clear reason
+(never defaulted, never auto-sent). A chain validator checks recipient format,
+asserts Atlantic chain-id 688689, and confirms balance covers amount + gas. A
+human-readable REVIEW card is rendered before an unsigned-tx artifact
+(`"signed": false`). Broadcast happens only behind an explicit
+`CONFIRM <plan_id>` gate bound to the reviewed plan hash (the human-in-the-loop
+wallet signing request), wrapped in flock nonce-safety, followed by receipt
+read-back verification.
+
+Real evidence on Atlantic: two full dust flows
+(parse → review → confirm → broadcast → verified receipt) plus one refused
+ambiguous input with zero broadcast. 20/20 parser unit tests, including
+prompt-injection-as-untrusted-input and a CI grep asserting no signing code in
+the parser/validator/reviewer/gate/verifier.
+
+## Repo link (commit-pinned)
+
+`https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t17-nl-payment-agent`
+
+## Share / demo links
+
+- Run 1 receipt (0.01 PHRS, verified 4/4):
+  https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f
+- Run 2 (ambiguous → refused, no tx): `runs/f8e7894d/transcript.log` in repo
+- Run 3 receipt (0.015 PHRS, verified 4/4):
+  https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2
+- Video: PENDING-VIDEO
+
+## Transaction hashes
+
+- `0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f` (0.01 PHRS)
+- `0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2` (0.015 PHRS)
+
+Total spend: 0.025042 PHRS (dust + gas), of 0.15 budget. Atlantic testnet only.
+
+## How to verify (for the judge)
+
+```bash
+git clone https://github.com/mohamedwael201193/lightkeeper && cd lightkeeper/tasks/t17-nl-payment-agent
+python3 -m unittest tests.test_parser        # 20/20
+python3 agent.py new --text "send 0.01 PHRS to 0x0b0da9286706fa44be3d845b1ecf2cdd8df93625"
+python3 agent.py review --run <id>            # REVIEW card + unsigned tx
+python3 agent.py new --text "send 0.01 PHRS or 0.02 PHRS to 0x709d6964e15d52b392ad17e7fff848c9733fa329"
+# → REFUSED: "Multiple PHRS amounts found: 0.01, 0.02. I will not pick one."
+```

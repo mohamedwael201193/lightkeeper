@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "kind": "refusal",
+  "reason": "Multiple PHRS amounts found: 0.01, 0.02. I will not pick one.",
+  "clarification_question": "Which single amount is the payment?",
+  "warnings": [],
+  "input": "send 0.01 PHRS or 0.02 PHRS to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+  "run_id": "f8e7894d",
+  "created_at": "2026-10-16T04:18:29Z"
+}
