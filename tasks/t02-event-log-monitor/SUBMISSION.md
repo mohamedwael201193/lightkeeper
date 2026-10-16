@@ -71,7 +71,8 @@ PENDING-VIDEO (shot guide: VIDEO-GUIDE.md — includes the new interactive conso
 
 ## Video guide update
 
-Shot 7 (new): console interactive demo — open the LIGHTKEEPER console → T02 →
+Shot 8 (new): console interactive demo — open the LIGHTKEEPER console → T02 →
 "Try it live": preset "LogEmitter · Ping" → Watch now → decoded rows appear with
-explorer links → hit Refresh → toggle auto-refresh on/off. Every row is a real
-mined log on Atlantic.
+explorer links; a live-fired event gets the CAUGHT LIVE badge above "Historical
+context" → hit Refresh (watch session continues) → toggle the 2-block reorg buffer
+→ auto-refresh on/off. Every row is a real mined log on Atlantic.
