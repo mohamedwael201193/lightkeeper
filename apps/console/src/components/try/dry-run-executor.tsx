@@ -608,12 +608,67 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
         </div>
       )}
 
+      {/* Prediction track record — the executor keeps score of itself.
+          Real gated broadcasts on Atlantic; numbers from the task's own
+          runs/prediction-ledger.jsonl. Drift is disclosed, not hidden. */}
+      <div className="rounded-xl border border-hairline bg-white p-4">
+        <p className="mb-1 text-sm font-semibold text-ink">
+          The executor keeps score of its own accuracy
+        </p>
+        <p className="mb-3 text-xs text-slate">
+          Every broadcast that went through the gate is recorded with its
+          predicted gas beside the chain's actual gas. The estimates over-predict
+          by ~30% on Atlantic — that drift is public, and the 1.2× safety factor
+          exists precisely for it.
+        </p>
+        <table className="data-table">
+          <tbody>
+            <tr>
+              <th>Broadcast 1</th>
+              <td>
+                <a
+                  className="font-mono text-accent hover:underline"
+                  href={`${EXPLORER_TX}0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  0x639f87…012ee →
+                </a>
+                <span className="ml-2 font-mono">est 58,219 → used 45,470</span>
+                <span className="chip chip-pass ml-2">success · within limit</span>
+              </td>
+            </tr>
+            <tr>
+              <th>Broadcast 2</th>
+              <td>
+                <a
+                  className="font-mono text-accent hover:underline"
+                  href={`${EXPLORER_TX}0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  0xd294bb…4fb03 →
+                </a>
+                <span className="ml-2 font-mono">est 37,379 → used 28,370</span>
+                <span className="chip chip-pass ml-2">success · within limit</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="mt-2 text-xs text-slate">
+          Both predictions held: success as predicted, gas inside the 1.2× limit,
+          probe state moved exactly as projected (count 0→1, then 1→2). New
+          ledger rows land in <span className="font-mono">runs/prediction-ledger.jsonl</span> after every gated broadcast.
+        </p>
+      </div>
+
       {/* Honest footer */}
       <p className="text-xs text-slate">
         The task's CLI gate ran this same pipeline on Atlantic:{" "}
         <span className="font-mono">boom()</span> predicted a revert and the
         broadcaster refused it; <span className="font-mono">ping()</span> predicted
-        PASS and the real broadcast matched. Evidence lives in the task's{" "}
+        PASS and two real broadcasts matched their predictions — both status
+        success, both gas inside the 1.2× limit. Evidence lives in the task's{" "}
         <span className="font-mono">evidence.json</span>. Try the same two cases
         above — live, from your own wallet.
       </p>

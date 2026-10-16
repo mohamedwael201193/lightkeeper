@@ -62,8 +62,23 @@ was one."*
 **Say:** *"Earlier I broadcast the PASS ticket through the gate. Here's the
 real receipt: status success — the PASS prediction held. Gas used 45,470,
 inside the 69,863 safety limit. The Pinged event fired, and the probe's count
-moved from zero to one, exactly as the dry-run projected. Prediction matched
-reality; total spend for the whole task: three ten-thousandths of a PHRS."*
+moved from zero to one, exactly as the dry-run projected."*
+
+**Show:** second explorer tx page:
+`https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03`
+
+**Say:** *"And it wasn't a one-off. A second dry-run predicted PASS again —
+37,379 gas, limit 44,855 — and the real broadcast used 28,370, count moved
+one to two. Both predictions held."*
+
+**Show:** `cat runs/prediction-ledger.jsonl` — the two rows, point at
+estimated-vs-used.
+
+**Say:** *"The executor keeps score of itself: predicted gas beside the
+chain's actual gas, broadcast after broadcast. The honest read — estimates
+over-predict by about thirty percent on Atlantic, and the 1.2× safety factor
+exists for exactly that. Total spend for the whole task: three ten-thousandths
+of a PHRS."*
 
 **End card (text overlay):** `LIGHTKEEPER T08 · DRY-RUN EXECUTOR · simulate before you sign`
 
@@ -92,7 +107,19 @@ reality; total spend for the whole task: three ten-thousandths of a PHRS."*
 
 **End card (text overlay):** `LIGHTKEEPER T08 · DRY-RUN EXECUTOR · simulate before you sign`
 
-## Spoken script (full, ~85s at natural pace)
+### Shot 5 — the console prediction track record (film separately or splice)
+
+**Show:** the T08 console page, scrolled to "The executor keeps score of its
+own accuracy".
+
+**Say:** *"In the console, the honesty layer is on the page: every gated
+broadcast, predicted gas beside the chain's actual gas, with explorer links.
+Click through — both are real Atlantic receipts. Estimates over-predict about
+thirty percent; the 1.2× factor absorbs it, and the drift is public data."*
+
+**End card (text overlay):** `LIGHTKEEPER T08 · DRY-RUN EXECUTOR · simulate before you sign`
+
+## Spoken script (full, ~100s at natural pace)
 
 > "Every transaction deserves a rehearsal before it touches the chain. This is
 > the Dry-Run Executor on Pharos Atlantic. [SHOT 1] I simulate a ping call —
@@ -103,14 +130,18 @@ reality; total spend for the whole task: three ten-thousandths of a PHRS."*
 > error data. Try to broadcast the failed ticket anyway, and the gate refuses:
 > exit code two, execution refused, logged. Nothing reaches the chain.
 > [SHOT 3] The PASS ticket I did broadcast: real explorer receipt, status
-> success, gas inside the safety limit, state moved exactly as projected.
-> Simulate before you sign — that's T08."
+> success, gas inside the safety limit, state moved exactly as projected —
+> twice, two broadcasts, both predictions held. And the executor keeps score:
+> predicted gas beside the chain's actual gas in a public ledger, drift and
+> all. Simulate before you sign — that's T08."
 
 ## Checklist before filming
 
 - [ ] Terminal font large enough to read at 1080p
 - [ ] `$ATLANTIC_RPC_URL` exported; **never** `echo` the key env var
 - [ ] Explorer pages loaded live (not screenshots) — tx `0x639f87…012ee`
+      and second broadcast `0xd294bb…4fb03`
+- [ ] `runs/prediction-ledger.jsonl` on screen ≥ 3 seconds, both rows visible
 - [ ] Keep the `blocked-execution.log` refusal line on screen ≥ 3 seconds
 - [ ] No background browser tabs with unrelated content
 - [ ] Shot 4: console on T08 page with a funded Atlantic-testnet wallet ready;

@@ -9,7 +9,10 @@
 A SkillEngine dry-run gate for Pharos Atlantic: `cast estimate` + `forge script`
 (without `--broadcast`) predict PASS/FAIL, decode the exact revert reason, apply
 a 1.2× gas safety factor — and a separate broadcaster that only replays PASS
-tickets, refusing FAILs automatically.
+tickets, refusing FAILs automatically. The executor keeps score of itself: a
+**prediction ledger** records every gated broadcast's predicted gas beside the
+chain's actual gas, so the simulation/reality drift is public data, not a
+handwave.
 
 ## Description (paste into the Arena submission form)
 
@@ -42,25 +45,39 @@ refused (exit 2) and logged to a blocked-execution log.
   [tx 0x639f87…012ee](https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee):
   status success, gas used 45,470 (within the 69,863 limit), `Pinged` event,
   probe `count` 0→1 exactly as projected.
+- **Scenario C — the prediction holds a second time.** Fresh dry-run of
+  `ping()` → PASS (37,379 gas → 44,855 limit, predicted cost 0.00044855 PHRS,
+  block 31486270) → gated broadcast →
+  [tx 0xd294bb…4fb03](https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03):
+  status success, gas used 28,370 (within the 44,855 limit), `Pinged` event
+  with count 2 (probe was at 1, exactly as projected). The gate was re-tested
+  against the fresh FAIL ticket → refused (exit 2) again.
+- **Prediction ledger** (`runs/prediction-ledger.jsonl`, auto-appended by
+  `broadcast.py` via `tools/ledger.py`): both predictions held — status
+  success, gas inside the 1.2× limit, state exactly as projected. The honest
+  read: estimates over-predict by ~30% on Atlantic (58,219→45,470 and
+  37,379→28,370); the 1.2× factor covers that drift with margin.
 
 **Contracts / transactions (Atlantic 688689):**
 
 - `DryRunProbe` `0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f`
   ([explorer](https://atlantic.pharosscan.xyz/address/0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f))
 - Deploy: [0xbb5fac…4748e44](https://atlantic.pharosscan.xyz/tx/0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44)
-- Real broadcast: [0x639f87…012ee](https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee)
+- Real broadcast 1: [0x639f87…012ee](https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee)
+- Real broadcast 2 (repeatability): [0xd294bb…4fb03](https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03)
 
-**Spend:** 0.00029803 PHRS of the 0.15 budget (dry-runs are read-only; only the
-deploy + one broadcast cost gas).
+**Spend:** 0.00032640 PHRS of the 0.15 budget (dry-runs are read-only; only the
+deploy + two broadcasts cost gas).
 
 **Tests:** 17/17 unit tests pass (`tests/test_estimation_parsing.py`) — estimation
 parsing, revert decoding, 1.2× gas math, gate rules, no-signer structural check.
 
-**Honest limits:** `cast estimate` over-predicted gas by ~28% (58,219 vs 45,470
-actual) — the documented simulation/reality drift the 1.2× factor absorbs; the
-Atlantic RPC rejects some Foundry request shapes (disclosed root-cause in
-`REVIEWER_NOTES.md`; worked around with a local request normalizer, all data
-still live from Atlantic).
+**Honest limits:** estimates **over-predict by ~30%** on Atlantic — measured,
+not assumed: the prediction ledger (`runs/prediction-ledger.jsonl`) records
+58,219→45,470 and 37,379→28,370 across the two gated broadcasts; the 1.2×
+factor absorbs that drift with margin. The Atlantic RPC rejects some Foundry
+request shapes (disclosed root-cause in `REVIEWER_NOTES.md`; worked around with
+a local request normalizer, all data still live from Atlantic).
 
 ## Live interactive demo (LIGHTKEEPER console)
 
@@ -83,7 +100,9 @@ propose + sign in the visitor's own wallet):
   **their own wallet** with **their testnet PHRS** → receipt + explorer link
   labeled "Your tx — signed in your wallet." LIGHTKEEPER never holds keys.
 - The honest simulation/reality drift is stated on the page (the 1.2× factor
-  exists because estimates have drifted ~28% on this network), and the review
+  exists because estimates have drifted ~30% on this network), backed by a
+  **prediction track record** strip showing both real gated broadcasts with
+  their predicted-vs-actual gas and explorer links, and the review
   step names the block the simulation ran at.
 
 New filming shots for the console demo are in `VIDEO-GUIDE.md` (§ Shot 4).

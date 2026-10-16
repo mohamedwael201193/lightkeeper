@@ -23,6 +23,7 @@ it is NEVER printed, logged, or written to disk.
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -89,6 +90,22 @@ def main() -> int:
     if r.returncode != 0:
         print(r.stderr, file=sys.stderr)
         return 1
+    # Prediction ledger: the executor keeps score of its own accuracy.
+    # Best effort — the tx already landed; a ledger failure must not fail
+    # the broadcast result.
+    m = re.search(r"transactionHash\s+(0x[0-9a-fA-F]{64})", r.stdout)
+    if m:
+        tx_hash = m.group(1)
+        ledger_py = Path(__file__).resolve().parent.parent / "tools" / "ledger.py"
+        lr = subprocess.run(
+            [sys.executable, str(ledger_py), "--receipt", a.receipt,
+             "--tx-hash", tx_hash, "--rpc-url", a.rpc_url],
+            capture_output=True, text=True, timeout=180,
+        )
+        if lr.stdout.strip():
+            print(lr.stdout.strip())
+        if lr.returncode != 0:
+            print(f"[ledger] warning (non-fatal): {lr.stderr.strip()}", file=sys.stderr)
     return 0
 
 

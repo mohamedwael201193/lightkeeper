@@ -1,1 +1,181 @@
-{"budgetPHRS":0.15,"chain":"atlantic-testnet","chainId":688689,"deployBlock":31481306,"deployGasUsed":252561,"deployTx":"0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44","explorer":"https://atlantic.pharosscan.xyz","linksCurlVerified":{"contract":{"http":200,"url":"https://atlantic.pharosscan.xyz/address/0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f"},"deployTx":{"http":200,"url":"https://atlantic.pharosscan.xyz/tx/0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44"},"realTx":{"http":200,"url":"https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee"}},"probeContract":"0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f","scenarioA_predictRevert":{"dryRunBlock":31481344,"gateTest":{"action":"broadcast.py pointed at the FAIL ticket","exitCode":2,"logFile":"runs/blocked-execution.log","logLine":"[2026-10-16T04:09:42Z] EXECUTION REFUSED receipt=runs/receipt-A.json reason=ticket status is 'FAIL' (need PASS); revertReason=DryRunProbe: forced boom, ...","result":"EXECUTION REFUSED","txBroadcast":null},"predictedStatus":"FAIL","receiptFile":"runs/receipt-A.json","revertData":"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001844727952756e50726f62653a20666f7263656420626f6f6d0000000000000000","revertEncoding":"Error(string)","revertReason":"DryRunProbe: forced boom","sig":"boom()"},"scenarioB_predictSuccessThenRealBroadcast":{"dryRunBlock":31481413,"forgeScriptDryRun":{"command":"forge script script/Probe.s.sol --rpc-url <rpc>   (NO --broadcast)","estimatedScriptGas":62804,"logFile":"runs/forge-dryrun.log","note":"run via tools/rpc-normalize-proxy.py (see REVIEWER_NOTES.md for the RPC quirk)","result":"Script ran successfully / SIMULATION COMPLETE"},"gasEstimate":58219,"gasLimit":69863,"gasPriceWei":10000000000,"gasSafetyFactor":1.2,"predictedCostPHRS":0.00069863,"predictedStatus":"PASS","realBroadcast":{"blockNumber":31481387,"eventEmitted":"Pinged(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3, 1)","explorerTx":"https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee","gasLimitUsed":69863,"gasUsed":45470,"logFile":"runs/broadcast-B.log","predictionMatched":true,"stateAfterActual":{"count":"1"},"status":"1 (success)","txHash":"0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee","withinSafetyFactor":true},"receiptFile":"runs/receipt-B.json","sig":"ping()","stateAfterProjected":{"count":"1 (projected)","note":"ping() increments count by 1"},"stateBefore":{"balanceWei":"0","count":"0"}},"spendLog":[{"costPHRS":0.000252561000252561,"gasPriceGwei":1.000000001,"gasUsed":252561,"tx":"0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44","what":"deploy DryRunProbe"},{"costPHRS":0.00004547000004547,"gasPriceGwei":1.000000001,"gasUsed":45470,"tx":"0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee","what":"scenario B real broadcast (ping)"}],"task":"t08-dry-run-executor","totalSpentPHRS":0.000298031000298031,"unitTests":{"file":"tests/test_estimation_parsing.py","network":"none (pure unit tests)","passed":17,"tests":17},"wallet":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"}
+{
+  "budgetPHRS": 0.15,
+  "chain": "atlantic-testnet",
+  "chainId": 688689,
+  "deployBlock": 31481306,
+  "deployGasUsed": 252561,
+  "deployTx": "0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44",
+  "explorer": "https://atlantic.pharosscan.xyz",
+  "linksCurlVerified": {
+    "contract": {
+      "http": 200,
+      "url": "https://atlantic.pharosscan.xyz/address/0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f"
+    },
+    "deployTx": {
+      "http": 200,
+      "url": "https://atlantic.pharosscan.xyz/tx/0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44"
+    },
+    "realTx": {
+      "http": 200,
+      "url": "https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee"
+    },
+    "realTx2": {
+      "url": "https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03",
+      "http": 200
+    }
+  },
+  "probeContract": "0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f",
+  "scenarioA_predictRevert": {
+    "dryRunBlock": 31481344,
+    "gateTest": {
+      "action": "broadcast.py pointed at the FAIL ticket",
+      "exitCode": 2,
+      "logFile": "runs/blocked-execution.log",
+      "logLine": "[2026-10-16T04:09:42Z] EXECUTION REFUSED receipt=runs/receipt-A.json reason=ticket status is 'FAIL' (need PASS); revertReason=DryRunProbe: forced boom, ...",
+      "result": "EXECUTION REFUSED",
+      "txBroadcast": null
+    },
+    "predictedStatus": "FAIL",
+    "receiptFile": "runs/receipt-A.json",
+    "revertData": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001844727952756e50726f62653a20666f7263656420626f6f6d0000000000000000",
+    "revertEncoding": "Error(string)",
+    "revertReason": "DryRunProbe: forced boom",
+    "sig": "boom()"
+  },
+  "scenarioB_predictSuccessThenRealBroadcast": {
+    "dryRunBlock": 31481413,
+    "forgeScriptDryRun": {
+      "command": "forge script script/Probe.s.sol --rpc-url <rpc>   (NO --broadcast)",
+      "estimatedScriptGas": 62804,
+      "logFile": "runs/forge-dryrun.log",
+      "note": "run via tools/rpc-normalize-proxy.py (see REVIEWER_NOTES.md for the RPC quirk)",
+      "result": "Script ran successfully / SIMULATION COMPLETE"
+    },
+    "gasEstimate": 58219,
+    "gasLimit": 69863,
+    "gasPriceWei": 10000000000,
+    "gasSafetyFactor": 1.2,
+    "predictedCostPHRS": 0.00069863,
+    "predictedStatus": "PASS",
+    "realBroadcast": {
+      "blockNumber": 31481387,
+      "eventEmitted": "Pinged(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3, 1)",
+      "explorerTx": "https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee",
+      "gasLimitUsed": 69863,
+      "gasUsed": 45470,
+      "logFile": "runs/broadcast-B.log",
+      "predictionMatched": true,
+      "stateAfterActual": {
+        "count": "1"
+      },
+      "status": "1 (success)",
+      "txHash": "0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee",
+      "withinSafetyFactor": true
+    },
+    "receiptFile": "runs/receipt-B.json",
+    "sig": "ping()",
+    "stateAfterProjected": {
+      "count": "1 (projected)",
+      "note": "ping() increments count by 1"
+    },
+    "stateBefore": {
+      "balanceWei": "0",
+      "count": "0"
+    }
+  },
+  "spendLog": [
+    {
+      "costPHRS": 0.000252561000252561,
+      "gasPriceGwei": 1.000000001,
+      "gasUsed": 252561,
+      "tx": "0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44",
+      "what": "deploy DryRunProbe"
+    },
+    {
+      "costPHRS": 4.547000004547e-05,
+      "gasPriceGwei": 1.000000001,
+      "gasUsed": 45470,
+      "tx": "0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee",
+      "what": "scenario B real broadcast (ping)"
+    },
+    {
+      "what": "scenario C real broadcast (ping, second PASS ticket)",
+      "tx": "0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03",
+      "gasUsed": 28370,
+      "gasPriceGwei": 1.000000001,
+      "costPHRS": 2.837000002837e-05
+    }
+  ],
+  "task": "t08-dry-run-executor",
+  "totalSpentPHRS": 0.000326401000326401,
+  "unitTests": {
+    "file": "tests/test_estimation_parsing.py",
+    "network": "none (pure unit tests)",
+    "passed": 17,
+    "tests": 17
+  },
+  "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "scenarioC_secondBroadcast": {
+    "note": "repeatability proof: a SECOND ping() dry-run -> PASS -> gated broadcast, prediction held again",
+    "receiptFile": "runs/receipt-C.json",
+    "dryRunBlock": 31486270,
+    "sig": "ping()",
+    "predictedStatus": "PASS",
+    "gasEstimate": 37379,
+    "gasLimit": 44855,
+    "gasSafetyFactor": 1.2,
+    "gasPriceWei": 10000000000,
+    "predictedCostPHRS": 0.00044855,
+    "stateBefore": {
+      "count": "1",
+      "balanceWei": "0"
+    },
+    "stateAfterProjected": {
+      "count": "2 (projected: 1 + 1)"
+    },
+    "realBroadcast": {
+      "txHash": "0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03",
+      "explorerTx": "https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03",
+      "blockNumber": 31486429,
+      "status": "1 (success)",
+      "gasUsed": 28370,
+      "gasLimitUsed": 44855,
+      "withinSafetyFactor": true,
+      "eventEmitted": "Pinged(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3, 2)",
+      "stateAfterActual": {
+        "count": "2"
+      },
+      "predictionMatched": true,
+      "estimateDriftPct": 31.8,
+      "logFile": "runs/broadcast-C.log"
+    },
+    "gateRetest": {
+      "action": "broadcast.py pointed at fresh FAIL receipt (runs/receipt-A-rerun.json)",
+      "exitCode": 2,
+      "result": "EXECUTION REFUSED"
+    }
+  },
+  "predictionLedger": {
+    "file": "runs/prediction-ledger.jsonl",
+    "note": "the executor keeps score: every gated broadcast appends prediction-vs-reality (auto via broadcast.py -> tools/ledger.py)",
+    "entries": [
+      {
+        "tx": "0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee",
+        "est": 58219,
+        "used": 45470,
+        "driftPct": 28.0,
+        "withinLimit": true,
+        "status": "success"
+      },
+      {
+        "tx": "0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03",
+        "est": 37379,
+        "used": 28370,
+        "driftPct": 31.8,
+        "withinLimit": true,
+        "status": "success"
+      }
+    ],
+    "driftReading": "estimates over-predict ~30% on Atlantic; 1.2x factor covers it with margin"
+  }
+}

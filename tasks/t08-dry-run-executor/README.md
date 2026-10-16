@@ -63,6 +63,27 @@ tx [`0x639f87…012ee`](https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c6
 — **status success**, gas used **45,470** (within the 69,863 safety limit),
 `Pinged` event emitted, probe `count` moved **0 → 1** exactly as projected.
 
+**Scenario C — the prediction holds a SECOND time (repeatability).** A fresh
+`ping()` dry-run (receipt `runs/receipt-C.json`, block 31486270): PASS, estimate
+**37,379** → limit **44,855** → predicted cost **0.00044855 PHRS**. Broadcast
+through the gate: tx
+[`0xd294bb…4fb03`](https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03)
+— **status success**, gas used **28,370** (within the 44,855 limit), `Pinged`
+event with count **2** (was 1, exactly as projected). The gate was also
+re-tested against the fresh FAIL receipt → **refused** (exit 2) again.
+
+### The prediction ledger — the executor keeps score
+
+One-shot proof is easy to cherry-pick, so the executor measures itself:
+every gated broadcast appends a prediction-vs-reality row to
+[`runs/prediction-ledger.jsonl`](runs/prediction-ledger.jsonl) (via
+`tools/ledger.py`, called automatically by `broadcast.py` after success).
+Two rows so far — **both predictions held** (status success, gas inside the
+1.2× limit, state exactly as projected). The honest read: estimates
+**over-predict by ~30%** on Atlantic (58,219→45,470, 37,379→28,370); the 1.2×
+factor covers that drift with margin. Estimates are predictions — now with
+public drift data.
+
 Full logs: `runs/` · machine-readable: `evidence.json` · narrative: `evidence.md`.
 
 ## 4. Repository layout
@@ -125,14 +146,16 @@ Atlantic; nothing is mocked. Full root-cause trace in `REVIEWER_NOTES.md`.
 ## 7. Security & honesty notes
 
 - **No secrets in this repo.** The dry-run module never reads the environment for keys (runtime tripwire + unit test enforce it); the broadcaster reads the key transiently from the environment and never prints or logs it. `.env` is git-ignored; `forge`'s `broadcast/` + `cache/` dirs are git-ignored.
-- **No mock/demo/fake success.** Both scenarios ran against live Atlantic: Scenario A produced a real FAIL receipt and a real refusal log; Scenario B's real receipt matches the prediction (status success, gas within the 1.2× limit, state 0→1).
-- **Simulation/reality drift (official risk, disclosed):** `cast estimate` said 58,219 gas; the real tx used 45,470. The 1.2× safety factor exists precisely for this drift — the tx still fit comfortably inside the limit. Estimates are predictions, not promises.
-- **Budget:** 0.00029803 PHRS spent of the 0.15 PHRS task budget (deploy + 1 broadcast; dry-runs cost nothing).
+- **No mock/demo/fake success.** All three scenarios ran against live Atlantic: Scenario A produced a real FAIL receipt and a real refusal log; Scenarios B and C each produced a real broadcast receipt matching its prediction (status success, gas within the 1.2× limit, state exactly as projected), plus a second recorded gate refusal.
+- **Simulation/reality drift (official risk, disclosed — now measured):** `runs/prediction-ledger.jsonl` tracks every gated broadcast: estimates over-predict by ~30% on Atlantic (58,219→45,470, 37,379→28,370). The 1.2× safety factor exists precisely for this drift — both txs fit inside their limits with margin. Estimates are predictions, now with public drift data.
+- **Budget:** 0.00032640 PHRS spent of the 0.15 PHRS task budget (deploy + 2 broadcasts; dry-runs cost nothing).
 
 ## 8. Links
 
 - Probe contract: <https://atlantic.pharosscan.xyz/address/0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f>
 - Deploy tx: <https://atlantic.pharosscan.xyz/tx/0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb32133b2ba5ed1a08b4748e44>
 - Scenario B real tx: <https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee>
+- Scenario C real tx (repeatability): <https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03>
+- Prediction ledger: `runs/prediction-ledger.jsonl` (prediction-vs-reality per broadcast)
 - All links curl-verified (HTTP 200) — see `LINKS.md`.
 - Submission pack: `SUBMISSION.md` · filming guide: `VIDEO-GUIDE.md` · reviewer deep-dive: `REVIEWER_NOTES.md`

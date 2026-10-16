@@ -8,7 +8,7 @@ status: ready-for-review
 chain: atlantic-testnet
 chain_id: 688689
 budget_phrs_max: 0.15
-spent_phrs: 0.00029803
+spent_phrs: 0.00032640
 contracts:
   - name: DryRunProbe
     address: 0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f

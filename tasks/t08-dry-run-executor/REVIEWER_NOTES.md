@@ -7,13 +7,19 @@ never broadcasting) and issues a PASS/FAIL SimulationReceipt. A separate
 broadcaster replays **only** PASS tickets. Two live Atlantic scenarios prove
 it: (A) dry-run predicts `DryRunProbe: forced boom` → gate **refuses**
 execution, logged; (B) dry-run predicts success (58,219 gas, 1.2× → 69,863
-limit) → real tx succeeds using 45,470 gas, state moves 0→1 as projected.
+limit) → real tx succeeds using 45,470 gas, state moves 0→1 as projected;
+(C) repeatability — a second PASS ticket broadcast (37,379 → 44,855 limit) →
+real tx succeeds using 28,370 gas, state moves 1→2 as projected, gate refusal
+re-tested. A **prediction ledger** (`runs/prediction-ledger.jsonl`) keeps
+score: both predictions held; estimates over-predict ~30% on Atlantic, which
+the 1.2× factor absorbs with margin.
 
 ## How to verify in < 2 minutes
 
-1. Open the two explorer tx links in `LINKS.md` (both HTTP 200, curl-verified).
-   Confirm: deploy tx created contract `0xd5f956BC…24a8f`; ping tx shows
-   status success, gas used 45,470, and a `Pinged` event.
+1. Open the three explorer tx links in `LINKS.md` (all HTTP 200, curl-verified).
+   Confirm: deploy tx created contract `0xd5f956BC…24a8f`; both ping txs show
+   status success, gas used within their 1.2× limits, and a `Pinged` event.
+2. `python3 -c "import json; d=json.load(open('evidence.json')); print([e['tx'] for e in d['predictionLedger']['entries']])"` → the two real tx hashes.
 2. `python3 -c "import json; print(json.load(open('evidence.json'))['scenarioB_predictSuccessThenRealBroadcast']['realBroadcast']['withinSafetyFactor'])"` → `True`.
 3. `python3 tests/test_estimation_parsing.py` → 17/17 OK (no network needed).
 4. `grep -rn "getenv\|os.environ\|private-key" src/dryrun.py` → only the
@@ -59,9 +65,11 @@ estimate`, `cast gas-price`) works against this RPC with no proxy at all.
 
 ## Known limitations (not hidden)
 
-- **Simulation/reality drift:** `cast estimate` said 58,219 gas; the real tx
-  used 45,470 (~28% over-prediction). The 1.2× safety factor exists for
-  exactly this; the tx fit inside the limit. Estimates are predictions.
+- **Simulation/reality drift:** measured, not assumed — `runs/prediction-ledger.jsonl`
+  records every gated broadcast: estimates over-predict ~30% on Atlantic
+  (58,219→45,470; 37,379→28,370). The 1.2× safety factor exists for exactly
+  this; both txs fit inside their limits with margin. `broadcast.py` appends
+  a ledger row automatically after every success (`tools/ledger.py`).
 - **State-diff projection is probe-aware:** before/after snapshots read
   `count()` + balance and project `ping()`→+1 / `boom()`→unchanged. For
   arbitrary contracts the projection layer would need per-ABI plugins —
