@@ -2,7 +2,7 @@
 
 ## Repo (commit-pinned)
 
-- Task tree: `https://github.com/mohamedwael201193/lightkeeper/tree/<COMMIT>/tasks/t09-trend-watcher`
+- Task tree: `https://github.com/mohamedwael201193/lightkeeper/tree/8e5a61ce9145f0c723965cb43b79703d60d9af4a/tasks/t09-trend-watcher`
   (SHA filled at commit time; see SUBMISSION.md)
 
 ## Explorer — sampled block window (all HTTP 200, curl-verified)
