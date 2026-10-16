@@ -17,6 +17,8 @@
  * tool name) — the hardened rpcCall in ../../hooks/useAtlantic normalizes it.
  */
 import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { History, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { Lamp } from "../../types";
 import {
   EXPLORER_ADDRESS,
@@ -108,6 +110,14 @@ interface ValueRead {
   big?: bigint;
   decimals?: number;
   failure?: string;
+  /** Compact human value at the pinned block, e.g. "150,993,019.0752 WPHRS". */
+  compact?: string;
+  /** Latest-block comparison read (historical pins only). Preserved from the
+   * already-computed vs-latest read — no extra math, just kept for display. */
+  latestBig?: bigint | null;
+  latestCompact?: string | null;
+  /** latest − pinned. Positive = supply grew since the pinned block. */
+  deltaBig?: bigint | null;
 }
 
 interface ReadResult {
@@ -140,6 +150,193 @@ function buildSteps(holder: string): string[] {
   ];
 }
 
+/**
+ * The Tick (shared choreography vocabulary, after T21's whale hero): a
+ * measured number springing from 0 the moment the real value arrives.
+ * Mounts fresh per read (keyed on the target), so every time-travel run
+ * replays the tick. Instant under prefers-reduced-motion.
+ */
+function DeltaNumber({ value, format }: { value: number; format: (n: number) => string }) {
+  const reduce = useReducedMotion();
+  const mv = useMotionValue(0);
+  const spring = useSpring(mv, { stiffness: 55, damping: 16 });
+  const [display, setDisplay] = useState(() => format(reduce ? value : 0));
+
+  useEffect(() => {
+    mv.set(value);
+  }, [mv, value]);
+
+  useEffect(() => {
+    if (reduce) {
+      setDisplay(format(value));
+      return;
+    }
+    const unsub = spring.on("change", (v) => setDisplay(format(v)));
+    return unsub;
+  }, [spring, reduce, value]);
+
+  return <span className="tabular-nums">{display}</span>;
+}
+
+/**
+ * THE WOW MOMENT — TIME TRAVEL. The Split: the same totalSupply() measured
+ * twice — once at the pinned block, once at latest — with the measured delta
+ * ticking into place between them. "The chain remembers."
+ */
+function TimeTravelSplit({
+  supply,
+  balance,
+  pinNum,
+  pinHex,
+  pinAgeSec,
+  latestBlock,
+  decimals,
+  unit,
+}: {
+  supply: ValueRead;
+  balance: ValueRead | null;
+  pinNum: number;
+  pinHex: string;
+  pinAgeSec: number | null;
+  latestBlock: number;
+  decimals: number | null;
+  unit: string;
+}) {
+  const hasDelta = supply.deltaBig !== null && supply.deltaBig !== undefined;
+  const delta = supply.deltaBig ?? 0n;
+  const mag = delta < 0n ? -delta : delta;
+  const sign = delta === 0n ? "±" : delta > 0n ? "+" : "−";
+  const DeltaIcon = delta === 0n ? Minus : delta > 0n ? TrendingUp : TrendingDown;
+  const fmt = (n: number) =>
+    decimals !== null
+      ? n.toLocaleString("en-US", { maximumFractionDigits: 4 })
+      : Math.round(n).toLocaleString("en-US");
+
+  const bal = balance && balance.ok && balance.compact ? balance : null;
+  const balHasDelta = bal !== null && bal.deltaBig !== null && bal.deltaBig !== undefined;
+  const balDelta = bal?.deltaBig ?? 0n;
+  const balMag = balDelta < 0n ? -balDelta : balDelta;
+  const balSign = balDelta === 0n ? "±" : balDelta > 0n ? "+" : "−";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="rounded-2xl border border-hairline bg-porcelain p-5 sm:p-6"
+    >
+      <div className="flex items-center gap-2">
+        <History size={18} className="text-accent" aria-hidden />
+        <h4 className="text-base font-semibold text-ink">Time travel — the chain remembers</h4>
+      </div>
+      <p className="mt-1 text-sm text-slate">
+        The same <span className="font-mono">totalSupply()</span> measured twice: once at your
+        pinned block, once at the latest block. The delta is read on-chain — never inferred.
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+        {/* Then — the pinned historical read */}
+        <div className="rounded-xl border border-hairline bg-white p-4">
+          <p className="text-sm font-semibold text-slate">Then</p>
+          <p className="mt-1 font-mono text-xs text-slate">
+            block {pinNum.toLocaleString("en-US")} <span title={pinHex}>{pinHex}</span>
+            {pinAgeSec !== null && <> · {formatAge(pinAgeSec)}</>}
+          </p>
+          <p className="mt-2 break-words font-display text-2xl tracking-tight text-ink sm:text-3xl">
+            {supply.compact}
+          </p>
+          <p className="mt-1 text-xs text-slate">
+            <span className="font-mono">totalSupply()</span> @ your pinned block
+          </p>
+        </div>
+
+        {/* The delta, ticking into place between the two panels */}
+        <div className="flex items-center justify-center gap-3 sm:flex-col sm:gap-2 sm:px-1">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent text-white">
+            <DeltaIcon size={20} aria-hidden />
+          </span>
+          <div className="sm:text-center">
+            <p className="font-display text-3xl tracking-tight text-ink">
+              {hasDelta ? (
+                <>
+                  {sign}
+                  <DeltaNumber value={unitsToFloat(mag, decimals)} format={fmt} />
+                </>
+              ) : (
+                "—"
+              )}
+            </p>
+            <p className="text-sm text-slate">
+              {unit} ·{" "}
+              {!hasDelta
+                ? "latest read failed"
+                : delta === 0n
+                  ? "unchanged"
+                  : delta > 0n
+                    ? "minted since then"
+                    : "left circulation since then"}
+            </p>
+          </div>
+        </div>
+
+        {/* Now — the latest-block comparison read */}
+        <div className="rounded-xl border border-hairline bg-white p-4">
+          <p className="text-sm font-semibold text-slate">Now</p>
+          <p className="mt-1 font-mono text-xs text-slate">
+            block {latestBlock.toLocaleString("en-US")} · latest
+          </p>
+          {supply.latestCompact ? (
+            <>
+              <p className="mt-2 break-words font-display text-2xl tracking-tight text-ink sm:text-3xl">
+                {supply.latestCompact}
+              </p>
+              <p className="mt-1 text-xs text-slate">
+                <span className="font-mono">totalSupply()</span> @ latest, read alongside
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-fail">
+              The latest-block comparison read didn't answer — the pinned value stands on its
+              own.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Holder balance delta, when a holder was actually read */}
+      {bal && (
+        <div className="mt-3 border-t border-hairline pt-3">
+          <p className="text-sm text-ink">
+            <span className="font-mono">{bal.label}</span>:{" "}
+            <span className="tabular-nums">{bal.compact}</span>
+            {bal.latestCompact ? (
+              <>
+                {" → "}
+                <span className="tabular-nums">{bal.latestCompact}</span>
+                {balHasDelta && (
+                  <>
+                    {" · Δ "}
+                    <span className="font-semibold tabular-nums">
+                      {balSign}
+                      {decimals !== null ? formatUnits(balMag, decimals) : balMag.toString()}{" "}
+                      {unit}
+                    </span>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {" "}
+                · <span className="text-slate">latest comparison read failed</span>
+              </>
+            )}
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
   void lamp; // page shell renders the name — the module doesn't need it
   const [address, setAddress] = useState(WPHRS);
@@ -154,6 +351,8 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
   const [error, setError] = useState<string | null>(null);
   const [emptyMsg, setEmptyMsg] = useState<string | null>(null);
   const [lastTarget, setLastTarget] = useState<Target | null>(null);
+  /** The block pin, as soon as phase 0 resolves — the 02 "block-pin moment". */
+  const [pinnedBlock, setPinnedBlock] = useState<number | null>(null);
 
   const runSeq = useRef(0);
   const mounted = useRef(true);
@@ -192,6 +391,8 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
     }
     const blockHex = "0x" + pinNum.toString(16);
     const historical = pinNum < latest;
+    // The pin is a real state change — surface it in the 02 act immediately.
+    if (mounted.current && runSeq.current === seq) setPinnedBlock(pinNum);
 
     // Phase 1 — bytecode check at the pinned block.
     setStepsSafe(1, seq);
@@ -316,16 +517,27 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
     const decimals = decimalsRow?.ok ? (decimalsRow.decimals ?? null) : null;
     const symbolRow = values.find((v) => v.label === "symbol");
     const unit = symbolRow?.ok && symbolRow.decoded ? symbolRow.decoded : "tokens";
+
     for (const v of values) {
       if (v.kind === "uint256" && v.ok && v.big !== undefined) {
+        v.compact =
+          decimals !== null
+            ? `${formatUnits(v.big, decimals)} ${unit}`
+            : `${v.big.toString()} raw units`;
         v.human =
           decimals !== null
-            ? `${formatUnits(v.big, decimals)} ${unit} (raw ÷ 10^${decimals})`
+            ? `${v.compact} (raw ÷ 10^${decimals})`
             : `${v.decoded} raw units — decimals() failed, shown raw, never guessed`;
         if (historical) {
           const base = v.label === "totalSupply" ? latestSupply : latestBalance;
           if (base !== null && base !== undefined) {
+            v.latestBig = base;
+            v.latestCompact =
+              decimals !== null
+                ? `${formatUnits(base, decimals)} ${unit}`
+                : `${base.toString()} raw units`;
             const delta = base - v.big;
+            v.deltaBig = delta;
             const sign = delta === 0n ? "±" : delta > 0n ? "+" : "−";
             const mag = delta === 0n ? 0n : delta > 0n ? delta : -delta;
             v.note =
@@ -374,6 +586,7 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
     const seq = ++runSeq.current;
     setSteps(runSteps);
     setStep(0);
+    setPinnedBlock(null);
     setLoading(true);
     setError(null);
     setEmptyMsg(null);
@@ -412,6 +625,10 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
   const balanceRow = fresh?.values.find((v) => v.label.startsWith("balanceOf"));
   const decimals = decimalsRow?.ok ? (decimalsRow.decimals ?? null) : null;
   const unit = symbolRow?.ok && symbolRow.decoded ? symbolRow.decoded : "tokens";
+
+  /** The wow moment is armed: a historical pin with a successful supply read. */
+  const isTimeTravel =
+    !!fresh?.historical && !!supplyRow?.ok && supplyRow?.big !== undefined;
 
   const headline =
     nameRow?.ok && nameRow.decoded
@@ -547,7 +764,11 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
           <ProgressLoader
             steps={steps}
             current={step}
-            title={`Reading ${truncAddr(lastTarget?.address ?? address)} on Atlantic`}
+            title={
+              pinnedBlock !== null
+                ? `Reading ${truncAddr(lastTarget?.address ?? address)} · pinned at block ${pinnedBlock.toLocaleString("en-US")}`
+                : `Reading ${truncAddr(lastTarget?.address ?? address)} on Atlantic`
+            }
           />
         </section>
       )}
@@ -627,6 +848,20 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
                   },
                 ]}
               >
+                {isTimeTravel && supplyRow && (
+                  <TimeTravelSplit
+                    key={fresh.targetKey}
+                    supply={supplyRow}
+                    balance={balanceRow ?? null}
+                    pinNum={fresh.blockNum}
+                    pinHex={fresh.blockHex}
+                    pinAgeSec={fresh.blockAgeSec}
+                    latestBlock={fresh.latestBlock}
+                    decimals={decimals}
+                    unit={unit}
+                  />
+                )}
+
                 <StatStrip
                   stats={[
                     ...(supplyRow?.ok && supplyRow.big !== undefined
@@ -662,6 +897,13 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
                   ]}
                 />
 
+                {!isTimeTravel && (
+                  <p className="text-sm text-slate">
+                    Tip: enter a past block above and re-run — this page will draw the same
+                    supply <em>then vs now</em>, with the delta measured on-chain.
+                  </p>
+                )}
+
                 <div className="rounded-2xl border border-hairline bg-porcelain p-5 sm:p-6">
                   <h4 className="text-base font-semibold text-ink">Everything that was read</h4>
                   <p className="mt-1 text-sm text-slate">
@@ -671,9 +913,12 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
                   <ul className="mt-4 space-y-3">
                     {fresh.values.map((v) => (
                       <li key={v.sig + v.label} className="border-t border-hairline pt-3">
-                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span className="font-mono text-sm font-semibold text-ink">{v.sig}</span>
                           <span className="font-mono text-xs text-slate">{v.selector}</span>
+                          <span className="rounded-full bg-tint px-2 py-0.5 font-mono text-xs text-accent">
+                            eth_call @ block {fresh.blockNum.toLocaleString("en-US")}
+                          </span>
                         </div>
                         {v.ok ? (
                           <div className="mt-1">
