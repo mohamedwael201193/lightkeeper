@@ -8,7 +8,7 @@ font ≥16pt.
 
 | # | Time | Shot | Spoken script |
 |---|---|---|---|
-| A | 0–10s | Console at `#/task/wallet-risk-checker`: "X-ray any wallet"; click "Established wallet", "Run live scan"; show MED composite banner + S7 unlimited-approval flag with its plain-language "why / what to do" box | "And it lives in the LIGHTKEEPER console. Paste any Atlantic address — no wallet, no signature, no gas. The established wallet scores MED, and the flag teaches: what an unlimited approval means, and exactly what to do about it." |
+| A | 0–10s | Console at `#/task/wallet-risk-checker`: "X-ray any wallet"; click "Established wallet", "Run live scan"; show MED composite banner + S7 unlimited-approval flag with its plain-language "why / what to do" box + the token → spender grants table | "And it lives in the LIGHTKEEPER console. Paste any Atlantic address — no wallet, no signature, no gas. The established wallet scores MED, and the flag teaches: what an unlimited approval means, who can move the tokens, and exactly what to do about it." |
 | B | 10–28s | Click "Fresh fixture contract", re-scan; show the young-account FLAG, funded-but-idle FLAG, unverifiable-code UNKNOWN, composite banner | "Now the fresh fixture — a young contract I deployed for this demo. Funded but idle, unverifiable bytecode. Each flag is explained in plain language with a next step — the report teaches, not just scores." |
 
 Record the new shots at 1080p; then append the original 45–90s terminal

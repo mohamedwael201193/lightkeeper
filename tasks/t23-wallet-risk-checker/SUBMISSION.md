@@ -43,17 +43,22 @@ paste any Atlantic address and the report renders live in the page:
 
 **https://lightkeeper-console.vercel.app/#/task/wallet-risk-checker**
 
-What it does (all live reads, zero signatures, zero spend): native balance
-(`eth_getBalance`), tx count (`eth_getTransactionCount`), EOA-vs-contract
-(`eth_getCode`), first-activity age via nonce binary search with real block
-timestamps, and approval hygiene from `Approval` logs in the last 10,000
-blocks. Per-check PASS / FLAG / UNKNOWN / N/A chips, raw values, the
-disclosed-heuristic composite formula printed with every report, and — the
-differentiator — a plain-language "why this flag exists / what to do" box on
-every flag. Coverage is printed honestly on the page: the browser surface
-runs 6 of the 8 CLI checks (S5 activity burst and S6 interaction diversity
-need the CLI's heavier log windows). Demo buttons pre-fill the two evidence
-addresses (established wallet → MED; fresh test fixture → flags explained).
+What it does (all live reads, zero signatures, zero spend): all 8 checks —
+native balance (`eth_getBalance`), tx count (`eth_getTransactionCount`),
+EOA-vs-contract (`eth_getCode`), first-activity age via nonce binary search
+with real block timestamps (funding-age probe for never-outbound wallets,
+like the CLI), recent activity burst from the nonce delta, interaction
+diversity from `Transfer` logs, and approval hygiene from `Approval` logs in
+the last 10,000 blocks — now including the actual token → spender grant
+pairs ("who can drain this wallet"), each linked to the explorer. Per-check
+PASS / FLAG / UNKNOWN / N/A chips, raw values, the disclosed-heuristic
+composite formula printed with every report, and — the differentiator — a
+plain-language "why this flag exists / what to do" box on every flag.
+Coverage boundaries are printed honestly on the page (native transfers are
+invisible in logs; approval hygiene covers the last 10,000 blocks only;
+the explorer verification API is unreachable, so contract source reports
+UNKNOWN). Demo buttons pre-fill the two evidence addresses (established
+wallet → MED; fresh test fixture → flags explained).
 
 ## Proof link
 
