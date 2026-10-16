@@ -42,13 +42,13 @@ Proof it works:
   spend 0.00218 PHRS of a 0.15 budget, receipt-accounted in evidence.json.
   21 unit tests pass (receipt classifier, retry table, state machine).
 
-Code: https://github.com/mohamedwael201193/lightkeeper/tree/278ee1c2895bf25971444b78a4e57e18dd376d56/tasks/t06-saga-executor
+Code: https://github.com/mohamedwael201193/lightkeeper/tree/32951cf4f0b9105046aef5bd5dcd4d5f3f85b531/tasks/t06-saga-executor
 Evidence: evidence.md + evidence.json in the same dir (13 txs, all explorer
 links curl-verified server-rendered).
 
 ## Links
 
-- Code (commit-pinned): `https://github.com/mohamedwael201193/lightkeeper/tree/278ee1c2895bf25971444b78a4e57e18dd376d56/tasks/t06-saga-executor`
+- Code (commit-pinned): `https://github.com/mohamedwael201193/lightkeeper/tree/32951cf4f0b9105046aef5bd5dcd4d5f3f85b531/tasks/t06-saga-executor`
 - Demo/share: PENDING (console demo link goes here when live)
 - The 0x0 receipt: https://atlantic.pharosscan.xyz/tx/0x91f7e02125434e3f29a56ed086f440a283ac000575fb1ff3369bbf269f819b05
 - Refund compensation: https://atlantic.pharosscan.xyz/tx/0xe6cac3114397487f6d1b1efec721af968ee8868e196a9d5f6437d35b9fbb60ca

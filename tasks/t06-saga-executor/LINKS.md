@@ -32,4 +32,4 @@ identifier present in-page). Atlantic testnet explorer:
 ## Repo
 
 - Module dir (commit-pinned at submission time — see SUBMISSION.md):
-  `https://github.com/mohamedwael201193/lightkeeper/tree/278ee1c2895bf25971444b78a4e57e18dd376d56/tasks/t06-saga-executor`
+  `https://github.com/mohamedwael201193/lightkeeper/tree/32951cf4f0b9105046aef5bd5dcd4d5f3f85b531/tasks/t06-saga-executor`
