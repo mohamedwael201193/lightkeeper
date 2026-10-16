@@ -8,7 +8,9 @@
  * The panel shows the docs-grounded EXPLANATION (every claim labeled
  * DOC-GROUNDED / INFERENCE / UNVERIFIED with the doc URL, retrieval date and
  * verbatim excerpt — from the task's own corpus) side by side with the LIVE
- * on-chain execution of that exact function, decoded and interpreted.
+ * on-chain execution of that exact function, decoded and interpreted — and
+ * then closes the loop with a VERDICT: does the live chain value agree with
+ * what the docs claimed? (It doesn't always — the panel says so.)
  *
  * Fail-closed: when the docs don't cover the function, the panel says
  * [UNVERIFIED] and executes NOTHING.
@@ -24,12 +26,18 @@ import {
 
 const WPHRS = "0x838800b758277CC111B2d48Ab01e5E164f8E9471";
 const RETRIEVAL_DATE = "2026-10-16";
+const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 
 interface Citation {
   label: "DOC-GROUNDED" | "INFERENCE";
   url: string;
   section: string;
   excerpt: string;
+}
+
+interface DocClaim {
+  /** The exact claim the docs corpus makes, verbatim — or null when the docs say nothing. */
+  claim: string | null;
 }
 
 interface GroundedFn {
@@ -39,6 +47,7 @@ interface GroundedFn {
   needsHolder: boolean;
   explanation: string;
   citations: Citation[];
+  docClaim: DocClaim;
 }
 
 const ETH_CALL_CITE: Citation = {
@@ -64,6 +73,11 @@ const FOUNDRY_CITE: Citation = {
   excerpt: "uint256 balance = token.balanceOf(msg.sender); — the guide's read pattern.",
 };
 
+// Doc-claim constants are quoted verbatim from the corpus token-registry page
+// (corpus/getting-started_token-registry.md, retrieved 2026-10-16). They are
+// used for the docs-vs-chain verdict, never invented from on-chain values.
+const REGISTRY_ROW = "WPHRS / Wrapped PHRS / 18";
+
 const GROUNDED: Record<string, GroundedFn> = {
   "totalsupply()": {
     sig: "totalSupply()",
@@ -73,6 +87,7 @@ const GROUNDED: Record<string, GroundedFn> = {
     explanation:
       "totalSupply() returns the total number of tokens currently in existence — everything ever minted, minus anything burned. On Atlantic you read it with a read-only eth_call: the JSON-RPC reference documents eth_call as 'Executes a message call without creating a transaction. Useful for reading contract state.' The raw return is in the token's smallest unit; the Atlantic token registry gives the canonical decimals per token (WPHRS: 18) — so the human number is raw ÷ 10^decimals.",
     citations: [ETH_CALL_CITE, REGISTRY_CITE],
+    docClaim: { claim: null },
   },
   "decimals()": {
     sig: "decimals()",
@@ -82,6 +97,7 @@ const GROUNDED: Record<string, GroundedFn> = {
     explanation:
       "decimals() tells you how many decimal places the token uses — the scaling factor between raw on-chain units and the human-readable number. You never assume it: you read it from the contract itself with the same read-only eth_call. The token registry confirms WPHRS uses 18 decimals — and the panel will now verify that number live instead of taking the docs' word for it.",
     citations: [ETH_CALL_CITE, REGISTRY_CITE],
+    docClaim: { claim: `Token registry row "${REGISTRY_ROW}" — decimals column: 18` },
   },
   "name()": {
     sig: "name()",
@@ -89,7 +105,7 @@ const GROUNDED: Record<string, GroundedFn> = {
     kind: "string",
     needsHolder: false,
     explanation:
-      "name() is the token's full human-readable name (WPHRS = 'Wrapped PHRS'). The Atlantic token registry lists every token's name and symbol — that identity claim is docs-grounded. [INFERENCE] The on-chain return is an ABI-encoded dynamic string; decoding it is standard ABI mechanics, not doc content — which is exactly what the live execution below will demonstrate.",
+      "name() is the token's full human-readable name. The Atlantic token registry lists every token's name and symbol — that identity claim is docs-grounded. [INFERENCE] The on-chain return is an ABI-encoded dynamic string; decoding it is standard ABI mechanics, not doc content — which is exactly what the live execution below will demonstrate.",
     citations: [
       REGISTRY_CITE,
       {
@@ -99,6 +115,7 @@ const GROUNDED: Record<string, GroundedFn> = {
         excerpt: "Output: String — Return data as hexadecimal. Interpreting the bytes is left to the caller.",
       },
     ],
+    docClaim: { claim: `Token registry row "${REGISTRY_ROW}" — name column: "Wrapped PHRS"` },
   },
   "symbol()": {
     sig: "symbol()",
@@ -106,8 +123,9 @@ const GROUNDED: Record<string, GroundedFn> = {
     kind: "string",
     needsHolder: false,
     explanation:
-      "symbol() is the token's ticker (WPHRS). The Atlantic token registry lists every token's symbol — that identity claim is docs-grounded. [INFERENCE] The on-chain return is an ABI-encoded dynamic string; the live execution decodes it in front of you.",
+      "symbol() is the token's ticker. The Atlantic token registry lists every token's symbol — that identity claim is docs-grounded. [INFERENCE] The on-chain return is an ABI-encoded dynamic string; the live execution decodes it in front of you.",
     citations: [REGISTRY_CITE],
+    docClaim: { claim: `Token registry row "${REGISTRY_ROW}" — symbol column: "WPHRS"` },
   },
   "balanceof(address)": {
     sig: "balanceOf(address)",
@@ -117,6 +135,7 @@ const GROUNDED: Record<string, GroundedFn> = {
     explanation:
       "To read an ERC-20 balance on Pharos Atlantic, call the token's balanceOf(address) view function — a read-only eth_call that executes no transaction and spends no gas. The official JSON-RPC reference documents eth_call as 'Executes a message call without creating a transaction. Useful for reading contract state.' The Foundry first-token guide shows the pattern directly: uint256 balance = token.balanceOf(msg.sender);. Give the panel a holder address and it will run that exact procedure live.",
     citations: [ETH_CALL_CITE, FOUNDRY_CITE, REGISTRY_CITE],
+    docClaim: { claim: null },
   },
 };
 
@@ -144,15 +163,51 @@ function formatUnits(raw: bigint, decimals: number): string {
   return `${neg ? "-" : ""}${intPart.toString()}.${frac}`;
 }
 
+type VerdictStatus = "agree" | "disagree" | "unchecked";
+
 interface ProofResult {
   sig: string;
   selector: string;
+  calldata: string;
+  method: string;
   raw: string;
   decoded: string;
   interpretation: string;
   blockNum: number;
-  blockHex: string;
   address: string;
+  verdict: VerdictStatus;
+  verdictLine: string;
+  verdictNote: string;
+}
+
+/**
+ * Docs-vs-chain verdict: compare the decoded on-chain value against the exact
+ * claim the docs corpus makes. Returns [status, verdictLine, verdictNote].
+ */
+function makeVerdict(g: GroundedFn, decoded: string): [VerdictStatus, string, string] {
+  if (!g.docClaim.claim) {
+    return [
+      "unchecked",
+      "No doc claim to check",
+      `[INFERENCE] The docs corpus lists this token's registry row (${REGISTRY_ROW}) but makes no claim about ${g.sig}, so the verdict is honest by omission: nothing to check. The proof above still stands on its own.`,
+    ];
+  }
+  const agree =
+    (g.sig === "decimals()" && decoded === "18") ||
+    (g.sig === "symbol()" && decoded === "WPHRS") ||
+    (g.sig === "name()" && decoded === "Wrapped PHRS");
+  if (agree) {
+    return [
+      "agree",
+      "DOCS ≡ CHAIN",
+      `[INFERENCE] The docs claimed ${g.docClaim.claim.split("—")[1]?.trim() ?? "this value"}, and the contract answered "${decoded}" live. Explanation and chain agree — trust earned, not assumed.`,
+    ];
+  }
+  return [
+    "disagree",
+    "DOCS ≠ CHAIN",
+    `[INFERENCE] The docs claimed ${g.docClaim.claim.split("—")[1]?.trim() ?? "this value"}, but the contract answered "${decoded}" live. The contract is the live truth — this panel flags the mismatch instead of pretending the docs are perfect.`,
+  ];
 }
 
 export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
@@ -161,6 +216,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
   const [holder, setHolder] = useState("");
   const [ask, setAsk] = useState<{ address: string; sig: string; holder: string } | null>(null);
   const [touched, setTouched] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const grounded = ask ? GROUNDED[normSig(ask.sig)] : null;
   const addrValid = isValidAddress(address);
@@ -187,7 +243,8 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
       const to = ask.address;
 
       // Bytecode check — explain-then-prove only makes sense against a real contract.
-      const blockHex = (await rpcCall("eth_getBlockNumber", [])) as string;
+      // NOTE: this RPC names the method "eth_blockNumber" (eth_getBlockNumber 400s here).
+      const blockHex = (await rpcCall("eth_blockNumber", [])) as string;
       const code = (await rpcCall("eth_getCode", [to, blockHex])) as string;
       if (!code || code === "0x") {
         throw new Error("No contract code at this address — it is a wallet, not a contract.");
@@ -197,10 +254,11 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
       if (g.needsHolder) {
         calldata += ask.holder.toLowerCase().replace(/^0x/, "").padStart(64, "0");
       }
-      const raw = (await rpcCall("eth_call", [{ to, data: calldata }, blockHex])) as string;
+      const method = "eth_call";
+      const raw = (await rpcCall(method, [{ to, data: calldata }, blockHex])) as string;
       if (!raw || raw === "0x") {
         throw new Error(
-          `The call reverted or returned empty — this contract does not implement ${g.sig}.`
+          `The call returned empty — this contract does not implement ${g.sig}. Pick one of the covered functions, or ask on an ERC-20 contract.`
         );
       }
 
@@ -220,7 +278,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
         // For the human number, read decimals() live — never assume.
         let human = `${decoded} raw units`;
         try {
-          const decRaw = (await rpcCall("eth_call", [{ to, data: "0x313ce567" }, blockHex])) as string;
+          const decRaw = (await rpcCall(method, [{ to, data: "0x313ce567" }, blockHex])) as string;
           if (decRaw && decRaw !== "0x") {
             const dec = Number(BigInt(decRaw));
             human = `${formatUnits(big, dec)} (raw ÷ 10^${dec}, decimals read live)`;
@@ -231,14 +289,31 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
         interpretation = `[INFERENCE] ${g.sig} returned ${human} at block ${blockNum}. Read-only eth_call — no transaction, no gas spent.`;
       }
 
-      return { sig: g.sig, selector: g.selector, raw, decoded, interpretation, blockNum, blockHex, address: to };
+      const [verdict, verdictLine, verdictNote] = makeVerdict(g, decoded);
+      return {
+        sig: g.sig,
+        selector: g.selector,
+        calldata,
+        method,
+        raw,
+        decoded,
+        interpretation,
+        blockNum,
+        address: to,
+        verdict,
+        verdictLine,
+        verdictNote,
+      };
     },
     [ask],
     { auto: false }
   );
 
   useEffect(() => {
-    if (ask) refetch();
+    if (ask) {
+      setCopied(false);
+      refetch();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ask]);
 
@@ -246,6 +321,26 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
     setTouched(true);
     if (!addrValid || !holderValid) return;
     setAsk({ address: address.trim(), sig: sigInput, holder: holderTrimmed });
+  };
+
+  const copyRaw = () => {
+    if (!data) return;
+    navigator.clipboard
+      .writeText(data.raw)
+      .then(() => setCopied(true))
+      .catch(() => setCopied(false));
+  };
+
+  const tryUnverified = () => {
+    setSigInput("fakeFunction()");
+    setAddress(WPHRS);
+    setHolder("");
+  };
+
+  const tryEoa = () => {
+    setAddress(BURN_ADDRESS);
+    setSigInput("totalSupply()");
+    setHolder("");
   };
 
   const unverified = touched && ask && !grounded;
@@ -258,142 +353,185 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
           The T13 agent loop, live in your browser: the panel <strong>explains</strong> what a
           contract function does — every claim labeled DOC-GROUNDED, INFERENCE, or UNVERIFIED with
           the doc URL, retrieval date, and verbatim excerpt — then <strong>proves</strong> it by
-          calling that exact function on Pharos Atlantic (chain 688689) and interpreting the result.
-          Free reads, no wallet. ({lamp.name})
+          calling that exact function on Pharos Atlantic (chain 688689) and interpreting the result,
+          and finally <strong>verdicts</strong>: does the live chain value agree with what the docs
+          claimed? Free reads, no wallet. ({lamp.name})
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
-            Contract address
-          </label>
-          <input
-            className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
-            placeholder="0x…"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            spellCheck={false}
-          />
-          {touched && !addrValid && (
-            <p className="mt-1 text-sm text-fail">That isn't a valid 0x address (40 hex characters).</p>
-          )}
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
-            Function signature
-          </label>
-          <input
-            className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
-            placeholder="totalSupply()"
-            value={sigInput}
-            onChange={(e) => setSigInput(e.target.value)}
-            spellCheck={false}
-          />
-        </div>
-      </div>
-
-      {needsHolder && (
-        <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
-            Holder address (balanceOf argument)
-          </label>
-          <input
-            className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
-            placeholder="0x…"
-            value={holder}
-            onChange={(e) => setHolder(e.target.value)}
-            spellCheck={false}
-          />
-          {holderTrimmed !== "" && !holderValid && (
-            <p className="mt-1 text-sm text-fail">That isn't a valid 0x address (40 hex characters).</p>
-          )}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        {PRESETS.map((p) => (
-          <button
-            key={p}
-            className={`chip cursor-pointer font-mono ${normSig(sigInput) === normSig(p) ? "ring-2 ring-accent" : ""}`}
-            onClick={() => setSigInput(p)}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
-
-      <button className="btn-primary" onClick={askAgent} disabled={loading}>
-        {loading ? "Proving on Atlantic…" : "Explain then prove"}
-      </button>
-
-      {/* EXPLANATION PANEL */}
-      {ask && grounded && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-hairline bg-porcelain p-4">
-            <p className="smallcaps mb-2 text-xs font-semibold text-slate">① Explanation — from the docs</p>
-            <p className="mb-1 font-mono text-sm font-semibold text-ink">{grounded.sig}</p>
-            <p className="text-sm text-ink">{grounded.explanation}</p>
-            <div className="mt-3 space-y-2">
-              {grounded.citations.map((c, i) => (
-                <div key={i} className="rounded-lg bg-white p-2 text-xs">
-                  <span
-                    className={`mr-2 inline-block rounded px-1.5 py-0.5 font-mono font-semibold ${
-                      c.label === "DOC-GROUNDED" ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"
-                    }`}
-                  >
-                    {c.label}
-                  </span>
-                  <a
-                    className="font-mono text-accent hover:underline"
-                    href={c.url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {c.url.replace("https://", "")}
-                  </a>
-                  <span className="text-slate"> · retrieved {RETRIEVAL_DATE}</span>
-                  <p className="mt-1 italic text-slate">“{c.excerpt}”</p>
-                </div>
-              ))}
-            </div>
+      {/* 01 ASK */}
+      <div>
+        <p className="smallcaps mb-2 text-xs font-semibold text-slate">01 · Ask</p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
+              Contract address
+            </label>
+            <input
+              className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
+              placeholder="0x…"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              spellCheck={false}
+            />
+            {touched && !addrValid && (
+              <p className="mt-1 text-sm text-fail">That isn't a valid 0x address (40 hex characters).</p>
+            )}
           </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
+              Function signature
+            </label>
+            <input
+              className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
+              placeholder="totalSupply()"
+              value={sigInput}
+              onChange={(e) => setSigInput(e.target.value)}
+              spellCheck={false}
+            />
+          </div>
+        </div>
 
-          {/* PROOF PANEL */}
-          <div className="rounded-xl border border-hairline bg-porcelain p-4">
-            <p className="smallcaps mb-2 text-xs font-semibold text-slate">② Proof — live on Atlantic</p>
-            {loading && <p className="text-sm text-slate">Executing the exact function on-chain…</p>}
-            {error && (
-              <div>
-                <p className="text-sm font-semibold text-ink">The proof failed — loudly, not silently.</p>
-                <p className="mt-1 text-sm text-slate">{error}</p>
-              </div>
+        {needsHolder && (
+          <div className="mt-3">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate">
+              Holder address (balanceOf argument)
+            </label>
+            <input
+              className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
+              placeholder="0x…"
+              value={holder}
+              onChange={(e) => setHolder(e.target.value)}
+              spellCheck={false}
+            />
+            {holderTrimmed !== "" && !holderValid && (
+              <p className="mt-1 text-sm text-fail">That isn't a valid 0x address (40 hex characters).</p>
             )}
-            {data && !loading && (
-              <div className="space-y-2 text-sm">
-                <p>
-                  <span className="font-mono font-semibold text-ink">{data.sig}</span>{" "}
-                  <span className="font-mono text-xs text-slate">{data.selector}</span>
-                </p>
-                <div className="code-block break-all font-mono text-xs">raw: {data.raw}</div>
-                <p>
-                  <span className="text-slate">decoded: </span>
-                  <span className="font-mono font-semibold text-ink">{data.decoded}</span>
-                </p>
-                <p className="text-ink">{data.interpretation}</p>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <span className="chip">block {data.blockNum.toLocaleString()}</span>
-                  <a
-                    className="font-mono text-xs text-accent hover:underline"
-                    href={`${EXPLORER_ADDRESS}${data.address}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    view contract on explorer
-                  </a>
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p}
+              className={`chip cursor-pointer font-mono ${normSig(sigInput) === normSig(p) ? "ring-2 ring-accent" : ""}`}
+              onClick={() => setSigInput(p)}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        <button className="btn-primary mt-3" onClick={askAgent} disabled={loading}>
+          {loading ? "Proving on Atlantic…" : "Explain then prove"}
+        </button>
+      </div>
+
+      {/* EXPLANATION + PROOF */}
+      {ask && grounded && (
+        <div>
+          <p className="smallcaps mb-2 text-xs font-semibold text-slate">02 · Explain — from the docs</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-hairline bg-porcelain p-4">
+              <p className="mb-1 font-mono text-sm font-semibold text-ink">{grounded.sig}</p>
+              <p className="text-sm text-ink">{grounded.explanation}</p>
+              <div className="mt-3 space-y-2">
+                {grounded.citations.map((c, i) => (
+                  <div key={i} className="rounded-lg bg-white p-2 text-xs">
+                    <span
+                      className={`mr-2 inline-block rounded px-1.5 py-0.5 font-mono font-semibold ${
+                        c.label === "DOC-GROUNDED" ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"
+                      }`}
+                    >
+                      {c.label}
+                    </span>
+                    <a
+                      className="font-mono text-accent hover:underline"
+                      href={c.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {c.url.replace("https://", "")}
+                    </a>
+                    <span className="text-slate"> · retrieved {RETRIEVAL_DATE}</span>
+                    <p className="mt-1 italic text-slate">“{c.excerpt}”</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="smallcaps mb-2 text-xs font-semibold text-slate">03 · Prove — live on Atlantic</p>
+              <div className="rounded-xl border border-hairline bg-porcelain p-4">
+                {loading && <p className="text-sm text-slate">Executing the exact function on-chain…</p>}
+                {error && (
+                  <div>
+                    <p className="text-sm font-semibold text-ink">The proof failed — loudly, not silently.</p>
+                    <p className="mt-1 text-sm text-slate">{error}</p>
+                    <button className="btn-secondary mt-3" onClick={refetch} disabled={loading}>
+                      Retry the proof
+                    </button>
+                  </div>
+                )}
+                {data && !loading && (
+                  <div className="space-y-2 text-sm">
+                    <div className="code-block break-all font-mono text-xs">
+                      eth_call · {"{"}"to": "{data.address}", "data": "{data.calldata}"{"}"} · latest
+                    </div>
+                    <p>
+                      <span className="font-mono font-semibold text-ink">{data.sig}</span>{" "}
+                      <span className="font-mono text-xs text-slate">{data.selector}</span>
+                    </p>
+                    <div className="code-block break-all font-mono text-xs">raw: {data.raw}</div>
+                    <button
+                      className="font-mono text-xs text-accent hover:underline"
+                      onClick={copyRaw}
+                    >
+                      {copied ? "copied ✓" : "copy raw hex"}
+                    </button>
+                    <p>
+                      <span className="text-slate">decoded: </span>
+                      <span className="font-mono font-semibold text-ink">{data.decoded}</span>
+                    </p>
+                    <p className="text-ink">{data.interpretation}</p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <span className="chip">block {data.blockNum.toLocaleString()}</span>
+                      <a
+                        className="font-mono text-xs text-accent hover:underline"
+                        href={`${EXPLORER_ADDRESS}${data.address}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        view contract on explorer
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 04 VERDICT */}
+              {data && !loading && (
+                <div className="mt-4">
+                  <p className="smallcaps mb-2 text-xs font-semibold text-slate">
+                    04 · Verdict — docs vs chain
+                  </p>
+                  <div className="rounded-xl border border-hairline bg-porcelain p-4">
+                    <span
+                      className={`inline-block rounded px-1.5 py-0.5 font-mono text-xs font-semibold ${
+                        data.verdict === "agree"
+                          ? "bg-emerald-100 text-emerald-900"
+                          : data.verdict === "disagree"
+                            ? "bg-amber-100 text-amber-900"
+                            : "bg-slate-100 text-slate"
+                      }`}
+                    >
+                      {data.verdictLine}
+                    </span>
+                    <p className="mt-2 text-sm text-ink">{data.verdictNote}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -413,6 +551,16 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
             corpus in <span className="font-mono">tasks/t13-docs-chain-agent/corpus/</span> and the
             explanation will follow. Nothing was executed on-chain.
           </p>
+          <button
+            className="btn-secondary mt-3"
+            onClick={() => {
+              setSigInput("totalSupply()");
+              setAddress(WPHRS);
+              setHolder("");
+            }}
+          >
+            Back to a covered function
+          </button>
         </div>
       )}
 
@@ -425,8 +573,16 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
               totalSupply()
             </button>{" "}
             on WPHRS — then press <strong>Explain then prove</strong>. The explanation appears on the
-            left, the live on-chain proof on the right.
+            left, the live on-chain proof on the right, and a docs-vs-chain verdict closes the loop.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button className="btn-secondary" onClick={tryUnverified}>
+              Try a made-up function — watch it fail closed
+            </button>
+            <button className="btn-secondary" onClick={tryEoa}>
+              Try a wallet address — watch the bytecode check
+            </button>
+          </div>
         </div>
       )}
 

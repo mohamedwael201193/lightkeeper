@@ -26,6 +26,9 @@ import {
 
 const DISTRIBUTOR = "0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4";
 const DUST = "0.01";
+// Live RevertingReceiver fixture (deployed on Atlantic, refuses every native
+// transfer). Evidence: tasks/t10-batch-executor/evidence.json "RevertingReceiver".
+const REFUSER = "0x49b26d4685262e7756cbE623f134cFa97d142B94";
 
 /** Parse a PHRS string into wei (bigint). Empty -> pending, unparsable -> invalid. */
 function parseAmount(s: string): { wei: bigint; ok: boolean; pending: boolean } {

@@ -1,5 +1,29 @@
 # CONSOLE REDESIGN BRIEF — Founder Order (2026-10-16 ~08:00 EEST)
 
+## 0C. AMENDMENT — Two faces: public product vs founder tools (2026-10-16 ~09:00 EEST)
+Founder verdict on the per-task pages: they read like internal build docs, not a product —
+full of founder-facing instructions ("upload the submit file", "copy submission note",
+"the assistant never submits on the founder's behalf"), raw transcripts, decoding notes,
+failure-mode tables. A judge opening a task page must see a clean product, never our
+internal cockpit. RESTRUCTURE into two faces:
+
+**PUBLIC face** (default `/#/task/<slug>` — what judges and users see):
+- Task hero: name + one-line what-it-does + LIT/DIM status. Simple, legendary.
+- "Try it live": the interactivity tier (A/B/C) — connect wallet, run, see results.
+- "On-chain proof": evidence presented cleanly — tx hashes as explorer links with plain
+  labels. No raw transcripts, no internal notes, no builder jargon.
+- Nothing that addresses the founder. Nothing about submissions. Nothing to "upload".
+
+**FOUNDER face** (gated — `?founder=1` param persisted in localStorage; one discreet
+"founder" link in the footer; never advertised, never indexed):
+- Everything founder-facing: SUBMISSION.md copy pack, VIDEO-GUIDE.md, arena board link,
+  export lamp JSON, internal notes (decoding notes, failure modes, transcripts).
+- This is the founder's working cockpit. A judge never stumbles into it.
+
+Classification rule: if a block tells the founder what to DO (submit, copy, film) or
+explains HOW it was built (transcripts, decoding notes) → FOUNDER. If it shows what the
+skill DOES and lets you try it or verify it → PUBLIC.
+
 ## 0B. AMENDMENT — Identity: LIGHTKEEPER-first, not Pharos-first (2026-10-16 ~08:30 EEST)
 The console currently reads like a Pharos marketing site — it repeats Pharos's words instead of
 showing OUR work. Flip the hierarchy:

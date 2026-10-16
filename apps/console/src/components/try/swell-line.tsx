@@ -253,7 +253,8 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
   const tail = data ? data.rows.slice(-16) : [];
   const spike = tab === "spike" ? runSpikeTest() : null;
   const spikeRow = spike ? spike.rows.find((r) => r.valueGwei > 10.0001) : null;
-  const resetRow = spikeRow ? spike.rows[spike.rows.indexOf(spikeRow) + 1] : null;
+  const resetRow =
+    spike && spikeRow ? spike.rows[spike.rows.indexOf(spikeRow) + 1] : null;
 
   return (
     <div>
