@@ -24,6 +24,8 @@ A support agent for the Pharos Atlantic testnet (chain id 688689) with two real 
 Fixture contract: https://atlantic.pharosscan.xyz/address/0xC987a20fEEDc38772cE0786c3233148586a67e53 (`src/TestReverter.sol`).
 Tests: `python3 tests/test_agent.py` → 8/8 PASS, every diagnostic value asserted against live chain queries. Stdlib only, read-only (never broadcasts). Spend ≈ 0.0011 PHRS.
 
+**Interactive console panel (Tier A, no wallet):** `apps/console/src/components/try/t25-dapp-support-agent.tsx` — "Every failed tx, explained." Paste ANY Atlantic tx hash (a preset or the visitor's own failed tx) and get the live diagnosis in the browser: tx hash → receipt → cause → plain-language explanation → fix. The panel deepens the CLI engine with new signatures: intrinsic-gas shortfall (<21,000), no-code-at-destination, early/late silent-revert heuristic from the gas-burn share, constructor-revert detection, and a live `eth_estimateGas` retry suggestion for out-of-gas cases. Revert replay preserves the RPC error `data` field (the shared `rpcCall` drops it). Unknown cases report "unknown" with the raw receipt — nothing invented.
+
 ## Links
 
 - Repo (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/ae37f9a/tasks/t25-dapp-support-agent

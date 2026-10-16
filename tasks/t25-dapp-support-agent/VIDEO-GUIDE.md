@@ -35,6 +35,14 @@ cd ~/workspace/lightkeeper/tasks/t25-dapp-support-agent
 **Show:** browser on `https://atlantic.pharosscan.xyz/tx/0x31993dc871fea0f0788d2f8647f9f45749b0f4a5793053ddfcd9ae12d1f3f5cf` — status "Failed", gas used 120000.
 **Say:** "Every claim is checkable on the Atlantic explorer."
 
+### Shot 6 — The interactive console panel (1:20–1:45)
+**Show:** the LIGHTKEEPER console, lamp T25 panel: click the "Out of gas" preset — the diagnosis card appears live. Then paste a DIFFERENT hash (your own failed Atlantic tx, or the panic preset) and diagnose again.
+**Say:** "And it's live in the console: paste any Atlantic hash — including your own failed transaction — and get the same honest diagnosis. No wallet, no signature, costs nothing."
+
+### Shot 7 — The unknown path (1:45–1:55, optional)
+**Show:** diagnose a hash whose cause the engine can't pin down; scroll to "Unknown cause — here is the raw receipt."
+**Say:** "When it can't pin down the cause, it says so and shows the raw receipt — it never invents a diagnosis."
+
 ## Spoken script (full, ~75s)
 
 > "This is the dApp Support Agent, lamp twenty-five. A user pastes a failed transaction hash. The agent pulls the real receipt from the Atlantic testnet — status zero, gas used equals the gas limit: out of gas. It explains that in plain words, suggests a higher limit, and cites the Pharos FAQ with the source URL and the exact excerpt. A second hash: a contract revert — the agent replays the call and decodes the reason, telling the user exactly which input to fix. And when the docs don't cover a question, it says so instead of improvising. Three real failure types, real receipts, checkable on the explorer. That's the lamp."
