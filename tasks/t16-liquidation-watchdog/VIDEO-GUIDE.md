@@ -16,6 +16,7 @@ price drop → alert lands on the phone → repay → recovered.
 | 4 | 32–45 | Terminal: `python3 watcher/watch.py` → `zone=WARNING … ALERT SENT telegram_message_id=716`; **cut to the phone/Telegram window showing the actual alert message** with the concrete action | "The watcher catches it — health factor 1.2, warning zone — and the alert lands with a concrete action: repay forty cents of debt, or add collateral." |
 | 5 | 45–60 | Terminal: `cast send … repay()` then `watcher/watch.py` → `RECOVERED` | "I repay on-chain, the health factor is back to 1.5, and the watcher logs recovered — with no alert spam." |
 | 6 | 60–70 | Explorer page of the contract `0x108989a1…bf4a`, scroll the `healthFactor` read result | "Every number came from chain. Contract, transactions and logs are linked in the submission." |
+| 7 | 70–85 | Console (lightkeeper-console.vercel.app): T16 task page → "Try it live" → paste the operator address, hit Check risk → PASS/AT RISK chip, health factor, liquidation price, concrete repay-or-top-up numbers; then paste an empty address → honest "no position" state | "And on the console, the risk math is live on any address: health factor, the exact price that would liquidate you, and the concrete repay-or-top-up action — read off the chain in front of you." |
 
 ## Filming notes
 

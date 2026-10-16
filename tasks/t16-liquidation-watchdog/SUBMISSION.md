@@ -67,3 +67,15 @@ https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb
 - 0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4 (repay → recovered)
 
 **Video:** PENDING-VIDEO
+
+## Console interactive surface (added 2026-10-16)
+
+- Module: `apps/console/src/components/try/liquidation-watchdog.tsx` — Tier A, live reads
+  only (no wallet, no signature, costs nothing).
+- **"Your position, live risk":** paste any address → the module calls
+  `getUserAccountData()` on MiniLend via `eth_call` and shows collateral, debt, oracle
+  price and the on-chain health factor with a PASS / AT RISK / LIQUIDATABLE chip, the
+  exact oracle price that would trigger liquidation, and the concrete repay-X or
+  add-Y-PHRS amounts that restore HF ≥ 1.5 — the same math the Telegram watcher fires.
+- Differentiator: real risk math on any address you paste — not a canned demo of one
+  position. The console video shot is shot 7 in VIDEO-GUIDE.md.
