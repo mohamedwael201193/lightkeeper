@@ -388,7 +388,7 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <p className="smallcaps">Live — Pharos Atlantic · chain 688689</p>
+        <p className="text-sm font-semibold text-slate">Live — Pharos Atlantic · chain 688689</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Never overpay again</h3>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink">
           The optimizer reads Atlantic's gas price <em>right now</em> and recomputes the

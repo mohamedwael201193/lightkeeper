@@ -744,7 +744,7 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
               <ScrollText size={18} className="text-accent" aria-hidden />
               <h3 className="text-xl font-semibold text-ink">The chain — a linked ledger</h3>
             </div>
-            <p className="mb-3 max-w-3xl text-sm leading-relaxed text-slate">
+            <p className="mb-3 max-w-3xl text-sm leading-relaxed text-ink">
               Every entry's hash covers the previous entry's hash — a ledger where each line
               seals the one before it. Newest first; click any entry to inspect it below.
             </p>

@@ -411,9 +411,9 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
   return (
     <div className="space-y-6">
       <div>
-        <p className="smallcaps">Tier A — live reads, no wallet, costs nothing</p>
+        <p className="text-sm font-semibold text-slate">Tier A — live reads, no wallet, costs nothing</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Whale radar</h3>
-        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate">
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink">
           Native PHRS moves emit no logs, so LIGHTKEEPER reads Atlantic's blocks
           directly — full transactions, filtered by your whale threshold, ranked
           largest-first. No API key, no wallet, no signature: live on-chain flow,
@@ -423,7 +423,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
 
       {/* 01 · Configure */}
       <section aria-label="Configure the radar">
-        <p className="smallcaps mb-3">01 · Set the radar</p>
+        <p className="text-sm font-semibold text-slate mb-3">01 · Set the radar</p>
         <div className="rounded-xl border border-hairline bg-porcelain p-4 sm:p-5">
           <div className="flex flex-wrap items-end gap-3">
             <label className="block">
@@ -431,7 +431,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
                 Whale threshold (PHRS)
               </span>
               <input
-                className="w-40 rounded-lg border border-hairline bg-paper px-3 py-2 font-mono text-sm text-ink"
+                className="min-h-[44px] w-40 rounded-lg border border-hairline bg-paper px-3 py-2 font-mono text-sm text-ink"
                 value={threshold}
                 onChange={(e) => {
                   setThreshold(e.target.value);
@@ -446,7 +446,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
                 Blocks to scan (max {MAX_BLOCKS})
               </span>
               <input
-                className="w-40 rounded-lg border border-hairline bg-paper px-3 py-2 font-mono text-sm text-ink"
+                className="min-h-[44px] w-40 rounded-lg border border-hairline bg-paper px-3 py-2 font-mono text-sm text-ink"
                 value={blockCount}
                 onChange={(e) => {
                   setBlockCount(e.target.value.replace(/[^0-9]/g, ""));
@@ -510,7 +510,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
       {/* 02 · Run — visible ONLY while real work is in flight */}
       {loading && (
         <section aria-label="Scan in progress">
-          <p className="smallcaps mb-3">02 · Scanning</p>
+          <p className="text-sm font-semibold text-slate mb-3">02 · Scanning</p>
           <ProgressLoader
             steps={steps}
             current={stepIdx}
@@ -522,7 +522,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
       {/* 03 · Result — replaces 02 the moment the real answer arrives */}
       {!loading && !error && largest && range && inspected !== null && (
         <section aria-label="Scan result">
-          <p className="smallcaps mb-3">03 · Result — whale spotted</p>
+          <p className="text-sm font-semibold text-slate mb-3">03 · Result — whale spotted</p>
           <div className="space-y-6">
             <ResultCard
               eyebrow={`Result — largest whale of ${whales?.length ?? 0} found in this scan`}
@@ -651,7 +651,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
 
       {!loading && !error && whales && whales.length === 0 && range && inspected !== null && (
         <section aria-label="Scan result — no whales">
-          <p className="smallcaps mb-3">03 · Result</p>
+          <p className="text-sm font-semibold text-slate mb-3">03 · Result</p>
           <div className="space-y-6">
             <EmptyState
               title="Quiet waters"

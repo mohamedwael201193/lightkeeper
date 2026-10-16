@@ -825,7 +825,7 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
     <div className="space-y-6">
       {/* 01 — Configure */}
       <section aria-label="Configure the diagnosis">
-        <p className="smallcaps mb-3">01 · Configure — the transaction to diagnose</p>
+        <p className="text-sm font-semibold text-slate mb-3">01 · Configure — the transaction to diagnose</p>
 
         <div className="rounded-2xl border border-hairline bg-porcelain p-4 sm:p-5">
           <p className="text-sm leading-relaxed text-ink">
@@ -909,7 +909,7 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
       {/* 02 — Run */}
       {loading && (
         <section aria-label="Diagnosis in progress">
-          <p className="smallcaps mb-3">02 · Run</p>
+          <p className="text-sm font-semibold text-slate mb-3">02 · Run</p>
           <ProgressLoader
             steps={STEPS}
             current={step}
@@ -920,7 +920,7 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
 
       {error && !loading && (
         <section aria-label="Diagnosis failed">
-          <p className="smallcaps mb-3">02 · Run</p>
+          <p className="text-sm font-semibold text-slate mb-3">02 · Run</p>
           <ErrorState
             title="Couldn't read Atlantic"
             message={error}
@@ -934,7 +934,7 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
       {/* 03 — Result */}
       {diag && !loading && !error && activeHash && (
         <section aria-label="Diagnosis result">
-          <p className="smallcaps mb-3">03 · Result</p>
+          <p className="text-sm font-semibold text-slate mb-3">03 · Result</p>
 
           <ResultCard
             eyebrow="Diagnosis — Pharos Atlantic"

@@ -481,7 +481,7 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
     <div className="space-y-6">
       {/* ---------- 01 Configure ---------- */}
       <div className="rounded-2xl border border-hairline bg-porcelain p-5 sm:p-6">
-        <p className="text-sm font-semibold text-slate">01 — Configure</p>
+        <p className="text-sm font-semibold text-slate">01 · Configure</p>
         <p className="mt-2 text-sm leading-relaxed text-ink">
           <strong>{lamp.name}</strong>: one view over every venue. The board
           reads the <strong>three real T28 venues on Atlantic</strong> (two

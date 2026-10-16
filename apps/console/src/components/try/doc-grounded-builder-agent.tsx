@@ -663,9 +663,9 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
     <div className="space-y-6">
       {/* Intro */}
       <div>
-        <p className="smallcaps">Doc-Grounded Builder Agent · T27</p>
+        <p className="text-sm font-semibold text-slate">Doc-Grounded Builder Agent · T27</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">Every step cites its source</h3>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate">
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink">
           Type a build goal and run the coverage gate. This console mirrors the
           agent's real INTAKE classifier — the same patterns as{" "}
           <span className="font-mono">src/agent.py</span> — renders the cited plan{" "}

@@ -672,7 +672,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       <section aria-label="Configure">
         <ActHeader num="01" title="Configure" hint="Pick an Atlantic address to X-ray" />
         <div className="rounded-2xl border border-hairline bg-porcelain p-6">
-          <p className="smallcaps mb-2">Tier A — live reads · no wallet · no signature · free</p>
+          <p className="text-sm font-semibold text-slate mb-2">Tier A — live reads · no wallet · no signature · free</p>
           <h3 className="font-display text-2xl font-bold text-ink">X-ray any wallet</h3>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink">
             Paste an address and <strong>{lamp.name}</strong> scans it live against the Atlantic RPC:
@@ -984,7 +984,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
 
           {/* Coverage honesty footer */}
           <div className="empty-panel px-5 py-4">
-            <p className="smallcaps mb-2">Coverage boundaries — read before quoting this report</p>
+            <p className="text-sm font-semibold text-slate mb-2">Coverage boundaries — read before quoting this report</p>
             <ul className="list-disc pl-5 text-sm text-slate">
               <li>
                 This page runs all 8 checks (S1–S8) live against the public RPC, mirroring the

@@ -501,7 +501,7 @@ function SectionCard({
       transition={{ duration: 0.3, ease: "easeOut" }}
       className="rounded-2xl border border-hairline bg-white p-6 sm:p-8"
     >
-      <p className="smallcaps">{eyebrow}</p>
+      <p className="text-sm font-semibold text-slate">{eyebrow}</p>
       <h4 className="mt-1 font-display text-2xl tracking-tight text-ink">{title}</h4>
       {note && <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate">{note}</p>}
       <div className="mt-5">{children}</div>
@@ -913,9 +913,9 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
   return (
     <div className="space-y-6">
       <div>
-        <p className="smallcaps">Tier C — read-only: the console never signs, never sends</p>
+        <p className="text-sm font-semibold text-slate">Tier C — read-only: the console never signs, never sends</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">The week's chain activity, as a digest</h3>
-        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate">
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink">
           Pick an address and the sections you care about — LIGHTKEEPER scans the
           chain live (transactions plus chain-direct Transfer-event chunks) and
           lays the week out as a digest. Delivery to Telegram stays a CLI step
@@ -925,7 +925,7 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
 
       {/* 01 · Configure */}
       <section aria-label="Configure the digest">
-        <p className="smallcaps mb-3">01 · Configure</p>
+        <p className="text-sm font-semibold text-slate mb-3">01 · Configure</p>
         <div className="rounded-xl border border-hairline bg-porcelain p-4 sm:p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -1021,7 +1021,7 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
       {/* 02 · Run — visible ONLY while real work is in flight */}
       {loading && (
         <section aria-label="Digest scan in progress">
-          <p className="smallcaps mb-3">02 · Scanning</p>
+          <p className="text-sm font-semibold text-slate mb-3">02 · Scanning</p>
           <ProgressLoader
             steps={steps}
             current={stepIdx}
@@ -1033,7 +1033,7 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
       {/* 03 · Result — the digest as an editorial document */}
       {!loading && !error && digest && digest.txTotal > 0 && (
         <section aria-label="Digest result">
-          <p className="smallcaps mb-3">03 · Result — this week's digest</p>
+          <p className="text-sm font-semibold text-slate mb-3">03 · Result — this week's digest</p>
           <div className="space-y-6">
             <ResultCard
               eyebrow={`Weekly digest — ${shortenAddress(digest.address)} · ${fmtDate(digest.startIso)} → ${fmtDate(digest.endIso)}`}
@@ -1285,7 +1285,7 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
       {/* 03 · Result — the honest zero */}
       {!loading && !error && digest && digest.txTotal === 0 && (
         <section aria-label="Digest result — quiet week">
-          <p className="smallcaps mb-3">03 · Result</p>
+          <p className="text-sm font-semibold text-slate mb-3">03 · Result</p>
           <div className="space-y-6">
             <EmptyState
               title="Quiet week"
@@ -1334,7 +1334,7 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
 
       {/* Proof it delivers — the real delivered digest, verbatim */}
       <section aria-label="Delivery proof">
-        <p className="smallcaps mb-3">Proof it delivers</p>
+        <p className="text-sm font-semibold text-slate mb-3">Proof it delivers</p>
         <SectionCard
           eyebrow="Real delivery · Telegram"
           title="One message, one receipt"
@@ -1378,7 +1378,7 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
 
       {/* Run it on your machine — Tier C config builder, unchanged behavior */}
       <section aria-label="CLI configuration">
-        <p className="smallcaps mb-3">Run it on your machine</p>
+        <p className="text-sm font-semibold text-slate mb-3">Run it on your machine</p>
         <div className="rounded-2xl border border-hairline bg-white p-6 sm:p-8">
           <p className="text-sm font-semibold text-ink">Your digest config</p>
           <p className="mt-1 text-sm text-slate">
