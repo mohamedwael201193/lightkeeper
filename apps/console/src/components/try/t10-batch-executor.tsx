@@ -15,8 +15,11 @@
  *     ≈17,700 gas/recipient; measured breakeven ≈ n=3 (pre-existing EOAs).
  *
  * Presentation (SHOWTIME op, 2026-10-16): 01 Configure → 02 Run → 03 Result.
- * Logic untouched — the gas math, mode boundaries, validation, and script
- * builder below are byte-for-byte the verified originals.
+ * Presentation (FLAGSHIP op, 2026-10-16): the crossover chart, the
+ * individual-vs-batch duel, the live mode decision tree, and the
+ * refuser-isolation proof. Presentation ONLY — the gas math, mode
+ * boundaries, validation, and script builder below are byte-for-byte the
+ * verified originals.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
@@ -25,6 +28,7 @@ import type { Lamp } from "../../types";
 import {
   ATLANTIC_CHAIN_ID,
   EXPLORER_ADDRESS,
+  EXPLORER_TX,
   isDustWarning,
   isValidAddress,
   phrsToWeiHex,
@@ -109,6 +113,272 @@ function HeroTicker({ value, format }: { value: number; format: (n: number) => s
   }, [spring, reduce, value]);
 
   return <span className="tabular-nums">{display}</span>;
+}
+
+/* ── FLAGSHIP layer (2026-10-16) ───────────────────────────────────────────
+ * Presentation only. The gas model (7,500 + n×17,700, fitted from the 3 live
+ * receipts), the mode boundaries (≤10 / 11–200 / >200), validation, and the
+ * cast-command builder are byte-identical verified originals — none of the
+ * components below touch them. They only make the math tangible:
+ *   - ModeTree — the decision tree the visitor's fleet walks through.
+ *   - DuelBars — individual sends vs the batch, two bars, the real numbers.
+ *   - CrossoverChart — where the Distributor path overtakes individual sends.
+ *   - RefuserProof — the live on-chain proof of partial-failure isolation.
+ */
+
+/** The mode decision tree as a visible structure the visitor's batch walks
+ *  through — live in 01 as rows are added, as a decision record in 03. */
+function ModeTree({ active, n }: { active: Mode; n: number }) {
+  const segs: { id: Mode; title: string; desc: string }[] = [
+    { id: "simple", title: "≤ 10 — Simple", desc: "Individual sends. No contract needed." },
+    { id: "single", title: "11–200 — Single-batch", desc: "One transaction through the Distributor." },
+    { id: "multi", title: "> 200 — Multi-batch", desc: "Chunks of ≤ 200, one tx per chunk." },
+  ];
+  return (
+    <div
+      className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+      role="list"
+      aria-label="Batch mode decision tree"
+    >
+      {segs.map((s) => {
+        const on = s.id === active;
+        return (
+          <div
+            key={s.id}
+            role="listitem"
+            className={`rounded-xl border p-3 ${
+              on ? "border-accent bg-tint" : "border-hairline bg-white"
+            }`}
+          >
+            <p className={`text-sm font-semibold ${on ? "text-accent" : "text-slate"}`}>
+              {s.title}
+              {on && n > 0 && <span className="ml-2">· your batch</span>}
+            </p>
+            <p className="mt-1 text-sm text-slate">{s.desc}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The duel: individual sends vs this batch, as two bars with the real
+ *  numbers. Bar widths animate once when the composed result arrives — the
+ *  animation maps to that real state change, never to a timer. */
+function DuelBars({
+  n,
+  gas,
+  individualGas,
+}: {
+  n: number;
+  gas: number;
+  individualGas: number;
+}) {
+  const reduce = useReducedMotion();
+  const pct = Math.min(100, (gas / individualGas) * 100);
+  const saved = individualGas - gas;
+  const bars = [
+    {
+      label: `${n} individual sends`,
+      value: individualGas,
+      pct: 100,
+      fill: "bg-slate",
+      labelClass: "text-ink",
+    },
+    {
+      label: "this batch",
+      value: gas,
+      pct,
+      fill: "bg-accent",
+      labelClass: "text-accent",
+    },
+  ];
+  return (
+    <div className="rounded-2xl border border-hairline bg-white p-6">
+      <p className="smallcaps mb-1">The duel — individual vs batch</p>
+      <p className="mb-5 max-w-2xl text-sm leading-relaxed text-slate">
+        Same recipients, same value — two ways to move it. ≈
+        {saved.toLocaleString("en-US")} gas never leaves your wallet, estimated from live
+        Atlantic receipts.
+      </p>
+      <div className="space-y-5">
+        {bars.map((b) => (
+          <div key={b.label}>
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <p className={`text-sm font-semibold ${b.labelClass}`}>{b.label}</p>
+              <p className="font-mono text-sm text-ink">{b.value.toLocaleString("en-US")} gas</p>
+            </div>
+            <div className="h-4 overflow-hidden rounded-full bg-porcelain">
+              <motion.div
+                className={`h-full rounded-full ${b.fill}`}
+                initial={reduce ? { width: `${b.pct}%` } : { width: 0 }}
+                animate={{ width: `${b.pct}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The crossover: individual-send cost vs the Distributor path across
+ *  recipient count, drawn from the same receipt-fitted model the estimator
+ *  uses. The crossing is real geometry — the two lines meet at ≈3, exactly
+ *  where the measured breakeven sits. The visitor's marker sits on the curve
+ *  their batch actually priced against. */
+function CrossoverChart({ visitorN, mode }: { visitorN: number; mode: Mode }) {
+  const W = 680;
+  const H = 360;
+  const PL = 66;
+  const PR = 18;
+  const PT = 20;
+  const PB = 46;
+  const xMax = Math.max(24, visitorN);
+  const yMax = 21_000 * xMax;
+  const X = (v: number) => PL + (v / xMax) * (W - PL - PR);
+  const Y = (v: number) => H - PB - (v / yMax) * (H - PT - PB);
+  const distCost = (n: number) => (n <= 200 ? estGas("single", n) : estGas("multi", n));
+  const step = Math.max(1, Math.floor(xMax / 160));
+  const line = (fn: (n: number) => number) => {
+    const pts: string[] = [];
+    for (let i = 1; i < xMax; i += step) pts.push(`${X(i).toFixed(1)},${Y(fn(i)).toFixed(1)}`);
+    pts.push(`${X(xMax).toFixed(1)},${Y(fn(xMax)).toFixed(1)}`);
+    return pts.join(" ");
+  };
+  // Exact crossing of the two model lines: 7,500 = n × (21,000 − 17,700).
+  const x0 = 7500 / 3300;
+  const vY = mode === "simple" ? 21_000 * visitorN : distCost(visitorN);
+  const fmtK = (v: number) => `${Math.round(v / 1000)}k`;
+  const xTicks = [0.25, 0.5, 0.75, 1].map((f) => Math.max(1, Math.round(xMax * f)));
+  const yTicks = [0.25, 0.5, 0.75, 1].map((f) => yMax * f);
+  const markerRight = X(visitorN) > W - 180;
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full"
+      role="img"
+      aria-label={`Cost crossover chart. Individual sends cost 21,000 gas each; the Distributor path costs about 7,500 plus 17,700 per recipient. The two lines cross at about 3 recipients — above that, batching wins.`}
+    >
+      {yTicks.map((t) => (
+        <g key={t}>
+          <line x1={PL} x2={W - PR} y1={Y(t)} y2={Y(t)} stroke="#E6EAF2" />
+          <text x={PL - 8} y={Y(t) + 4} textAnchor="end" fontSize={12} fill="#5A6B8C">
+            {fmtK(t)}
+          </text>
+        </g>
+      ))}
+      {xTicks.map((t) => (
+        <text key={t} x={X(t)} y={H - PB + 20} textAnchor="middle" fontSize={12} fill="#5A6B8C">
+          {t}
+        </text>
+      ))}
+      <text x={16} y={H / 2} transform={`rotate(-90 16 ${H / 2})`} textAnchor="middle" fontSize={14} fill="#5A6B8C">
+        gas
+      </text>
+      <text x={(PL + W - PR) / 2} y={H - 6} textAnchor="middle" fontSize={14} fill="#5A6B8C">
+        recipients
+      </text>
+      <polyline
+        points={line((n) => 21_000 * n)}
+        fill="none"
+        stroke="#5A6B8C"
+        strokeWidth={2.5}
+        strokeLinejoin="round"
+      />
+      <polyline
+        points={line(distCost)}
+        fill="none"
+        stroke="#2456E6"
+        strokeWidth={2.5}
+        strokeLinejoin="round"
+      />
+      <line
+        x1={X(x0)}
+        x2={X(x0)}
+        y1={PT}
+        y2={H - PB}
+        stroke="#0B1533"
+        strokeDasharray="5 4"
+        strokeWidth={1.5}
+      />
+      <text x={X(x0) + 8} y={PT + 12} fontSize={14} fontWeight={600} fill="#0B1533">
+        breakeven ≈ 3
+      </text>
+      <circle cx={X(visitorN)} cy={Y(vY)} r={6} fill="#2456E6" stroke="#ffffff" strokeWidth={2.5} />
+      <text
+        x={X(visitorN) + (markerRight ? -12 : 12)}
+        y={Y(vY) - 12}
+        textAnchor={markerRight ? "end" : "start"}
+        fontSize={14}
+        fontWeight={600}
+        fill="#0B1533"
+      >
+        your batch · n={visitorN}
+      </text>
+    </svg>
+  );
+}
+
+// The task's own live isolation runs (evidence.json) — the RevertingReceiver
+// fixture refusing, the batch continuing around it.
+const ISO_RUN_TX = "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b";
+const ISO_CHUNK_TX = "0xce333bf2fd59a57b40ef2b3bde851311555221299582f479bd81054d1c";
+
+/** The hard case, handled. When the visitor's batch includes the refuser
+ *  fixture, show the live on-chain proof that the Distributor isolates a
+ *  refusing recipient instead of failing the whole batch. The proof is the
+ *  task's measured run — this console composes commands, it does not claim
+ *  to have executed the visitor's batch. */
+function RefuserProof() {
+  const runs = [
+    {
+      title: "12-recipient batch · recipient #11 refused",
+      detail: "11 succeeded, 1 failed in isolation — the batch completed with status success.",
+      tx: ISO_RUN_TX,
+    },
+    {
+      title: "Multi-batch chunk 2/2 · the fixture refused again",
+      detail: "5 succeeded, 1 isolated failure — the chunking path isolates too.",
+      tx: ISO_CHUNK_TX,
+    },
+  ];
+  return (
+    <div className="rounded-2xl border border-hairline bg-tint p-6">
+      <p className="smallcaps mb-1">Partial-failure isolation — proven live</p>
+      <p className="max-w-2xl text-sm leading-relaxed text-ink">
+        Your batch includes the RevertingReceiver fixture — the address that refuses every
+        native transfer. The task already proved the hard case on Atlantic:
+      </p>
+      <ul className="mt-4 space-y-3">
+        {runs.map((r) => (
+          <li
+            key={r.tx}
+            className="flex flex-col gap-2 rounded-xl border border-hairline bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <p className="text-sm font-semibold text-ink">{r.title}</p>
+              <p className="mt-1 text-sm text-slate">{r.detail}</p>
+            </div>
+            <a
+              className="shrink-0 font-mono text-sm text-accent hover:underline"
+              href={`${EXPLORER_TX}${r.tx}`}
+              target="_blank"
+              rel="noreferrer"
+              title={r.tx}
+            >
+              view the run ↗
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate">
+        Each action's success is recorded on-chain — one bad recipient can't sink the fleet. The
+        proof above is the task's measured run; the plan above it is commands for your terminal.
+      </p>
+    </div>
+  );
 }
 
 type Phase = "idle" | "running" | "error" | "done";
@@ -511,6 +781,12 @@ export default function TryT10(_props: { lamp: Lamp }) {
             + Add the refuser fixture
           </button>
         </div>
+        <div className="mt-5">
+          <p className="mb-2 text-sm font-semibold text-slate">
+            The mode decision tree — your fleet walks it live as rows are added
+          </p>
+          <ModeTree active={mode} n={n} />
+        </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {checks.map((c) => (
             <span
@@ -648,6 +924,11 @@ export default function TryT10(_props: { lamp: Lamp }) {
             />
           </div>
 
+          <div>
+            <p className="smallcaps mb-3">The decision record — which branch your batch took</p>
+            <ModeTree active={result.mode} n={result.n} />
+          </div>
+
           <StatStrip
             stats={[
               {
@@ -676,6 +957,35 @@ export default function TryT10(_props: { lamp: Lamp }) {
               },
             ]}
           />
+
+          {result.mode !== "simple" && (
+            <DuelBars n={result.n} gas={result.gas} individualGas={result.individualGas} />
+          )}
+
+          <div className="rounded-2xl border border-hairline bg-white p-6">
+            <p className="smallcaps mb-1">The crossover — where the flotilla wins</p>
+            <div className="mb-3 flex flex-wrap gap-x-6 gap-y-1">
+              <span className="inline-flex items-center gap-2 text-sm text-ink">
+                <span className="inline-block h-1 w-8 rounded bg-slate" aria-hidden />
+                individual sends — 21,000 gas each
+              </span>
+              <span className="inline-flex items-center gap-2 text-sm text-ink">
+                <span className="inline-block h-1 w-8 rounded bg-accent" aria-hidden />
+                Distributor path — ≈7.5k + ≈17.7k per recipient
+              </span>
+            </div>
+            <CrossoverChart visitorN={result.n} mode={result.mode} />
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate">
+              Fitted from 3 live receipts (n=8/10/11 → 149,170 / 185,573 / 202,173 gas) —
+              estimates, never facts; your receipt will differ slightly. First-touch new
+              addresses cost +25,000 gas each, which raises the real breakeven.{" "}
+              {result.mode === "simple"
+                ? "Your batch sits in simple mode (≤10) — individual sends, no contract needed. The chart shows where the Distributor path would overtake them."
+                : "Your batch is past the crossover — the Distributor path is the cheaper machine."}
+            </p>
+          </div>
+
+          {result.vrows.some((r) => r.isRefuser) && <RefuserProof />}
 
           <div>
             <p className="smallcaps mb-3">
