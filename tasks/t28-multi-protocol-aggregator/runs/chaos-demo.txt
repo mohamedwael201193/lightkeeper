@@ -1,0 +1,21 @@
+*** CHAOS TEST — T28-VAULT-B forced down (dead address). All other venues must still aggregate. ***
+
+== T28 aggregation run — block 31482519 (https://atlantic.pharosscan.xyz/block/31482519) ==
+
+[OK] T28-VAULT-A (vault) 0x5543fb530763ce21Eb827446b4913B8DB7f0D3d9
+  TVL: 0.002000002 PHRS | supply APY: 2.50% | share price: 1.000001
+  risk: none
+
+[UNREACHABLE] T28-VAULT-B (vault) 0x000000000000000000000000000000000000dEaD
+  reason: CHAOS TEST: address overridden to dead address
+
+[OK] T28-LEND (lending) 0x95a16e1898B09CcE5e03765Baa55C8C112cb80C2
+  TVL: 0.002500000 PHRS | supply APY: 0.74% | borrow APY: 4.99% | util: 16.66%
+  risk: none
+
+-- comparison (ranked by live supply APY) --
+  T28-VAULT-A  apy= 2.50% capEff=100.00% tvl=0.002000 | none
+  T28-LEND     apy= 0.74% capEff= 16.66% tvl=0.002500 | none
+
+summary: 2/3 venues OK, 1 unreachable
+saved: /home/hatch/workspace/lightkeeper/tasks/t28-multi-protocol-aggregator/runs/aggregation-report-block-31482519.json

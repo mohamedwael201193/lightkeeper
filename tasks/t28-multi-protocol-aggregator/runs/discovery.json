@@ -1,0 +1,52 @@
+{
+  "chain_id": 688689,
+  "timestamp_utc": "2026-10-16T04:24:30.248667+00:00",
+  "venues": [
+    {
+      "id": "T28-VAULT-A",
+      "status": "REACHABLE",
+      "address": "0x5543fb530763ce21Eb827446b4913B8DB7f0D3d9",
+      "explorer": "https://atlantic.pharosscan.xyz/address/0x5543fb530763ce21Eb827446b4913B8DB7f0D3d9",
+      "detail": "bytecode present"
+    },
+    {
+      "id": "T28-VAULT-B",
+      "status": "REACHABLE",
+      "address": "0x6F34a6f94f529Bf10313bA77cc34314389Dd204E",
+      "explorer": "https://atlantic.pharosscan.xyz/address/0x6F34a6f94f529Bf10313bA77cc34314389Dd204E",
+      "detail": "bytecode present"
+    },
+    {
+      "id": "T28-LEND",
+      "status": "REACHABLE",
+      "address": "0x95a16e1898B09CcE5e03765Baa55C8C112cb80C2",
+      "explorer": "https://atlantic.pharosscan.xyz/address/0x95a16e1898B09CcE5e03765Baa55C8C112cb80C2",
+      "detail": "bytecode present"
+    },
+    {
+      "id": "T02-EMITTER",
+      "status": "PENDING",
+      "detail": "Sibling task T02 had deployed nothing on-chain as of registry build; not aggregated."
+    },
+    {
+      "id": "T07-POOLS",
+      "status": "PENDING",
+      "detail": "Sibling task T07 had deployed nothing on-chain as of registry build; not aggregated."
+    },
+    {
+      "id": "T10-DISTRIBUTOR",
+      "status": "PENDING",
+      "detail": "Sibling task T10 had deployed nothing on-chain as of registry build; not aggregated."
+    },
+    {
+      "id": "T15-VAULT",
+      "status": "PENDING",
+      "detail": "Sibling task T15 had deployed nothing on-chain as of registry build; not aggregated."
+    },
+    {
+      "id": "T16-LENDING",
+      "status": "PENDING",
+      "detail": "Sibling task T16 had deployed nothing on-chain as of registry build; not aggregated."
+    }
+  ]
+}
