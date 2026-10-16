@@ -13,5 +13,5 @@ contracts:
     deploy_block: 31481148
 status: shipped
 budget_cap_phrs: 0.15
-spent_phrs: 0.00458664
+spent_phrs: 0.00461173
 bar_to_beat: "persistent server-side cursor surviving kill-9 with no re-emission + confirmations-lag reorg tolerance + continuous poll log (verdict 2026-10-16)"

@@ -75,9 +75,18 @@ TEST PASS: exactly the expected events were found
   `0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c`, block
   31481324) was fired **while the poller was running** and was caught in the next
   cycle with fully decoded fields.
+- **HARDEN op (2026-10-16):** a 5th real event (`Ping`, value 9002, note
+  `"t02-harden-live"`, tx
+  `0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff`, block
+  31486465, cost 0.00002509 PHRS at 1 gwei) was fired **while the poller was
+  running** and was caught in the next confirmed cycle (`ALERT Ping block=31486465`,
+  alerts 1 → 2) with fully decoded fields.
 - **Kill-9 test:** the poller was killed with `kill -9` mid-run and restarted. Cursor
   and seen-set were restored from `state.json` (atomic write before every alert):
   **0 re-emissions**, alerts stayed at 1, polling resumed from block 31481379.
+- The deterministic test now asserts exactly the 5 events over the full range
+  (`--expect=Marker,Ping,Ping,Ping,Zap`, 5,359 blocks scanned in 6 chunked calls):
+  TEST PASS.
 - The poller was left running; `poll.log` continues to grow.
 
 ## 6. Design decisions
@@ -99,7 +108,21 @@ TEST PASS: exactly the expected events were found
 | (3) decodes into readable fields | `decode()` — indexed topics + ABI data → named fields; sample output in §4 |
 | (4) demonstrated catching ≥1 live/test event | 4 real txs + live catch of `t02-live-catch` while polling (§5) |
 
-## 8. Honest gaps
+## 8. Interactive console (Tier A — live reads)
+
+`apps/console/src/components/try/event-log-monitor.tsx` — "Watch any contract live":
+contract + event-signature inputs with presets (LogEmitter · Ping/Zap/Marker, ERC-20
+Transfer/Approval, custom), topic0 computed at runtime (`try/keccak256.ts`,
+verified byte-equal against `cast keccak` for all 5 signatures), chunked
+`eth_getLogs` (≤1,000 blocks/call), decoded rows with explorer links. Its sharp
+differentiator: the watch session splits results into **"Caught after you started
+watching"** (CAUGHT LIVE badge) vs **"Historical context"** — the live-catch proof
+made interactive. 2-block reorg-buffer toggle (mirrors the monitor, on by default).
+Every failure is a plain-language message with a Retry button; auto-refresh
+self-pauses after 3 failed attempts with a resume affordance (never silent); the
+interval is cleaned up on unmount. `tsc --noEmit` + `vite build` clean.
+
+## 9. Honest gaps
 
 - Poll history is a continuous session log, not yet a multi-day archive — the cursor
   and seen-set are durable; long-term retention is a deployment choice, not a code gap.
