@@ -6,25 +6,47 @@
  * Atlantic reads (chain id, gas price, the visitor's balance) and renders the
  * seven gate conditions as a named PASS/BLOCK trace — the gate shows its work.
  *
+ * FLAGSHIP rebuild (SHOWTIME op): the gate as THEATER.
+ *   - The verdict lands as a STAMP: ALLOW / BLOCK / REFUSED, scale 1.15→1
+ *     with a soft thud-shadow. Denials get the double beat — verdict first,
+ *     then the reason arrives on its own beat (the Beautiful Refusal).
+ *   - The 7-row trace is a precision instrument: each gate cites the
+ *     policy.json line it enforces — the trace reads like annotated law.
+ *   - The allowlist is an explicit character in the story: the two trusted
+ *     addresses are introduced up front, before the proposal.
+ *   - T05 is the guardian you TRIGGER; T11 is the EXPLAINER. The pedagogy
+ *     of the trace is the differentiator.
+ *
  * Presentation journey — 01 Configure → 02 Check → 03 Result:
- *   01 Configure — the proposed action (recipient / value), policy presets,
- *      the mainnet-refusal preview toggle, wallet connect. Plain form
- *      controls on porcelain.
+ *   01 Configure — the allowlist as dramatis personae, the proposed action
+ *      (recipient / value), scenario presets for each verdict path, the
+ *      mainnet-refusal preview toggle, wallet connect.
  *   02 Check — ProgressLoader over the REAL live reads: eth_chainId,
  *      eth_gasPrice, eth_getBalance (only when a wallet is connected). Each
  *      step is exactly one RPC call; the loader advances when a call starts.
- *   03 Result — ResultCard showpiece: the ALLOW / BLOCK / REFUSED verdict as
- *      the headline, the 7-row trace as elegant rows, the verdict JSON
- *      copyable. ALLOW continues into propose → MANDATORY review (to/value,
- *      amber dust warning) → the VISITOR signs in their own wallet with their
- *      own testnet PHRS. DENY and REFUSED_MAINNET are final — nothing is
- *      proposed, nothing is broadcast; the denial is the product.
+ *   03 Result — the verdict Stamp (climax) → StatStrip → the seven-row trace
+ *      annotated by policy citations → the review step (if ALLOW). DENY and
+ *      REFUSED_MAINNET are final — nothing is proposed, nothing is
+ *      broadcast; the denial is the product.
+ *
+ * Evaluation logic is UNTOUCHED (Tier B semantics, allowlist, the 7 trace
+ * conditions, decision order: REFUSE mainnet → DENY on any block → APPROVE).
+ * The `law` field on trace rows is static citation metadata for display only.
  *
  * LIGHTKEEPER never sees, holds, or asks for private keys. Testnet only
  * (chain 688689). Never auto-broadcast; review-before-sign always.
  */
 import { useState } from "react";
-import { AlertTriangle, Ban, ExternalLink, ShieldCheck, ShieldX } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  AlertTriangle,
+  Ban,
+  Check,
+  Copy,
+  ExternalLink,
+  ShieldCheck,
+  ShieldX,
+} from "lucide-react";
 import type { Lamp } from "../../types";
 import { weiToPhrs } from "../../types";
 import {
@@ -37,7 +59,7 @@ import {
   useProposeAndSign,
 } from "../../hooks/useAtlantic";
 import { useWallet } from "../WalletContext";
-import { ErrorState, ProgressLoader, ResultCard } from "../ui";
+import { ErrorState, ProgressLoader, ResultCard, StatStrip } from "../ui";
 import type { ResultRow } from "../ui";
 
 // --- Policy constants (policy t11-policy-v1, tasks/t11-policy-gatekeeper/policy.json) ---
@@ -50,6 +72,23 @@ const MAX_GAS_GWEI = 50;
 const FEE_RESERVE_PHRS = "0.001";
 const PER_ACTION_CAP_PHRS = "0.01";
 
+// The allowlist, as dramatis personae — the only two addresses the policy
+// will ever pay. Labels match rules.destination_allowlist in policy.json.
+const ALLOWLIST_CAST = [
+  {
+    name: "Dust sink",
+    role: "verifiably unspendable burn address",
+    address: DUST_SINK,
+  },
+  {
+    name: "Deployer self",
+    role: "allowlisted dust recipient",
+    address: DEPLOYER_SELF,
+  },
+] as const;
+
+// Destination allowlist keyed by lowercase address — the evaluation lookup
+// for the recipient gate (rules.destination_allowlist).
 const DEST_ALLOWLIST: Record<string, string> = {
   [DUST_SINK.toLowerCase()]: "dust sink (verifiably unspendable burn address)",
   [DEPLOYER_SELF.toLowerCase()]: "deployer self",
@@ -63,6 +102,8 @@ interface TraceRow {
   status: RowStatus;
   numbers: string;
   note: string;
+  /** Static policy.json citation for display (annotated-law trace). */
+  law: string;
   rule?: string;
 }
 
@@ -84,9 +125,95 @@ function short(addr: string): string {
   return addr.length > 13 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
 }
 
+/**
+ * VerdictStamp — the verdict lands as a stamp. One beat (scale 1.15→1 with a
+ * soft thud-shadow) when the gate result arrives; denials get their second
+ * beat from the reason line that follows. Driven by the real gate state —
+ * never a timer.
+ */
+function VerdictStamp({ decision }: { decision: GateResult["decision"] }) {
+  const reduce = useReducedMotion();
+  const cfg =
+    decision === "APPROVE"
+      ? { text: "ALLOW", icon: ShieldCheck, ink: "text-pass", border: "border-pass" }
+      : decision === "REFUSED_MAINNET"
+        ? { text: "REFUSED", icon: Ban, ink: "text-fail", border: "border-fail" }
+        : { text: "BLOCK", icon: ShieldX, ink: "text-fail", border: "border-fail" };
+  const Icon = cfg.icon;
+  return (
+    <motion.span
+      initial={reduce ? false : { scale: 1.15, opacity: 0, rotate: -4 }}
+      animate={{ scale: 1, opacity: 1, rotate: -2 }}
+      transition={{ type: "spring", stiffness: 320, damping: 18 }}
+      style={{ boxShadow: "0 10px 28px -10px currentColor" }}
+      className={`inline-flex items-center gap-3 rounded-xl border-2 ${cfg.border} ${cfg.ink} bg-white px-6 py-3`}
+      role="status"
+      aria-label={`Gate verdict: ${cfg.text}`}
+    >
+      <Icon size={38} aria-hidden />
+      <span className="font-display text-4xl font-bold tracking-wide sm:text-5xl">
+        {cfg.text}
+      </span>
+    </motion.span>
+  );
+}
+
+/** One allowlisted address as an explicit character in the story. */
+function AllowlistCard({
+  name,
+  role,
+  address,
+  onUse,
+}: {
+  name: string;
+  role: string;
+  address: string;
+  onUse: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = address;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="rounded-2xl border border-hairline bg-white p-5">
+      <p className="font-semibold text-ink">{name}</p>
+      <p className="mt-0.5 text-sm text-slate">{role}</p>
+      <p className="mt-2 break-all font-mono text-sm text-ink" title={address}>
+        {short(address)}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" className="btn-outline !px-3 !py-1.5 !text-sm" onClick={onUse}>
+          Use this address
+        </button>
+        <button
+          type="button"
+          className="btn-outline inline-flex items-center gap-1.5 !px-3 !py-1.5 !text-sm"
+          onClick={copy}
+          aria-label={`Copy ${name} address`}
+        >
+          {copied ? <Check size={14} className="text-pass" /> : <Copy size={14} />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
   const { state: wallet, connect } = useWallet();
   const { state, proposal, txHash, error, propose, approve, cancel } = useProposeAndSign();
+  const reduceMotion = useReducedMotion();
 
   const [to, setTo] = useState(DUST_SINK);
   const [value, setValue] = useState("0.001");
@@ -148,7 +275,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
 
     const effectiveChain = asMainnet ? MAINNET_CHAIN_ID : liveChainId;
 
-    // Condition 1 — key-present (P1 analog): a wallet must be connected to sign.
+    // Condition 1 — key-present (P1): a wallet must be connected to sign.
     rows.push(
       walletAddress
         ? {
@@ -157,6 +284,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
             status: "pass",
             numbers: short(walletAddress),
             note: "Wallet connected. LIGHTKEEPER never sees or asks for private keys — signing happens in your wallet.",
+            law: "prechecks.p1_private_key_present",
           }
         : {
             key: "key-present",
@@ -164,10 +292,11 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
             status: "block",
             numbers: "none",
             note: "No wallet connected. Connect a wallet to evaluate a proposal — the gate cannot bind a signer to nothing.",
+            law: "prechecks.p1_private_key_present",
           }
     );
 
-    // Condition 2 — sender-binding (P2 analog): the proposal is bound to YOUR address.
+    // Condition 2 — sender-binding (P2): the proposal is bound to YOUR address.
     rows.push(
       walletAddress
         ? {
@@ -176,6 +305,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
             status: "pass",
             numbers: short(walletAddress),
             note: "The transaction will be sent from your connected address. The gate never substitutes another signer.",
+            law: "prechecks.p2_sender_binding",
           }
         : {
             key: "sender-binding",
@@ -183,10 +313,11 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
             status: "block",
             numbers: "unbound",
             note: "Cannot bind a sender without a connected wallet.",
+            law: "prechecks.p2_sender_binding",
           }
     );
 
-    // Condition 3 — network (P3 analog): live chain id must be Atlantic 688689.
+    // Condition 3 — network (P3): live chain id must be Atlantic 688689.
     // Mainnet (1672) is REFUSED unconditionally — mainnet.enabled=false.
     if (asMainnet) {
       rows.push({
@@ -195,6 +326,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: `1672 (preview) · RPC still reads Atlantic`,
         note: "REFUSED — network_firewall: the policy refuses mainnet (chain 1672) unconditionally. No re-confirmation is ever granted; no broadcast path exists.",
+        law: "networks.mainnet.enabled = false",
         rule: "network_firewall",
       });
     } else if (liveChainId === ATLANTIC_CHAIN_ID) {
@@ -204,6 +336,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "pass",
         numbers: `688689`,
         note: "Live chain id read from the Atlantic RPC — Pharos Atlantic Testnet.",
+        law: "networks.allowed_chain_ids = [688689]",
       });
     } else {
       rows.push({
@@ -212,6 +345,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: liveChainId === null ? "unreadable" : String(liveChainId),
         note: "Only chain 688689 (Atlantic testnet) is allowed — anything else aborts.",
+        law: "networks.allowed_chain_ids = [688689]",
         rule: "network_firewall",
       });
     }
@@ -224,7 +358,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
       valueWei = null;
     }
 
-    // Condition 4 — balance (P4 analog): balance covers value + fee reserve.
+    // Condition 4 — balance (P4): balance covers value + fee reserve.
     const reserveWei = phrsToWei(FEE_RESERVE_PHRS);
     if (valueWei === null) {
       rows.push({
@@ -233,6 +367,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: "—",
         note: `Cannot evaluate — "${value}" is not a valid PHRS amount.`,
+        law: "prechecks.p4_balance_sufficiency · fee_reserve_wei",
       });
     } else if (balanceWei === null) {
       rows.push({
@@ -241,6 +376,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: "unreadable",
         note: "Balance could not be read (fail-closed) — connect a wallet so the gate can check value + fee reserve.",
+        law: "prechecks.p4_balance_sufficiency · fee_reserve_wei",
       });
     } else if (balanceWei >= valueWei + reserveWei) {
       rows.push({
@@ -249,6 +385,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "pass",
         numbers: `${weiToPhrs("0x" + balanceWei.toString(16))} ≥ ${value} + ${FEE_RESERVE_PHRS} reserve`,
         note: "Balance covers the transfer plus the 0.001 PHRS gas reserve.",
+        law: "prechecks.p4_balance_sufficiency · fee_reserve_wei",
       });
     } else {
       rows.push({
@@ -257,6 +394,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: `${weiToPhrs("0x" + balanceWei.toString(16))} < ${value} + ${FEE_RESERVE_PHRS} reserve`,
         note: "Insufficient balance for value plus the mandatory 0.001 PHRS fee reserve.",
+        law: "prechecks.p4_balance_sufficiency · fee_reserve_wei",
       });
     }
 
@@ -268,6 +406,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: "—",
         note: `Cannot evaluate — "${value}" is not a valid PHRS amount.`,
+        law: "rules.per_action_caps.native_transfer",
       });
     } else if (valueWei <= phrsToWei(PER_ACTION_CAP_PHRS)) {
       rows.push({
@@ -276,6 +415,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "pass",
         numbers: `${value} ≤ ${PER_ACTION_CAP_PHRS}`,
         note: "Within the per-action cap for native_transfer (dust limit).",
+        law: "rules.per_action_caps.native_transfer",
       });
     } else {
       rows.push({
@@ -284,6 +424,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: `${value} > ${PER_ACTION_CAP_PHRS}`,
         note: "per_action_caps: native_transfer is capped at 0.01 PHRS per action.",
+        law: "rules.per_action_caps.native_transfer",
         rule: "per_action_caps",
       });
     }
@@ -296,6 +437,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: "unreadable",
         note: "Gas price could not be read from the RPC (fail-closed).",
+        law: "rules.gas.max_gas_price_gwei = 50",
       });
     } else if (gasGwei <= MAX_GAS_GWEI) {
       rows.push({
@@ -304,6 +446,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "pass",
         numbers: `${gasGwei.toFixed(2)} gwei ≤ ${MAX_GAS_GWEI} gwei`,
         note: "Live gas price from the Atlantic RPC is within the sanity cap.",
+        law: "rules.gas.max_gas_price_gwei = 50",
       });
     } else {
       rows.push({
@@ -312,13 +455,14 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: `${gasGwei.toFixed(2)} gwei > ${MAX_GAS_GWEI} gwei`,
         note: "Gas price exceeds the 50 gwei sanity cap — the gate waits for calmer fees.",
+        law: "rules.gas.max_gas_price_gwei = 50",
         rule: "gas",
       });
     }
 
     // Condition 7 — recipient (destination_allowlist): the policy's named-rule
-    // gate on where value may go. Evaluated here as a full trace row so the
-    // BLOCK demo shows the failing condition inline, with the exact rule.
+    // gate on where value may go. The allowlist is the explicit character here:
+    // on BLOCK, the row names exactly the two addresses that would pass.
     let namedRule: string | null = null;
     let blockReason: string | null = null;
     if (!isValidAddress(to)) {
@@ -328,6 +472,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         status: "block",
         numbers: to.length > 20 ? `${to.slice(0, 10)}…${to.slice(-6)}` : to || "(empty)",
         note: "Not a valid 0x address — the gate refuses to evaluate it.",
+        law: "rules.destination_allowlist",
         rule: "destination_allowlist",
       });
       namedRule = "destination_allowlist";
@@ -341,6 +486,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
           status: "pass",
           numbers: `${short(to)} · ${label}`,
           note: "Recipient is on the destination allowlist — the only two addresses the policy will ever pay.",
+          law: "rules.destination_allowlist",
           rule: "destination_allowlist",
         });
       } else {
@@ -350,6 +496,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
           status: "block",
           numbers: short(to),
           note: `Not allowlisted. The policy pays only the dust sink (${short(DUST_SINK)}) and the deployer (${short(DEPLOYER_SELF)}).`,
+          law: "rules.destination_allowlist",
           rule: "destination_allowlist",
         });
         namedRule = "destination_allowlist";
@@ -393,6 +540,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
   }
 
   const canPropose = gate?.decision === "APPROVE";
+  const passedCount = gate ? gate.rows.filter((r) => r.status === "pass").length : 0;
 
   const verdictJson = gate
     ? JSON.stringify(
@@ -407,8 +555,9 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
       )
     : "";
 
-  // 03 Result — the verdict is the showpiece. Drama for a gate: ALLOW in
-  // green with a shield, BLOCK / REFUSED in red. Rows are only real reads.
+  // 03 Result — the verdict Stamp is the climax, then the StatStrip, then the
+  // seven-row trace annotated by policy citations. Denials get the double
+  // beat: the Stamp lands, then the reason arrives on its own motion beat.
   function renderVerdict() {
     if (!gate) return null;
     const verdictRows: ResultRow[] = [
@@ -432,12 +581,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         ? {
             status: "pass" as const,
             eyebrow: `Gate verdict · policy ${POLICY_ID}`,
-            headline: (
-              <span className="inline-flex items-center gap-3">
-                <ShieldCheck size={40} className="text-pass" aria-hidden />
-                ALLOW
-              </span>
-            ),
+            headline: <VerdictStamp decision={gate.decision} />,
             subline:
               "All seven gate conditions pass against live Atlantic reads. Review the proposal below — nothing broadcasts until you sign in your own wallet.",
           }
@@ -445,61 +589,124 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
           ? {
               status: "fail" as const,
               eyebrow: "Gate verdict · rule network_firewall",
-              headline: (
-                <span className="inline-flex items-center gap-3">
-                  <Ban size={40} className="text-fail" aria-hidden />
-                  REFUSED
-                </span>
+              headline: <VerdictStamp decision={gate.decision} />,
+              // Beautiful Refusal — the second beat: the reason arrives after
+              // the stamp, with its own motion, mapped to the denial state.
+              subline: (
+                <motion.span
+                  initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 1.06 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.28, duration: 0.25, ease: "easeOut" }}
+                  className="inline-block font-semibold"
+                >
+                  {blockReason} Nothing is proposed and nothing is broadcast — the
+                  denial is the product.
+                </motion.span>
               ),
-              subline: blockReason,
             }
           : {
               status: "fail" as const,
               eyebrow: `Gate verdict · rule ${gate.namedRule}`,
-              headline: (
-                <span className="inline-flex items-center gap-3">
-                  <ShieldX size={40} className="text-fail" aria-hidden />
-                  BLOCK
-                </span>
+              headline: <VerdictStamp decision={gate.decision} />,
+              subline: (
+                <motion.span
+                  initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 1.06 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.28, duration: 0.25, ease: "easeOut" }}
+                  className="inline-block"
+                >
+                  <span className="font-semibold">{blockReason}</span> Nothing is
+                  proposed and nothing is broadcast — the denial is the product.
+                </motion.span>
               ),
-              subline: `${blockReason} Nothing is proposed and nothing is broadcast — the denial is the product.`,
             };
 
+    const parsedValue = Number.parseFloat(value);
+    const statValue = Number.isFinite(parsedValue) ? parsedValue : 0;
+
     return (
-      <ResultCard
-        status={head.status}
-        eyebrow={head.eyebrow}
-        headline={head.headline}
-        subline={head.subline}
-        rows={verdictRows}
-        copyValue={verdictJson}
-      >
-        <div className="border-t border-hairline pt-5">
-          <p className="text-sm font-semibold text-slate">
-            The gate's working — seven conditions, each with its numbers
-          </p>
-          <ol className="mt-2">
-            {gate.rows.map((r) => (
-              <li
-                key={r.key}
-                className={`border-t border-hairline py-4 first:border-t-0 first:pt-3 ${
-                  r.status === "block" ? "rounded-xl bg-[#FEF4F4] px-4" : ""
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono text-sm font-semibold text-ink">{r.name}</span>
-                  <span className={r.status === "pass" ? "chip chip-pass" : "chip chip-fail"}>
-                    {r.status === "pass" ? "PASS" : "BLOCK"}
-                  </span>
-                </div>
-                {r.rule && <p className="mt-1 font-mono text-xs text-slate">rule: {r.rule}</p>}
-                <p className="mt-1 break-words font-mono text-sm text-ink">{r.numbers}</p>
-                <p className="mt-1 text-sm leading-relaxed text-ink">{r.note}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </ResultCard>
+      <>
+        <ResultCard
+          status={head.status}
+          eyebrow={head.eyebrow}
+          headline={head.headline}
+          subline={head.subline}
+          rows={verdictRows}
+          copyValue={verdictJson}
+        >
+          <div className="border-t border-hairline pt-5">
+            <p className="text-sm font-semibold text-slate">
+              The gate's working — seven conditions, each citing the law it enforces
+            </p>
+            <p className="mt-1 text-sm text-slate">
+              This is the policy engine thinking out loud: every row names the exact
+              policy.json line it checked.
+            </p>
+            {/* The trace assembles when the gate result arrives (≤0.5s total,
+                mapped to that state — never a timer). */}
+            <ol className="mt-2">
+              {gate.rows.map((r, i) => (
+                <motion.li
+                  key={r.key}
+                  initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: 0.05 + i * 0.04, ease: "easeOut" }}
+                  className={`border-t border-hairline py-4 first:border-t-0 first:pt-3 ${
+                    r.status === "block"
+                      ? "mt-3 rounded-xl border-l-4 border-fail bg-[#FEF4F4] px-4 py-4"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-sm font-semibold text-slate">
+                      G{i + 1}
+                    </span>
+                    <span className="flex-1 font-mono text-sm font-semibold text-ink">
+                      {r.name}
+                    </span>
+                    <span className={r.status === "pass" ? "chip chip-pass" : "chip chip-fail"}>
+                      {r.status === "pass" ? "PASS" : "BLOCK"}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 font-mono text-xs text-slate">policy.json → {r.law}</p>
+                  <p className="mt-1 break-words font-mono text-sm text-ink">{r.numbers}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-ink">{r.note}</p>
+                </motion.li>
+              ))}
+            </ol>
+            {/* Doctrine D — name the thing it can't see. */}
+            <p className="mt-4 text-sm leading-relaxed text-slate">
+              What's outside this trace: the full policy has 8 rules — the 60-second
+              cooldown between approvals and the 02:00–08:00 UTC time window are
+              enforced by the gatekeeper's execute path, not in this browser trace.
+              Every decision is recorded in the hash-chained audit trail with this
+              policy's sha256.
+            </p>
+          </div>
+        </ResultCard>
+
+        <StatStrip
+          stats={[
+            {
+              label: "Gates passing",
+              value: passedCount,
+              format: (n) => `${Math.round(n)}/7`,
+            },
+            {
+              label: "Proposed value",
+              value: statValue,
+              format: (n) => n.toFixed(3),
+              suffix: "PHRS",
+            },
+            {
+              label: "Live gas price",
+              value: gate.reads.gasGwei ?? 0,
+              format: (n) => n.toFixed(2),
+              suffix: "gwei",
+            },
+          ]}
+        />
+      </>
     );
   }
 
@@ -511,7 +718,8 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
           Propose a native transfer and the gatekeeper's policy engine ({POLICY_ID}) evaluates it
           against <span className="font-semibold">live Atlantic reads</span> — chain id, gas price,
           your wallet balance — then shows its work: seven conditions, each PASS or BLOCK with the
-          exact numbers. <span className="font-semibold">{lamp.name}</span> says no before anything
+          exact numbers and the policy line it enforced.{" "}
+          <span className="font-semibold">{lamp.name}</span> says no before anything
           touches the chain.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -523,7 +731,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
       </div>
 
       {/* 01 Configure */}
-      <section className="space-y-5">
+      <section className="space-y-6">
         <p className="text-sm font-semibold text-slate">01 · Configure the proposal</p>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -542,6 +750,29 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
           )}
         </div>
 
+        {/* The allowlist as an explicit character in the story. */}
+        <div>
+          <p className="text-sm font-semibold text-slate">
+            The policy's trusted addresses — the only two it will ever pay
+          </p>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            {ALLOWLIST_CAST.map((c) => (
+              <AllowlistCard
+                key={c.address}
+                name={c.name}
+                role={c.role}
+                address={c.address}
+                onUse={() => setTo(c.address)}
+              />
+            ))}
+          </div>
+          <p className="mt-2 text-sm text-slate">
+            Anything else is BLOCKed at gate G7 ·{" "}
+            <span className="font-mono">rules.destination_allowlist</span> — try a stranger
+            address below and watch it happen.
+          </p>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate">
@@ -556,15 +787,33 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 className="btn-outline !px-3 !py-1 !text-sm"
-                onClick={() => setTo(DUST_SINK)}
+                onClick={() => {
+                  setTo(DUST_SINK);
+                  setValue("0.001");
+                  setAsMainnet(false);
+                }}
               >
-                Dust sink (allowlisted)
+                ALLOW demo
               </button>
               <button
                 className="btn-outline !px-3 !py-1 !text-sm"
-                onClick={() => setTo(STRANGER)}
+                onClick={() => {
+                  setTo(STRANGER);
+                  setValue("0.001");
+                  setAsMainnet(false);
+                }}
               >
-                Stranger address (BLOCK demo)
+                BLOCK demo — stranger
+              </button>
+              <button
+                className="btn-outline !px-3 !py-1 !text-sm"
+                onClick={() => {
+                  setTo(DUST_SINK);
+                  setValue("0.05");
+                  setAsMainnet(false);
+                }}
+              >
+                BLOCK demo — over the cap
               </button>
             </div>
           </div>
@@ -582,18 +831,30 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-start gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={asMainnet}
-            onChange={(e) => setAsMainnet(e.target.checked)}
-          />
-          <span>
-            Preview: evaluate as <span className="font-mono">mainnet (chain 1672)</span> — see the
-            unconditional REFUSE. (A policy preview; the live RPC read still targets Atlantic.)
-          </span>
-        </label>
+        {/* Mainnet-refusal preview — a real toggle, styled as one. */}
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={asMainnet}
+            aria-label="Preview the mainnet refusal"
+            onClick={() => setAsMainnet((v) => !v)}
+            className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors ${
+              asMainnet ? "bg-fail" : "bg-slate-300"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                asMainnet ? "left-[22px]" : "left-0.5"
+              }`}
+            />
+          </button>
+          <p className="text-sm text-ink">
+            Preview the unconditional REFUSE — evaluate as{" "}
+            <span className="font-mono">mainnet (chain 1672)</span>. A policy preview; the
+            live RPC read still targets Atlantic.
+          </p>
+        </div>
 
         <div>
           <button className="btn-primary" onClick={runGate} disabled={evaluating}>
