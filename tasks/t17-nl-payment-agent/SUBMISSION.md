@@ -1,6 +1,6 @@
 # T17 Arena Submission Pack (copy-paste ready)
 
-> PENDING: replace `<commit>` with the commit hash after committing (do not push).
+> Commit: `cefa397710530677a6ab7a61e29afed868d0e41b` (do not push).
 > Video slot: PENDING-VIDEO (record per VIDEO-GUIDE.md, 45–90s, then paste link).
 
 ---
@@ -36,7 +36,7 @@ the parser/validator/reviewer/gate/verifier.
 
 ## Repo link (commit-pinned)
 
-`https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t17-nl-payment-agent`
+`https://github.com/mohamedwael201193/lightkeeper/tree/cefa397710530677a6ab7a61e29afed868d0e41b/tasks/t17-nl-payment-agent`
 
 ## Share / demo links
 
