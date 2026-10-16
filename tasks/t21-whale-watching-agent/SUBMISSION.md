@@ -41,12 +41,19 @@ commands, and the honesty notes (threshold justification, self-seed disclosure, 
 policy, quiet-window policy). Total on-chain spend for this task: 0.050021 PHRS
 (self-seeded transfer + gas; the agent itself is read-only).
 
-**Interactive console demo (new):** LIGHTKEEPER console "Try it live":
+**Interactive console demo:** LIGHTKEEPER console "Try it live":
 `apps/console/src/components/try/whale-watching-agent.tsx` (Tier A — live reads only,
-no wallet, costs nothing). "Whale radar": configurable PHRS threshold (default 1)
-+ block window (default 20, max 100); polls latest blocks via `eth_getBlockByNumber`
-(full transactions — native transfers emit no logs), filters ≥ threshold, renders
-from → to → value rows ranked largest-first with explorer links; Refresh + labeled
-auto-refresh (30s, off by default, on/off switch — never silent background spam);
-honest empty state on quiet water. No USD conversion (no price feed exists);
-counterparties shown shortened, never invented.
+no wallet, costs nothing). Configurable "whale radar": PHRS threshold (default 1)
++ block window (default 20, max 100) + the agent's six-address watchlist with honest
+on-chain labels — moves touching the watchlist get a `watched · <label>` chip;
+unknown counterparties shown shortened, never invented. Reads via
+`eth_getBlockByNumber` (full transactions — native transfers emit no logs) using ONE
+batched JSON-RPC round trip per 50 blocks (RPC-verified: 50 blocks in ~12s vs ~3min
+sequential), renders from → to → value rows ranked largest-first with explorer
+links, plus a stat strip (largest move, whale volume) and a session field log of
+past scans. Refresh is manual-only plus a labeled auto-refresh (30s, off by default,
+interval killed on unmount). Honest empty state on quiet water; every failure gets
+a plain-language message + a Retry-scan button. No USD conversion (no price feed
+exists). Verified live 2026-10-16: a fresh 20-block scan surfaced a real organic
+5.317112716533166 PHRS move (block 31486556,
+`0x945603168a3d3ba0036497255489804888f6766bcfd3e8f4e5ecf099ce2c8ee8`).

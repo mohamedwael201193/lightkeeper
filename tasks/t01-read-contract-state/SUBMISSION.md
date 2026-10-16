@@ -35,7 +35,17 @@ console ships an interactive "Ask any contract anything" panel
 pastes an ERC-20 contract address and gets live name()/symbol()/decimals()/
 totalSupply() (+ optional balanceOf) reads on Atlantic, all pinned to one
 block, human-formatted with decimals from the contract itself — free reads,
-no wallet. Empty or wallet addresses fail loudly in plain language.
+no wallet, no signature. An optional block-number input time-travels: the same
+values read exactly as they were at that historical block, with the block's
+age and a vs-latest Δ on the supply/balance rows (e.g. WPHRS at block
+30000000: −33,205.8352 WPHRS vs latest — verified live). All reads fire in one
+parallel batch at the pinned block; name()/symbol() fall back to bytes32
+decoding for MKR-style tokens; per-value failures distinguish "reverted
+on-chain" from "returned empty 0x"; empty, wallet (EOA), future-block, and
+pre-deploy-block inputs all fail loudly in plain language with a retry
+affordance — never a fabricated value. (Fix note: the panel calls
+`eth_blockNumber`, not `eth_getBlockNumber` — this RPC rejects the
+Chain-MCP-style method name with "invalid method"; verified by probe.)
 
 ## Repo link (commit-pinned subfolder)
 https://github.com/mohamedwael201193/lightkeeper/tree/b4a53c58fcb92f3d41ed56ed880596ed8c7d6075/tasks/t01-read-contract-state

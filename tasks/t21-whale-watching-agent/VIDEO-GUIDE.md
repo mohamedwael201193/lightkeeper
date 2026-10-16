@@ -60,18 +60,31 @@ All green. Real blocks, real transactions, real report. That's T21."
 
 ---
 
-## Shot 6 — The interactive console demo (new, 1:30–1:50)
+## Shot 6 — The interactive console demo (1:30–1:50)
 
-**Do:** open `lightkeeper-console.vercel.app` → T21 → "Try it live — with your own
-wallet" → "Whale radar": threshold 1 PHRS, 20 blocks → **Scan latest blocks**.
+**Do:** open `lightkeeper-console.vercel.app` → T21 → "Try it live" → "Whale radar":
+threshold 1 PHRS, 20 blocks → **Scan latest blocks**.
 
 **Say:** "And now the live surface anyone can use — no wallet, no signature, free
-reads. Real Atlantic blocks, real transfers, ranked largest-first, every hash
-linked to the explorer."
+reads. One batched RPC request reads all twenty blocks — no slow sequential crawl.
+Real Atlantic blocks, real transfers, ranked largest-first, every hash linked to
+the explorer. Moves touching the agent's watchlist carry a watched chip with their
+honest on-chain label."
 
-**Show:** the scan running, rows appearing (or the honest empty state: "quiet water
-— no native transfers ≥ threshold in this window"). Toggle auto-refresh on, then
-off, showing it never polls silently.
+**Show:** the progress line ("Reading 20 blocks in 1 batched request…"), rows
+appearing (or the honest empty state: "quiet water — no native transfers ≥ threshold
+in this window"). Toggle auto-refresh on, then off, showing the label flips between
+"(on — untick to stop)" and "(off)" and it never polls silently. Scroll to "03 ·
+Field log" showing the session's scan history.
+
+## Shot 7 — A failure, handled (1:50–2:05, optional)
+
+**Do:** (in dev tools, go offline) hit **Scan latest blocks** again.
+
+**Say:** "And when the RPC is unreachable, nobody gets a spinner of death —
+plain language, plus a retry button."
+
+**Show:** the error panel with "Retry scan".
 
 ## Don'ts
 
