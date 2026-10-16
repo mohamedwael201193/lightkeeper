@@ -7,20 +7,22 @@
  *   02 RUN       — ProgressLoader over the REAL sequential RPC calls:
  *                  eth_call → eth_estimateGas → gas price → block number →
  *                  target balance. Each step maps to exactly one async call.
- *   03 RESULT   — ResultCard showpiece: the dry-run verdict (PASS/FAIL),
- *                  the executor's predicted-vs-actual self-score as a vivid
- *                  vs-layout, and a StatStrip drift ledger.
+ *   03 RESULT   — the PASS/FAIL verdict, then the executor's self-score:
+ *                  predicted-vs-actual as a vivid duel, and the drift ledger
+ *                  as a living scorecard. A FAILing dry-run BLOCKS the sign
+ *                  path with the reason stated on the button — the Beautiful
+ *                  Refusal: verdict stamps, then the reason rises.
  *
- * Gate law preserved: a FAILing dry-run BLOCKS the sign path with the reason
- * stated on the button — never a dead button, never auto-broadcast, review
- * before sign, chain 688689 guard inside useProposeAndSign.
+ * Gate law preserved: never a dead button, never auto-broadcast, review
+ * before sign, chain 688689 guard inside useProposeAndSign. Drift is defined
+ * exactly as in runs/prediction-ledger.jsonl — (predicted − used) / used.
  *
  * LIGHTKEEPER never sees, holds, or asks for private keys. Testnet only
  * (chain 688689). Dry-runs are free reads; nothing moves until the visitor
  * explicitly signs in their own wallet.
  */
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { Lamp } from "../../types";
 import { weiToPhrs } from "../../types";
 import { useWallet } from "../WalletContext";
@@ -146,35 +148,218 @@ const DRY_STEPS = [
   "Reading the target balance",
 ];
 
+/** One scored duel: what the dry-run predicted vs what the chain did. */
+interface ScoredRow {
+  label: string;
+  tx: string;
+  predicted: number; // gas estimate from the dry-run
+  limit: number; // safety limit the gate enforced (×1.2)
+  used: number; // gas actually used, from the receipt
+  live: boolean; // true = scored this session, from the visitor's own broadcast
+}
+
 /**
  * The executor's public track record — real gated broadcasts on Atlantic,
  * each with the dry-run's predicted gas beside the chain's actual gas used.
  * Drift is disclosed, not hidden. Same numbers as runs/prediction-ledger.jsonl.
  */
-const LEDGER = [
+const SEED_ROWS: ScoredRow[] = [
   {
     label: "Broadcast 1",
     tx: "0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee",
     predicted: 58219,
+    limit: 69863,
     used: 45470,
+    live: false,
   },
   {
     label: "Broadcast 2",
     tx: "0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03",
     predicted: 37379,
+    limit: 44855,
     used: 28370,
+    live: false,
   },
 ];
 
 /** Drift exactly as recorded in runs/prediction-ledger.jsonl: how much the
  *  estimate overshot reality, relative to reality — 28.0% / 31.8%, mean ~30%. */
-const driftPct = (e: { predicted: number; used: number }) =>
-  ((e.predicted - e.used) / e.used) * 100;
-const meanDriftPct = LEDGER.reduce((a, e) => a + driftPct(e), 0) / LEDGER.length;
+const driftPct = (predicted: number, used: number) => ((predicted - used) / used) * 100;
 const intFmt = (n: number) => n.toLocaleString("en-US");
+const shortHash = (h: string) => `${h.slice(0, 10)}…${h.slice(-6)}`;
 
 const inputCls =
   "w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink placeholder:text-slate/60 focus:outline-none focus:ring-2 focus:ring-accent/40";
+
+/**
+ * The duel — predicted vs actually-used gas as one vivid vs-layout.
+ * Two animated bars: the prediction at full width, the chain's answer
+ * scaled against it. The drift badge is the machine grading itself.
+ */
+function DuelCard({ row, index }: { row: ScoredRow; index: number }) {
+  const reduce = useReducedMotion();
+  const drift = driftPct(row.predicted, row.used);
+  const ratio = Math.min(100, (row.used / row.predicted) * 100);
+  const held = row.used <= row.limit;
+  const barAnim = reduce ? {} : { initial: { width: 0 } };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: Math.min(index * 0.1, 0.5), ease: "easeOut" }}
+      className="rounded-2xl border border-hairline bg-white p-6"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-slate">
+          {row.label}
+          {row.live && (
+            <span className="chip chip-pass ml-2">scored live · this session</span>
+          )}
+        </p>
+        <a
+          className="font-mono text-sm text-accent hover:underline"
+          href={`${EXPLORER_TX}${row.tx}`}
+          target="_blank"
+          rel="noreferrer"
+          title={row.tx}
+        >
+          {shortHash(row.tx)} →
+        </a>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm font-semibold text-slate">Predicted</p>
+          <p className="mt-1 font-display text-4xl tracking-tight text-ink tabular-nums">
+            {intFmt(row.predicted)}
+          </p>
+          <p className="mt-1 text-sm text-slate">gas, from the dry-run</p>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate">Actually used</p>
+          <p className="mt-1 font-display text-4xl tracking-tight text-accent tabular-nums">
+            {intFmt(row.used)}
+          </p>
+          <p className="mt-1 text-sm text-slate">gas, on-chain</p>
+        </div>
+      </div>
+
+      {/* The duel bars — prediction full-width, reality scaled against it. */}
+      <div className="mt-4 space-y-2" aria-hidden>
+        <div className="h-2.5 overflow-hidden rounded-full bg-tint">
+          <motion.div
+            {...barAnim}
+            animate={{ width: "100%" }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+            className="h-full rounded-full bg-slate/50"
+          />
+        </div>
+        <div className="h-2.5 overflow-hidden rounded-full bg-tint">
+          <motion.div
+            {...barAnim}
+            animate={{ width: `${ratio}%` }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
+            className={`h-full rounded-full ${held ? "bg-accent" : "bg-fail"}`}
+          />
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span
+          className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-bold tabular-nums ${
+            drift >= 0 ? "bg-tint text-ink" : "bg-fail/10 text-fail"
+          }`}
+        >
+          {drift >= 0 ? "+" : ""}
+          {drift.toFixed(1)}% drift
+        </span>
+        <p className="text-sm text-ink">
+          {drift >= 0 ? (
+            <>
+              The estimate over-shot reality — the chain came in{" "}
+              <span className="font-semibold">{intFmt(row.predicted - row.used)} gas</span>{" "}
+              under the prediction.
+            </>
+          ) : (
+            <>The estimate under-shot reality — the chain used more than predicted.</>
+          )}
+        </p>
+      </div>
+
+      <p className="mt-3">
+        <span className={held ? "chip chip-pass" : "chip chip-fail"}>
+          {held
+            ? `success · ${intFmt(row.used)} ≤ ${intFmt(row.limit)} limit`
+            : `over the ${intFmt(row.limit)} safety limit`}
+        </span>
+      </p>
+    </motion.div>
+  );
+}
+
+/**
+ * Scores the visitor's own broadcast against the dry-run prediction the gate
+ * let through, reading the real receipt exactly once. If the receipt can't be
+ * read, no row is invented — the ledger stays honest.
+ */
+function SessionScore({
+  txHash,
+  predicted,
+  limit,
+  onScored,
+}: {
+  txHash: string;
+  predicted: number;
+  limit: number;
+  onScored: (row: ScoredRow) => void;
+}) {
+  const [reading, setReading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await rpcRaw("eth_getTransactionReceipt", [txHash]);
+        const gasHex = (r.result as { gasUsed?: string } | null)?.gasUsed;
+        if (alive && typeof gasHex === "string") {
+          onScored({
+            label: "Your broadcast",
+            tx: txHash,
+            predicted,
+            limit,
+            used: Number(BigInt(gasHex)),
+            live: true,
+          });
+        }
+      } catch {
+        // Receipt unreadable — no score invented, no row added.
+      } finally {
+        if (alive) setReading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txHash]);
+
+  if (!reading) return null;
+  return (
+    <div className="rounded-2xl border border-hairline bg-white p-6" aria-live="polite">
+      <div className="flex items-center gap-3">
+        <motion.span
+          animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+          className="h-3 w-3 rounded-full bg-accent"
+          aria-hidden
+        />
+        <p className="text-sm font-semibold text-ink">
+          Scoring your broadcast — reading the receipt from Atlantic…
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function TryDryRun({ lamp }: { lamp: Lamp }) {
   const wallet = useWallet();
@@ -187,6 +372,11 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
   const [simming, setSimming] = useState(false);
   const [dryStep, setDryStep] = useState(0);
   const [simError, setSimError] = useState<string | null>(null);
+
+  /** The living ledger: seed evidence + every visitor broadcast scored live. */
+  const [sessionRows, setSessionRows] = useState<ScoredRow[]>([]);
+  /** The prediction the gate let through — snapshotted at propose time. */
+  const proposedRef = useRef<{ estimate: number; limit: number } | null>(null);
 
   const fromAddr =
     wallet.state.status === "connected" ? wallet.state.address : undefined;
@@ -322,6 +512,10 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
   }
 
   const canPropose = simFresh && sim?.kind === "PASS" && sign.state === "idle";
+  const allRows = [...SEED_ROWS, ...sessionRows];
+  const meanDrift = allRows.reduce((a, r) => a + driftPct(r.predicted, r.used), 0) / allRows.length;
+  const heldCount = allRows.filter((r) => r.used <= r.limit).length;
+  const scoredLive = sign.state === "confirmed" && sign.txHash && proposedRef.current;
 
   return (
     <div className="space-y-6">
@@ -337,6 +531,8 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
           No wallet, no signature, nothing broadcast — the preview is the product.
           Only a passing simulation unlocks the sign button, and signing always
           happens in <em>your</em> wallet, with <em>your</em> testnet PHRS.
+          Afterwards, the executor scores itself: its prediction against the
+          chain's receipt, in the drift ledger below.
         </p>
       </div>
 
@@ -469,10 +665,12 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
             <div className="rounded-xl border border-hairline bg-porcelain px-4 py-3">
               <p className="text-sm leading-relaxed text-ink">
                 Chain unmodified — no signature was created. Estimates are
-                predictions: on Atlantic they have over-predicted by ~{meanDriftPct.toFixed(1)}%
-                before, which is what the 1.2× safety factor absorbs. If the
-                chain moved since block {intFmt(Number(sim.blockNumber))}, re-run
-                the dry-run before signing.
+                predictions: on Atlantic they have over-predicted by{" "}
+                {meanDrift.toFixed(1)}% before, which is what the 1.2× safety
+                factor absorbs. A dry-run can't see what changes between
+                simulation and signing — balances, ordering, upgrades — so if
+                anything moved since block {intFmt(Number(sim.blockNumber))},
+                re-run before signing.
               </p>
             </div>
             {canPropose && (
@@ -482,41 +680,67 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
                 </p>
                 <button
                   className="btn-primary min-h-[44px]"
-                  onClick={() =>
+                  onClick={() => {
+                    // Snapshot the prediction the gate is about to let through,
+                    // so the drift ledger can score this exact run later.
+                    proposedRef.current = {
+                      estimate: Number(sim.gasEstimate),
+                      limit: Number(sim.gasLimit),
+                    };
                     sign.propose({
                       to: to.trim(),
                       valuePhrs: value.trim() === "" ? "0" : value.trim(),
                       data: data.trim() === "" ? "0x" : data.trim(),
                       label: `Dry-run-verified tx → ${to.trim().slice(0, 10)}…`,
-                    })
-                  }
+                    });
+                  }}
                 >
                   Propose transaction for review
                 </button>
+                <p className="mt-2 text-sm text-slate">
+                  After you sign, this run's prediction joins the drift ledger
+                  below — graded against the chain's receipt, like every row before it.
+                </p>
               </div>
             )}
           </ResultCard>
         </section>
       )}
 
-      {/* ── 03 · Result — FAIL showpiece (the gate refusal) ──────────── */}
+      {/* ── 03 · Result — the Beautiful Refusal (gate FAIL) ──────────── */}
       {simFresh && sim.kind === "FAIL" && (
-        <section aria-label="Step 3 — dry-run result" className="space-y-4">
+        <section aria-label="Step 3 — the refusal" className="space-y-4">
           <h4 className="text-sm font-semibold text-slate">03 · Result</h4>
-          <ResultCard
-            status="fail"
-            eyebrow="Dry-run result — simulated on Atlantic"
-            headline="FAIL — would revert"
-            subline={
-              <>
-                The chain itself rejected this transaction in simulation — caught
-                at the <span className="font-mono">{sim.stage}</span> stage.{" "}
-                {sim.fromLabel}. The sign path stays blocked until a dry-run passes.
-              </>
-            }
+          {/* The double beat: the verdict STAMPS in first… */}
+          <motion.div
+            initial={{ opacity: 0, scale: 1.12 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.32, ease: "easeOut" }}
+            className="rounded-2xl border-2 border-fail/60 bg-white p-6 sm:p-8"
+          >
+            <div className="flex items-center gap-3">
+              <span className="h-2.5 w-2.5 rounded-full bg-fail" aria-hidden />
+              <p className="text-sm font-semibold text-slate">Dry-run verdict — simulated on Atlantic</p>
+            </div>
+            <h3 className="mt-3 font-display text-4xl leading-tight tracking-tight text-fail sm:text-5xl">
+              FAIL — the chain refused
+            </h3>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">
+              So the executor refuses to sign. Caught at the{" "}
+              <span className="font-mono">{sim.stage}</span> stage, before any
+              wallet opened. {sim.fromLabel}. A failing dry-run never unlocks
+              the sign path — that is the whole point of the gate.
+            </p>
+          </motion.div>
+          {/* …then the reason rises, with the blocked sign button. */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.3, ease: "easeOut" }}
+            className="rounded-2xl border border-hairline bg-white p-6 sm:p-8"
           >
             <p className="text-sm font-semibold text-slate">
-              Revert reason, decoded from the chain's own error payload (
+              The exact reason, decoded from the chain's own error payload (
               {sim.revertEncoding}):
             </p>
             <div className="code-block mt-2">{sim.revertReason}</div>
@@ -524,7 +748,7 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
               <p className="mt-2 break-all font-mono text-sm text-slate">{sim.revertHex}</p>
             )}
             {/* Blocked sign — the reason is stated on the button itself, never a dead button. */}
-            <div>
+            <div className="mt-5">
               <button
                 className="btn-outline min-h-[44px]"
                 disabled
@@ -538,7 +762,7 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
                 broadcast, nothing was signed.
               </p>
             </div>
-          </ResultCard>
+          </motion.div>
         </section>
       )}
 
@@ -706,100 +930,59 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
           copyValue={sign.txHash}
           links={[{ label: "View on the Atlantic explorer", href: `${EXPLORER_TX}${sign.txHash}` }]}
         >
-          <button className="btn-outline min-h-[44px]" onClick={sign.cancel}>
+          <p className="text-sm text-ink">
+            The executor now scores this broadcast against its own prediction —{" "}
+            <a href="#drift-ledger" className="font-semibold text-accent hover:underline">
+              see your grade in the drift ledger below
+            </a>
+            .
+          </p>
+          <button className="btn-outline mt-3 min-h-[44px]" onClick={sign.cancel}>
             Build another dry-run
           </button>
         </ResultCard>
       )}
 
-      {/* ── The executor keeps score of its own accuracy ─────────────── */}
-      <section aria-label="The executor's prediction track record" className="space-y-4">
+      {/* ── The executor keeps score of itself ───────────────────────── */}
+      <section id="drift-ledger" aria-label="The executor's prediction track record" className="space-y-4">
         <div>
           <h4 className="text-sm font-semibold text-slate">The executor keeps score of itself</h4>
           <p className="mt-1 text-sm leading-relaxed text-ink">
             Every broadcast that went through the gate is recorded with its
-            predicted gas beside the chain's actual gas used. The estimates
-            over-predict — that drift is public, and the 1.2× safety factor
-            exists precisely for it.
+            predicted gas beside the gas the chain actually used. The estimates
+            over-predict — that drift is worn proudly, and the 1.2× safety
+            factor exists precisely for it. Broadcasts you sign in this session
+            are scored live from their receipts and join the ledger.
           </p>
         </div>
 
-        {/* Predicted-vs-actual vs-layout — the self-score showpiece */}
+        {/* Predicted-vs-actual duels — the self-score showpiece */}
         <div className="grid gap-4 md:grid-cols-2">
-          {LEDGER.map((entry, i) => (
-            <motion.div
-              key={entry.tx}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: i * 0.1, ease: "easeOut" }}
-              className="rounded-2xl border border-hairline bg-white p-6"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate">{entry.label}</p>
-                <a
-                  className="font-mono text-sm text-accent hover:underline"
-                  href={`${EXPLORER_TX}${entry.tx}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={entry.tx}
-                >
-                  {entry.tx.slice(0, 10)}…{entry.tx.slice(-6)} →
-                </a>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate">Predicted</p>
-                  <p className="mt-1 font-display text-4xl tracking-tight text-ink">
-                    {intFmt(entry.predicted)}
-                  </p>
-                  <p className="mt-1 text-sm text-slate">gas, from the dry-run</p>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate">Actually used</p>
-                  <p className="mt-1 font-display text-4xl tracking-tight text-accent">
-                    {intFmt(entry.used)}
-                  </p>
-                  <p className="mt-1 text-sm text-slate">gas, on-chain</p>
-                </div>
-              </div>
-              <div className="mt-4 space-y-2">
-                <div className="h-2.5 overflow-hidden rounded-full bg-tint">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 + 0.2 }}
-                    className="h-full rounded-full bg-slate/50"
-                  />
-                </div>
-                <div className="h-2.5 overflow-hidden rounded-full bg-tint">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(entry.used / entry.predicted) * 100}%` }}
-                    transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 + 0.35 }}
-                    className="h-full rounded-full bg-accent"
-                  />
-                </div>
-                <p className="text-sm text-ink">
-                  Over-estimated by{" "}
-                  <span className="font-semibold">{driftPct(entry).toFixed(1)}%</span> —
-                  landed well inside the 1.2× limit.
-                </p>
-              </div>
-              <p className="mt-3">
-                <span className="chip chip-pass">success · within limit</span>
-              </p>
-            </motion.div>
+          {allRows.map((row, i) => (
+            <DuelCard key={row.tx} row={row} index={i} />
           ))}
+          {scoredLive && !sessionRows.some((r) => r.tx === sign.txHash) && (
+            <SessionScore
+              txHash={sign.txHash!}
+              predicted={proposedRef.current!.estimate}
+              limit={proposedRef.current!.limit}
+              onScored={(row) =>
+                setSessionRows((prev) =>
+                  prev.some((r) => r.tx === row.tx) ? prev : [...prev, row]
+                )
+              }
+            />
+          )}
         </div>
 
-        {/* Drift ledger numbers */}
+        {/* The drift ledger, summarized */}
         <StatStrip
           stats={[
-            { label: "Broadcasts scored", value: LEDGER.length },
-            { label: "Predictions that held", value: LEDGER.length },
+            { label: "Broadcasts scored", value: allRows.length },
+            { label: "Predictions that held", value: heldCount },
             {
-              label: "Mean over-estimate",
-              value: meanDriftPct,
+              label: sessionRows.length > 0 ? "Mean drift, all rows" : "Mean over-estimate",
+              value: meanDrift,
               suffix: "%",
               format: (n) => n.toFixed(1),
             },
@@ -807,7 +990,7 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
         />
 
         <p className="text-sm text-slate">
-          Both predictions held: success as predicted, gas inside the 1.2×
+          Both seed predictions held: success as predicted, gas inside the 1.2×
           limit. Broadcast 2 was the repeatability run — the same dry-run →
           gate → broadcast path a second time, and the prediction held again.
           The task's own <span className="font-mono">runs/prediction-ledger.jsonl</span> records
