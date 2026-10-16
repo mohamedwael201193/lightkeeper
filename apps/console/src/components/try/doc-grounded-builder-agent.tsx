@@ -173,13 +173,17 @@ const GOALS: { id: Exclude<Goal, null>; label: string; request: string }[] = [
   { id: "r4", label: "R4 · the refusal", request: "make my token confidential with private shielded transactions" },
 ];
 
+// Mirrors the agent's real INTAKE classifier (src/agent.py REQUEST_PATTERNS),
+// ported 1:1 to JS. "confidential"/"shielded" requests return None in the agent
+// too — here they route to the R4 panel, which shows exactly what the agent
+// does in that case: refuse with a say-so instead of improvising.
 function classify(input: string): Goal {
-  const q = input.toLowerCase();
-  if (!q.trim()) return null;
-  if (q.includes("confidential") || q.includes("shielded") || q.includes("private tx")) return "r4";
-  if (q.includes("deploy") || q.includes("erc20") || q.includes("token") || q.includes("verify")) return "r1";
-  if (q.includes("balance") || q.includes("read")) return "r2";
-  if (q.includes("transfer") || q.includes("send")) return "r3";
+  const q = input.trim();
+  if (!q) return null;
+  if (/confidential|shielded|private\s*(tx|transaction)s?\b/i.test(q)) return "r4";
+  if (/deploy\b.*\b(erc-?20|token)\b|\b(erc-?20|token)\b.*\bdeploy\b/i.test(q)) return "r1";
+  if (/\b(balance|balanceof)\b.*\b(erc-?20|token)\b|\b(erc-?20|token)\b.*\bbalance\b/i.test(q)) return "r2";
+  if (/\b(transfer|send)\b.*\b(erc-?20|token|tokens)\b|\b(erc-?20|token)\b.*\btransfer\b/i.test(q)) return "r3";
   return null;
 }
 
