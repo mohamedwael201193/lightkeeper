@@ -11,16 +11,19 @@ grouped totals and MD/CSV/PDF exports.
 ## Description
 Every action this agent takes is appended to a local JSONL log as
 `{index, timestamp, actor, action, params, txHash, prevHash → entryHash}`
-(sha256 over canonical JSON). The `verify` command replays the chain: 14 real
-entries (chain reads, 2 mined dust transfers, receipt confirmations) verify
-PASS; a tampered COPY fails verification naming the exact altered entry
-(#12, entryHash mismatch) while the original stays untouched. The reporter
-accepts wallet + date range, groups native transfers in/out, ERC-20 transfers,
-approvals, swap events and contract interactions from live RPC, totals per
-category, lists notable txs with explorer links, and exports Markdown, CSV and
-PDF. All figures are live chain reads; RPC quirks (rejected topic filters,
-scan caps) are disclosed in each report. No mocks, no placeholders.
-Total on-chain spend: 0.000242000000042 PHRS (budget 0.15).
+(sha256 over canonical JSON). The `verify` command replays the chain: 22 real
+entries (chain reads, 2 mined dust transfers, receipt confirmations,
+mempool-drop disclosures, a chain-anchor tx pinning the log head on-chain)
+verify PASS; a tampered COPY fails verification naming the exact altered entry
+(#12, entryHash mismatch) while the original stays untouched. The chain-anchor
+tx's calldata IS entry #20's entryHash — anyone can check the mined tx's input
+data against the local log. The reporter accepts wallet + date range, groups
+native transfers in/out, ERC-20 transfers, approvals, swap events and contract
+interactions from live RPC, totals per category, lists notable txs with explorer
+links, and exports Markdown, CSV and PDF. All figures are live chain reads; RPC
+quirks (rejected topic filters, scan caps) are disclosed in each report. No
+mocks, no placeholders. Total on-chain spend: 0.000363512000063512 PHRS
+(budget 0.15).
 
 ## Proof link (repo, commit-pinned)
 https://github.com/mohamedwael201193/lightkeeper/tree/3b9a8ef/tasks/t24-audit-log-agent
@@ -33,6 +36,10 @@ Video: PENDING-VIDEO (see VIDEO-GUIDE.md for the 60-second shot plan)
   (0.0001 PHRS dust, block 31483610, status 0x1)
 - https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68
   (0.0001 PHRS dust, block 31483646, status 0x1)
+- https://atlantic.pharosscan.xyz/tx/0xcb79d4a218dece0c55868efd0240089343a5ee8c4887b5f6888517eab70ee76e
+  (0.0001 PHRS dust, block 31486961, status 0x1; calldata =
+  `0xadcf050b125a1459cc06551e724f1772d7afeb28c7e2c9475b1f913f27e3ed7e`
+  = entry #20's entryHash — the chain anchor)
 
 ## Notes for the reviewer
 See REVIEWER_NOTES.md in the task folder (paste-ready): 5-minute test path
@@ -42,9 +49,12 @@ the mempool-drop disclosure, and the RPC-limitation notes. Test:
 
 ## Live interactive surface (LIGHTKEEPER console)
 The task page's "Try it live" section ships `apps/console/src/components/try/audit-log-agent.tsx`:
-an interactive chain verifier with the real 15-entry chain prefilled — hashes recompute
+an interactive chain verifier with the real 22-entry chain prefilled — hashes recompute
 client-side in the visitor's browser (SHA-256 over canonical JSON, the same algorithm as
-the CLI) with a one-character tamper demo (copy of entry #12 → BROKEN AT ENTRY 12) —
-plus a "Verify our proof" panel: terminal entryHash `e19bba30b6044bf…`, both anchor dust
-txs with explorer links and a live, free `eth_getTransactionReceipt` check, and the exact
-offline CLI to reproduce. No new on-chain spend; total stays 0.000242000000042 PHRS.
+the CLI) — plus a red-team lab with four attacks run live on copies (one-char flip →
+BROKEN AT ENTRY 12; flip + forged hash → BROKEN AT ENTRY 13; delete entry #5; swap #6/#7),
+a chain-strip visualization, a per-entry inspector (stored vs live-recomputed hash), and a
+"Verify our proof" panel: terminal entryHash `6eb5e439f1f79b2…`, all three anchor txs with
+explorer links and live, free RPC checks — including the chain-anchor tx whose calldata is
+verified == entry #20's entryHash — and the exact offline CLI to reproduce. Total on-chain
+spend: 0.000363512000063512 PHRS (budget 0.15).

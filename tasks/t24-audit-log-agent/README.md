@@ -15,10 +15,14 @@ REAL tx hashes on Pharos Atlantic testnet — plus a wallet-activity reporter
 (wallet + date range → grouped activity, totals, notable txs with links,
 Markdown/CSV/PDF exports). Live demo: 2 real dust txs mined
 ([tx1](https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1),
-[tx2](https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68)),
-14-entry chain verifies **PASS**, tampered copy verifies **FAIL** naming the
-exact entry, original untouched. Total spend: 0.000242000000042 PHRS of the
-0.15 budget. No mocks, no placeholders, no fake success.
+[tx2](https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68))
++ a chain-anchor tx
+([anchor](https://atlantic.pharosscan.xyz/tx/0xcb79d4a218dece0c55868efd0240089343a5ee8c4887b5f6888517eab70ee76e))
+whose calldata IS the log head's entryHash (entry #20) — the local chain is
+pinned to Atlantic. 22-entry chain verifies **PASS**, tampered copy verifies
+**FAIL** naming the exact entry, original untouched. Total spend:
+0.000363512000063512 PHRS of the 0.15 budget. No mocks, no placeholders, no
+fake success.
 
 ## 2. What it does
 
@@ -52,7 +56,8 @@ node --test "test/*.test.mjs"                        # 7/7 hash-chain unit tests
 ```
 
 Live demo (re-runnable, dust only): `demo/run-live-demo.sh`,
-`demo/broadcast-under-lock.sh`, `demo/finish.sh` document the exact run.
+`demo/broadcast-under-lock.sh`, `demo/finish.sh` document the exact run;
+`demo/anchor-chain.sh` pins the chain head on-chain (calldata = head entryHash).
 
 ## 4. Requirements coverage
 
@@ -71,7 +76,7 @@ COPY while the original stays PASS.
 
 - `evidence.md` — full narrative (≥300 words); `evidence.json` — machine
   evidence: tx hashes, receipts, spend log, curl-verified links, test results.
-- `sample-output/verify-pass.txt` — 14 entries, PASS.
+- `sample-output/verify-pass.txt` — 22 entries, PASS.
 - `sample-output/verify-fail-tampered-copy.txt` — FAIL naming entry #12.
 - `sample-output/audit-log.transcript.md` — the verified log.
 - `sample-output/audit-report-2026-10-16T05-13-57.{md,csv,pdf}` + `chain-scan-*.json`.

@@ -4,6 +4,7 @@
 |---|---|---|
 | https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1 | 200 | dust tx 1 (mined, status 0x1, block 31483610) |
 | https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68 | 200 | dust tx 2 (mined, status 0x1, block 31483646) |
+| https://atlantic.pharosscan.xyz/tx/0xcb79d4a218dece0c55868efd0240089343a5ee8c4887b5f6888517eab70ee76e | 200 | chain-anchor tx (mined, status 0x1, block 31486961; calldata = entry #20's entryHash) |
 | https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 | 200 | audited wallet (shared LIGHTKEEPER deployer key) |
 | https://github.com/mohamedwael201193/lightkeeper | repo | monorepo (pinned subfolder link added at submit time) |
 
