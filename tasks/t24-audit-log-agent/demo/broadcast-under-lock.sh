@@ -19,11 +19,14 @@ GAS_PRICE=25000000000  # 25 gwei: competitive under shared-key contention; still
 mkdir -p "$OUT"
 
 # This whole inner block runs under ONE flock hold.
-flock /tmp/lk-nonce.lock bash -c '
+# Lock-timeout discipline (coordinator order): the whole hold is capped at
+# 1500s; inner attempts are capped too — a stuck broadcast fails loudly
+# instead of hanging the shared lock.
+timeout 1500 flock -w 300 /tmp/lk-nonce.lock bash -c '
 set -euo pipefail
 export PATH="$HOME/.foundry/bin:$PATH"
 for i in 1 2; do
-  for attempt in 1 2 3 4 5 6 7 8; do
+  for attempt in 1 2 3 4; do
     echo "[tx$i] attempt $attempt: broadcasting…"
     H=$(cast send "'"$WALLET"'" --value 0.0001ether --gas-price "'"$GAS_PRICE"'" \
       --rpc-url "$ATLANTIC_RPC_URL" --private-key "$DEPLOYER_PRIVATE_KEY" 2>&1 \
@@ -31,7 +34,7 @@ for i in 1 2; do
     if [ -z "${H:-}" ]; then echo "[tx$i] no hash, retrying"; sleep 3; continue; fi
     echo "[tx$i] hash $H — waiting for receipt (lock held)…"
     R=""
-    for s in $(seq 1 100); do
+    for s in $(seq 1 60); do
       R=$(node "$T"/src/wait-receipt.mjs "$H")
       if [ "$R" != "PENDING" ] && [ "$R" != "RPCERR" ] && [ -n "$R" ]; then break; fi
       sleep 3

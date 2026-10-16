@@ -27,7 +27,8 @@ send_dust() {
   local label="$1" attempt H ok
   for attempt in 1 2 3 4 5; do
     echo "[$label] broadcast attempt $attempt (flock-guarded)…"
-    H=$(flock /tmp/lk-nonce.lock cast send "$WALLET" --value 0.0001ether \
+    # Lock-timeout discipline (coordinator order): fail loudly, never hang the shared lock.
+    H=$(timeout 600 flock -w 300 /tmp/lk-nonce.lock cast send "$WALLET" --value 0.0001ether \
       --gas-price 12000000000 --rpc-url "$ATLANTIC_RPC_URL" \
       --private-key "$DEPLOYER_PRIVATE_KEY" 2>/dev/null \
       | grep -oE '0x[0-9a-fA-F]{64}' | head -1)

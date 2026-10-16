@@ -33,7 +33,8 @@ echo "reads logged"
 
 echo "== 3. execute 2 REAL dust txs (flock nonce guard, dust 0.0001 PHRS each) =="
 for i in 1 2; do
-  HASH=$(flock /tmp/lk-nonce.lock cast send "$WALLET" --value 0.0001ether \
+  # Lock-timeout discipline (coordinator order): fail loudly, never hang the shared lock.
+  HASH=$(timeout 600 flock -w 300 /tmp/lk-nonce.lock cast send "$WALLET" --value 0.0001ether \
     --rpc-url "$ATLANTIC_RPC_URL" --private-key "$DEPLOYER_PRIVATE_KEY" 2>/dev/null \
     | grep -oE '0x[0-9a-fA-F]{64}' | head -1)
   [ -n "$HASH" ] || { echo "FAILED to capture tx hash for dust tx $i"; exit 1; }

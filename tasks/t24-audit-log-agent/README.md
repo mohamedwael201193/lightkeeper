@@ -85,6 +85,9 @@ COPY while the original stays PASS.
 - **Nonce safety:** every broadcast wrapped in `flock /tmp/lk-nonce.lock`
   (shared-key discipline across 28 workers); `--async` used after observing
   that default polling mode never surfaced submissions in this environment.
+  Lock-timeout discipline: every hold is `timeout`-capped
+  (`timeout 600 flock -w 300 …`; the under-lock script caps the whole hold at
+  1500s) so a stuck broadcast fails loudly instead of hanging the shared lock.
 - **RPC quirks handled honestly:** topic-filtered `eth_getLogs` is rejected by
   this Atlantic RPC — the reporter uses unfiltered 200-block chunks with
   client-side filtering; native-transfer block scans are concurrency-limited
