@@ -11,9 +11,9 @@
  * Every command, rule, value, and tx hash below is real, taken from the
  * task's own contrast runs (tasks/t12-skill-chain-flow/run-logs/flow-transcript.jsonl).
  */
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Gauge, Hash, ShieldCheck, Wallet } from "lucide-react";
+import { Check, Gauge, Hash, Ruler, ShieldCheck, Wallet } from "lucide-react";
 import type { Lamp } from "../../types";
 import { rpcCall } from "../../hooks/useAtlantic";
 import {
@@ -163,8 +163,6 @@ function runbook(scenario: Scenario): string {
   ].join("\n");
 }
 
-const PHASES = ["READ", "SKILL", "EXECUTE", "VERIFY"] as const;
-
 // ---------------------------------------------------------------------------
 // Live probe — six real async RPC calls, then flow.py's evaluate() rule math
 // replayed verbatim on the live values.
@@ -264,6 +262,319 @@ function weiToPhrs(w: bigint): string {
   return f ? `${i}.${f}` : i;
 }
 
+/** Thousands-grouped wei — a precision instrument shows every digit. */
+function fmtWei(w: bigint): string {
+  return w.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// ---------------------------------------------------------------------------
+// The boundary ruler — the probe rendered as a precision instrument.
+// The 0.005 PHRS cap is drawn as a physical knife edge; the macro lens
+// resolves individual wei ticks around it, so the 1-wei ALLOW/BLOCK flip
+// reads as a measurement instead of a paragraph.
+// ---------------------------------------------------------------------------
+
+const LENS_OFFSETS = [-2n, -1n, 0n, 1n, 2n];
+
+function BoundaryRuler({ r }: { r: ProbeResult }) {
+  const over = r.amountWei > MAX_TX_WEI;
+  const span = over ? r.amountWei : MAX_TX_WEI;
+  const pct = (w: bigint) => Math.min(100, Number((w * 10000n) / span) / 100);
+  const amountPct = pct(r.amountWei);
+  const capPct = pct(MAX_TX_WEI);
+
+  const probeOffset = r.amountWei - MAX_TX_WEI;
+  const probeInLens = probeOffset >= -2n && probeOffset <= 2n;
+  const distWei = probeOffset < 0n ? -probeOffset : probeOffset;
+
+  const marginNote =
+    r.marginWei === 0n
+      ? "Exactly on the edge — and still ALLOW. The rule is ≤, not <."
+      : r.marginWei === 1n
+        ? "One wei — the smallest unit the chain can express — and the entire verdict."
+        : r.verdict === "ALLOW"
+          ? "wei of headroom under the cap."
+          : "wei past the cap.";
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <Ruler size={16} className="text-accent" aria-hidden />
+        <p className="text-sm font-semibold text-slate">The boundary, as a precision instrument</p>
+      </div>
+      <p className="mt-1 text-sm text-slate">
+        The cap is a knife edge at exactly {fmtWei(MAX_TX_WEI)} wei (0.005 PHRS). The macro lens
+        resolves single wei ticks around it.
+      </p>
+
+      {/* Full-scale strip */}
+      <div className="mt-5">
+        <div className="relative">
+          <div className="relative h-3 overflow-hidden rounded-full bg-tint">
+            <motion.div
+              className={`absolute inset-y-0 left-0 ${r.verdict === "ALLOW" ? "bg-pass" : "bg-fail"}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${amountPct}%` }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            />
+          </div>
+          {/* knife edge */}
+          <div
+            className="absolute -top-1 -bottom-1 w-[3px] rounded bg-ink"
+            style={{ left: `calc(${capPct}% - 1.5px)` }}
+            title={`Cap — ${MAX_TX_WEI.toString()} wei`}
+          />
+          {/* probe marker */}
+          <div
+            className="absolute -top-1"
+            style={{ left: `calc(${amountPct}% - 7px)` }}
+            title={`Probe — ${r.amountWei.toString()} wei`}
+          >
+            <div
+              className={`mx-auto h-0 w-0 border-x-[7px] border-t-[10px] border-x-transparent ${
+                r.verdict === "ALLOW" ? "border-t-pass" : "border-t-fail"
+              }`}
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex items-baseline justify-between gap-2 font-mono text-xs text-slate">
+          <span>0 wei</span>
+          <span className="text-right">
+            {over ? (
+              <>{fmtWei(r.amountWei)} wei — probe</>
+            ) : (
+              <>knife edge — {fmtWei(MAX_TX_WEI)} wei</>
+            )}
+          </span>
+        </div>
+        <p className="mt-1 break-all font-mono text-xs text-ink">
+          {r.amountStr} PHRS = {fmtWei(r.amountWei)} wei
+        </p>
+      </div>
+
+      {/* Macro lens — one wei per tick */}
+      <div className="mt-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">Macro lens — one wei per tick</p>
+          <p className="font-mono text-xs text-slate">cap − 2 … cap + 2</p>
+        </div>
+        {!probeInLens && (
+          <p className="mt-2 text-sm text-slate">
+            Your probe of {fmtWei(r.amountWei)} wei sits {fmtWei(distWei)} wei{" "}
+            {probeOffset < 0n ? "under" : "past"} the edge — off this lens, on the scale above. The
+            lens holds the reference pair: cap − 1 wei (ALLOW) against cap + 1 wei (BLOCK).
+          </p>
+        )}
+        <div className="mt-3 grid grid-cols-5 gap-1.5">
+          {LENS_OFFSETS.map((off) => {
+            const w = MAX_TX_WEI + off;
+            const pass = w <= MAX_TX_WEI;
+            const isProbe = probeInLens && probeOffset === off;
+            const isEdgeCell = off === 1n; // the knife edge: BLOCK begins at this cell's left bar
+            return (
+              <div
+                key={off.toString()}
+                className={`relative rounded-lg border bg-paper p-2 text-center ${
+                  isProbe ? "border-accent ring-2 ring-accent/30" : "border-hairline"
+                }`}
+              >
+                {isEdgeCell && (
+                  <span
+                    className="absolute inset-y-0 left-0 w-[3px] rounded-l-lg bg-ink"
+                    title="knife edge — BLOCK begins here"
+                  />
+                )}
+                <p className="font-mono text-xs font-bold text-ink">
+                  {off === 0n ? "cap" : `${off < 0n ? "−" : "+"}${fmtWei(off < 0n ? -off : off)}`}
+                </p>
+                <p
+                  className="mt-0.5 truncate font-mono text-[11px] text-slate"
+                  title={`${w.toString()} wei`}
+                >
+                  …{w.toString().slice(-4)}
+                </p>
+                <span className={`chip mt-1.5 ${pass ? "chip-pass" : "chip-fail"}`}>
+                  {pass ? "ALLOW" : "BLOCK"}
+                </span>
+                {isProbe && (
+                  <motion.span
+                    initial={{ scale: 1.15 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.25 }}
+                    className={`chip mt-1.5 ${r.verdict === "ALLOW" ? "chip-pass" : "chip-fail"}`}
+                  >
+                    your probe · {r.verdict}
+                  </motion.span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-slate">
+          Tick chips are the RULE-AMOUNT verdict at that exact wei — one wei flips it. "Your probe"
+          is the full six-rule verdict on live values.
+        </p>
+      </div>
+
+      {/* Margin hero — make 1 wei feel enormous */}
+      <div className="mt-6 border-t border-hairline pt-5 text-center">
+        <p className="text-sm font-semibold text-slate">
+          {r.verdict === "ALLOW" ? "Headroom under the cap" : "Over the cap by"}
+        </p>
+        <p className="mt-1 break-all font-mono text-4xl font-bold tracking-tight text-ink sm:text-5xl">
+          {r.marginWei === 0n || r.marginWei === 1n ? r.marginWei.toString() : fmtWei(r.marginWei)}
+          <span className="ml-2 font-sans text-sm font-semibold text-slate">wei</span>
+        </p>
+        <p className="mt-1 break-all font-mono text-xs text-slate">= {weiToPhrs(r.marginWei)} PHRS</p>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-slate">{marginNote}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The pipeline — READ → SKILL → EXECUTE → VERIFY as one instrument.
+// In 01 it is the phase inspector (select a phase). In 02 it lights up as the
+// six live reads resolve. In 03 it shows the fully lit chain that judged.
+// Every light maps to a real state; EXECUTE is honestly "skipped" for probes.
+// ---------------------------------------------------------------------------
+
+const PIPE_PHASES = [
+  { key: "read", name: "READ", tag: "six live reads, one pinned block" },
+  { key: "skill", name: "SKILL", tag: "six named rules, fail-closed" },
+  { key: "execute", name: "EXECUTE", tag: "broadcasts only on ALLOW" },
+  { key: "verify", name: "VERIFY", tag: "pingCount() re-read as proof" },
+] as const;
+
+type PipeState = "idle" | "active" | "lit" | "skipped";
+
+function PipelineDiagram(props: {
+  mode: "inspect" | "live" | "result";
+  selected?: number;
+  onSelect?: (i: number) => void;
+  probeStep?: number;
+  probeStatus?: ProbeStatus;
+  pinnedBlock?: number | null;
+  result?: ProbeResult | null;
+}) {
+  const { mode } = props;
+
+  const stateOf = (i: number): PipeState => {
+    if (mode === "inspect") return "idle";
+    if (mode === "result") return i === 2 ? "skipped" : "lit";
+    // live
+    const step = props.probeStep ?? 0;
+    const done = props.probeStatus === "done";
+    if (i === 0) return done || step >= 6 ? "lit" : "active";
+    if (i === 1) return done ? "lit" : step >= 6 ? "active" : "idle";
+    if (i === 2) return "skipped";
+    return done ? "lit" : "idle";
+  };
+
+  const detailOf = (i: number): string | null => {
+    const r = props.result;
+    if (mode === "result" && r) {
+      if (i === 0) return `block ${r.live.blockNum.toLocaleString("en-US")} · 6 reads`;
+      if (i === 1) return `${r.rules.filter((x) => x.pass).length}/6 pass · ${r.verdict}`;
+      if (i === 2) return "probe only — no broadcast";
+      return `pingCount() = ${r.live.pingCount}`;
+    }
+    if (mode === "live") {
+      const step = props.probeStep ?? 0;
+      if (i === 0) {
+        const reads = `${Math.min(step, 6)}/6 reads`;
+        return props.pinnedBlock != null
+          ? `block ${props.pinnedBlock.toLocaleString("en-US")} · ${reads}`
+          : reads;
+      }
+      if (i === 2) return "probe only — no broadcast";
+    }
+    return null;
+  };
+
+  const boxClass = (s: PipeState, selected: boolean) => {
+    const base = "flex-1 rounded-xl border p-2.5 text-left transition-colors duration-200 sm:p-3";
+    if (selected) return `${base} border-accent bg-paper ring-2 ring-accent/25`;
+    switch (s) {
+      case "active":
+        return `${base} border-accent bg-paper`;
+      case "lit":
+        return `${base} border-pass bg-paper`;
+      case "skipped":
+        return `${base} border-dashed border-hairline bg-porcelain`;
+      default:
+        return `${base} border-hairline bg-porcelain hover:border-accent`;
+    }
+  };
+
+  const dotClass = (s: PipeState) =>
+    s === "lit"
+      ? "bg-pass"
+      : s === "active"
+        ? "bg-accent"
+        : s === "skipped"
+          ? "bg-slate/40"
+          : "bg-slate/30";
+
+  return (
+    <div>
+      <div className="flex items-stretch" role={mode === "inspect" ? "tablist" : undefined}>
+        {PIPE_PHASES.map((p, i) => {
+          const s = stateOf(i);
+          const detail = detailOf(i);
+          const selected = mode === "inspect" && props.selected === i;
+          const inner = (
+            <>
+              <div className="flex items-center gap-1.5">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${dotClass(s)}`} aria-hidden />
+                <span className="font-mono text-[11px] text-slate">{i + 1}</span>
+                <span className="text-sm font-bold text-ink">{p.name}</span>
+                {s === "lit" && <Check size={13} className="text-pass" aria-hidden />}
+              </div>
+              <p className="mt-1 text-xs text-slate">{p.tag}</p>
+              {s === "skipped" && (
+                <p className="mt-1 text-xs font-semibold text-slate">skipped — probe only</p>
+              )}
+              {detail && <p className="mt-1 break-all font-mono text-[11px] text-ink">{detail}</p>}
+            </>
+          );
+          return (
+            <Fragment key={p.key}>
+              {i > 0 && (
+                <div className="flex items-center px-0.5 sm:px-1" aria-hidden>
+                  <div
+                    className={`h-[2px] w-3 sm:w-6 ${
+                      stateOf(i - 1) === "lit" || stateOf(i - 1) === "active"
+                        ? "bg-accent"
+                        : "bg-hairline"
+                    }`}
+                  />
+                </div>
+              )}
+              {mode === "inspect" ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  className={boxClass(s, selected)}
+                  onClick={() => props.onSelect?.(i)}
+                >
+                  {inner}
+                </button>
+              ) : (
+                <div className={boxClass(s, false)}>{inner}</div>
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+      {mode === "inspect" && (
+        <p className="mt-2 text-xs text-slate">Select a phase to inspect its commands and evidence.</p>
+      )}
+    </div>
+  );
+}
+
 const QUICK_AMOUNTS = ["0.0001", "0.004", "0.005", "0.0051", "0.1"];
 
 export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
@@ -274,6 +585,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
   const [inputError, setInputError] = useState<string | null>(null);
   const [probeStatus, setProbeStatus] = useState<ProbeStatus>("idle");
   const [probeStep, setProbeStep] = useState(0);
+  const [pinnedBlock, setPinnedBlock] = useState<number | null>(null);
   const [probeResult, setProbeResult] = useState<ProbeResult | null>(null);
   const [probeError, setProbeError] = useState<string>("");
   const [history, setHistory] = useState<FeedItem[]>([]);
@@ -291,12 +603,14 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
     setInputError(null);
     setProbeStatus("probing");
     setProbeStep(0);
+    setPinnedBlock(null);
     setProbeError("");
     try {
       const blockHex = (await rpcCall("eth_blockNumber", [])) as string;
       if (seq.current !== mySeq) return;
       setProbeStep(1);
       const blockNum = Number(BigInt(blockHex));
+      setPinnedBlock(blockNum);
       const pin = `0x${blockNum.toString(16)}`;
 
       const chainHex = (await rpcCall("eth_chainId", [])) as string;
@@ -524,8 +838,6 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
 
   const r = probeResult;
   const passCount = r?.rules.filter((x) => x.pass).length ?? 0;
-  const ratio = r ? Number((r.amountWei * 10000n) / MAX_TX_WEI) / 100 : 0; // % of cap, 2dp
-  const clampedPct = Math.min(100, ratio);
   const stats: Stat[] = r
     ? [
         {
@@ -598,18 +910,10 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
             </div>
           </div>
 
-          {/* Phase inspector */}
+          {/* Phase inspector — the pipeline itself is the control */}
           <div>
-            <div className="mb-3 flex flex-wrap gap-2">
-              {PHASES.map((name, i) => (
-                <button
-                  key={name}
-                  className={phase === i ? "btn-primary" : "btn-outline"}
-                  onClick={() => setPhase(i)}
-                >
-                  <span className="font-mono text-xs">{i + 1}</span> {name}
-                </button>
-              ))}
+            <div className="mb-3">
+              <PipelineDiagram mode="inspect" selected={phase} onSelect={setPhase} />
             </div>
             <div className="rounded-2xl border border-hairline bg-paper p-5 sm:p-6">
               <AnimatePresence mode="wait">
@@ -631,7 +935,9 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
             <p className="text-sm font-semibold text-ink">Probe the boundary yourself</p>
             <p className="mt-1 text-sm text-slate">
               Type any proposed amount in PHRS. The console runs the six live reads and the skill's
-              exact rule math — discover for yourself where ALLOW flips to BLOCK.
+              exact rule math — discover for yourself where ALLOW flips to BLOCK. The flip happens
+              at a single wei: probe the 1-wei edge below and watch the whole verdict turn on the
+              smallest unit the chain can express.
             </p>
             <div className="mt-4 flex flex-col gap-3">
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -670,6 +976,35 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
                   </button>
                 ))}
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate">
+                  The 1-wei edge — RULE-AMOUNT flips between these two:
+                </span>
+                <button
+                  className="btn-outline !min-h-[44px] font-mono text-sm"
+                  onClick={() => {
+                    setProbeInput("0.005");
+                    runProbe("0.005");
+                  }}
+                  disabled={probeStatus === "probing"}
+                >
+                  0.005
+                </button>
+                <button
+                  className="btn-outline !min-h-[44px] font-mono text-sm"
+                  onClick={() => {
+                    setProbeInput("0.005000000000000001");
+                    runProbe("0.005000000000000001");
+                  }}
+                  disabled={probeStatus === "probing"}
+                >
+                  0.005000000000000001
+                </button>
+              </div>
+              <p className="text-xs text-slate">
+                One wei apart: 0.005 PHRS sits exactly on the cap — ALLOW, because the rule is ≤,
+                not &lt; — and a single wei more is BLOCK.
+              </p>
               {inputError && (
                 <p className="text-sm leading-relaxed text-slate">
                   <span className="font-semibold text-ink">Not a valid amount.</span> {inputError}
@@ -697,7 +1032,13 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
             aria-label="02 Run"
           >
             <p className="text-sm font-semibold text-slate">02 — Run · probing the boundary</p>
-            <div className="mt-4">
+            <div className="mt-4 space-y-4">
+              <PipelineDiagram
+                mode="live"
+                probeStep={probeStep}
+                probeStatus={probeStatus}
+                pinnedBlock={pinnedBlock}
+              />
               <ProgressLoader
                 steps={PROBE_STEPS}
                 current={probeStep}
@@ -836,41 +1177,13 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
                   },
                 ]}
               >
-                {/* Precision ruler — the probe's exact position against the cap */}
+                <BoundaryRuler r={r} />
+
+                {/* The chain that judged — fully lit */}
                 <div>
-                  <p className="text-sm font-semibold text-slate">
-                    Where the amount sits against the cap
-                  </p>
+                  <p className="text-sm font-semibold text-slate">The chain that judged — fully lit</p>
                   <div className="mt-3">
-                    <div className="relative h-3 overflow-hidden rounded-full bg-tint">
-                      <motion.div
-                        className={`absolute inset-y-0 left-0 rounded-full ${
-                          r.verdict === "ALLOW" ? "bg-pass" : "bg-fail"
-                        }`}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${clampedPct}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                      />
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="font-mono text-xs text-slate">0 wei</span>
-                      <span className="font-mono text-xs text-slate">
-                        cap {MAX_TX_WEI.toString()} wei
-                      </span>
-                    </div>
-                    <p className="mt-2 break-all font-mono text-xs text-ink">
-                      {r.amountStr} PHRS = {r.amountWei.toString()} wei
-                      {r.verdict === "ALLOW" ? (
-                        <span className="text-slate">
-                          {" "}— {clampedPct.toFixed(2)}% of the cap, {r.marginWei.toString()} wei of
-                          headroom
-                        </span>
-                      ) : (
-                        <span className="text-slate">
-                          {" "}— {r.marginWei.toString()} wei past the cap
-                        </span>
-                      )}
-                    </p>
+                    <PipelineDiagram mode="result" result={r} />
                   </div>
                 </div>
 
