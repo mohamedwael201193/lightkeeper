@@ -16,8 +16,7 @@
  *   02 Run       · honest one-line status while the local index is scored
  *   03 Result    · ResultCard showpiece for a match, EmptyState for a refusal.
  */
-import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
 import { ShieldX } from "lucide-react";
 import { ResultCard, EmptyState } from "../ui";
 import type { Lamp } from "../../types";
@@ -176,7 +175,7 @@ function match(input: string): Entry | null {
   return bestScore > 0 ? best : null;
 }
 
-type Phase = "idle" | "searching" | "done";
+type Phase = "idle" | "done";
 
 function StepHeading({ n, title, sub }: { n: string; title: string; sub: string }) {
   return (
@@ -198,13 +197,6 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
   const [result, setResult] = useState<Entry | null>(null);
   const [miss, setMiss] = useState<string | null>(null);
   const [emptyHint, setEmptyHint] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, []);
 
   const run = (q: string) => {
     const trimmed = q.trim();
@@ -214,17 +206,13 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
       return;
     }
     setEmptyHint(false);
-    setPhase("searching");
-    if (timer.current) clearTimeout(timer.current);
-    // The match itself is synchronous; this short window is the honest
-    // "searching" state so the run step is perceptible — it reflects the real
-    // work happening right now (scoring the local pattern index).
-    timer.current = setTimeout(() => {
-      const hit = match(trimmed);
-      setResult(hit);
-      setMiss(hit ? null : trimmed);
-      setPhase("done");
-    }, 450);
+    // The match is synchronous against a local pattern index — it completes
+    // instantly, so there is no honest "searching" state to show. The result
+    // renders the moment the work is done; nothing is padded with a timer.
+    const hit = match(trimmed);
+    setResult(hit);
+    setMiss(hit ? null : trimmed);
+    setPhase("done");
   };
 
   const tryAnother = (q: string) => {
@@ -241,7 +229,7 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
           <span className="chip chip-info">Tier C — CLI lookup</span>
           <span className="chip chip-pass">438 passages · retrieved {RETRIEVED}</span>
         </div>
-        <p className="mt-2 text-sm leading-relaxed text-slate">
+        <p className="mt-2 text-sm leading-relaxed text-ink">
           Type a Pharos developer question. This panel matches it against the real doc-grounded
           answer patterns from our evidence battery — every match shows the verbatim docs quote
           with its page citation plus the exact{" "}
@@ -315,32 +303,9 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
         </div>
       </section>
 
-      {/* ── 02 · Run ─────────────────────────────────────────────────── */}
-      {phase === "searching" && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          aria-label="Searching"
-          className="space-y-4"
-        >
-          <StepHeading
-            n="02"
-            title="Run — searching the doc index"
-            sub="Scoring your query against the documented answer patterns, locally."
-          />
-          <div className="rounded-2xl border border-hairline bg-white p-5" aria-live="polite">
-            <p className="flex items-center gap-3 text-base font-medium text-ink">
-              <span className="relative flex h-3 w-3" aria-hidden>
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-accent" />
-              </span>
-              Searching the local index — normalizing query, scoring {ENTRIES.length} documented
-              patterns, best match wins or an honest refusal
-            </p>
-          </div>
-        </motion.section>
-      )}
+      {/* ── 02 · Run — instant here: the match is a synchronous local
+           index score, so the result renders the moment the work is done.
+           No timer, no spinner pretending otherwise. ──────────────────── */}
 
       {/* ── 03 · Result ──────────────────────────────────────────────── */}
       {phase === "done" && result && (

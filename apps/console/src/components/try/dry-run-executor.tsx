@@ -402,7 +402,7 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
               </button>
             )}
             {wallet.state.status === "connected" && (
-              <span className="chip chip-lit">
+              <span className="chip chip-info">
                 {wallet.state.address.slice(0, 10)}…{wallet.state.address.slice(-6)} ·{" "}
                 {wallet.state.balance ?? "…"} PHRS
               </span>
@@ -810,8 +810,9 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
           Both predictions held: success as predicted, gas inside the 1.2×
           limit. Broadcast 2 was the repeatability run — the same dry-run →
           gate → broadcast path a second time, and the prediction held again.
-          New rows are appended after every gated broadcast — try the
-          two probe presets above and score a prediction yourself.
+          The task's own <span className="font-mono">runs/prediction-ledger.jsonl</span> records
+          a new row after every gated broadcast — run the probe presets above
+          and the next row will be yours to score.
         </p>
       </section>
     </div>

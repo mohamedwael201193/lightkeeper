@@ -78,7 +78,7 @@ function CommandCard({ command, title }: { command: string; title: string }) {
         <button
           type="button"
           onClick={copy}
-          className="btn-outline inline-flex !min-h-[36px] items-center gap-2 !px-3 !text-sm"
+          className="btn-outline inline-flex !min-h-[44px] items-center gap-2 !px-3 !text-sm"
           aria-label={`Copy ${title} to clipboard`}
         >
           {copied ? <Check size={15} className="text-pass" /> : <Copy size={15} />}
@@ -135,7 +135,7 @@ function SanityCheck({ ctxLabel }: { ctxLabel: string }) {
         <button
           type="button"
           onClick={copy}
-          className="btn-outline inline-flex !min-h-[40px] items-center gap-2 !text-sm"
+          className="btn-outline inline-flex !min-h-[44px] items-center gap-2 !text-sm"
           aria-label="Copy sanity check command"
         >
           {copied ? <Check size={15} className="text-pass" /> : <Copy size={15} />}

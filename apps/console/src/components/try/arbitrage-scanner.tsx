@@ -56,32 +56,19 @@ const EXEC_LEG1 =
 const EXEC_LEG2 =
   "0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad";
 
-/* ---------- scan steps: one per REAL async call or real pricing computation ---------- */
+/* ---------- scan steps: one per REAL async phase or real computation ---------- */
 const BASE_STEPS = [
   "Pinning a scan block · eth_blockNumber",
   "Reading reserves from all three venues · eth_call",
   "Reading the live gas price · eth_gasPrice",
   "Rechecking the chain tip for quote freshness · eth_blockNumber",
 ];
-const CYCLE_STEPS: string[] = (() => {
-  const steps: string[] = [];
-  let n = 1;
-  for (const v1 of VENUES) {
-    for (const v2 of VENUES) {
-      if (v1.name === v2.name) continue;
-      steps.push(`Pricing cycle ${n}/12 · WPHRS via ${v1.name} → ${v2.name}`);
-      n++;
-      steps.push(`Pricing cycle ${n}/12 · TKB via ${v1.name} → ${v2.name}`);
-      n++;
-    }
-  }
-  return steps;
-})();
 const SCAN_STEPS = [
   ...BASE_STEPS,
-  ...CYCLE_STEPS,
+  "Pricing all twelve cycles — local constant-product math, no network",
   "Cross-checking the winning route on-chain · getAmountOut × 2",
 ];
+const CYCLE_STEP = BASE_STEPS.length; // index of the single pricing step
 
 /* ---------- bigint money helpers ---------- */
 function parseUnits(s: string): bigint {
@@ -237,17 +224,18 @@ async function runScan(
   //    units and are never mixed — unlike the CLI, which compares net across
   //    starts. The verdict runs on the WPHRS cycles, matching the size /
   //    threshold / guard units of this panel's inputs.
+  //    The whole pricing pass is synchronous local math — it is ONE honest
+  //    loader step, not twelve fake async steps.
   const gasWei = 2n * GAS_PER_LEG * gasPriceWei;
   const guardWei = (sizeWei * BigInt(guardBps)) / 10000n;
   const cyclesWphrs: Cycle[] = [];
   const cyclesTkb: Cycle[] = [];
-  let ci = 0;
+  onProgress?.(CYCLE_STEP);
+  await paint();
   for (const v1 of reads) {
     for (const v2 of reads) {
       if (v1.name === v2.name) continue;
       // WPHRS-start cycle
-      onProgress?.(BASE_STEPS.length + ci);
-      await paint();
       {
         const leg1Out = quote(sizeWei, v1.r0, v1.r1);
         if (leg1Out > 0n) {
@@ -272,10 +260,7 @@ async function runScan(
           }
         }
       }
-      ci++;
       // TKB-start cycle (same wei size, denominated in TKB — mirrors the CLI)
-      onProgress?.(BASE_STEPS.length + ci);
-      await paint();
       {
         const leg1Out = quote(sizeWei, v1.r1, v1.r0);
         if (leg1Out > 0n) {
@@ -300,7 +285,6 @@ async function runScan(
           }
         }
       }
-      ci++;
     }
   }
   cyclesWphrs.sort((a, b) => (b.net > a.net ? 1 : b.net < a.net ? -1 : 0));
@@ -320,7 +304,7 @@ async function runScan(
   let onChainMatch: boolean | null = null;
   let onChainNote = "not checked";
   if (best) {
-    onProgress?.(BASE_STEPS.length + CYCLE_STEPS.length);
+    onProgress?.(BASE_STEPS.length + 1);
     await paint();
     try {
       const v1 = reads.find((v) => v.name === best.leg1Venue)!;
@@ -669,10 +653,10 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                   </>
                 }
                 subline={
-                  data.verdict === "OPPORTUNITY" ? (
+                  data.verdict === "OPPORTUNITY" && data.best ? (
                     <>
-                      <strong>OPPORTUNITY</strong> — {data.best!.leg1Venue} →{" "}
-                      {data.best!.leg2Venue} clears your {fmt(data.thresholdWei)} WPHRS threshold.
+                      <strong>OPPORTUNITY</strong> — {data.best.leg1Venue} →{" "}
+                      {data.best.leg2Venue} clears your {fmt(data.thresholdWei)} WPHRS threshold.
                       This panel never signs or broadcasts; acting is the CLI&apos;s job.
                     </>
                   ) : (
@@ -685,7 +669,9 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                 rows={[
                   {
                     label: "Best route",
-                    value: `${data.best!.leg1Venue} → ${data.best!.leg2Venue}`,
+                    value: data.best
+                      ? `${data.best.leg1Venue} → ${data.best.leg2Venue}`
+                      : "— (no WPHRS-start route priced this scan)",
                   },
                   {
                     label: "Pinned block / chain tip",
@@ -723,27 +709,36 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                   <p className="mb-2 text-sm font-semibold text-ink">
                     Best route &amp; cost decomposition
                   </p>
+                  {data.best ? (
+                    <>
                   <p className="mb-3 text-sm text-slate">
-                    <strong className="text-ink">{data.best!.leg1Venue}</strong> →{" "}
-                    <strong className="text-ink">{data.best!.leg2Venue}</strong>: swap{" "}
+                    <strong className="text-ink">{data.best.leg1Venue}</strong> →{" "}
+                    <strong className="text-ink">{data.best.leg2Venue}</strong>: swap{" "}
                     <span className="font-mono">{fmt(data.sizeWei)}</span> WPHRS →{" "}
-                    <span className="font-mono">{fmt(data.best!.leg1Out)}</span> TKB, then back to{" "}
-                    <span className="font-mono">{fmt(data.best!.leg2Out)}</span> WPHRS.
+                    <span className="font-mono">{fmt(data.best.leg1Out)}</span> TKB, then back to{" "}
+                    <span className="font-mono">{fmt(data.best.leg2Out)}</span> WPHRS.
                   </p>
                   <div className="overflow-x-auto">
                     <table className="data-table w-full">
                       <tbody>
-                        <tr><td>Gross spread (leg2 out − size)</td><td className="font-mono text-right">{fmt(data.best!.gross)} WPHRS</td></tr>
-                        <tr><td>Fee, leg 1 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best!.fee1)} WPHRS</td></tr>
-                        <tr><td>Fee, leg 2 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best!.fee2)} WPHRS</td></tr>
-                        <tr><td>Slippage leg 1 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best!.slip1)} TKB</td></tr>
-                        <tr><td>Slippage leg 2 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best!.slip2)} WPHRS</td></tr>
+                        <tr><td>Gross spread (leg2 out − size)</td><td className="font-mono text-right">{fmt(data.best.gross)} WPHRS</td></tr>
+                        <tr><td>Fee, leg 1 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee1)} WPHRS</td></tr>
+                        <tr><td>Fee, leg 2 — 30 bps on the notional (embedded in the quote)</td><td className="font-mono text-right">{fmt(data.best.fee2)} WPHRS</td></tr>
+                        <tr><td>Slippage leg 1 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip1)} TKB</td></tr>
+                        <tr><td>Slippage leg 2 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip2)} WPHRS</td></tr>
                         <tr><td>Gas — 2 legs × {GAS_PER_LEG.toString()} gas × live price (PHRS 1:1 by test construction)</td><td className="font-mono text-right">{fmt(data.gasWei)} WPHRS</td></tr>
                         <tr><td>Slippage guard — your {data.guardBps / 100}% buffer on size</td><td className="font-mono text-right">{fmt(data.guardWei)} WPHRS</td></tr>
                         <tr><td className="font-semibold text-ink">Net</td><td className="font-mono text-right font-semibold text-ink">{fmt(data.net)} WPHRS</td></tr>
                       </tbody>
                     </table>
                   </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate">
+                      No WPHRS-start route priced this scan — the decomposition only runs when a
+                      best route exists.
+                    </p>
+                  )}
                   <button className="btn-outline mt-4" onClick={start} disabled={loading}>
                     Re-run scan (free)
                   </button>

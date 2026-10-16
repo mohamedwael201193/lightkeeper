@@ -518,7 +518,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
 
   return (
     <div className="space-y-6">
-      <p className="max-w-3xl text-sm leading-relaxed text-slate">
+      <p className="max-w-3xl text-sm leading-relaxed text-ink">
         <span className="font-semibold text-ink">{lamp.name}.</span> Point LIGHTKEEPER at
         any contract, pick an event, and watch it live — filtered, decoded, traceable.
         Reads are free and need no wallet. The lamp's own on-chain emitter already has

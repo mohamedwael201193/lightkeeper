@@ -144,6 +144,13 @@ const RUN_STEPS = [
   "Composing the exact cast commands",
 ];
 
+/** Yield one frame so React can paint the step label — not an artificial delay. */
+const nextFrame = () =>
+  new Promise<void>((r) => {
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => r());
+    else setTimeout(r, 16);
+  });
+
 export default function TryT10(_props: { lamp: Lamp }) {
   const idRef = useRef(0);
   const nextId = () => ++idRef.current;
@@ -330,8 +337,8 @@ export default function TryT10(_props: { lamp: Lamp }) {
     configRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   // 02 Run — two REAL phases, each advancing the loader only when its real
-  // computation finishes. The short yield between them is pacing so each
-  // state is perceivable, never a decorative timer.
+  // computation finishes. Between them we yield a single frame so React can
+  // paint the step label — a paint yield, never an artificial delay.
   const compose = async () => {
     if (n === 0) {
       setComposeErr({
@@ -367,7 +374,7 @@ export default function TryT10(_props: { lamp: Lamp }) {
     setRunStep(0);
     // Phase 1 — real: run the receipt-fitted estimator against the live rows.
     const estimate = { gas: estGas(mode, n), individual: n * 21_000, mode };
-    await new Promise<void>((r) => setTimeout(r, 380));
+    await nextFrame();
     setRunStep(1);
     // Phase 2 — real: compose the exact commands from the real script pipeline.
     const snapshot: ComposeResult = {
@@ -386,7 +393,7 @@ export default function TryT10(_props: { lamp: Lamp }) {
         isRefuser: r.addrTrim.toLowerCase() === REFUSER.toLowerCase(),
       })),
     };
-    await new Promise<void>((r) => setTimeout(r, 380));
+    await nextFrame();
     setRunStep(RUN_STEPS.length);
     setResult(snapshot);
     setPhase("done");

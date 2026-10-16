@@ -388,7 +388,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
       <div>
         <p className="smallcaps mb-2">Tier B · propose + sign yourself</p>
         <h3 className="text-lg font-semibold text-ink">The guardian you can trigger</h3>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink">
           This is the console's own policy engine — the same six conditions as the
           Threshold Guardian's <span className="font-mono">policy.yaml</span> — evaluated
           client-side against <strong className="text-ink">live Atlantic reads</strong>.
@@ -471,7 +471,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
               onClick={() => runEvaluation()}
               disabled={running}
             >
-              {running ? "Reading Atlantic…" : "RUN the gate"}
+              {running ? "Reading Atlantic…" : "Run the gate"}
             </button>
             <button
               className="btn-outline"
