@@ -11,7 +11,7 @@
  * and the honest negative (a breaching proposal is BLOCKED and never
  * broadcast) is one click away.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Lamp } from "../../types";
 import {
   ATLANTIC_CHAIN_ID,
@@ -35,6 +35,28 @@ interface CondResult {
   /** The vivid comparison: exact live value vs exact threshold. */
   detail: string;
   pass: boolean;
+}
+
+/** One gate run in this visitor's browser session — persisted locally. */
+interface SessionEntry {
+  t: string;
+  value: string;
+  decision: "ALLOW" | "BLOCK";
+  failing: string[];
+  tx: string | null;
+}
+
+const SESSION_LOG_KEY = "lk-t05-session-log";
+
+function readSessionLog(): SessionEntry[] {
+  try {
+    const raw = localStorage.getItem(SESSION_LOG_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
 }
 
 function fmtPhrs(v: number): string {
@@ -70,6 +92,20 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
   // --- 03 · Tier B sign flow ---
   const sign = useProposeAndSign();
   const [spendApplied, setSpendApplied] = useState(false);
+
+  // --- session log: every gate run this visit, persisted in the browser ---
+  const [sessionLog, setSessionLog] = useState<SessionEntry[]>(() => readSessionLog());
+  function logRun(entry: SessionEntry) {
+    setSessionLog((prev) => {
+      const next = [entry, ...prev].slice(0, 50);
+      try {
+        localStorage.setItem(SESSION_LOG_KEY, JSON.stringify(next));
+      } catch {
+        /* private mode: the in-memory list still renders */
+      }
+      return next;
+    });
+  }
 
   const parseNum = (s: string): number | null => {
     if (!/^\d+(\.\d{1,18})?$/.test(s.trim())) return null;
@@ -168,6 +204,13 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
       setTrace(conds);
       setDecision(allow ? "ALLOW" : "BLOCK");
       setRanFor(fmtPhrs(valuePhrs));
+      logRun({
+        t: new Date().toISOString(),
+        value: fmtPhrs(valuePhrs),
+        decision: allow ? "ALLOW" : "BLOCK",
+        failing: conds.filter((c) => !c.pass).map((c) => c.name),
+        tx: null,
+      });
       if (!allow) sign.cancel();
     } catch (e) {
       // Fail closed: stale or unreadable chain data ⇒ BLOCK, never guess.
@@ -180,6 +223,13 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
       setTrace(conds);
       setDecision("BLOCK");
       setRanFor(fmtPhrs(valuePhrs ?? 0));
+      logRun({
+        t: new Date().toISOString(),
+        value: fmtPhrs(valuePhrs ?? 0),
+        decision: "BLOCK",
+        failing: ["Live chain reads"],
+        tx: null,
+      });
       sign.cancel();
     } finally {
       setRunning(false);
@@ -196,12 +246,30 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
     });
   }
 
-  // Apply the visitor's confirmed tx to the rolling window once.
-  if (sign.state === "confirmed" && !spendApplied) {
-    const n = parseNum(ranFor || value);
-    if (n !== null) setSessionSpend((s) => s + n);
-    setSpendApplied(true);
-  }
+  // Apply the visitor's confirmed tx to the rolling window once (in an effect,
+  // never during render), and attach the tx hash to the latest ALLOW log entry.
+  useEffect(() => {
+    if (sign.state === "confirmed" && !spendApplied) {
+      const n = parseNum(ranFor || value);
+      if (n !== null) setSessionSpend((s) => s + n);
+      setSpendApplied(true);
+      if (sign.txHash) {
+        const tx = sign.txHash;
+        setSessionLog((prev) => {
+          const i = prev.findIndex((e) => e.decision === "ALLOW" && !e.tx);
+          if (i === -1) return prev;
+          const next = prev.slice();
+          next[i] = { ...next[i], tx };
+          try {
+            localStorage.setItem(SESSION_LOG_KEY, JSON.stringify(next));
+          } catch {
+            /* private mode: in-memory list still renders */
+          }
+          return next;
+        });
+      }
+    }
+  }, [sign.state, sign.txHash, spendApplied, ranFor, value]);
 
   // --- 04 · the task's real audit trail, from evidence.json ---
   const ev = (lamp.evidence ?? {}) as Record<string, unknown>;
@@ -229,7 +297,8 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
           it, you may fire a dust self-transfer. <strong className="text-ink">Your tx —
           signed in your wallet, from your address, with your testnet PHRS.</strong>{" "}
           LIGHTKEEPER never sees, holds, or asks for private keys. Atlantic testnet
-          (chain 688689) only.
+          (chain 688689) only. Every run you make is logged in your own session
+          log below (section 05), stored only in your browser.
         </p>
       </div>
 
@@ -329,7 +398,8 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
           {running && <p className="mt-2 text-sm text-slate">Reading eth_chainId, eth_gasPrice and your balance from Atlantic…</p>}
           {trace && (
             <div className="mt-3 overflow-hidden rounded-xl border border-hairline bg-white">
-              <table className="data-table">
+              <div className="overflow-x-auto">
+              <table className="data-table min-w-[560px]">
                 <thead>
                   <tr>
                     <th>Condition</th>
@@ -351,6 +421,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
                   ))}
                 </tbody>
               </table>
+              </div>
               <div className="flex items-center justify-between gap-3 border-t border-hairline bg-porcelain px-4 py-3">
                 <p className="text-xs text-slate">
                   {decision === "ALLOW"
@@ -506,7 +577,8 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
         </p>
         {runs.length > 0 ? (
           <div className="mt-3 overflow-hidden rounded-xl border border-hairline bg-white">
-            <table className="data-table">
+            <div className="overflow-x-auto">
+            <table className="data-table min-w-[560px]">
               <thead>
                 <tr>
                   <th>Run</th>
@@ -558,6 +630,7 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
           <div className="empty-panel mt-3 px-5 py-6 text-sm text-slate">
@@ -568,10 +641,87 @@ export default function TryThresholdGuardian({ lamp }: { lamp: Lamp }) {
           <p className="mt-3 text-xs text-slate">
             Task spend on-chain:{" "}
             <span className="font-mono text-ink">{spendTotal} PHRS</span> of a{" "}
-            <span className="font-mono text-ink">{budget} PHRS</span> budget — the single
-            FIRE self-transfer of 0.0001 PHRS plus its gas. This console surface spends
+            <span className="font-mono text-ink">{budget} PHRS</span> budget — the
+            task's on-chain dust fires (value + gas). This console surface spends
             only your own dust, only when you sign.
           </p>
+        )}
+      </section>
+
+      {/* 05 · Your session log — this visit's gate runs, kept in your browser */}
+      <section>
+        <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-slate">
+          05 · Your session log — this visit's runs
+        </h4>
+        <p className="mt-1 text-xs text-slate">
+          Every gate you run above is written here too — decision, proposal, and
+          what failed it — stored only in your browser, never sent anywhere.
+        </p>
+        {sessionLog.length > 0 ? (
+          <div className="mt-3 overflow-hidden rounded-xl border border-hairline bg-white">
+            <div className="overflow-x-auto">
+            <table className="data-table min-w-[480px]">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Proposal</th>
+                  <th>Decision</th>
+                  <th>Failed on</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessionLog.map((e, i) => (
+                  <tr key={`${e.t}-${i}`}>
+                    <td className="font-mono text-xs text-slate">
+                      {new Date(e.t).toLocaleTimeString()}
+                    </td>
+                    <td className="font-mono text-xs text-ink">{e.value} PHRS</td>
+                    <td>
+                      <span className={e.decision === "ALLOW" ? "chip chip-pass" : "chip chip-fail"}>
+                        {e.decision}
+                      </span>
+                    </td>
+                    <td className="font-mono text-xs text-slate">
+                      {e.decision === "ALLOW"
+                        ? e.tx
+                          ? (
+                            <a
+                              className="text-accent hover:underline break-all"
+                              href={`${EXPLORER_TX}${e.tx}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {e.tx.slice(0, 18)}…
+                            </a>
+                          )
+                          : "—"
+                        : e.failing.join("; ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+            <div className="border-t border-hairline bg-porcelain px-4 py-2">
+              <button
+                className="text-xs text-slate underline hover:text-ink"
+                onClick={() => {
+                  setSessionLog([]);
+                  try {
+                    localStorage.removeItem(SESSION_LOG_KEY);
+                  } catch {
+                    /* noop */
+                  }
+                }}
+              >
+                Clear my session log
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="empty-panel mt-3 px-5 py-6 text-sm text-slate">
+            Nothing yet — run the gate in section 02 and the decision lands here.
+          </div>
         )}
       </section>
     </div>

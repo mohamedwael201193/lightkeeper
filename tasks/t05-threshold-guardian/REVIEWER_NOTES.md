@@ -6,7 +6,8 @@
 2. Open `run-logs/hold.log` — one FAIL line (threshold), `DECISION: BLOCK`, exit 2, no tx hash anywhere.
 3. Open `run-logs/fire.log` — six PASS lines, `DECISION: ALLOW`, then a real broadcast: `0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c`, status 1, block 31481282. Click the explorer link; verify from/to/value/status yourself.
 4. Open `run-logs/mainnet-refusal.log` — a live `eth_chainId` read against the real Pharos mainnet RPC returned 1672 → `DECISION: REFUSE`, exit 3, even with `--confirm-mainnet` supplied. Nothing was signed or broadcast.
-5. Run `python3 tests/test_policy_engine.py` — 13/13 pass, no network needed.
+5. Open `run-logs/window.log` — the deep edge: a 0.0045 PHRS proposal passes per-tx (`0.0045 ≤ 0.005`), gas, and balance, but the rolling window (`0.018 + 0.0045 = 0.0225 > 0.02`) BLOCKs it, exit 2, no broadcast. The 0.018 PHRS in the window came from four real fires (`run-logs/fire-window-{1..4}.log`, tx hashes in `evidence.json`, all status 1 on the explorer).
+6. Run `python3 tests/test_policy_engine.py` — 13/13 pass, no network needed.
 
 ## What we deliberately did NOT do
 

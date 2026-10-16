@@ -82,6 +82,17 @@ Spend ledger: `run-logs/spend-ledger.jsonl` (feeds the rolling-window check).
   broadcast `0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c`,
   status 1, block 31481282 —
   https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c
+- **WINDOW-LOAD ×4:** `run-logs/fire-window-{1..4}.log` — four 0.0045 PHRS
+  dust fires, each ALLOW → broadcast, status 1 (blocks 31486305 / 31486321 /
+  31486393 / 31486440):
+  `0xb1ba9e2dc1c03e39d6896ecb07c063cf2a8b6a37712d47a321fae3213fd59a18`,
+  `0x04effe58f393349714ff6a5badeff5780d2c30ccce238f8184075854eb223f3f`,
+  `0xe160ca25fd76966a867fd36b761c08831ad54ed395069cfb59e1dc23ed912e7b`,
+  `0xe51e3e9b7fb93d9232d092725eedd6aac6d6d8f3d1688e4def8bf9ad0d6e85c3`.
+- **WINDOW-BLOCK:** `run-logs/window.log` — a fifth 0.0045 PHRS proposal
+  passes per-tx (`0.0045 ≤ 0.005`) but the rolling window (0.018 + 0.0045 =
+  0.0225 > 0.02) BLOCKS it, exit 2, nothing broadcast — the aggregate gate
+  proven with a real on-chain ledger behind it.
 - **REFUSE:** `run-logs/mainnet-refusal.log` — live `eth_chainId` read against
   the Pharos mainnet RPC returned 1672 → REFUSE, exit 3. Refused again with
   `--confirm-mainnet` supplied: refusal is unconditional.
@@ -89,8 +100,8 @@ Spend ledger: `run-logs/spend-ledger.jsonl` (feeds the rolling-window check).
   mocked chain): boundary at threshold, rolling window, gas spike,
   insufficient balance, stale-data fail-closed, wrong-chain, mainnet refuse
   ±confirmation, missing key.
-- **Spend:** 0.00031 PHRS total (0.0001 value + 21000 gas @ 10 gwei) of the
-  0.15 budget. See `evidence.json` for the machine-readable log.
+- **Spend:** 0.01915 PHRS total (0.0181 value + gas) of the 0.15 budget.
+  See `evidence.json` for the machine-readable log.
 
 ## 6 · Security & honesty
 
@@ -111,6 +122,8 @@ Spend ledger: `run-logs/spend-ledger.jsonl` (feeds the rolling-window check).
 4. Open the FIRE tx on the explorer and confirm status 1, block 31481282,
    from/to `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3`, value 0.0001 PHRS.
 5. Confirm the audit JSONL line for each run matches the console trace.
+6. Watch the rolling window gate: run the four window-load fires, then propose
+   0.0045 again — per-tx passes, window BLOCKs (exit 2).
 
 ## 8 · Links & submission
 

@@ -1,4 +1,4 @@
-# VIDEO-GUIDE.md — T05 Threshold Guardian (45–90 seconds)
+# VIDEO-GUIDE.md — T05 Threshold Guardian (90–120 seconds)
 
 No staged fakes. Every shot is a real terminal on the build machine and real
 explorer pages. Record in one take if possible; jump-cuts allowed.
@@ -31,18 +31,30 @@ Point at the tx hash. Then switch to the explorer tab showing the same hash,
 status success, block 31481282.
 Spoken: *"Same hash on the explorer. Real transaction, real receipt."*
 
-**Shot 4 (55–75s) — REFUSE.**
+**Shot 4 (55–80s) — WINDOW-BLOCK, the deep edge.**
+First, the four window-load fires (fast-forward or one shown fully):
+`python3 guardian.py execute --to 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --value-phrs 0.0045`
+— four times, each ALLOW → broadcast. Spoken: *"Four small dust fires. The
+spend ledger now holds 0.018 PHRS inside the rolling window."*
+Then: `python3 guardian.py propose --to 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --value-phrs 0.0045`
+Spoken: *"The same 0.0045 transfer — per-tx passes, gas passes, balance passes —
+but the rolling window would breach. Decision: BLOCK. Nothing broadcast. The
+guardian blocks a legal-looking transfer on the aggregate, proven by a real
+on-chain ledger."*
+Point at the `window 0.018000 + 0.004500 PHRS` FAIL line and exit code 2.
+
+**Shot 5 (80–95s) — REFUSE.**
 Run: `python3 guardian.py propose --network mainnet --to 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --value-phrs 0.0001`
 Spoken: *"Now mainnet. The guardian reads the chain ID live — sixteen-seventy-two —
 and refuses. Even with explicit re-confirmation, there is no override. Nothing
 signed, nothing broadcast."*
 Point at `DECISION: REFUSE`, exit code 3.
 
-**Shot 5 (75–90s) — close.**
+**Shot 6 (95–110s) — close.**
 Show the trace log line / `evidence.json` spend line.
 Spoken: *"Six independent conditions, one commented policy, both outcomes on
-Atlantic — plus a mainnet refusal. Total spend: three ten-thousandths of a PHRS.
-This is lamp five of the LIGHTKEEPER."*
+Atlantic — plus a rolling-window block and a mainnet refusal. Total spend:
+under two-hundredths of a PHRS. This is lamp five of the LIGHTKEEPER."*
 
 ## New interactive demo — console try-it-live (extra shots)
 

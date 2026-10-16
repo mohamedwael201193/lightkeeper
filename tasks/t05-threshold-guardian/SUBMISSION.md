@@ -39,6 +39,13 @@ under a nonce lock, waiting for the receipt.
 
 - **HOLD** — 0.05 PHRS proposal → BLOCKED (0.05 > max_per_tx 0.005), exit 2, no broadcast, nothing spent. `run-logs/hold.log`.
 - **FIRE** — 0.0001 PHRS self-transfer, 6/6 conditions PASS → broadcast and mined: tx `0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c`, status 1, block 31481282. Explorer: https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c
+- **WINDOW-LOAD ×4 + WINDOW-BLOCK (deep edge)** — four 0.0045 PHRS dust fires, each ALLOW → broadcast (status 1, blocks 31486305/31486321/31486393/31486440):
+  - `0xb1ba9e2dc1c03e39d6896ecb07c063cf2a8b6a37712d47a321fae3213fd59a18`
+  - `0x04effe58f393349714ff6a5badeff5780d2c30ccce238f8184075854eb223f3f`
+  - `0xe160ca25fd76966a867fd36b761c08831ad54ed395069cfb59e1dc23ed912e7b`
+  - `0xe51e3e9b7fb93d9232d092725eedd6aac6d6d8f3d1688e4def8bf9ad0d6e85c3`
+
+  The spend ledger then holds 0.018 PHRS inside the 60-minute window, so a fifth 0.0045 PHRS proposal — which *passes* per-tx (0.0045 ≤ 0.005) and every other condition — is BLOCKED on the rolling window alone (`0.018 + 0.0045 = 0.0225 > 0.02`), exit 2, nothing broadcast. `run-logs/window.log`. The aggregate gate proven with a real on-chain ledger behind it, not a mocked counter.
 - **REFUSE (bonus)** — mainnet-class proposal: live `eth_chainId` read against the real Pharos mainnet RPC returned 1672 → REFUSE, exit 3, refused again *with* explicit re-confirmation supplied. `run-logs/mainnet-refusal.log`.
 
 **Tests:** 13/13 unit tests pass offline (`tests/test_policy_engine.py`):
@@ -65,11 +72,8 @@ numbers compared (each condition PASS/BLOCK, e.g.
 - **HOLD path:** a one-click "propose 0.05 PHRS" negative shows the trace go
   BLOCKED — nothing proposed, nothing signed, nothing broadcast, nothing spent.
 - **History:** the task's real audit trail from `evidence.json` (HOLD, FIRE
-  with tx hash, two REFUSEs) plus spend ledger 0.00031/0.15 PHRS.
-
-**Spend:** 0.00031 PHRS total (0.0001 value + 21000 gas @ 10 gwei), of a
-0.15 PHRS budget. Honest disclosure: thresholds were fixed up front to
-exercise both branches symmetrically — never post-hoc rigging.
+  with tx hash, four WINDOW-LOAD fires, the WINDOW-BLOCK edge, two REFUSEs)
+  plus spend ledger 0.01915/0.15 PHRS.
 
 ## Links
 
@@ -81,8 +85,17 @@ exercise both branches symmetrically — never post-hoc rigging.
 ## Transaction hashes
 
 - FIRE (approved + broadcast, Atlantic): `0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c`
+- WINDOW-LOAD 1–4 (approved + broadcast, Atlantic, all status 1):
+  - `0xb1ba9e2dc1c03e39d6896ecb07c063cf2a8b6a37712d47a321fae3213fd59a18`
+  - `0x04effe58f393349714ff6a5badeff5780d2c30ccce238f8184075854eb223f3f`
+  - `0xe160ca25fd76966a867fd36b761c08831ad54ed395069cfb59e1dc23ed912e7b`
+  - `0xe51e3e9b7fb93d9232d092725eedd6aac6d6d8f3d1688e4def8bf9ad0d6e85c3`
 - HOLD: none — honestly blocked, no broadcast.
+- WINDOW-BLOCK: none — honestly blocked on the rolling window, no broadcast.
 - REFUSE: none — honestly refused, no broadcast.
+
+**Spend:** 0.01915 PHRS total (0.0181 value + gas across five broadcasts), of a 0.15 PHRS budget. Honest disclosure: thresholds were fixed up front to
+exercise both branches symmetrically — never post-hoc rigging.
 
 ## How to run
 
