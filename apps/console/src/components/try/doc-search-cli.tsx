@@ -334,14 +334,13 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
             <CopyBtn text='cd tasks/t04-doc-search-cli && ./pharos-docs "your question"' label="Copy" />
           </div>
           <div className="flex flex-wrap gap-2 pt-1 text-xs">
-            <a className="chip chip-info hover:underline" href={`${GH}/evidence.md`} target="_blank" rel="noreferrer">9 real transcripts (evidence.md)</a>
+            <a className="chip chip-info hover:underline" href={`${GH}/evidence.md`} target="_blank" rel="noreferrer">query log (evidence.md)</a>
             <a className="chip chip-info hover:underline" href={`${GH}/evidence/evidence.json`} target="_blank" rel="noreferrer">machine-readable log</a>
             <a className="chip chip-info hover:underline" href={`${GH}/README.md`} target="_blank" rel="noreferrer">install + usage</a>
-            <a className="chip chip-dim" href={`${GH}/REVIEWER_NOTES.md`} target="_blank" rel="noreferrer">reviewer notes</a>
           </div>
           <p className="text-xs">
             <span className="font-semibold text-ink">{lamp.name}</span> is complete by design — read-only research,
-            0 PHRS spent, 14 tests passing, exit-code discipline asserted by test.
+            0 PHRS spent, 14 tests passing.
           </p>
         </div>
       </div>

@@ -116,6 +116,7 @@ interface Target {
 }
 
 export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
+  void lamp; // page shell renders the name — the module doesn't need it
   const [address, setAddress] = useState(WPHRS);
   const [holder, setHolder] = useState("");
   const [blockInput, setBlockInput] = useState("");
@@ -348,7 +349,7 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
           <span className="font-mono">totalSupply()</span> live from Pharos Atlantic (chain 688689),
           all pinned to a single block. Free reads, no wallet, no signature. Defaults to WPHRS, the
           canonical wrapped token from the Pharos token registry. Add a block number to time-travel:
-          read the same values exactly as they were at that block, with a vs-latest delta. ({lamp.name})
+          read the same values exactly as they were at that block, with a vs-latest delta.
         </p>
       </div>
 

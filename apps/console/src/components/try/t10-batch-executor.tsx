@@ -239,6 +239,22 @@ export default function TryT10(_props: { lamp: Lamp }) {
 
   return (
     <div className="space-y-6">
+      {/* header */}
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-base font-semibold text-ink">Build a safe batch</h3>
+          <span className="chip chip-info">Tier C — command builder</span>
+          <span className="chip chip-pass">0 PHRS spent here</span>
+        </div>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate">
+          Add recipient rows — Flotilla validates each one, totals the batch, auto-selects the
+          cheapest mode (simple, single-batch, or multi-batch through the on-chain{" "}
+          <span className="font-mono">BatchDistributor</span>), and generates the exact commands
+          to run in your own terminal. Gas figures are estimates fitted from live Atlantic
+          receipts, labeled as estimates — never facts.
+        </p>
+      </div>
+
       {/* 01 — builder */}
       <div>
         <p className="smallcaps mb-3">01 · Build the recipient list</p>

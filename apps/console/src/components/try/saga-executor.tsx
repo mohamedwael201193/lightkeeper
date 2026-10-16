@@ -468,9 +468,17 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
       </div>
 
       <p className="text-xs text-slate">
-        Full evidence: state logs, all 13 transactions, receipt-based spend accounting, and the
-        manual runbook live in the repo at{" "}
-        <span className="font-mono">tasks/t06-saga-executor/</span>.
+        Full record — state logs, all 13 transactions, receipt-based spend accounting, and the
+        runbook — on GitHub at{" "}
+        <a
+          className="font-mono text-accent hover:underline"
+          href="https://github.com/mohamedwael201193/lightkeeper/tree/main/tasks/t06-saga-executor"
+          target="_blank"
+          rel="noreferrer"
+        >
+          tasks/t06-saga-executor
+        </a>
+        .
       </p>
     </div>
   );

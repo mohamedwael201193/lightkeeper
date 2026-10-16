@@ -205,7 +205,7 @@ function VerdictProbe({
       {sim !== null && sim.valueWei !== null && (
         <div className="mt-3 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`chip ${sim.ok ? "!border-accent" : "!border-fail"}`}>
+            <span className={`chip ${sim.ok ? "chip-pass" : "chip-fail"}`}>
               {sim.ok ? "ALLOW" : "BLOCK"}
             </span>
             <span className="font-mono text-[11px] text-slate">{sim.amountRule}</span>
@@ -301,7 +301,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
                     <td className="text-xs">{r.checks}</td>
                     <td>
                       <span
-                        className={`chip ${v.pass ? "!border-accent" : "!border-fail"} text-xs`}
+                        className={`chip ${v.pass ? "chip-pass" : "chip-fail"} text-xs`}
                       >
                         {v.pass ? "PASS" : "FAIL"}
                       </span>
@@ -486,7 +486,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
             </a>
           </li>
           <li>
-            The transcript keeps the failed runs too — one freshness refusal, one broadcast crash
+            The run log keeps the failed runs too — one freshness refusal, one broadcast crash
             that never sent a tx. Nothing edited out.
           </li>
           <li>

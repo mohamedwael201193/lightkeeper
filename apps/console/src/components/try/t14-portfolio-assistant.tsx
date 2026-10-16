@@ -397,7 +397,8 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
               )}
               {!balances.loading && !balances.error && balances.data && (
                 <>
-                  <table className="data-table">
+                  <div className="overflow-x-auto">
+<table className="data-table">
                     <thead>
                       <tr>
                         <th>Token</th>
@@ -438,6 +439,7 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
                       ))}
                     </tbody>
                   </table>
+</div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate">
                     <span>
                       Address{" "}
@@ -498,7 +500,8 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
                       stated, not hidden.
                     </div>
                   ) : (
-                    <table className="data-table">
+                    <div className="overflow-x-auto">
+<table className="data-table">
                       <thead>
                         <tr>
                           <th>Tx</th>
@@ -536,6 +539,7 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
                         ))}
                       </tbody>
                     </table>
+</div>
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate">
                     <span>
@@ -576,17 +580,17 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
               {!gas.loading && !gas.error && gas.data && (
                 <>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="empty-panel px-5 py-4">
+                    <div className="rounded-xl border border-hairline bg-porcelain px-5 py-4">
                       <p className="text-xs text-slate">Gas price</p>
                       <p className="font-mono text-lg text-ink">{gas.data.gasPriceGwei} Gwei</p>
                       <p className="text-xs text-slate">eth_gasPrice, block {gas.data.block.toLocaleString()}</p>
                     </div>
-                    <div className="empty-panel px-5 py-4">
+                    <div className="rounded-xl border border-hairline bg-porcelain px-5 py-4">
                       <p className="text-xs text-slate">PHRS balance</p>
                       <p className="font-mono text-lg text-ink">{gas.data.balance} PHRS</p>
                       <p className="text-xs text-slate">eth_getBalance, block {gas.data.block.toLocaleString()}</p>
                     </div>
-                    <div className="empty-panel px-5 py-4">
+                    <div className="rounded-xl border border-hairline bg-porcelain px-5 py-4">
                       <p className="text-xs text-slate">Covers roughly</p>
                       <p className="font-mono text-lg text-ink">
                         {gas.data.simpleTransfers.toLocaleString()} simple transfers
@@ -622,7 +626,8 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
           ledger — pinned at block {REFERENCE.block.toLocaleString()}, not live data.
           Your own portfolio above is the live one.
         </p>
-        <table className="data-table">
+        <div className="overflow-x-auto">
+<table className="data-table">
           <thead>
             <tr>
               <th>Token</th>
@@ -638,6 +643,7 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
             ))}
           </tbody>
         </table>
+</div>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate">
           <span>
             Wallet{" "}

@@ -330,7 +330,7 @@ function CycleTable({
           {cycles.map((c, i) => (
             <tr key={`${c.leg1Venue}-${c.leg2Venue}`} className={i === 0 ? "bg-accent/5" : undefined}>
               <td className="font-mono text-xs">
-                {i === 0 && <span className="mr-1 chip-pass !px-1.5 !py-0.5">best</span>}
+                {i === 0 && <span className="mr-1 chip chip-pass !px-1.5 !py-0.5">best</span>}
                 {c.leg1Venue} → {c.leg2Venue}
               </td>
               <td className="font-mono text-right">{fmt(c.leg1Out, 4)}</td>
@@ -420,8 +420,8 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="chip">TIER A · LIVE READ</span>
-        <span className="chip">NO SIGNATURE · COSTS NOTHING</span>
+        <span className="chip chip-dim">Tier A · live read</span>
+        <span className="chip chip-dim">No signature · costs nothing</span>
       </div>
 
       <h3 className="smallcaps !text-ink mb-2">Live spread scanner</h3>
@@ -570,7 +570,7 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
           {/* verdict */}
           <div className="rounded-xl border border-hairline bg-porcelain p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className={data.verdict === "OPPORTUNITY" ? "chip-pass" : "chip-fail"}>
+              <span className={data.verdict === "OPPORTUNITY" ? "chip chip-pass" : "chip chip-fail"}>
                 {data.verdict === "OPPORTUNITY" ? "◉ OPPORTUNITY" : `○ SKIP — ${data.skipReason}`}
               </span>
               <span className="text-sm text-slate">
@@ -621,7 +621,7 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                         <td className="font-mono text-xs">{e.bestCycle}</td>
                         <td className="font-mono text-right">{e.netWphrs}</td>
                         <td>
-                          <span className={e.verdict === "OPPORTUNITY" ? "chip-pass" : "chip-fail"}>
+                          <span className={e.verdict === "OPPORTUNITY" ? "chip chip-pass" : "chip chip-fail"}>
                             {e.verdict}{e.skipReason ? ` — ${e.skipReason}` : ""}
                           </span>
                         </td>

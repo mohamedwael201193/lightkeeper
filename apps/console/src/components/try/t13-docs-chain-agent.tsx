@@ -211,6 +211,7 @@ function makeVerdict(g: GroundedFn, decoded: string): [VerdictStatus, string, st
 }
 
 export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
+  void lamp; // page shell renders the name — the module doesn't need it
   const [address, setAddress] = useState(WPHRS);
   const [sigInput, setSigInput] = useState("totalSupply()");
   const [holder, setHolder] = useState("");
@@ -355,7 +356,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
           the doc URL, retrieval date, and verbatim excerpt — then <strong>proves</strong> it by
           calling that exact function on Pharos Atlantic (chain 688689) and interpreting the result,
           and finally <strong>verdicts</strong>: does the live chain value agree with what the docs
-          claimed? Free reads, no wallet. ({lamp.name})
+          claimed? Free reads, no wallet.
         </p>
       </div>
 
@@ -414,7 +415,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
           {PRESETS.map((p) => (
             <button
               key={p}
-              className={`chip cursor-pointer font-mono ${normSig(sigInput) === normSig(p) ? "ring-2 ring-accent" : ""}`}
+              className={`chip chip-dim cursor-pointer font-mono ${normSig(sigInput) === normSig(p) ? "ring-2 ring-accent" : ""}`}
               onClick={() => setSigInput(p)}
             >
               {p}
@@ -468,7 +469,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
                   <div>
                     <p className="text-sm font-semibold text-ink">The proof failed — loudly, not silently.</p>
                     <p className="mt-1 text-sm text-slate">{error}</p>
-                    <button className="btn-secondary mt-3" onClick={refetch} disabled={loading}>
+                    <button className="btn-outline mt-3" onClick={refetch} disabled={loading}>
                       Retry the proof
                     </button>
                   </div>
@@ -495,7 +496,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
                     </p>
                     <p className="text-ink">{data.interpretation}</p>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <span className="chip">block {data.blockNum.toLocaleString()}</span>
+                      <span className="chip chip-dim">block {data.blockNum.toLocaleString()}</span>
                       <a
                         className="font-mono text-xs text-accent hover:underline"
                         href={`${EXPLORER_ADDRESS}${data.address}`}
@@ -552,7 +553,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
             explanation will follow. Nothing was executed on-chain.
           </p>
           <button
-            className="btn-secondary mt-3"
+            className="btn-outline mt-3"
             onClick={() => {
               setSigInput("totalSupply()");
               setAddress(WPHRS);
@@ -576,10 +577,10 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
             left, the live on-chain proof on the right, and a docs-vs-chain verdict closes the loop.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button className="btn-secondary" onClick={tryUnverified}>
+            <button className="btn-outline" onClick={tryUnverified}>
               Try a made-up function — watch it fail closed
             </button>
-            <button className="btn-secondary" onClick={tryEoa}>
+            <button className="btn-outline" onClick={tryEoa}>
               Try a wallet address — watch the bytecode check
             </button>
           </div>

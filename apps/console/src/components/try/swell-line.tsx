@@ -259,8 +259,8 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="chip">TIER A · LIVE READ</span>
-        <span className="chip">NO SIGNATURE · COSTS NOTHING</span>
+        <span className="chip chip-dim">Tier A · live read</span>
+        <span className="chip chip-dim">No signature · costs nothing</span>
       </div>
 
       <h3 className="smallcaps !text-ink mb-2">Trend line, live</h3>
@@ -290,8 +290,8 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
       {tab === "spike" && spike && (
         <div className="space-y-5">
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <span className="chip">SYNTHETIC-CONTROLLED</span>
-            <span className="chip">SAME MATH AS `node bin/run.mjs spike-demo`</span>
+            <span className="chip chip-dim">Synthetic — controlled</span>
+            <span className="chip chip-dim">Same math as the CLI's spike demo</span>
           </div>
           <p className="max-w-3xl text-sm leading-relaxed text-slate">
             A controlled series: 14 blocks flat at 10 gwei, <strong className="text-ink">one 5×
@@ -302,7 +302,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
 
           <div className="rounded-xl border border-hairline bg-porcelain p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className={spike.fired ? "chip-pass" : "chip"}>
+              <span className={spike.fired ? "chip chip-pass" : "chip chip-dim"}>
                 {spike.fired ? "▲ FIRED" : "○ NO FIRE — HOLD"}
               </span>
               <span className="text-xs text-slate">end streak {spike.endStreak} · 21 synthetic blocks</span>
@@ -339,7 +339,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                       <td className="font-mono text-right">{r.streak}</td>
                       <td>
                         {r.decision === "FIRE" ? (
-                          <span className="chip-pass">▲ FIRE</span>
+                          <span className="chip chip-pass">▲ FIRE</span>
                         ) : (
                           <span className="text-xs text-slate">HOLD</span>
                         )}
@@ -391,7 +391,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
           {/* verdict */}
           <div className="rounded-xl border border-hairline bg-porcelain p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className={data.verdict === "TRENDING_UP" ? "chip-pass" : "chip"}>
+              <span className={data.verdict === "TRENDING_UP" ? "chip chip-pass" : "chip chip-dim"}>
                 {data.verdict === "TRENDING_UP"
                   ? `▲ TRENDING UP ×${data.streak}`
                   : data.verdict === "BUILDING"
@@ -454,7 +454,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                         {r.aboveBand === null ? (
                           <span className="text-xs text-slate">warmup</span>
                         ) : r.aboveBand ? (
-                          <span className="chip-pass">▲ above</span>
+                          <span className="chip chip-pass">▲ above</span>
                         ) : (
                           <span className="text-xs text-slate">inside</span>
                         )}

@@ -621,6 +621,7 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
           by ~30% on Atlantic — that drift is public, and the 1.2× safety factor
           exists precisely for it.
         </p>
+        <div className="overflow-x-auto">
         <table className="data-table">
           <tbody>
             <tr>
@@ -655,10 +656,11 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
             </tr>
           </tbody>
         </table>
+        </div>
         <p className="mt-2 text-xs text-slate">
           Both predictions held: success as predicted, gas inside the 1.2× limit,
           probe state moved exactly as projected (count 0→1, then 1→2). New
-          ledger rows land in <span className="font-mono">runs/prediction-ledger.jsonl</span> after every gated broadcast.
+          ledger rows are appended after every gated broadcast.
         </p>
       </div>
 
@@ -668,9 +670,9 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
         <span className="font-mono">boom()</span> predicted a revert and the
         broadcaster refused it; <span className="font-mono">ping()</span> predicted
         PASS and two real broadcasts matched their predictions — both status
-        success, both gas inside the 1.2× limit. Evidence lives in the task's{" "}
-        <span className="font-mono">evidence.json</span>. Try the same two cases
-        above — live, from your own wallet.
+        success, both gas inside the 1.2× limit. The on-chain receipts are in
+        the On-chain proof section below. Try the same two cases above —
+        live, from your own wallet.
       </p>
     </div>
   );

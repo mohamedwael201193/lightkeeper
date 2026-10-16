@@ -582,10 +582,18 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
       )}
 
       <p className="max-w-3xl text-xs leading-relaxed text-slate">
-        This console surface mirrors the task's policy engine (policy {POLICY_ID}); the full
-        evidence — 8 named rules, hash-chained audit trail, no-bypass stamp demo, mainnet refusal
-        log, 22/22 unit tests — lives in the task directory. Testnet only: the gate cannot and
-        will not touch mainnet.
+        This console surface mirrors the task's policy engine (policy {POLICY_ID}). The task's
+        full record — 8 named rules, the hash-chained audit trail, the mainnet-refusal demo, and
+        the unit tests — is on GitHub at{" "}
+        <a
+          className="font-mono text-accent hover:underline"
+          href="https://github.com/mohamedwael201193/lightkeeper/tree/main/tasks/t11-policy-gatekeeper"
+          target="_blank"
+          rel="noreferrer"
+        >
+          tasks/t11-policy-gatekeeper
+        </a>
+        . Testnet only: the gate cannot and will not touch mainnet.
       </p>
     </div>
   );

@@ -530,7 +530,7 @@ export default function TryDocsMcpOnboarding({ lamp }: { lamp: Lamp }) {
           </div>
           <div className="flex flex-wrap gap-2 pt-1 text-xs">
             <a className="chip chip-info hover:underline" href={`${GH}/evidence.md`} target="_blank" rel="noreferrer">query log (evidence.md)</a>
-            <a className="chip chip-info hover:underline" href={`${GH}/evidence.json`} target="_blank" rel="noreferrer">raw verbatim log (evidence.json)</a>
+            <a className="chip chip-info hover:underline" href={`${GH}/evidence.json`} target="_blank" rel="noreferrer">structured log (evidence.json)</a>
             <a className="chip chip-info hover:underline" href={`${GH}/QUICKSTART.md`} target="_blank" rel="noreferrer">first-5-queries quickstart</a>
             <a className="chip chip-dim" href={`${GH}/scripts/query_log.py`} target="_blank" rel="noreferrer">runner script</a>
           </div>
