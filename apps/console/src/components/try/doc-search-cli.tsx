@@ -7,18 +7,23 @@
  * doc-page citation plus the exact `./pharos-docs` CLI command that produces it,
  * copy-paste ready.
  *
- * Honest-miss path: when nothing matches, the panel says so — mirroring the
- * CLI's UNVERIFIED behavior (exit 2). Nothing is generated; every answer shown
- * is a verbatim excerpt with page URL and retrieval date.
+ * Honest-miss path: when nothing matches, the panel issues a designed
+ * UNVERIFIED verdict — the Beautiful Refusal doctrine (double-beat Stamp,
+ * plain-language reason, the CLI's exit-2 mirror). Nothing is generated;
+ * every answer shown is a verbatim excerpt with page URL and retrieval date.
  *
- * PRESENTATION (SHOWTIME): the three-act journey —
+ * PRESENTATION (FLAGSHIP): the three-act journey —
  *   01 Configure · ask a question (input + battery chips + refusal demos)
- *   02 Run       · honest one-line status while the local index is scored
- *   03 Result    · ResultCard showpiece for a match, EmptyState for a refusal.
+ *   02 Run       · instant: the match is a synchronous local index score —
+ *                  it completes at once, so the verdict renders the moment the
+ *                  work is done. No timer theater, ever.
+ *   03 Result    · the match as a sourced-document citation card (the thinking
+ *                  layer: why THIS answer won), or the Beautiful Refusal.
  */
 import { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ShieldX } from "lucide-react";
-import { ResultCard, EmptyState } from "../ui";
+import { ResultCard } from "../ui";
 import type { Lamp } from "../../types";
 
 const GH = "https://github.com/mohamedwael201193/lightkeeper/tree/main/tasks/t04-doc-search-cli";
@@ -157,22 +162,148 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   );
 }
 
-function match(input: string): Entry | null {
+interface Hit {
+  entry: Entry;
+  /** The indexed terms that fired on this question — the thinking, shown. */
+  terms: string[];
+  score: number;
+}
+
+/**
+ * The Beautiful Refusal (flagship doctrine §3A): when no documented pattern
+ * matches, the refusal is the verdict — not an empty state. Double beat:
+ * first the UNVERIFIED stamp lands (scale 1.15→1.0 with a soft thud shadow),
+ * then the plain-language reason rises, then the exit-2 mirror shows the
+ * exact CLI that reproduces the refusal against the full 438-passage index.
+ * The refusal demo chips below are tappable proof of honesty — every tap
+ * re-lands the stamp.
+ */
+function RefusalVerdict({
+  question,
+  onTryPattern,
+}: {
+  question: string;
+  onTryPattern: (q: string) => void;
+}) {
+  const reduce = useReducedMotion();
+  const stampMotion = reduce
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0 } }
+    : {
+        initial: { opacity: 0, scale: 1.15, rotate: -5 },
+        animate: { opacity: 1, scale: 1, rotate: -5 },
+        transition: { duration: 0.28, ease: "easeOut" as const },
+      };
+  const riseMotion = reduce
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0 } }
+    : {
+        initial: { opacity: 0, y: 16 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.3, delay: 0.22, ease: "easeOut" as const },
+      };
+  return (
+    <div
+      key={question}
+      className="rounded-2xl border border-hairline bg-white p-6 sm:p-8"
+      aria-live="polite"
+    >
+      {/* beat 1 — the stamp lands */}
+      <motion.div {...stampMotion} className="flex justify-center sm:justify-start">
+        <span
+          role="status"
+          aria-label="UNVERIFIED verdict"
+          className="inline-block rounded-md border-4 border-double px-5 py-2 font-mono text-2xl font-bold uppercase tracking-[0.22em] sm:text-3xl"
+          style={{
+            borderColor: "var(--fail)",
+            color: "#b91c1c",
+            boxShadow: "0 6px 18px rgba(220,38,38,0.18)",
+          }}
+        >
+          UNVERIFIED
+        </span>
+      </motion.div>
+
+      {/* beat 2 — the reason rises */}
+      <motion.div {...riseMotion}>
+        <h3 className="mt-6 font-display text-4xl leading-tight tracking-tight text-ink sm:text-5xl">
+          It would rather refuse than invent.
+        </h3>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">
+          “{question}” matched none of the {ENTRIES.length} documented question patterns on this
+          page, so this panel generated nothing. That refusal is the feature: the real CLI
+          searches 438 passages from 74 docs pages and behaves the same way —{" "}
+          <span className="font-semibold">it exits with code 2 rather than improvising</span>.
+        </p>
+
+        {/* beat 3 — the exit-2 mirror */}
+        <div className="mt-6 rounded-xl border border-hairline bg-porcelain p-4">
+          <p className="text-sm font-semibold text-slate">
+            The exit-2 mirror — run the refusal against the full index
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="code-block flex-1" style={{ padding: "0.7rem 0.9rem" }}>
+              ./pharos-docs "{question}"
+            </div>
+            <CopyBtn text={`./pharos-docs "${question}"`} label="Copy CLI command" />
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-slate">
+            Run it in <code className="font-mono">tasks/t04-doc-search-cli/</code> — the local
+            BM25 index (stdlib only, no network at answer time) searches all 438 passages, not
+            just these {ENTRIES.length} patterns, and exits 2 with an UNVERIFIED refusal. The
+            real transcript is in the task evidence: <code className="font-mono">M1.txt</code>{" "}
+            and <code className="font-mono">M2.txt</code>.
+          </p>
+        </div>
+
+        <p className="mt-5 text-sm font-semibold text-slate">
+          Proof of honesty — tap to watch it refuse again
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {REFUSALS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="chip chip-fail min-h-[44px] px-4 text-sm transition hover:border-[var(--accent)]"
+              onClick={() => onTryPattern(s)}
+            >
+              {s}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="chip chip-pass min-h-[44px] px-4 text-sm transition hover:border-[var(--accent)]"
+            onClick={() => onTryPattern(SUGGESTIONS[0])}
+          >
+            Show a grounded answer instead →
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/** Local pattern scoring — routes 9/9 evidence-battery queries, exits 2 on misses. */
+function match(input: string): Hit | null {
   const q = input.toLowerCase().trim();
   if (!q) return null;
   let best: Entry | null = null;
+  let bestTerms: string[] = [];
   let bestScore = 0;
   for (const e of ENTRIES) {
     let score = 0;
+    const terms: string[] = [];
     for (const kw of e.keywords) {
-      if (q.includes(kw)) score += kw.includes(" ") ? 3 : 1; // phrase hits weigh more
+      if (q.includes(kw)) {
+        score += kw.includes(" ") ? 3 : 1; // phrase hits weigh more
+        terms.push(kw);
+      }
     }
     if (score > bestScore) {
       bestScore = score;
       best = e;
+      bestTerms = terms;
     }
   }
-  return bestScore > 0 ? best : null;
+  return bestScore > 0 && best ? { entry: best, terms: bestTerms, score: bestScore } : null;
 }
 
 type Phase = "idle" | "done";
@@ -194,7 +325,7 @@ function StepHeading({ n, title, sub }: { n: string; title: string; sub: string 
 export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
-  const [result, setResult] = useState<Entry | null>(null);
+  const [hit, setHit] = useState<Hit | null>(null);
   const [miss, setMiss] = useState<string | null>(null);
   const [emptyHint, setEmptyHint] = useState(false);
 
@@ -207,11 +338,11 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
     }
     setEmptyHint(false);
     // The match is synchronous against a local pattern index — it completes
-    // instantly, so there is no honest "searching" state to show. The result
+    // instantly, so there is no honest "searching" state to show. The verdict
     // renders the moment the work is done; nothing is padded with a timer.
-    const hit = match(trimmed);
-    setResult(hit);
-    setMiss(hit ? null : trimmed);
+    const h = match(trimmed);
+    setHit(h);
+    setMiss(h ? null : trimmed);
     setPhase("done");
   };
 
@@ -308,7 +439,7 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
            No timer, no spinner pretending otherwise. ──────────────────── */}
 
       {/* ── 03 · Result ──────────────────────────────────────────────── */}
-      {phase === "done" && result && (
+      {phase === "done" && hit && (
         <section aria-label="Search result" className="space-y-4">
           <StepHeading
             n="03"
@@ -316,38 +447,71 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
             sub="Quoted word-for-word from the indexed docs; nothing added, nothing smoothed over."
           />
           <ResultCard
-            eyebrow="Result · doc-grounded pattern match"
-            headline={result.headline}
+            eyebrow="DOC-GROUNDED · verbatim docs answer"
+            headline={hit.entry.headline}
             subline={
               <>
-                Matched your question to the documented pattern “{result.question}”. The quote
+                Matched your question to the documented pattern “{hit.entry.question}”. The quote
                 below is the verbatim passage from the page — not a paraphrase.
               </>
             }
             status="pass"
             rows={[
-              { label: "Doc page", value: result.pageTitle },
+              { label: "Doc page", value: hit.entry.pageTitle },
               { label: "Retrieved", value: RETRIEVED },
               { label: "Corpus", value: "438 passages · 74 pages" },
             ]}
-            links={[{ label: "Open the doc page", href: result.pageUrl }]}
-            copyValue={result.cli.join("\n")}
+            links={[{ label: "Open the doc page", href: hit.entry.pageUrl }]}
+            copyValue={hit.entry.cli.join("\n")}
           >
             <div className="space-y-4">
+              {/* the thinking layer: why THIS answer won — real scoring, shown */}
+              <div className="rounded-lg border border-hairline bg-porcelain px-4 py-3">
+                <p className="text-sm font-semibold text-slate">
+                  Why this answer won — the scoring, made visible
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-sm text-slate">Your question hit</span>
+                  {hit.terms.map((t) => (
+                    <span key={t} className="chip chip-pass min-h-[32px] px-2.5 py-1 text-sm">
+                      {t}
+                    </span>
+                  ))}
+                  <span className="text-sm text-slate">
+                    — the highest of {ENTRIES.length} patterns (score {hit.score}).
+                  </span>
+                </div>
+              </div>
               <div>
                 <p className="mb-2 text-sm font-semibold text-slate">
-                  Answer — quoted verbatim from the indexed docs
+                  Answer — the sourced document
                 </p>
-                <blockquote className="rounded-lg border-l-4 border-[var(--gold)] bg-porcelain px-4 py-3 font-mono text-sm leading-relaxed text-ink whitespace-pre-line">
-                  {result.excerpt}
-                </blockquote>
+                <figure>
+                  <blockquote className="rounded-lg border-l-4 border-[var(--gold)] bg-porcelain px-4 py-3 font-mono text-sm leading-relaxed text-ink whitespace-pre-line">
+                    {hit.entry.excerpt}
+                  </blockquote>
+                  <figcaption className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate">
+                    <span className="font-semibold text-ink">{hit.entry.pageTitle}</span>
+                    <span aria-hidden>·</span>
+                    <a
+                      href={hit.entry.pageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono text-accent hover:underline break-all"
+                    >
+                      {hit.entry.pageUrl.replace("https://", "")}
+                    </a>
+                    <span aria-hidden>·</span>
+                    <span>retrieved {RETRIEVED}</span>
+                  </figcaption>
+                </figure>
               </div>
               <div>
                 <p className="mb-2 text-sm font-semibold text-slate">
                   The exact CLI it maps to
                 </p>
                 <div className="space-y-2">
-                  {result.cli.map((c) => (
+                  {hit.entry.cli.map((c) => (
                     <div key={c} className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <div className="code-block flex-1" style={{ padding: "0.7rem 0.9rem" }}>
                         {c}
@@ -357,10 +521,10 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
                   ))}
                 </div>
               </div>
-              {result.note && (
+              {hit.entry.note && (
                 <p className="rounded-lg bg-[var(--tint)] px-4 py-2.5 text-sm text-slate">
                   <span className="font-semibold text-ink">Honesty note: </span>
-                  {result.note}
+                  {hit.entry.note}
                 </p>
               )}
             </div>
@@ -369,34 +533,13 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
       )}
 
       {phase === "done" && miss && (
-        <section aria-label="Honest refusal" className="space-y-4">
+        <section aria-label="Beautiful refusal" className="space-y-4">
           <StepHeading
             n="03"
-            title="Result — the panel refused to invent an answer"
+            title="Result — the Beautiful Refusal"
             sub="This is the UNVERIFIED path: no covering pattern matched, so nothing is generated."
           />
-          <EmptyState
-            title="No documented answer — and that's the point"
-            message={`The answer-set on this page covers ${ENTRIES.length} documented question patterns — “${miss}” matched none, so this panel will not improvise an answer. That refusal is the feature: the real CLI (438 passages, 74 pages) behaves the same way and exits with code 2.`}
-            actionLabel="Try a covered pattern instead"
-            onAction={() => tryAnother(SUGGESTIONS[0])}
-          />
-          <div className="rounded-2xl border border-hairline bg-white p-5">
-            <p className="text-sm font-semibold text-slate">
-              Run the refusal against the full index
-            </p>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="code-block flex-1" style={{ padding: "0.7rem 0.9rem" }}>
-                ./pharos-docs "{miss}"
-              </div>
-              <CopyBtn text={`./pharos-docs "${miss}"`} label="Copy CLI command" />
-            </div>
-            <p className="mt-3 text-sm text-slate">
-              Run it in <code className="font-mono">tasks/t04-doc-search-cli/</code> — the local
-              BM25 index (stdlib only, no network at answer time) searches all 438 passages, not
-              just these {ENTRIES.length} patterns, and exits 2 with an UNVERIFIED refusal.
-            </p>
-          </div>
+          <RefusalVerdict question={miss} onTryPattern={tryAnother} />
         </section>
       )}
 
