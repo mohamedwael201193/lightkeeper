@@ -47,6 +47,15 @@ class TestFormats(unittest.TestCase):
         self.assertEqual(inv.invoice_id, "INV-2026-002")
         self.assertEqual(inv.source_format, "csv")
 
+    def test_csv_valid_004_live_invoice(self):
+        # The invoice that was actually settled on-chain (tx 0xc7ff…8bac66).
+        inv = parse((SAMPLES / "invoice-004.csv").read_text())
+        self.assertEqual(inv.invoice_id, "INV-2026-004")
+        self.assertEqual(inv.source_format, "csv")
+        self.assertEqual(inv.amount_phrs, Decimal("0.0005"))
+        plan = build_payment_plan(inv)
+        self.assertEqual(plan["amount_wei"], "500000000000000")
+
     def test_txt_valid(self):
         inv = parse((SAMPLES / "invoice-003.txt").read_text())
         self.assertEqual(inv.invoice_id, "INV-2026-003")

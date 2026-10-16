@@ -70,14 +70,19 @@ python3 -m agent.cli stamps                                  # paid-stamp ledger
 
 ## 5. Evidence (real, on Atlantic)
 
-- **Payment tx:** `0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9`
-  — 0.001 PHRS, block 31491203, status success.
+- **Payment tx #1 (JSON invoice):** `0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9`
+  — 0.001 PHRS, block 31481475, status success.
   Explorer: https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9
-- **Paid-stamp:** appended to `paid-stamps.jsonl` (gitignored; excerpt in `evidence.md`).
-- **Duplicate re-run:** `REFUSED: invoice 'INV-2026-001' was already paid … Double-payment prevented.`
+- **Payment tx #2 (CSV invoice):** `0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66`
+  — 0.0005 PHRS, block 31486451, status success (2026-10-16, full
+  parse→review→pay→stamp→refuse cycle proven on-chain for the CSV parser).
+  Explorer: https://atlantic.pharosscan.xyz/tx/0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66
+- **Paid-stamps:** two records in gitignored `paid-stamps.jsonl` (excerpts in `evidence.md`).
+- **Duplicate re-runs:** both invoices `REFUSED` with no second broadcast —
+  double-payment is structurally impossible.
 - **Malformed battery:** all 5 broken samples flagged with clear errors (see `evidence.md`).
-- **Tests:** 19/19 pass — `python3 -m unittest discover -s tests`.
-- **Spend:** 0.000021000021 PHRS gas (of 0.15 budget).
+- **Tests:** 20/20 pass — `python3 -m unittest discover -s tests`.
+- **Spend:** 0.000042000042 PHRS gas (of 0.15 budget).
 
 ## 6. Honesty notes
 
@@ -106,7 +111,9 @@ agent/parsers.py    3 format plugins + strict validation (InvoiceError on anythi
 agent/planner.py    payment plan, render_review(), build_unsigned_tx() from live RPC
 agent/pay.py        explicit-confirm gate, flock broadcast, paid-stamp idempotency
 agent/cli.py        parse | review | pay [--confirm ID] | stamps
-samples/            3 valid invoices + 5 deliberately broken ones
+samples/            3 valid invoices (001 JSON paid on-chain, 002 CSV, 003 TXT)
+                    + invoice-004.csv (CSV, paid on-chain 0xc7ff…8bac66)
+                    + 5 deliberately broken ones
 tests/              19 unit tests (formats, validation, plan/review, stamp idempotency)
 evidence.md/.json   real tx hashes, spend log, curl-tested links
 ```

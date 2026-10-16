@@ -10,9 +10,12 @@ task:
   currency: PHRS
 status: shipped
 budget_phrs: 0.15
-spent_phrs: 0.000021000021
+spent_phrs: 0.000042000042
 evidence:
   payment_tx: "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9"
+  payment2_tx: "0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66"
+  payment2_format: "csv"
+  payment2_block: 31486451
   explorer: "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9"
 deliverables:
   - task.yaml
@@ -30,5 +33,5 @@ deliverables:
   - agent/cli.py
   - samples/
   - tests/test_invoice.py
-tests: "python3 -m unittest discover -s tests  # 19/19 pass"
+tests: "python3 -m unittest discover -s tests  # 20/20 pass"
 video: PENDING-VIDEO

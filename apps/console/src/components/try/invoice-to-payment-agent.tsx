@@ -416,13 +416,16 @@ const SAMPLE_JSON = `{
   ]
 }`;
 
-const SAMPLE_TXT = `# Plaintext invoice — SAMPLE (not executed on-chain)
+const SAMPLE_TXT = `# Plaintext invoice — SAMPLE (payee is the operator testnet wallet; nothing is stranded)
 INVOICE: INV-2026-003
-PAYEE: 0x1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e
+PAYEE: 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
 AMOUNT: 0.0005
 CURRENCY: PHRS
 REFERENCE: LK-T19-DEMO-003
-MEMO: Sample plaintext invoice; review-only`;
+MEMO: Sample plaintext invoice`;
+
+const SAMPLE_CSV = `invoice_id,payee,amount,currency,reference,memo,line_items
+INV-2026-004,0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3,0.0005,PHRS,LK-T19-DEMO-004,CSV-format live settlement proof; dust self-payment to operator wallet,Proof service=0.0005`;
 
 const SAMPLE_BROKEN = `{
   "invoice_id": "INV-BAD-MISMATCH",
@@ -435,6 +438,15 @@ const SAMPLE_BROKEN = `{
     {"description": "Part B", "amount": "0.0007"}
   ]
 }`;
+
+/* ------------------------------------------------------------------ */
+/* Settled on-chain by the agent (paid-stamps.jsonl) — real Atlantic receipts */
+/* ------------------------------------------------------------------ */
+
+const SETTLED: { label: string; tx: string }[] = [
+  { label: "JSON invoice", tx: "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9" },
+  { label: "CSV invoice", tx: "0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66" },
+];
 
 /* ------------------------------------------------------------------ */
 /* Component                                                          */
