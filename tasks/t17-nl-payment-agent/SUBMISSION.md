@@ -32,18 +32,27 @@ read-back verification.
 
 **New — browser Tier B surface (2026-10-16):** `apps/console/src/components/try/nl-payment-agent.tsx`
 adds "Type it, review it, sign it" to the T17 task page ("Try it live — with
-your own wallet"). The exact parser grammar (deepened: 10 verbs, order-free
-slots, comma-number/word-amount/percentage/injection traps → refusal) runs
-client-side and renders the parsed intent as structured chips with a
-confidence note; ambiguous input asks a clarifying question, never guesses —
-and a recipient is never inferred. A valid plan goes through the mandatory
-review step (what moves, where, exact amount, amber dust warning above 0.01
-PHRS) before the visitor approves and signs in their own wallet. No keys are
-ever held or requested by the console.
+your own wallet"). The exact parser grammar — now converged 1:1 with the CLI
+(10 verbs, order-free slots, comma/negative/malformed-decimal/word-amount/
+percentage/injection traps) — runs client-side and renders the parsed intent
+as structured chips with a confidence note; ambiguous input asks a clarifying
+question, never guesses — and a recipient is never inferred. Every outcome
+carries a machine-checkable rule tag (R-NUM-NEG, R-ADDR-2, …); every plan
+carries its SHA-256 plan hash, byte-identical to the CLI's `plan_id`
+(verified: `d99af277ae49df62` on both surfaces), so the mandatory review the
+visitor sees is bound to the same plan identity as the CLI's `CONFIRM` gate.
+A valid plan goes through the mandatory review step (what moves, where,
+exact amount, amber dust warning above 0.01 PHRS) before the visitor approves
+and signs in their own wallet. No keys are ever held or requested by the
+console. Harden battery: 76 adversarial inputs (unicode, emoji, RTL,
+SQL/HTML injection, order-free slots, glued tokens, 19-decimal amounts) —
+zero throws, zero over-cap plans; two real bugs found and fixed (the
+`-0.001` sign-flip misfire, the word-amount false positive), both ported back
+to the CLI parser.
 
-Real evidence on Atlantic: two full dust flows
+Real evidence on Atlantic: three full dust flows
 (parse → review → confirm → broadcast → verified receipt) plus one refused
-ambiguous input with zero broadcast. 20/20 parser unit tests, including
+ambiguous input with zero broadcast. 34/34 parser unit tests, including
 prompt-injection-as-untrusted-input and a CI grep asserting no signing code in
 the parser/validator/reviewer/gate/verifier.
 
@@ -58,6 +67,8 @@ the parser/validator/reviewer/gate/verifier.
 - Run 2 (ambiguous → refused, no tx): `runs/f8e7894d/transcript.log` in repo
 - Run 3 receipt (0.015 PHRS, verified 4/4):
   https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2
+- Run 4 receipt (0.002 PHRS, verified 4/4 — harden run, deepened "transfer" phrasing):
+  https://atlantic.pharosscan.xyz/tx/0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723
 - Interactive demo: LIGHTKEEPER console → open T17 → "Try it live — with your
   own wallet" (module `apps/console/src/components/try/nl-payment-agent.tsx`):
   type a phrase, see the parsed-intent chips, pass the mandatory review, and
@@ -68,14 +79,15 @@ the parser/validator/reviewer/gate/verifier.
 
 - `0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f` (0.01 PHRS)
 - `0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2` (0.015 PHRS)
+- `0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723` (0.002 PHRS)
 
-Total spend: 0.025042 PHRS (dust + gas), of 0.15 budget. Atlantic testnet only.
+Total spend: 0.027063 PHRS (dust + gas), of 0.15 budget. Atlantic testnet only.
 
 ## How to verify (for the judge)
 
 ```bash
 git clone https://github.com/mohamedwael201193/lightkeeper && cd lightkeeper/tasks/t17-nl-payment-agent
-python3 -m unittest tests.test_parser        # 20/20
+python3 -m unittest tests.test_parser        # 34/34
 python3 agent.py new --text "send 0.01 PHRS to 0x0b0da9286706fa44be3d845b1ecf2cdd8df93625"
 python3 agent.py review --run <id>            # REVIEW card + unsigned tx
 python3 agent.py new --text "send 0.01 PHRS or 0.02 PHRS to 0x709d6964e15d52b392ad17e7fff848c9733fa329"

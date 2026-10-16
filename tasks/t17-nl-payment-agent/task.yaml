@@ -28,7 +28,7 @@ deliverables:
   - src/gate.py             # explicit CONFIRM <plan_id> gate
   - src/broadcast.py        # confirmed-only broadcaster (flock nonce lock)
   - src/verify.py           # receipt read-back verification
-  - tests/test_parser.py    # 20 unit tests: valid/invalid/ambiguous/injection/no-signing
+  - tests/test_parser.py    # 34 unit tests: valid/invalid/ambiguous/injection/notation-traps/rule-tags/no-signing
   - runs/                   # real run dirs: parse/review/confirm/execute/receipt + transcripts
   - task.yaml
   - REQUIREMENTS.md         # official requirements quoted verbatim
@@ -41,7 +41,7 @@ deliverables:
 
 budget:
   max_phrs: 0.15
-  spent_phrs: 0.025042   # 2 dust txs + gas; see evidence.json spend_log
+  spent_phrs: 0.027063   # 3 dust txs + gas; see evidence.json spend_log
 
 evidence:
   atlantic_explorer: https://atlantic.pharosscan.xyz/

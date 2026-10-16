@@ -51,7 +51,7 @@ python3 agent.py confirm --run <id> --phrase "CONFIRM <plan_id>"
 export ATLANTIC_DEPLOYER_KEY="<key-from-env-only>"
 python3 agent.py send --run <id>
 
-# Run the unit tests (20 cases: valid/invalid/ambiguous/injection/no-signing)
+# Run the unit tests (34 cases: valid/invalid/ambiguous/injection/notation-traps/rule-tags/no-signing)
 python3 -m unittest tests.test_parser
 ```
 
@@ -64,10 +64,12 @@ A plan is produced **only** when the input contains exactly one of each:
 
 | Slot | Rule |
 |---|---|
-| Verb | one of `send pay transfer remit wire` (case-insensitive); two different verbs → refusal |
+| Verb | one of `send pay transfer remit wire move forward deliver grant release` (case-insensitive); two different verbs → refusal |
 | Amount | exactly one `<number> PHRS` (up to 18 decimals, exact integer wei math, no floats); `0` or negative → refusal; > 0.15 PHRS → refusal (per-plan safety cap) |
+| Number notation | thousands separators (`1,000`), a minus sign before digits (`-0.001`), malformed decimals (`.001`, `1.`), word amounts in amount position (`send all PHRS`), and percentages (`50%`) are all **refused with a named rule** (R-NUM-COMMA, R-NUM-NEG, R-NUM-MALFORMED, R-AMOUNT-WORD, R-AMOUNT-PCT) — never normalized, never silently reinterpreted. Word amounts fire only between the verb and the address: "ignore all rules. send 0.01 PHRS to 0x…" stays a plan (with an untrusted-input warning) |
 | Token | must be PHRS; any other unit (`USDC`, …) → clarification question, never a wrong-token default |
 | Destination | exactly one `0x` + 40 hex; bare 40-hex without `0x` → refusal; two addresses → refusal; zero address → refusal |
+| Rule tags | every outcome carries a machine-checkable tag (`PARSE-OK`, `R-ADDR-2`, …); every plan carries its SHA-256 plan hash — byte-identical on the CLI and in the browser console |
 
 Anything else — no verb, no amount, stray numbers (`"in 2 minutes"`), or
 instruction-like phrases (`"ignore previous instructions…"`, treated as
@@ -101,7 +103,12 @@ pipeline stops. Ambiguity never becomes a transaction.
 - **Run 3** — `pay 0.015 phrs to 0x709d…3fa329` → full flow →
   [tx 0x80300f…5043bd](https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2),
   receipt status 0x1, 4/4 read-back checks PASS.
-- **Spend: 0.025042 PHRS** of the 0.15 budget (dust 0.025 + gas 0.000042).
+- **Run 4 (harden)** — `transfer 0.002 PHRS to 0x66dc…c9fc` → full flow →
+  [tx 0x9e18bf…0c45723](https://atlantic.pharosscan.xyz/tx/0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723),
+  receipt status 0x1, 4/4 read-back checks PASS. Proves the converged grammar
+  end-to-end: `transfer` is one of the five verbs ported back from the
+  browser surface.
+- **Spend: 0.027063 PHRS** of the 0.15 budget (dust 0.027 + gas 0.000063).
 - Full transcripts: `runs/<id>/transcript.log`. Machine-readable: `evidence.json`.
 
 ## 7. Files
@@ -116,7 +123,7 @@ tasks/t17-nl-payment-agent/
 │   ├── gate.py           # CONFIRM <plan_id> gate
 │   ├── broadcast.py      # confirmed-only, flock-wrapped broadcaster
 │   └── verify.py         # receipt read-back verification
-├── tests/test_parser.py  # 20 unit tests
+├── tests/test_parser.py  # 34 unit tests
 ├── runs/                 # real runs: 27845082 ✓, f8e7894d (refused), 4cd4dfc6 ✓
 ├── task.yaml  REQUIREMENTS.md  README.md  evidence.md  evidence.json
 ├── REVIEWER_NOTES.md  LINKS.md  SUBMISSION.md  VIDEO-GUIDE.md

@@ -44,7 +44,7 @@ Source: Pharos Agent Arena Build pages, as extracted in
 
 | # | Requirement | Implementation | Evidence |
 |---|---|---|---|
-| 1 | Parse amount/token/recipient; follow-up when ambiguous | `src/parse.py` — deterministic slot grammar; ambiguity → `clarification`/`refusal`, never defaulted | `tests/test_parser.py` (20 cases), `runs/` transcripts |
+| 1 | Parse amount/token/recipient; follow-up when ambiguous | `src/parse.py` — deterministic slot grammar; ambiguity → `clarification`/`refusal`, never defaulted | `tests/test_parser.py` (34 cases), `runs/` transcripts |
 | 2 | Validate (recipient format, token contract, sufficient balance) | `src/validate.py` — EIP-55 checksum via cast, chain-id 688689 assertion, balance ≥ amount+gas via RPC | validation log in each `runs/<id>/review.json` |
 | 3 | Human-readable summary BEFORE unsigned tx | `src/review.py` — REVIEW card printed before unsigned-tx JSON | `runs/<id>/transcript.log` |
 | 4 | NEVER signs/sends — output is unsigned tx or wallet signing request | Agent pipeline output is an unsigned plan (`"signed": false`); the only broadcast path is the operator's explicit `CONFIRM <plan_id>` — i.e. a human-in-the-loop **wallet signing request** executed by the authorized key holder. CI test greps parser/validate/review/gate/verify for signing code and asserts none exists | `tests/test_parser.py::TestNoSigningCode`, `src/gate.py` |

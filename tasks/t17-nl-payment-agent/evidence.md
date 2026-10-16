@@ -37,7 +37,23 @@ re-verified to 4/4 PASS. Both the failure and the corrected re-run are in
 - **Receipt:** status 0x1, block 0x1e060b1, gas 21000 @ 0x3b9aca01 wei
 - **Read-back verification:** 4/4 PASS
 
-## Spend log (total 0.025042 PHRS ≤ 0.15 budget)
+## Run 4 — third full flow, deepened "transfer" phrasing (harden run)
+
+- **Input:** `transfer 0.002 PHRS to 0x66dc06035c2b1bc169af46c2cc6c235c3773c9fc`
+- **Run dir:** `runs/a5691e1d/` (parse.json, review.json, confirmed.json, executed.json, receipt.json, transcript.log)
+- **Plan id:** `47c05e79377fe743` — 0.002 PHRS → 0x66Dc06035C2B1BC169aF46c2CC6c235C3773C9fc
+- **Tx:** [0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723](https://atlantic.pharosscan.xyz/tx/0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723)
+- **Receipt:** status 0x1, block 0x1e075d7, gas 21000 @ 0x3b9aca01 wei
+- **Read-back verification:** 4/4 PASS
+
+This run proves the harden-converged grammar end-to-end on Atlantic:
+`transfer` is one of the five verbs added when the browser grammar was ported
+back into the CLI parser (10 verbs total, one grammar on both surfaces). The
+recipient is a fresh unspendable fixture (random 20 bytes, no key ever
+existed). Broadcast ran under `flock /tmp/lk-nonce.lock` with chain-id 688689
+re-asserted at broadcast time.
+
+## Spend log (total 0.027063 PHRS ≤ 0.15 budget)
 
 | Item | PHRS |
 |---|---|
@@ -46,17 +62,33 @@ re-verified to 4/4 PASS. Both the failure and the corrected re-run are in
 | Run 3 dust transfer | 0.015000 |
 | Run 3 gas (21000 @ 1000000001 wei) | 0.000021 |
 | Run 2 (refused, no broadcast) | 0.000000 |
-| **Total** | **0.025042** |
+| Run 4 dust transfer | 0.002000 |
+| Run 4 gas (21000 @ 1000000001 wei) | 0.000021 |
+| **Total** | **0.027063** |
 
 ## Unit tests
 
-`tests/test_parser.py` — **20/20 PASS**: valid parses (canonical, verb
-synonyms, case-insensitivity, exact wei math, plan-id stability/binding),
-invalid inputs (empty, zero amount, over 0.15 cap, bare-hex address, short
-address), ambiguous inputs (no amount, no destination, unknown token, two
-amounts, two addresses, conflicting verbs, no verb, stray numbers),
-prompt-injection treated as untrusted slot input, and the CI no-signing-code
-grep over parser/validate/review/gate/verify.
+`tests/test_parser.py` — **34/34 PASS**: valid parses (canonical, verb
+synonyms incl. the 5 deepened verbs, case-insensitivity, exact wei math,
+plan-id stability/binding), invalid inputs (empty, zero amount, over 0.15
+cap, bare-hex address, short address, zero address), ambiguous inputs (no
+amount, no destination, unknown token, two amounts, two addresses,
+conflicting verbs, no verb, stray numbers), number-notation traps
+(comma separators, minus sign, malformed decimals, percentages — all refused
+with plain-language reasons), the positional word-amount rule ("send all
+PHRS" refuses; "ignore all rules. send 0.01 PHRS" stays a plan with an
+untrusted-input warning), rule-tag coverage for every outcome, prompt
+injection treated as untrusted slot input, and the CI no-signing-code grep
+over parser/validate/review/gate/verify.
+
+Adversarial battery (2026-10-16): 76 free-text inputs hammered against the
+browser parser — unicode/emoji/RTL/SQL/HTML-injection, order-free slots,
+glued tokens, 19-decimal and sub-wei amounts, double-0x, uppercase 0X —
+zero throws, zero plans over the cap, zero bad addresses, zero
+non-positive plans. Two real bugs found and fixed: (1) `send -0.001 PHRS`
+silently became +0.001 (minus sign dropped — now R-NUM-NEG refusal); (2) the
+word-amount trap false-positived on "ignore all rules…" (now positional).
+Both fixes ported to the CLI parser; both surfaces re-verified.
 
 ## What was NOT done
 

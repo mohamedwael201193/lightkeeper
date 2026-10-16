@@ -11,7 +11,7 @@ with a clear reason. No LLM anywhere: the parser is a deterministic grammar
 
 ```bash
 cd tasks/t17-nl-payment-agent
-python3 -m unittest tests.test_parser        # 20/20, incl. ambiguity + injection
+python3 -m unittest tests.test_parser        # 34/34, incl. ambiguity + injection + notation traps
 python3 agent.py new --text "send 0.01 PHRS to 0x<addr>"
 python3 agent.py review --run <id>            # REVIEW card + unsigned tx ("signed": false)
 python3 agent.py review --run f8e7894d        # the refused run: aborts, nothing to review
@@ -60,6 +60,18 @@ Arena Payments track rewards real receipts, and the official video ("…
    time (mainnet-confusion firewall).
 6. **Execute-once.** `executed.json` marks a run; the gate refuses a second
    broadcast for the same run (double-pay protection at the agent layer).
+7. **Harden 2026-10-16: one grammar on both surfaces.** The browser parser
+   (`apps/console/src/components/try/nl-payment-agent.tsx`) was converged
+   1:1 with this CLI parser (10 verbs, comma/negative/malformed-decimal/
+   percent traps, positional word-amount rule). The adversarial battery found
+   two real bugs, both fixed on both surfaces: (a) `send -0.001 PHRS`
+   silently became +0.001 — now `R-NUM-NEG` refusal; (b) the word-amount trap
+   false-positived on "ignore all rules. send 0.01 PHRS…" — now positional,
+   so that input stays a plan with an untrusted-input warning (matching the
+   original audited behavior). Every outcome carries a rule tag; every plan
+   carries a SHA-256 plan hash byte-identical on both surfaces (verified
+   `d99af277ae49df62`), so the console review binds the same plan identity
+   the `CONFIRM` gate binds.
 
 ## Honest gaps
 
