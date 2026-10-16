@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T05:27:20.526Z",
+  "generated_at": "2026-10-16T05:31:46.033Z",
   "source": "../../tasks/*/evidence.json + task.yaml — statuses from real evidence only",
   "total_points": 3200,
   "lamps_lit": 28,

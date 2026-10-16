@@ -277,6 +277,30 @@ const lamps = MATRIX.map(([id, name, tier, points, toolkit]) => {
 });
 
 const secured = lamps.filter((l) => l.status === "shipped");
+
+// DEPLOY SAFETY: when the source tasks/ tree is absent (e.g. a Vercel build
+// rooted at apps/console), never clobber a good committed lamps.json with an
+// empty one — keep the existing data and warn loudly instead.
+const tasksMissing = !existsSync(tasksDir);
+if (tasksMissing && existsSync(outFile)) {
+  try {
+    const prev = JSON.parse(readFileSync(outFile, "utf8"));
+    if (prev && Array.isArray(prev.tasks) && prev.tasks.length === MATRIX.length) {
+      const prevLit = prev.tasks.filter((t) => t.status === "shipped").length;
+      console.log(
+        `gen-lamps: tasks/ absent — keeping committed lamps.json ` +
+          `(${prevLit}/${prev.tasks.length} shipped, generated ${prev.generated_at})`
+      );
+      process.exit(0);
+    }
+  } catch {
+    // fall through and regenerate below
+  }
+}
+if (tasksMissing) {
+  console.log("gen-lamps: WARNING — tasks/ absent and no valid committed lamps.json; writing DIM matrix");
+}
+
 const out = {
   generated_at: new Date().toISOString(),
   source: "../../tasks/*/evidence.json + task.yaml — statuses from real evidence only",
