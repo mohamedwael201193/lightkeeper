@@ -3,6 +3,7 @@ import { ArrowLeft, ExternalLink, Flame } from "lucide-react";
 import type { Lamp } from "../types";
 import { explorerAddress, explorerTx, shortenAddress } from "../types";
 import TryPanel from "./TryPanel";
+import FounderPanel from "./FounderPanel";
 
 function SectionLabel({ title }: { title: string }) {
   return (
@@ -100,11 +101,12 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mx-auto max-w-4xl px-5 pb-24 pt-8"
-    >
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto max-w-4xl px-5 pb-24 pt-8"
+      >
       {/* ── back ─────────────────────────────────────────────────── */}
       <a
         href="#/"
@@ -302,6 +304,9 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
           </div>
         )}
       </section>
-    </motion.div>
+      </motion.div>
+      {/* FOUNDER face — renders only when lk_founder==='1'; public template ends above */}
+      <FounderPanel lamp={lamp} />
+    </>
   );
 }
