@@ -1,7 +1,7 @@
 # T15 — SUBMISSION PACK (copy-paste ready for the Pharos Agent Arena)
 
 > Paste the sections below into the per-task submission form. The repo link is
-> commit-pinned — fill `<commit>` after the T15 commit lands.
+> commit-pinned — fill `ec2a9b4d1bd18e7d2dbcb20f3e8197767e760e89` after the T15 commit lands.
 
 ---
 
@@ -48,7 +48,7 @@ made on net.
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t15-yield-optimizer
+https://github.com/mohamedwael201193/lightkeeper/tree/ec2a9b4d1bd18e7d2dbcb20f3e8197767e760e89/tasks/t15-yield-optimizer
 
 ## Proof links
 
