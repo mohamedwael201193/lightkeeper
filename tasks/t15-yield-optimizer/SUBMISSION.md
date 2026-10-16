@@ -67,3 +67,14 @@ https://github.com/mohamedwael201193/lightkeeper/tree/ec2a9b4d1bd18e7d2dbcb20f3e
 
 PENDING-VIDEO — filming guide: VIDEO-GUIDE.md (45–90s, real terminal + real explorer,
 no staged fakes)
+
+## Console interactive surface (added 2026-10-16)
+
+- Module: `apps/console/src/components/try/yield-optimizer.tsx` — Tier A, live reads
+  only (no wallet, no signature, costs nothing).
+- **"Vaults, live":** reads both OctopusVault rate cards off Atlantic via `eth_call`
+  (rewardPerBlock, entry/exit fees, min hold, totalStaked, rewardPool, runwayBlocks),
+  shows them side by side with a Refresh button, and re-runs the runway-capped net
+  math live over a selectable 100 / 400 / 1,000-block horizon.
+- Differentiator: the winner chip is computed from live chain state at page-load time —
+  not a screenshot of a past run. The console video shot is shot 7 in VIDEO-GUIDE.md.

@@ -14,6 +14,7 @@
 | 4 | 38–55 | Terminal: stake tx → `cast` receipt; then claim; show balance delta; overlay the equation `delta = blocks × rate` | "Live run: staked dust, waited 141 blocks, claimed. Kelp paid exactly 141-times-ten-to-the-thirteen wei — to the wei, no rounding. Kraken matched its pro-rata formula to the wei too. The math on screen is the math on chain." |
 | 5 | 55–70 | Terminal: `cat runs/unsigned_deposit.json` highlighting `"signed": false`; key-hygiene grep test passing | "And the agent never touches keys — the deposit transaction is prepared unsigned, for your signature only. Twelve tests prove no signing code exists in the module." |
 | 6 | 70–80 | Explorer: claim tx page, "testnet mechanics demonstration — not real yield" caption | "T15: the yield optimizer that tells you when to stay put." |
+| 7 | 80–95 | Console (lightkeeper-console.vercel.app): T15 task page → "Try it live" → read the live vault table, switch the horizon 1,000 → 400 blocks, watch the winner chip recompute | "And on the console the whole thing is live: the rate cards are read off the chain in front of you. Switch the holding period and the winner flips on runway-capped math — not on a rate screenshot." |
 
 ## Filming notes
 
