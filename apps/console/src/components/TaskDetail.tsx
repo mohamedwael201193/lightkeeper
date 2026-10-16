@@ -259,7 +259,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
 
         {!hasProof && (
           <div className="empty-panel px-5 py-6 text-sm text-slate">
-            No runs recorded yet. This lamp stays dim until real evidence lands.
+            No runs recorded yet.{!lit ? " This lamp stays dim until real evidence lands." : ""}
           </div>
         )}
       </section>

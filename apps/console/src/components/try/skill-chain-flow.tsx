@@ -105,7 +105,9 @@ function runbook(scenario: Scenario): string {
   const valueWei = scenario === "allow" ? "100000000000000" : "100000000000000000";
   return [
     `# T12 runbook — ${scenario === "allow" ? "ALLOW" : "BLOCK"} path (real values from the task's contrast runs)`,
-    `set -a; source ~/workspace/lightkeeper/.env; set +a`,
+    `# Your own env — set these in YOUR terminal before running:`,
+    `export ATLANTIC_RPC_URL="${RPC}"`,
+    `export DEPLOYER_PRIVATE_KEY="<your-private-key>"`,
     `export PATH="$HOME/.foundry/bin:$PATH"`,
     `cd ~/workspace/lightkeeper/tasks/t12-skill-chain-flow`,
     `python3 flow.py validate                      # policy sanity check`,

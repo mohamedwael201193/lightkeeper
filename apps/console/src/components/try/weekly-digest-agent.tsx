@@ -87,7 +87,7 @@ export default function TryWeeklyDigestAgent({ lamp }: { lamp: Lamp }) {
 
   const configCmd = `# LIGHTKEEPER T26 — digest config (run inside tasks/t26-weekly-digest-agent)
 # Secrets are NEVER stored here: TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
-# come from your environment (.env), never from config or code.
+# come from your own environment (exported in your terminal), never from config or code.
 
 export WATCH_ADDRESS=${addrOk ? address : "<your-watched-address>"}
 export WINDOW_DAYS=${cadence.days}

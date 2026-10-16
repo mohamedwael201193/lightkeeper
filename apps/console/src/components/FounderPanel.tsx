@@ -85,6 +85,17 @@ function Pre({ text, maxHeight = 320 }: { text: string; maxHeight?: number }) {
   );
 }
 
+/** Reusable VIDEO-GUIDE.md ✓/✗ chip — presence is checked live against the repo. */
+export function VideoGuideChip({ lamp }: { lamp: Lamp }) {
+  const { text, failed } = useFetchedMarkdown(rawUrl(lamp, "VIDEO-GUIDE.md"));
+  const ready = text != null && !failed;
+  return (
+    <span className={`chip ${ready ? "chip-pass" : failed ? "chip-dim" : ""}`}>
+      VIDEO-GUIDE.md {ready ? "✓" : failed ? "✗" : "…"}
+    </span>
+  );
+}
+
 /** SUBMISSION.md / VIDEO-GUIDE.md cockpit block: rendered markdown + copy button, blob-link fallback. */
 function MarkdownPack({
   lamp,
@@ -195,6 +206,7 @@ export default function FounderPanel({ lamp }: { lamp: Lamp }) {
             <span className={`chip ${lamp.has_submission ? "chip-pass" : "chip-dim"}`}>
               SUBMISSION.md {lamp.has_submission ? "✓" : "✗"}
             </span>
+            <VideoGuideChip lamp={lamp} />
             <span className={`chip ${lamp.has_evidence_json ? "chip-pass" : "chip-dim"}`}>
               evidence.json {lamp.has_evidence_json ? "✓" : "✗"}
             </span>

@@ -1,6 +1,6 @@
 {
   "one_liner": "A verbatim query log over the developer docs that surfaced 5 confirmed documentation gaps — each with the exact query and a suggested fix.",
-  "what_it_does": "This lamp stress-tested the official developer docs by asking them 9 real questions through their own question-answering interface. It recorded every answer word-for-word and found 5 real gaps — places where the docs were missing, wrong, or pointed nowhere useful — each paired with a suggested fix. Proven by 9 real query transcripts against the live docs, all listed below.",
+  "what_it_does": "This lamp stress-tested the official developer docs by asking them 9 real questions through their own question-answering interface. It recorded every answer word-for-word and found 5 real gaps — places where the docs were missing, wrong, or pointed nowhere useful — each paired with a suggested fix. Proven by 9 real query transcripts against the live docs, all linked below.",
   "config_plain": [
     {
       "label": "Questions asked",

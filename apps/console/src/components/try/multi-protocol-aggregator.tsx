@@ -177,7 +177,7 @@ function shortAddr(a: string): string {
   return `${a.slice(0, 10)}…${a.slice(-7)}`;
 }
 
-const CLI_CMD = `set -a; source ~/workspace/lightkeeper/.env; set +a
+const CLI_CMD = `export ATLANTIC_RPC_URL="https://atlantic.dplabs-internal.com"   # your own RPC endpoint
 export PATH="$HOME/.foundry/bin:$PATH"
 cd ~/workspace/lightkeeper/tasks/t28-multi-protocol-aggregator
 

@@ -1,10 +1,10 @@
 {
   "one_liner": "An append-only, tamper-evident log of real agent actions with real tx hashes — plus a wallet-activity reporter with Markdown, CSV, and PDF exports.",
-  "what_it_does": "This lamp keeps a log of agent actions where every entry links to the previous one, so any tampering breaks the chain and is detectable. It also turns a wallet plus a date range into a readable activity report. Proven by 2 real on-chain dust transactions and 14 verified log entries on the Atlantic testnet, all linked below.",
+  "what_it_does": "This lamp keeps a log of agent actions where every entry links to the previous one, so any tampering breaks the chain and is detectable. It also turns a wallet plus a date range into a readable activity report. Proven by 2 real on-chain dust transactions and 15 verified log entries on the Atlantic testnet, all linked below.",
   "config_plain": [
     {
       "label": "Log entries verified",
-      "value": "14, all PASS"
+      "value": "15, all PASS"
     },
     {
       "label": "Log style",

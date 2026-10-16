@@ -139,7 +139,9 @@ const R1_STEPS: PlanStep[] = [
 function r1Commands(): string {
   return [
     `# R1 — the exact reproduction path (real commands, real order)`,
-    `set -a; source ~/workspace/lightkeeper/.env; set +a`,
+    `# Your own env — set these in YOUR terminal before running:`,
+    `export ATLANTIC_RPC_URL="https://atlantic.dplabs-internal.com"`,
+    `export DEPLOYER_PRIVATE_KEY="<your-private-key>"`,
     `export PATH="$HOME/.foundry/bin:$PATH"`,
     `cd ~/workspace/lightkeeper/tasks/t27-doc-grounded-builder-agent`,
     ``,

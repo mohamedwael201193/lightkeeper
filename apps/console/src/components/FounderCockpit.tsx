@@ -1,5 +1,6 @@
 import { ArrowLeft, Check, Download, ExternalLink } from "lucide-react";
 import { useFounderMode, disableFounderMode } from "../hooks/useFounderMode";
+import { VideoGuideChip } from "./FounderPanel";
 import type { Lamp, LampsData } from "../types";
 import { arenaTaskUrl, taskRoute } from "../types";
 
@@ -50,13 +51,15 @@ export default function FounderCockpit({ data }: { data: LampsData }) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-hairline bg-paper">
-        <table className="w-full min-w-[760px] text-left text-xs">
+        <table className="w-full min-w-[940px] text-left text-xs">
           <thead>
             <tr className="border-b border-hairline text-slate">
               <th className="px-4 py-3 font-semibold">Task</th>
               <th className="px-4 py-3 font-semibold">State</th>
               <th className="px-4 py-3 font-semibold">Evidence</th>
               <th className="px-4 py-3 font-semibold">Pack</th>
+              <th className="px-4 py-3 font-semibold">Video guide</th>
+              <th className="px-4 py-3 font-semibold">Evidence count</th>
               <th className="px-4 py-3 font-semibold">Links</th>
             </tr>
           </thead>
@@ -80,6 +83,14 @@ export default function FounderCockpit({ data }: { data: LampsData }) {
                 <td className="px-4 py-3">
                   <span className={`chip ${t.has_submission ? "chip-pass" : "chip-dim"}`}>
                     {t.has_submission ? "✓" : "✗"}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <VideoGuideChip lamp={t} />
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`chip ${t.txs.length ? "chip-pass" : "chip-dim"}`}>
+                    {t.txs.length} tx{t.txs.length === 1 ? "" : "s"}
                   </span>
                 </td>
                 <td className="px-4 py-3">

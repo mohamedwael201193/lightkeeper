@@ -108,7 +108,8 @@ const RUN_A = [
 ];
 
 const REPRODUCE_CMD = `export PATH="$HOME/.foundry/bin:$PATH"
-set -a; source ~/workspace/lightkeeper/.env; set +a
+export ATLANTIC_RPC_URL="https://atlantic.dplabs-internal.com"   # your own RPC endpoint
+export DEPLOYER_PRIVATE_KEY="<your-private-key>"                  # your own key — never shared
 cd ~/workspace/lightkeeper/tasks/t06-saga-executor
 
 # unit tests: receipt classifier, retry table, state machine, gates (no chain writes)

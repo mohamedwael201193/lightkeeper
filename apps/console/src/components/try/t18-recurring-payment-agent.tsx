@@ -131,7 +131,8 @@ cp config/schedule.example.json config/schedule.json
 python3 src/tide.py status        # history board + next scheduled payment
 
 # 2. Ticks pay AT MOST ONE due installment, else print SKIP — safe every minute:
-set -a; source ~/workspace/lightkeeper/.env; set +a
+export ATLANTIC_RPC_URL="https://atlantic.dplabs-internal.com"   # your own RPC endpoint
+export DEPLOYER_PRIVATE_KEY="<your-private-key>"                  # your own key — never shared
 python3 src/tide.py tick
 
 # 3. For the rhythm to run itself, print the exact cron line for YOUR machine
