@@ -3,6 +3,13 @@
 **Rule: NO staged fakes.** Every frame shows a real terminal or a real
 explorer page. The 0x0 receipt is the star — linger on it.
 
+## Interactive console demo (ship in the video)
+
+The console's "Try it live" surface (`apps/console/src/components/try/saga-executor.tsx`)
+is filmed as **shot 7 below**: it walks a reviewer through the forced-failure run step by
+step — each step card shows the mined tx, block, receipt status, and the executor's decision,
+and a "Verify receipts live" button re-reads every receipt from Atlantic RPC on camera.
+
 ## Shot list
 
 | # | Sec | Visual | Spoken script |
@@ -13,6 +20,7 @@ explorer page. The 0x0 receipt is the star — linger on it.
 | 4 | 45–65 | Terminal: state log lines `FAILED_PERMANENT → COMPENSATING`; then the two compensation txs on the explorer, both Status 1. | "The executor saw the zero, classified it permanent — no retry — and compensated forward: a refund of every wei of locked dust, plus an allowance revoke. Both mined." |
 | 5 | 65–80 | Terminal: `cast call` balanceOf → `1000000000000000000000000`; on-screen caption: **"finalized txs can't be undone — compensation only."** | "Balance before: one million. After: one million. Finalized transactions can't be undone — only compensated. Gas is the one thing you never get back, and we report it." |
 | 6 | 80–90 | Repo dir listing + evidence.json spend line: total 0.00218 PHRS of 0.15 budget. | "All evidence, receipts, and the spend log are in the repo. T06 — done, on-chain." |
+| 7 | 90–105 | **Console interactive demo** on lightkeeper-console.vercel.app: open the T06 Saga Executor lamp → scroll to the live surface → click the 0x0 step card open → press "Verify receipts live" and wait for the live ✓ badges → scroll to the reproduce panel. | "The same saga, interactive: every step of the real failure run, explorable. Click the failed step — the real receipt, the real block. Hit verify and the console re-reads each receipt straight from Atlantic. Reproduce it all from the commands below — T06, proven twice: once on-chain, once in the demo." |
 
 ## Filming notes
 
@@ -20,4 +28,4 @@ explorer page. The 0x0 receipt is the star — linger on it.
 - On the explorer, wait for the page to fully render before recording the scroll (pages are server-rendered; the status field is in the first viewport).
 - The caption in shot 5 must be literal text on screen for ≥3 seconds.
 - Do not narrate over the 0x0 page — let the "failed" status breathe for 2 seconds.
-- Total runtime target: 75 seconds. No background music with lyrics.
+- Total runtime target: 105 seconds with the console shot (75 without). No background music with lyrics.
