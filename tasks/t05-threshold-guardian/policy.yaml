@@ -1,0 +1,44 @@
+# =============================================================================
+# THRESHOLD GUARDIAN — policy file
+# One file, plain words, every number commented. Nothing hard-coded in code.
+# Read by guardian.py. Validate it with:  python3 guardian.py validate
+# =============================================================================
+
+# --- Identity ---------------------------------------------------------------
+# The only sender this guardian will ever sign for. Guardian refuses to run
+# if the key in the environment derives to a different address.
+sender: "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+
+# --- Network ----------------------------------------------------------------
+network:
+  # Atlantic testnet ONLY. Any other chain id is a hard REFUSE, no override.
+  allowed_chain_id: 688689
+  allowed_name: "atlantic-testnet"
+  rpc_url: "https://atlantic.dplabs-internal.com"
+  # Mainnet is listed ONLY so the guardian can name what it is refusing.
+  # enabled: false means: even an explicit --confirm flag cannot override it.
+  mainnet:
+    chain_id: 1672
+    name: "mainnet"
+    rpc_url: "https://rpc.pharos.xyz"
+    enabled: false
+
+# --- Limits (dust-scale for the Arena build) ---------------------------------
+limits:
+  # Max native value per single transfer, in PHRS (decimal string, exact).
+  max_per_tx_phrs: "0.005"
+  # Max total value the guardian will release inside a rolling window.
+  max_per_window_phrs: "0.02"
+  window_minutes: 60
+  # Reject any proposal if the live gas price is above this (gwei).
+  max_gas_price_gwei: "50"
+
+# --- Behaviour ---------------------------------------------------------------
+behavior:
+  # Fail closed: any unreadable/stale chain data => BLOCK, never guess.
+  fail_closed: true
+  # Where the guardian appends one JSON line per evaluated proposal.
+  audit_log: "run-logs/guardian-audit.jsonl"
+  # Where the guardian appends one JSON line per BROADCAST transfer
+  # (feeds the rolling-window check).
+  spend_ledger: "run-logs/spend-ledger.jsonl"

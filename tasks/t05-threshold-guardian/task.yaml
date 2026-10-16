@@ -1,0 +1,37 @@
+# LIGHTKEEPER task manifest — T05 Threshold Guardian
+task_id: T05
+slug: threshold-guardian
+name: Threshold Guardian
+tier: Medium
+points: 100
+toolkit: SkillEngine
+status: shipped
+owner: devmo (build agent)
+
+description: >
+  A policy gate that intercepts proposed transfers and BLOCKS any write that
+  breaches configured thresholds. Implements the 4 mandatory SkillEngine
+  Write Operation Pre-checks (network firewall, threshold gate,
+  balance/allowance sufficiency, mainnet re-confirmation) as independent,
+  configurable, on-chain-read conditions with a full decision trace per run.
+
+deliverables:
+  - policy.yaml            # single-file, commented policy (cleaner format)
+  - guardian.py            # the gate: evaluate -> trace; execute only on ALLOW
+  - tests/test_policy_engine.py  # unit tests of the policy engine + refusal path
+  - run-logs/              # real run traces: fire.log, hold.log, mainnet-refusal.log
+  - REQUIREMENTS.md        # official requirements quoted verbatim
+  - README.md              # 8 sections, opens with OCTOPUS header
+  - evidence.md / evidence.json  # real tx hashes, spend log, curl-tested links
+  - REVIEWER_NOTES.md
+  - LINKS.md               # curl-verified links
+  - SUBMISSION.md          # exact copy-paste Arena pack
+  - VIDEO-GUIDE.md         # 45-90s filming guide
+
+budget:
+  max_phrs: 0.15
+  spent_phrs: null        # filled in evidence.json after live runs
+
+evidence:
+  atlantic_explorer: https://atlantic.pharosscan.xyz/
+  txs: []                # filled in evidence.json
