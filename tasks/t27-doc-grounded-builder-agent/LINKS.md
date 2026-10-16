@@ -16,6 +16,6 @@
 
 ## Repo
 
-- Module: https://github.com/mohamedwael201193/lightkeeper/tree/2169d68555e16a2027c3063e8c30fa7cde943be5/tasks/t27-doc-grounded-builder-agent
+- Module: https://github.com/mohamedwael201193/lightkeeper/tree/21e27182fd3422b15c087c536eb2ff50ef72601b/tasks/t27-doc-grounded-builder-agent
   (commit pinned at submit time in SUBMISSION.md)
 - Demo video: PENDING-VIDEO

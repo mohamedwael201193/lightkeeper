@@ -24,7 +24,7 @@ A builder agent that plans strictly from retrieved Pharos docs — every step ci
 
 ## Links
 
-- Code (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/2169d68555e16a2027c3063e8c30fa7cde943be5/tasks/t27-doc-grounded-builder-agent
+- Code (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/21e27182fd3422b15c087c536eb2ff50ef72601b/tasks/t27-doc-grounded-builder-agent
 - Deploy tx: https://atlantic.pharosscan.xyz/tx/0xe54edfefd89057d6f54b1d954bbe0ac2b5ba7f73c382d68890b8e3ce235e3379
 - Token (verified): https://atlantic.pharosscan.xyz/address/0x25c2853B5AD74965e9228A64b7805ceE3b0eCd19
 - Demo video: PENDING-VIDEO
