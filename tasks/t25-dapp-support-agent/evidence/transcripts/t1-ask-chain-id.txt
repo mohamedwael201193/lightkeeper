@@ -1,8 +1,0 @@
-[t25 support-agent] verdict: answered
-
-ChainID 688689; Environment: Atlantic Testnet; rate limit 500 requests per 5 minutes; max 64 pending transactions per address. The docs page leaves the RPC and explorer cells blank — confirm live endpoints against the network registry or a live eth_chainId check instead of memorizing them.
-
-Citation [DOC-GROUNDED — answer is a direct excerpt from the cited doc page (URL + fetch date + excerpt).]
-  source : https://docs.pharos.xyz/getting-started/network/atlantic-testnet.md
-  fetched: 2026-10-16
-  excerpt: ChainID 688689; Environment: Atlantic Testnet; rate limit 500 requests per 5 minutes; max 64 pending transactions per address. The docs page leaves the RPC and explorer cells blank — confirm live endpoints against the network registry or a live eth_chainId check instead of memorizing them.

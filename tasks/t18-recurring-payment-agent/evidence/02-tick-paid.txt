@@ -1,2 +1,0 @@
-TICK: installment 0 due (due 2026-10-16T00:00:00+00:00) — paying 0.0005 PHRS to 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-PAID: installment 0 -> https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10 (block 31481497)

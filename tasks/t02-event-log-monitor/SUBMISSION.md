@@ -67,7 +67,7 @@ Refresh keeps the session going.
 
 ## Video
 
-PENDING-VIDEO (shot guide: VIDEO-GUIDE.md — includes the new interactive console shot)
+https://jade-drift-z3sa.here.now/T02-event-log-monitor.mp4
 
 ## Video guide update
 

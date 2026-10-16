@@ -1,4 +1,0 @@
-# Runtime state is local to the operator's machine — NEVER committed.
-state/
-*.log
-.env

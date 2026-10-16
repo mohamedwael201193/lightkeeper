@@ -1,6 +1,0 @@
-
-intent=borrow amount=0.000100 PHRS @ block 31482644
-winner: T28-LEND
-  - T28-VAULT-A: REJECTED — borrow intent needs a lending venue, T28-VAULT-A is a vault
-  - T28-VAULT-B: REJECTED — borrow intent needs a lending venue, T28-VAULT-B is a vault
-  - T28-LEND: SELECTED — borrow APY 4.99% (block 31482644), TVL 0.002500 PHRS

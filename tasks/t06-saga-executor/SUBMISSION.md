@@ -69,5 +69,5 @@ links curl-verified server-rendered).
 
 ## Video
 
-PENDING-VIDEO — filming guide: `VIDEO-GUIDE.md` (45–90s, real terminal +
+https://orchid-cliff-9sjs.here.now/T06-saga-executor.mp4
 real explorer pages, spoken script included).

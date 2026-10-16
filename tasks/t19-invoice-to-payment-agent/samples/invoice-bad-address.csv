@@ -1,2 +1,0 @@
-invoice_id,payee,amount,currency,reference
-INV-BAD-ADDR,not-an-address,0.001,PHRS,LK-T19-MALFORMED-02

@@ -1,2 +1,0 @@
-invoice_id,payee,amount,currency,reference,memo,line_items
-INV-2026-004,0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3,0.0005,PHRS,LK-T19-DEMO-004,CSV-format live settlement proof; dust self-payment to operator wallet,Proof service=0.0005

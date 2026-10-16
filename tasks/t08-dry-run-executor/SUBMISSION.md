@@ -120,5 +120,5 @@ share link can be generated from a real session.
 
 ## Video
 
-PENDING-VIDEO — filming guide: `VIDEO-GUIDE.md` in the repo (45–90s, real
+https://unbound-vault-68jf.here.now/T08-dry-run-executor.mp4
 terminal + real explorer pages only, no staged fakes).

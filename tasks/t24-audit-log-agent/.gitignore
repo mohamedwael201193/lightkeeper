@@ -1,4 +1,0 @@
-# Runtime files stay OUT of the repo.
-state/
-logs/
-*.log

@@ -47,7 +47,7 @@ query — including a SkillEngine query that failed 3 times (`IncompleteRead`).
 ## Share / demo links
 
 - Docs-MCP query log (this submission's evidence): commit-pinned link above
-- Demo video: PENDING-VIDEO
+- Demo video: https://mossy-ivory-r238.here.now/T03-docs-mcp-onboarding.mp4
 
 ## Try it live (LIGHTKEEPER console — Tier C)
 
@@ -70,4 +70,4 @@ query — including a SkillEngine query that failed 3 times (`IncompleteRead`).
 
 ## Video
 
-PENDING-VIDEO — filming guide: `VIDEO-GUIDE.md` (45–90 s, shot-by-shot, real screen content only).
+https://mossy-ivory-r238.here.now/T03-docs-mcp-onboarding.mp4

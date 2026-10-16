@@ -35,7 +35,7 @@ live-pasted example Q&As plus a miss-path demo. Zero chain interaction, 0 PHRS s
 - Reviewer notes (architecture, `?ask=` investigation, threshold tuning): `tasks/t04-doc-search-cli/REVIEWER_NOTES.md`
 - Link verification: `tasks/t04-doc-search-cli/LINKS.md` (all URLs curl-verified 2026-10-16)
 
-**Video:** PENDING-VIDEO — shot-by-shot guide in `tasks/t04-doc-search-cli/VIDEO-GUIDE.md` (ask → cited answer → miss → graceful refusal, ~90s, real terminal output only).
+*https://bold-oasis-8tnd.here.now/T04-doc-search-cli.mp4
 
 ## Try it live (LIGHTKEEPER console — Tier C)
 

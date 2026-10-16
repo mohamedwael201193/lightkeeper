@@ -1,6 +1,0 @@
-
-intent=deposit amount=0.001000 PHRS @ block 31482595
-winner: T28-VAULT-B
-  - T28-VAULT-B: SELECTED — supply APY 5.20% (block 31482595), TVL 0.001000 PHRS
-  - T28-VAULT-A: passed-over — supply APY 2.50% (block 31482595), TVL 0.002000 PHRS
-  - T28-LEND: passed-over — supply APY 0.74% (block 31482595), TVL 0.002500 PHRS

@@ -59,7 +59,7 @@ https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372
   (block 31481260, status 1, 399603 gas @ 1000000001 wei = 0.00039961 PHRS)
 
 ## Video
-PENDING-VIDEO — record per VIDEO-GUIDE.md (45–90s), then replace this line
+https://onyx-aurora-tgz7.here.now/T01-read-contract-state.mp4
 with the hosted URL.
 
 ## Reviewer notes

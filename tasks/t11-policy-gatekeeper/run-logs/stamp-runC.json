@@ -1,9 +1,0 @@
-{
-  "policy_id": "t11-policy-v1",
-  "policy_hash": "403e6395e173008667cd68d8bcc1876ce20c746fa32a8e55b717294a7243515d",
-  "action_hash": "f01682c10cc4a638701b15c14fba698bcbe2bfa282fc512d92fe885557df193c",
-  "decision": "APPROVE",
-  "issued_at": "2026-10-16T06:36:42.306740+00:00",
-  "expires_at": "2026-10-16T06:41:42.306740+00:00",
-  "stamp_hash": "e5ff7c724009a6a8b3a0940995383fb491ca64af50e7ce2c69245347c6a019d4"
-}

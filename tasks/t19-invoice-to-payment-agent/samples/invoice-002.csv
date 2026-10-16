@@ -1,2 +1,0 @@
-invoice_id,payee,amount,currency,reference,memo,line_items
-INV-2026-002,0x8a9f2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d,0.0025,PHRS,LK-T19-DEMO-002,Sample CSV invoice; not executed on-chain,Monitoring retainer=0.0025

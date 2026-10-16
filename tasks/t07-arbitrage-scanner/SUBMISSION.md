@@ -43,7 +43,7 @@ https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372
 - Venue contracts: poolA 0x8683C6D6EeAA57B03688f43Ad0cbCA0af26Cf464 · poolB 0x432BCd7bc6944Def44015bF00C82Eb50aA18A3F6 · poolC 0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D
 
 ## Demo video
-PENDING-VIDEO — new interactive shot added: the console "Try it live" spread scanner
+https://trusty-canopy-dym2.here.now/T07-arbitrage-scanner.mp4
 (`apps/console/src/components/try/arbitrage-scanner.tsx`) runs the config→scan→verdict
 rhythm in-browser against the same three venues — Tier A live reads, no signature.
 

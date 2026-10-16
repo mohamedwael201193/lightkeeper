@@ -1,3 +1,0 @@
-RECOVERED: installment 0 already paid on-chain (https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10)
-WARNING: installment 1 broadcast 0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef not found on chain — marked broadcast-unknown, auto-retry disabled
-SKIP: no installment due — next payment: installment 1 at 2027-01-08T00:00:00+00:00
