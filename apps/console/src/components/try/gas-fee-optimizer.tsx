@@ -8,11 +8,12 @@
  * (transfer / contract call) and an urgency, and the page estimates the
  * PHRS cost per tier against a real gas budget.
  *
- * Differentiator — Quoted vs Settled: every gas tool quotes eth_gasPrice.
- * This lamp measures what the chain ACTUALLY charged — the average
- * effectiveGasPrice of the most recently settled transactions, pulled live
- * from their receipts — and prices the recommendation against the settled
- * number, not the quote.
+ * Differentiator — Quoted vs Settled, staged as a showdown: every gas tool
+ * quotes eth_gasPrice. This lamp measures what the chain ACTUALLY charged —
+ * the average effectiveGasPrice of the most recently settled transactions,
+ * pulled live from their receipts — and prices the recommendation against the
+ * settled number, not the quote. Two numbers face each other; the gap is the
+ * punchline ("the quote would have you over-provision X PHRS").
  *
  * Percentile tiers mirror the agent-side methodology in
  * tasks/t22-gas-fee-optimizer/evidence/tier-table.json
@@ -22,8 +23,8 @@
  * copied character-for-character from the task's evidence.json.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useMotionValue, useReducedMotion, useSpring } from "framer-motion";
-import { Gauge, Rabbit, Turtle, Zap } from "lucide-react";
+import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { Gauge, Swords } from "lucide-react";
 import type { Lamp } from "../../types";
 import { EXPLORER_TX, rpcCall, useAtlanticRead } from "../../hooks/useAtlantic";
 import {
@@ -238,6 +239,30 @@ function AnimatedGwei({ wei }: { wei: bigint }) {
   return <span className="tabular-nums">{display}</span>;
 }
 
+/**
+ * The duel stamp — scales 1.15→1.0 once, when the verdict issues
+ * (the Stamp transition). Instant under prefers-reduced-motion.
+ */
+function VerdictStamp({ text, tone }: { text: string; tone: "pass" | "fail" | "neutral" }) {
+  const reduce = useReducedMotion();
+  const toneClass =
+    tone === "pass"
+      ? "bg-pass text-white"
+      : tone === "fail"
+        ? "bg-fail text-white"
+        : "bg-accent text-white";
+  return (
+    <motion.div
+      initial={reduce ? false : { scale: 1.15, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className={`z-10 rounded-full px-5 py-2.5 text-sm font-bold uppercase tracking-wider shadow-[0_10px_30px_rgba(11,21,51,0.25)] ${toneClass}`}
+    >
+      {text}
+    </motion.div>
+  );
+}
+
 function Sparkline({ values }: { values: bigint[] }) {
   if (values.length === 0) return null;
   const g = values.map((v) => Number(v) / 1e9);
@@ -351,18 +376,32 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
       ]
     : [];
 
-  // The hero comparison — quoted vs settled.
+  // ── The showdown verdict math ──────────────────────────────────────────
   const gapWei = probe ? probe.quotedWei - probe.avgWei : null;
-  const gapSaved = gapWei !== null && gapWei >= 0n;
-  const gapAbsGwei = gapWei === null ? "—" : formatGweiNum(Number(gapWei >= 0n ? gapWei : -gapWei) / 1e9);
-  const gapPhrsWei = gapWei !== null ? gapWei * BigInt(gasUnits) : null;
+  const gapGweiAbs = gapWei === null ? 0 : Math.abs(Number(gapWei)) / 1e9;
+  const deadHeat = gapWei !== null && gapGweiAbs < 0.01;
+  // settledWins: the settled price came in BELOW the quote — the quote over-provisions.
+  const settledWins = gapWei !== null && gapWei > 0n && !deadHeat;
+  const quoteWins = gapWei !== null && gapWei < 0n && !deadHeat;
+  const gapPhrsAbs = gapWei !== null ? Math.abs(phrsNum(gapWei, gasUnits)) : 0;
+  const gapAbsGweiStr = gapWei === null ? "—" : formatGweiNum(gapGweiAbs);
 
-  const stats: Stat[] = tiers
+  const stats: Stat[] = probe
     ? [
-        { label: "Slow cost", value: phrsNum(tiers.slow, gasUnits), format: fmtPhrs, suffix: "PHRS", icon: <Turtle size={14} aria-hidden /> },
-        { label: "Standard cost", value: phrsNum(tiers.standard, gasUnits), format: fmtPhrs, suffix: "PHRS", icon: <Zap size={14} aria-hidden /> },
-        { label: "Fast cost", value: phrsNum(tiers.fast, gasUnits), format: fmtPhrs, suffix: "PHRS", icon: <Rabbit size={14} aria-hidden /> },
-        { label: "Gas price now", value: data ? Number(data.gasPriceWei) / 1e9 : 0, format: formatGweiNum, suffix: "gwei", icon: <Gauge size={14} aria-hidden /> },
+        { label: "Quote says", value: phrsNum(probe.quotedWei, gasUnits), format: fmtPhrs, suffix: "PHRS" },
+        { label: "Chain charged", value: phrsNum(probe.avgWei, gasUnits), format: fmtPhrs, suffix: "PHRS" },
+        {
+          label: settledWins ? "Over-provisioned" : quoteWins ? "Settled premium" : "Gap",
+          value: gapPhrsAbs,
+          format: fmtPhrs,
+          suffix: "PHRS",
+        },
+        {
+          label: "Receipts measured",
+          value: probe.count,
+          format: (n) => n.toLocaleString("en-US"),
+          icon: <Gauge size={14} aria-hidden />,
+        },
       ]
     : [];
 
@@ -386,27 +425,28 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header — the 5-second test: what it does, that it's real, the clever part */}
       <div>
-        <p className="text-sm font-semibold text-slate">Live — Pharos Atlantic · chain 688689</p>
-        <h3 className="mt-1 text-lg font-semibold text-ink">Never overpay again</h3>
+        <p className="text-sm font-semibold text-slate">Tier A — live reads, no wallet, costs nothing</p>
+        <h3 className="mt-1 text-lg font-semibold text-ink">
+          Every tool quotes the gas price — this one shows what the chain actually charged
+        </h3>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink">
           The optimizer reads Atlantic's gas price <em>right now</em> and recomputes the
           slow / standard / fast tiers from those live samples — not from a static table.
-          Its edge: it prices against what the chain <em>actually charges</em> (settled
-          receipts), not just what it quotes. No wallet needed, no signature, costs
-          nothing. LIGHTKEEPER never holds private keys.
+          Its edge: it prices against what the chain <em>actually settles</em> (live receipts),
+          not what it quotes. LIGHTKEEPER never holds private keys.
         </p>
       </div>
 
-      {/* Ambient live read — context strip, kept small so it never competes with the result */}
+      {/* The quote, live — the adversary the showdown will confront */}
       <section
-        aria-label="Current Atlantic gas price"
+        aria-label="The quote, live"
         className="rounded-2xl border border-hairline bg-white p-5 sm:p-6"
       >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-slate">Current Atlantic gas price</p>
+            <p className="text-sm font-semibold text-slate">The quote, live — Atlantic right now</p>
             {loading && !data && <p className="mt-2 text-sm text-ink">Reading from Atlantic…</p>}
             {data && (
               <p className="mt-1 font-mono text-2xl font-semibold text-ink">
@@ -439,7 +479,7 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
         )}
       </section>
 
-      {/* 01 Configure */}
+      {/* 01 Configure — whisper-quiet: tx type + urgency + the probe trigger */}
       <section className="space-y-4" aria-label="Configure the quote">
         <ActNumber n={1} title="Choose the transaction to quote" />
         <div>
@@ -474,7 +514,7 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
         </div>
         <button
           type="button"
-          className="btn-primary w-full justify-center sm:w-auto"
+          className="btn-primary min-h-[44px] w-full justify-center sm:w-auto"
           onClick={runProbe}
           disabled={probeLoading}
         >
@@ -492,10 +532,13 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
         </section>
       )}
 
-      {/* 03 Result */}
+      {/* 03 Result — the showdown */}
       {!probeLoading && (
         <section className="space-y-4" aria-label="Probe result">
-          <ActNumber n={3} title="Result — quoted vs settled" />
+          <div className="flex items-center gap-3">
+            <ActNumber n={3} title="The showdown" />
+            <Swords size={18} className="text-slate" aria-hidden />
+          </div>
 
           {probeEmpty && (
             <EmptyState
@@ -518,84 +561,96 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
           {!probe && !probeError && !probeEmpty && (
             <EmptyState
               title="Nothing measured yet"
-              message="Run the probe to pull the receipts of Atlantic's most recent settled transactions and compare what the chain actually charged against what it quotes."
+              message="Run the probe to pull the receipts of Atlantic's most recent settled transactions and put them in the ring against the quote."
               actionLabel="Run the probe"
               onAction={runProbe}
             />
           )}
 
           {probe && (
-            <>
-              <ResultCard
-                eyebrow="Result — quoted vs settled"
-                headline={
+            <ResultCard
+              eyebrow="Result — quoted vs settled"
+              headline={
+                settledWins
+                  ? <>The quote would have you over-provision {fmtPhrs(gapPhrsAbs)} PHRS</>
+                  : quoteWins
+                    ? <>The chain settled {gapAbsGweiStr} gwei above the quote</>
+                    : <>Quote and settled agree</>
+              }
+              subline={
+                settledWins ? (
                   <>
-                    {gapAbsGwei}{" "}
-                    <span className="text-2xl font-normal text-slate sm:text-3xl">
-                      gwei {gapSaved ? "under" : "over"} the quote
-                    </span>
+                    Recent traffic settled <strong>{gapAbsGweiStr} gwei</strong> cheaper than{" "}
+                    <span className="font-mono">eth_gasPrice</span> said. Every tool prices off the quote —
+                    the optimizer prices your fee off the <em>settled</em> number instead.
                   </>
-                }
-                subline={
-                  gapSaved ? (
-                    <>
-                      Recent transactions settled cheaper than <span className="font-mono">eth_gasPrice</span> said.
-                      The optimizer prices your fee off the settled number, not the quote.
-                    </>
-                  ) : (
-                    <>
-                      Recent traffic settled above the quote — the chain is busy. Bid the settled
-                      number below, not the low quote.
-                    </>
-                  )
-                }
-                status={gapSaved ? "pass" : "neutral"}
-                rows={[
-                  { label: "Settled transactions measured", value: `${probe.count} latest receipts` },
-                  { label: "Settled range", value: `${gwei(probe.minWei)}–${gwei(probe.maxWei)} gwei` },
-                  { label: "Measured at", value: probe.at },
-                ]}
-              >
-                {/* The duel: quoted vs settled, two big animated numbers side by side */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-hairline bg-porcelain p-4 text-center sm:p-5">
-                    <p className="text-sm font-semibold text-slate">Quoted</p>
-                    <p className="mt-2 font-display text-3xl tracking-tight text-ink sm:text-4xl">
+                ) : quoteWins ? (
+                  <>
+                    Traffic is beating the quote — the chain is busy. Bid the settled number below,
+                    not the low quote.
+                  </>
+                ) : (
+                  <>
+                    The two numbers land within {gapAbsGweiStr} gwei of each other. The quote is telling
+                    the truth right now.
+                  </>
+                )
+              }
+              status={settledWins ? "pass" : "neutral"}
+              rows={[
+                { label: "Quote method", value: "eth_gasPrice, this instant" },
+                { label: "Settled method", value: `avg effectiveGasPrice · ${probe.count} real receipts` },
+                { label: "Settled range", value: `${gwei(probe.minWei)}–${gwei(probe.maxWei)} gwei` },
+                { label: "Measured at", value: probe.at },
+              ]}
+            >
+              {/* The duel: quoted vs settled, two big animated numbers, one verdict stamp */}
+              <div className="relative">
+                <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-hairline">
+                  <div className="border-r border-hairline bg-white p-4 text-center sm:p-6">
+                    <p className="text-sm font-bold uppercase tracking-wider text-slate">The quote</p>
+                    <p className="mt-2 font-display text-4xl tracking-tight text-ink sm:text-5xl">
                       <AnimatedGwei wei={probe.quotedWei} />
                     </p>
-                    <p className="mt-1 text-sm text-slate">
-                      gwei · <span className="font-mono">eth_gasPrice</span>
-                    </p>
+                    <p className="mt-1 text-sm text-slate">gwei · what the tools say</p>
                   </div>
-                  <div className="rounded-xl border border-hairline bg-porcelain p-4 text-center sm:p-5">
-                    <p className="text-sm font-semibold text-slate">Settled</p>
-                    <p className="mt-2 font-display text-3xl tracking-tight text-ink sm:text-4xl">
+                  <div className="bg-tint p-4 text-center sm:p-6">
+                    <p className="text-sm font-bold uppercase tracking-wider text-accent">The chain</p>
+                    <p className="mt-2 font-display text-4xl tracking-tight text-ink sm:text-5xl">
                       <AnimatedGwei wei={probe.avgWei} />
                     </p>
-                    <p className="mt-1 text-sm text-slate">gwei · avg of {probe.count} real receipts</p>
+                    <p className="mt-1 text-sm text-slate">gwei · what was actually paid</p>
                   </div>
                 </div>
-                {/* The gap, highlighted */}
-                <div className="mt-3 rounded-xl bg-tint px-4 py-3">
-                  <p className="text-sm leading-relaxed text-ink">
-                    {gapSaved ? (
-                      <>
-                        For a {gasUnits.toLocaleString()}-gas {txLabel}, that's{" "}
-                        <strong className="font-mono">{gapPhrsWei !== null ? formatWeiSigned(gapPhrsWei) : "—"} PHRS</strong>{" "}
-                        the quote would have you over-provision — the optimizer's saving.
-                      </>
-                    ) : (
-                      <>
-                        For a {gasUnits.toLocaleString()}-gas {txLabel}, that's{" "}
-                        <strong className="font-mono">{gapPhrsWei !== null ? formatWeiSigned(gapPhrsWei) : "—"} PHRS</strong>{" "}
-                        more than the quote — bid the settled number, not the quote.
-                      </>
-                    )}
-                  </p>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <VerdictStamp
+                    text={settledWins ? "Settled wins" : quoteWins ? "Quote wins" : "Dead heat"}
+                    tone={settledWins ? "pass" : quoteWins ? "fail" : "neutral"}
+                  />
                 </div>
-              </ResultCard>
+              </div>
 
-              {stats.length > 0 && <StatStrip stats={stats} />}
+              <p className="text-sm leading-relaxed text-ink">
+                For a {gasUnits.toLocaleString()}-gas {txLabel}:{" "}
+                {settledWins ? (
+                  <>
+                    <strong className="font-mono">{fmtPhrs(gapPhrsAbs)} PHRS</strong> sits between the quote
+                    and the truth — fee you were about to over-provision on every single transaction.
+                  </>
+                ) : quoteWins ? (
+                  <>
+                    <strong className="font-mono">{fmtPhrs(gapPhrsAbs)} PHRS</strong> more than the quote
+                    implies — underbidding the settled price is how transactions stall.
+                  </>
+                ) : (
+                  <>
+                    The gap is dust: <strong className="font-mono">{fmtPhrs(gapPhrsAbs)} PHRS</strong> on a{" "}
+                    {gasUnits.toLocaleString()}-gas {txLabel}. No edge this round.
+                  </>
+                )}
+              </p>
+
+              <StatStrip stats={stats} />
 
               {tiers && (
                 <div>
@@ -604,7 +659,7 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
                   </p>
                   <p className="mt-1 text-sm text-slate">
                     Every refresh changes them. Flat testnet gas means flat tiers; the page says so
-                    instead of faking variance.
+                    instead of faking variance. Costs are shown against the settled rate, not the quote.
                   </p>
                   <div className="mt-3 overflow-x-auto rounded-2xl border border-hairline bg-white">
                     <table className="data-table">
@@ -639,7 +694,7 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
                   </p>
                 </div>
               )}
-            </>
+            </ResultCard>
           )}
         </section>
       )}
