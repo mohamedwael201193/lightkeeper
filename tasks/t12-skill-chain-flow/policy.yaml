@@ -1,0 +1,53 @@
+# =============================================================================
+# T12 "Skill + Chain MCP Flow" — PREFLIGHT POLICY
+# Pre-declared BEFORE any run. The skill engine evaluates live chain data
+# against THESE rules only. No rule may be edited mid-run.
+# Validate:  python3 flow.py validate
+# =============================================================================
+
+task: "T12"
+name: "Spend Readiness Check (composition preflight)"
+
+# --- Identity ----------------------------------------------------------------
+# Only account the skill engine will ever sign for. Refuse if the key in the
+# environment derives to a different address.
+sender: "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+
+# --- Network -----------------------------------------------------------------
+network:
+  allowed_chain_id: 688689
+  allowed_name: "atlantic-testnet"
+  rpc_url: "https://atlantic.dplabs-internal.com"
+  mainnet:
+    chain_id: 1672
+    name: "mainnet"
+    rpc_url: "https://rpc.pharos.xyz"
+    enabled: false   # even an explicit --confirm cannot override this
+
+# --- Composition target ------------------------------------------------------
+# KeeperPing registry deployed for T12. Its pingCount() is the on-chain state
+# the skill reads BEFORE deciding and re-reads AFTER executing (verify step).
+target:
+  contract: "0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1"
+  deploy_tx: "0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3"
+  deploy_block: 31481433
+  # keeper() read from the contract at deploy time; the skill re-checks this
+  # live every run (RULE-KEEPER-CONSISTENCY). If it ever differs, BLOCK.
+  expected_keeper: "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+
+# --- Limits (dust-scale) -----------------------------------------------------
+limits:
+  max_per_tx_phrs: "0.005"      # any proposed value above this => BLOCK
+  max_gas_price_gwei: "50"      # any live gas price above this => BLOCK
+  execute_value_phrs: "0.0001"  # dust actually sent on ALLOW runs
+  max_stale_blocks: 120         # pinned-block reads older than this => BLOCK
+                                # (Atlantic blocks are ~1s; sequential RPC reads span
+                                # dozens of blocks, so 120 blocks ~= a 2-minute freshness
+                                # window; the check runs TWICE: at skill time and again
+                                # at broadcast time, failing closed both times)
+
+# --- Behaviour ---------------------------------------------------------------
+behavior:
+  fail_closed: true             # unreadable/stale data => BLOCK, never guess
+  budget_phrs: 0.15             # TOTAL for T12 incl. deploy; log every spend
+  audit_log: "run-logs/flow-transcript.jsonl"
