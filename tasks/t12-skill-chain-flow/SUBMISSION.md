@@ -28,4 +28,12 @@ https://atlantic.pharosscan.xyz/address/0xFc9fe952036bFe00F8BC5d9D2860c3750B834A
 
 **Video:** PENDING-VIDEO (45–90s: one request → chain reads → skill verdict → contrast run flipping the verdict; see VIDEO-GUIDE.md)
 
+**Console try-it-live (Tier C — CLI-native):** `apps/console/src/components/try/skill-chain-flow.tsx`
+— "See the whole chain before you run it": an interactive READ → SKILL → EXECUTE → VERIFY
+step-through with the real commands, the six rule verdicts, and the real live values from both
+contrast runs. Scenario toggle: ALLOW path (0.0001 PHRS → real tx 0xbdc80ff…6d4349) vs BLOCK path
+(0.1 PHRS → RULE-AMOUNT fail, no broadcast). "Copy full runbook" generates the exact command
+sequence for either path. The console never executes anything — every command runs in the
+visitor's own terminal; LIGHTKEEPER never sees or asks for private keys.
+
 **Reviewer notes:** see REVIEWER_NOTES.md verbatim.

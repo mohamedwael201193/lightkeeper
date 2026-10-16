@@ -42,6 +42,16 @@ broadcast that never sent a tx. Nothing edited out."
 Show `evidence.md`: two txs, 0.0004362 PHRS of a 0.15 budget. End on the
 contract page in the explorer.
 
+## Console demo segment (optional B-roll, 20s)
+
+Open the task's console page, "Try it live": step through the 4-phase stepper
+(READ → SKILL → EXECUTE → VERIFY), narrate: "Every command the skill would run,
+visible before anything executes." Flip the scenario toggle from ALLOW to BLOCK —
+the skill table shows RULE-AMOUNT FAIL quoting the live balance, and the EXECUTE
+phase collapses to "no broadcast." Click "Copy full runbook" and say: "One paste,
+and you can replay the exact run on your own machine." (Console never executes;
+everything runs in the visitor's own terminal.)
+
 ## Spoken script (condensed, natural delivery)
 
 > "Spend readiness check, one request. The flow reads live Atlantic state —
