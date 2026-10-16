@@ -1,0 +1,17 @@
+id: T02
+title: Event/Log Monitor
+difficulty: Easy
+points: 50
+toolkit: Chain MCP
+module_dir: tasks/t02-event-log-monitor
+network: atlantic-testnet
+chain_id: 688689
+contracts:
+  - name: LogEmitter
+    address: "0x2C1dB0C436B72D94a4112f321DFbD13a976D8831"
+    deploy_tx: "0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf"
+    deploy_block: 31481148
+status: shipped
+budget_cap_phrs: 0.15
+spent_phrs: 0.00458664
+bar_to_beat: "persistent server-side cursor surviving kill-9 with no re-emission + confirmations-lag reorg tolerance + continuous poll log (verdict 2026-10-16)"

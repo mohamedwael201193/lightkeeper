@@ -1,0 +1,4 @@
+2026-10-16T04:14:30+0000 monitor started: addr=0x2C1dB0C436B72D94a4112f321DFbD13a976D8831 confirm_lag=2 interval=8s cursor=31481651
+2026-10-16T04:14:39+0000 cycle done: scanned to 31481687, [] new event(s) this cycle
+2026-10-16T04:14:55+0000 cycle done: scanned to 31481708, [] new event(s) this cycle
+2026-10-16T04:15:12+0000 cycle done: scanned to 31481722, [] new event(s) this cycle
