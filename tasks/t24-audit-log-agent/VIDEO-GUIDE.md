@@ -13,6 +13,17 @@ no pre-typed outputs passed off as live.
 | 3 | 0:20–0:35 | Terminal: tamper a COPY, run verify on the copy → `VERIFY: FAIL / entry #3: entryHash mismatch`; then verify the original → PASS | "Here I tamper a copy — I rewrite entry three's value. Verification fails on the copy, naming the exact entry. The original log is untouched and still verifies." |
 | 4 | 0:35–0:50 | Browser: `https://atlantic.pharosscan.xyz/tx/<dust-tx-1>` then `<dust-tx-2>` — show both mined dust transfers, status success | "The log isn't just self-referential. These are two real dust transfers the agent executed on Atlantic testnet — both recorded in the log with their real transaction hashes, both visible here on the explorer." |
 | 5 | 0:50–1:00 | Terminal: `ls sample-output/` showing `audit-report-*.md`, `*.csv`, `*.pdf` | "And the wallet activity report — grouped transfers, approvals, contract interactions, totals per category, notable transactions with links — exported as Markdown, CSV and PDF, all from live chain data." |
+| 6 | 1:00–1:20 | Browser: the task page on the LIGHTKEEPER console, "Try it live" section | "And anyone can verify it in their browser — the real chain is prefilled, every hash recomputes live. Watch: I flip ONE character in a copy of entry twelve — and the verifier names the exact broken entry. That is tamper-evidence you can feel." |
+
+## Interactive-surface shot notes
+
+- Shot 6 is filmed on the PUBLIC face of the task page (no founder-only content):
+  the "Try it live" section loads the real 15-entry chain and shows CHAIN VALID.
+- Click "Tamper one character in a copy (entry #12)" → the tampered copy's chip reads
+  BROKEN AT ENTRY 12 with "entryHash mismatch — field content was altered after logging";
+  the original textarea above is visibly untouched.
+- Optional: click "Confirm both mined on Atlantic" to show the two live receipts
+  (status 0x1, blocks 31483610 and 31483646) from the public Atlantic RPC.
 
 ## Recording notes
 

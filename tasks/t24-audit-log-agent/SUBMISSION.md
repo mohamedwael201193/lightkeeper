@@ -39,3 +39,12 @@ See REVIEWER_NOTES.md in the task folder (paste-ready): 5-minute test path
 (`verify` → transcript → tamper-demo → explorer links → report → unit tests),
 the mempool-drop disclosure, and the RPC-limitation notes. Test:
 `node --test "test/*.test.mjs"` (7/7 pass).
+
+## Live interactive surface (LIGHTKEEPER console)
+The task page's "Try it live" section ships `apps/console/src/components/try/audit-log-agent.tsx`:
+an interactive chain verifier with the real 15-entry chain prefilled — hashes recompute
+client-side in the visitor's browser (SHA-256 over canonical JSON, the same algorithm as
+the CLI) with a one-character tamper demo (copy of entry #12 → BROKEN AT ENTRY 12) —
+plus a "Verify our proof" panel: terminal entryHash `e19bba30b6044bf…`, both anchor dust
+txs with explorer links and a live, free `eth_getTransactionReceipt` check, and the exact
+offline CLI to reproduce. No new on-chain spend; total stays 0.000242000000042 PHRS.
