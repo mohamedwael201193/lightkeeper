@@ -2,26 +2,29 @@
  * T03 · Docs MCP Onboarding — "From question to command in 30 seconds" (Tier C).
  *
  * Presentation rebuilt on the LIGHTKEEPER Presentation Standard (SHOWTIME op,
- * 2026-10-16): one journey — 01 Configure → 02 Run → 03 Result.
+ * 2026-10-16) and elevated to flagship on the FLAGSHIP-CREATIVE-BRIEF vision
+ * (2026-10-16): one journey — 01 Configure → 02 Run → 03 Result.
  *
- * The visitor chooses what they want to do (read state / send / deploy /
- * watch events), hits "Build my command", and the panel generates the EXACT
- * copy-paste cast/forge command with Atlantic RPC + chain ID filled in, plus
- * a plain-language explanation of every flag. The generation itself runs
- * through a real three-stage pipeline (validate → compose → explain) that
- * the ProgressLoader mirrors — no timer steps.
+ * The 03 act is the flagship: the command lands as a premium terminal
+ * artifact, then the flags ASSEMBLE one by one — each flag fading in with its
+ * plain-language explanation (stagger ≤ 0.5s, keyed to the real "composed"
+ * state, instant under prefers-reduced-motion). The thinking layer is made
+ * visible: the chain-identity guard is a first-class banner (the --chain-id /
+ * --rpc-url pins that keep every command on Atlantic), the byte-exact
+ * discipline is shown as a live byte count, and the three-stage pipeline is
+ * named with the real Docs-MCP query log it cites.
  *
- * Nothing executes in the browser — the visitor runs it in their own
- * terminal. LIGHTKEEPER never sees, holds, or asks for private keys.
+ * Nothing executes in the browser — the visitor runs the command in their
+ * own terminal. LIGHTKEEPER never sees, holds, or asks for private keys.
  *
  * Every command shape is grounded in the real Docs-MCP query log captured
- * 2026-10-16 (tasks/t03-docs-mcp-onboarding/evidence.json): chain identity
- * (688689 / PHRS), the 100-block get_logs paging answer, the Chain MCP tools
- * answer, and the documented faucet/arena gaps. The byte-exact strings live
- * in t03-command-builders.ts, verified outside the browser.
+ * 2026-10-16 (tasks/t03-docs-mcp-onboarding/evidence.json). The byte-exact
+ * strings live in t03-command-builders.ts, verified outside the browser —
+ * this file only presents them.
  */
 import { useRef, useState } from "react";
-import { Check, Copy, TerminalSquare } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Check, Copy, ShieldCheck, TerminalSquare } from "lucide-react";
 import type { Lamp } from "../../types";
 import { ATLANTIC_RPC_URL, ATLANTIC_CHAIN_ID, isValidAddress } from "../../hooks/useAtlantic";
 import { ResultCard, ProgressLoader, EmptyState, ErrorState } from "../ui";
@@ -52,8 +55,19 @@ const inputCls =
   "w-full rounded-lg border border-[#c3cfe8] bg-white px-3 py-2.5 font-mono text-sm text-ink placeholder:text-slate/60 focus:outline-none focus:border-[var(--accent)]";
 const labelCls = "mb-1 block text-sm font-semibold text-ink";
 
+/** The chain-identity guard, per goal — our thinking, stated as a feature. */
+const GUARD_COPY: Record<GoalId, string> = {
+  read: "Every read is pinned to the Atlantic RPC. A wrong-network RPC would answer for a different chain — the chain-ID command below settles any doubt.",
+  send: "Broadcast is pinned to the Atlantic RPC — and run the pre-flight check first. If it does not print 688689, your RPC points at the wrong network.",
+  deploy:
+    "The --chain-id 688689 pin is the guard. The docs never label the hosted Chain MCP as Atlantic — without this pin, the wrong tooling would land your contract on 1672 (Pacific mainnet), not the testnet.",
+  watch:
+    "Reads are pinned to the Atlantic RPC and every page is capped at 100 blocks — the range cap the docs confirmed, so no request ever silently over-asks.",
+};
+
 function CommandCard({ command, title }: { command: string; title: string }) {
   const [copied, setCopied] = useState(false);
+  const byteLen = new TextEncoder().encode(command).length;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(command);
@@ -69,41 +83,149 @@ function CommandCard({ command, title }: { command: string; title: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div className="overflow-hidden rounded-xl border border-hairline bg-porcelain">
-      <div className="flex items-center justify-between gap-3 border-b border-hairline bg-white px-4 py-2.5">
-        <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate">
-          <TerminalSquare size={16} aria-hidden />
-          {title}
-        </span>
-        <button
-          type="button"
-          onClick={copy}
-          className="btn-outline inline-flex !min-h-[44px] items-center gap-2 !px-3 !text-sm"
-          aria-label={`Copy ${title} to clipboard`}
-        >
-          {copied ? <Check size={15} className="text-pass" /> : <Copy size={15} />}
-          {copied ? "Copied" : "Copy command"}
-        </button>
+    <figure>
+      <div className="overflow-hidden rounded-xl border border-ink bg-[var(--ink)] shadow-[0_12px_32px_rgba(11,21,51,0.25)]">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex shrink-0 gap-1.5" aria-hidden>
+              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+            </span>
+            <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-[#e9eefa]">
+              <TerminalSquare size={16} aria-hidden className="shrink-0" />
+              <span className="truncate">{title}</span>
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={copy}
+            className="inline-flex !min-h-[44px] shrink-0 items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-3 text-sm font-semibold text-white transition hover:bg-white/20"
+            aria-label={`Copy ${title} to clipboard`}
+          >
+            {copied ? <Check size={15} className="text-[#7ee2a8]" /> : <Copy size={15} />}
+            {copied ? "Copied" : "Copy command"}
+          </button>
+        </div>
+        <pre className="overflow-x-auto whitespace-pre p-4 font-mono text-[15px] leading-relaxed text-[#e9eefa] sm:p-5">
+          {command}
+        </pre>
       </div>
-      <pre className="overflow-x-auto whitespace-pre p-4 font-mono text-[15px] leading-relaxed text-ink sm:p-5">
-        {command}
-      </pre>
+      <figcaption className="mt-2 font-mono text-xs text-slate">
+        {byteLen} bytes · generated byte-exact by the builder — not hand-written here
+      </figcaption>
+    </figure>
+  );
+}
+
+/**
+ * The Assembly transition: each flag fades in with its plain-language
+ * explanation, staggered across the real flags of the just-composed command
+ * (total stagger spread ≤ 0.5s). Keyed by buildSeq so the assembly replays
+ * once per build — never on a timer.
+ */
+function FlagList({
+  flags,
+  buildSeq,
+}: {
+  flags: { flag: string; what: string }[];
+  buildSeq: number;
+}) {
+  const reduceMotion = useReducedMotion();
+  const instant = reduceMotion === true;
+  return (
+    <div>
+      <p className="text-sm font-semibold text-ink">Every flag, explained</p>
+      <p className="mt-0.5 text-sm text-slate">
+        {flags.length} {flags.length === 1 ? "flag" : "flags"} — each one earns its place.
+      </p>
+      <motion.dl
+        key={buildSeq}
+        initial="hidden"
+        animate="shown"
+        variants={{
+          hidden: {},
+          shown: {
+            transition: { staggerChildren: instant ? 0 : 0.06, delayChildren: instant ? 0 : 0.2 },
+          },
+        }}
+      >
+        {flags.map((f, i) => (
+          <motion.div
+            key={`${i}-${f.flag}`}
+            variants={{
+              hidden: { opacity: 0, y: 8 },
+              shown: {
+                opacity: 1,
+                y: 0,
+                transition: { duration: instant ? 0 : 0.22, ease: "easeOut" },
+              },
+            }}
+            className="border-t border-hairline py-3 first:border-t-0"
+          >
+            <dt className="flex items-baseline gap-2.5">
+              <span className="shrink-0 font-mono text-xs font-bold text-accent" aria-hidden>
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="font-mono text-sm font-semibold text-ink">{f.flag}</span>
+            </dt>
+            <dd className="mt-1 pl-8 text-sm leading-relaxed text-ink">{f.what}</dd>
+          </motion.div>
+        ))}
+      </motion.dl>
     </div>
   );
 }
 
-function FlagList({ flags }: { flags: { flag: string; what: string }[] }) {
+/** The chain-identity guard as a first-class citizen of the result. */
+function ChainGuard({ goal }: { goal: GoalId }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-[var(--tintdeep)] bg-[var(--tint)] p-4 sm:p-5">
+      <ShieldCheck size={20} className="shrink-0 text-accent" aria-hidden />
+      <div>
+        <p className="text-sm font-bold text-ink">Chain-identity guard</p>
+        <p className="mt-1 text-sm leading-relaxed text-ink">{GUARD_COPY[goal]}</p>
+      </div>
+    </div>
+  );
+}
+
+/** The three real pipeline stages, named — the thinking layer made visible. */
+function PipelineTrace() {
+  const stages = [
+    { n: "01", title: "Validate", desc: "your inputs checked — fails fast, in plain language" },
+    { n: "02", title: "Compose", desc: "the byte-exact command string, assembled" },
+    { n: "03", title: "Explain", desc: "every flag accounted for, with its reason" },
+  ];
   return (
     <div>
-      <p className="mb-1 text-sm font-semibold text-slate">Every flag, explained</p>
-      <dl>
-        {flags.map((f) => (
-          <div key={f.flag} className="border-t border-hairline py-3 first:border-t-0">
-            <dt className="font-mono text-sm font-semibold text-ink">{f.flag}</dt>
-            <dd className="mt-1 text-sm leading-relaxed text-ink">{f.what}</dd>
-          </div>
+      <p className="text-sm font-semibold text-ink">How it was built — three real stages</p>
+      <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+        {stages.map((s) => (
+          <li
+            key={s.n}
+            className="rounded-xl border border-hairline bg-porcelain p-3.5"
+          >
+            <p className="flex items-center gap-2 text-sm font-bold text-ink">
+              <Check size={14} strokeWidth={3} className="text-pass" aria-hidden />
+              <span className="font-mono text-xs text-slate">{s.n}</span> {s.title}
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-slate">{s.desc}</p>
+          </li>
         ))}
-      </dl>
+      </ol>
+      <p className="mt-2 text-sm text-slate">
+        Command shapes grounded in the real Docs-MCP query log —{" "}
+        <a
+          className="font-medium text-accent hover:underline"
+          href={`${GH}/evidence.json`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          evidence.json
+        </a>
+        , captured 2026-10-16.
+      </p>
     </div>
   );
 }
@@ -166,6 +288,7 @@ export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [stepIdx, setStepIdx] = useState(0);
   const [result, setResult] = useState<BuiltCommand | null>(null);
+  const [buildSeq, setBuildSeq] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const seqRef = useRef(0);
   const configureRef = useRef<HTMLDivElement>(null);
@@ -215,6 +338,7 @@ export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
       if (seq !== seqRef.current) return;
       setStepIdx(BUILD_STAGES.length);
       setResult(built);
+      setBuildSeq((n) => n + 1);
       setPhase("done");
     } catch (e) {
       if (seq !== seqRef.current) return;
@@ -605,7 +729,9 @@ export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
         </div>
       )}
 
-      {/* 03 — result */}
+      {/* 03 — result: the flagship act — the command as a terminal artifact,
+          then the flags ASSEMBLE with their explanations, then the thinking
+          layer (chain-identity guard, pipeline trace). */}
       <div>
         <p className="smallcaps mb-2 text-slate">03 — Result</p>
         {phase === "idle" && (
@@ -625,15 +751,17 @@ export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
         )}
         {phase === "done" && result && (
           <ResultCard
-            eyebrow={`Result — ${result.resultTitle}`}
-            headline="Copy. Paste. Run."
+            eyebrow="Result — built in three stages"
+            headline={result.resultTitle}
             subline={result.note}
             rows={result.facts.map((f) => ({ label: f.label, value: f.value }))}
             status="neutral"
           >
             <div className="space-y-6">
               <CommandCard command={result.command} title={result.resultTitle} />
-              <FlagList flags={result.flags} />
+              <ChainGuard goal={goal} />
+              <FlagList flags={result.flags} buildSeq={buildSeq} />
+              <PipelineTrace />
               {showSanityCheck && (
                 <SanityCheck ctxLabel={goal === "send" ? "send" : "deploy"} />
               )}
