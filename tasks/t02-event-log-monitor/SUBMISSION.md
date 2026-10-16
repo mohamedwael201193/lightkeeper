@@ -25,11 +25,11 @@ Decodes indexed topics + ABI data into readable fields (`from`, `value`, `note`,
 with block number, tx hash, and log index on every alert. Four real emitter txs on
 Atlantic; one was fired WHILE the poller ran and caught in the next cycle.
 Kill-9 test: poller killed mid-run, restarted — cursor restored, 0 re-emissions.
-Deterministic test over the known range asserts exactly the 4 emitted events
-(`monitor.py test --from-block=31481148 --to-block=<tip> --expect=Ping,Ping,Zap,Marker`
-→ TEST PASS). Total spend 0.00458664 PHRS (budget 0.15). Poller left running with
-live `poll.log`. Honest gaps: confirmation-lag reorg tolerance (no reorg detector);
-alerts go to local `alerts.jsonl` (no webhook sink yet).
+Deterministic test over the known range asserts exactly the 5 emitted events
+(`monitor.py test --from-block=31481148 --to-block=<tip> --expect=Marker,Ping,Ping,Ping,Zap`
+→ TEST PASS, 5,359 blocks / 6 chunks). Total spend 0.00461173 PHRS (budget 0.15).
+Poller left running with live `poll.log`. Honest gaps: confirmation-lag reorg tolerance
+(no reorg detector); alerts go to local `alerts.jsonl` (no webhook sink yet).
 
 ## Commit-pinned code
 
@@ -47,7 +47,8 @@ https://github.com/mohamedwael201193/lightkeeper/tree/9ded8f2e69c089b69d9a054c92
 - Ping(42): `0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba`
 - Zap(7): `0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893`
 - Marker(9001): `0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186`
-- Ping(2718, live catch): `0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c`
+- Ping(2718, live catch #1): `0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c`
+- Ping(9002, live catch #2, HARDEN op): `0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff` (block 31486465, fired while the poller was running, ALERT with full decode in the next confirmed cycle)
 
 ## Interactive console demo (new)
 
@@ -55,10 +56,14 @@ LIGHTKEEPER console "Try it live — with your own wallet": `apps/console/src/co
 (Tier A — live reads only, no wallet, costs nothing). "Watch any contract live": contract
 address + event signature inputs with presets (LogEmitter · Ping/Zap/Marker, ERC-20
 Transfer/Approval, custom signature); topic0 computed at runtime via a dependency-free
-keccak256 (`try/keccak256.ts`, verified against `cast keccak`); chunked `eth_getLogs`
-(≤1,000 blocks/call, auto-chunked); decoded rows = tx hash (explorer link), block,
-decoded fields; Refresh + labeled auto-refresh (30s, off by default, on/off switch —
-never silent background spam).
+keccak256 (`try/keccak256.ts`, verified byte-equal against `cast keccak` for all 5
+signatures); chunked `eth_getLogs` (≤1,000 blocks/call, auto-chunked); decoded rows = tx
+hash (explorer link), block, decoded fields; the watch session splits results into
+"Caught after you started watching" (CAUGHT LIVE badge) vs "Historical context";
+2-block reorg-buffer toggle (mirrors the monitor, on by default); every failure is a
+plain-language message with a Retry button; auto-refresh self-pauses after 3 failed
+attempts with a resume affordance (never silent). Watch now starts a fresh watch;
+Refresh keeps the session going.
 
 ## Video
 
@@ -66,8 +71,7 @@ PENDING-VIDEO (shot guide: VIDEO-GUIDE.md — includes the new interactive conso
 
 ## Video guide update
 
-Shot 8 (new): console interactive demo — open the LIGHTKEEPER console → T02 →
+Shot 7 (new): console interactive demo — open the LIGHTKEEPER console → T02 →
 "Try it live": preset "LogEmitter · Ping" → Watch now → decoded rows appear with
-explorer links; a live-fired event gets the CAUGHT LIVE badge above "Historical
-context" → hit Refresh (watch session continues) → toggle the 2-block reorg buffer
-→ auto-refresh on/off. Every row is a real mined log on Atlantic.
+explorer links → hit Refresh → toggle auto-refresh on/off. Every row is a real
+mined log on Atlantic.

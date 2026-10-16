@@ -1,1 +1,114 @@
-{"artifacts":["src/LogEmitter.sol","monitor.py","poll.log","alerts.jsonl","state.json"],"chain_id":688689,"contract_explorer":"https://atlantic.pharosscan.xyz/address/0x2C1dB0C436B72D94a4112f321DFbD13a976D8831","deploy":{"block":31481148,"cost_phrs":0.0035901,"gas_price_gwei":10,"gas_used":359010,"tx":"0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf","tx_explorer":"https://atlantic.pharosscan.xyz/tx/0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf"},"emitter_contract":"0x2C1dB0C436B72D94a4112f321DFbD13a976D8831","emitter_txs":[{"block":31481161,"call":"ping(42,\"t02-keepalive\")","cost_phrs":0.00025054,"decoded":{"from":"0xf76e6b0920e9332ff4410f6dd53f01722abc71a3","note":"t02-keepalive","value":"42"},"event":"Ping","gas_used":25054,"tx":"0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba","tx_explorer":"https://atlantic.pharosscan.xyz/tx/0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba"},{"block":31481165,"call":"zap(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3,7)","cost_phrs":0.00024125,"decoded":{"amount":"7","sender":"0xf76e6b0920e9332ff4410f6dd53f01722abc71a3","target":"0xf76e6b0920e9332ff4410f6dd53f01722abc71a3"},"event":"Zap","gas_used":24125,"tx":"0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893","tx_explorer":"https://atlantic.pharosscan.xyz/tx/0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893"},{"block":31481176,"call":"mark(9001,0x4c4b32303236544f326d...,0xdeadbeef)","cost_phrs":0.00025397,"decoded":{"id":"9001","payload":"0xdeadbeef","tag":"0x4c4b32303236544f326d00000000000000000000000000000000000000000000"},"event":"Marker","gas_used":25397,"tx":"0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186","tx_explorer":"https://atlantic.pharosscan.xyz/tx/0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186"},{"block":31481324,"call":"ping(2718,\"t02-live-catch\")","cost_phrs":0.00025078,"decoded":{"from":"0xf76e6b0920e9332ff4410f6dd53f01722abc71a3","note":"t02-live-catch","value":"2718"},"event":"Ping","gas_used":25078,"note":"fired WHILE the poller was running; caught live in the next cycle","tx":"0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c","tx_explorer":"https://atlantic.pharosscan.xyz/tx/0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c"}],"monitor":{"chunk_cap_blocks":1000,"confirm_lag_blocks":2,"kill9_restart":"killed with kill -9 mid-run; restarted -> cursor restored at 31481379, 0 re-emissions (alerts 1 -> 1)","live_catch":"Ping block=31481324 tx=0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c decoded in next poll cycle","poll_interval_s":8,"test":"monitor.py test --from-block=31481148 --to-block=<tip> --expect=Ping,Ping,Zap,Marker -> TEST PASS (exactly the 4 expected events, blocks+txhashes+decoded fields)"},"network":"atlantic-testnet","spend":{"budget_phrs":0.15,"budget_used_pct":3.06,"total_gas":458664,"total_phrs":0.00458664},"task":"T02","title":"Event/Log Monitor","wallet":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"}
+{
+  "artifacts": [
+    "src/LogEmitter.sol",
+    "monitor.py",
+    "poll.log",
+    "alerts.jsonl",
+    "state.json"
+  ],
+  "chain_id": 688689,
+  "contract_explorer": "https://atlantic.pharosscan.xyz/address/0x2C1dB0C436B72D94a4112f321DFbD13a976D8831",
+  "deploy": {
+    "block": 31481148,
+    "cost_phrs": 0.0035901,
+    "gas_price_gwei": 10,
+    "gas_used": 359010,
+    "tx": "0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf",
+    "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf"
+  },
+  "emitter_contract": "0x2C1dB0C436B72D94a4112f321DFbD13a976D8831",
+  "emitter_txs": [
+    {
+      "block": 31481161,
+      "call": "ping(42,\"t02-keepalive\")",
+      "cost_phrs": 0.00025054,
+      "decoded": {
+        "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+        "note": "t02-keepalive",
+        "value": "42"
+      },
+      "event": "Ping",
+      "gas_used": 25054,
+      "tx": "0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba",
+      "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba"
+    },
+    {
+      "block": 31481165,
+      "call": "zap(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3,7)",
+      "cost_phrs": 0.00024125,
+      "decoded": {
+        "amount": "7",
+        "sender": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+        "target": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3"
+      },
+      "event": "Zap",
+      "gas_used": 24125,
+      "tx": "0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893",
+      "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893"
+    },
+    {
+      "block": 31481176,
+      "call": "mark(9001,0x4c4b32303236544f326d...,0xdeadbeef)",
+      "cost_phrs": 0.00025397,
+      "decoded": {
+        "id": "9001",
+        "payload": "0xdeadbeef",
+        "tag": "0x4c4b32303236544f326d00000000000000000000000000000000000000000000"
+      },
+      "event": "Marker",
+      "gas_used": 25397,
+      "tx": "0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186",
+      "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186"
+    },
+    {
+      "block": 31481324,
+      "call": "ping(2718,\"t02-live-catch\")",
+      "cost_phrs": 0.00025078,
+      "decoded": {
+        "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+        "note": "t02-live-catch",
+        "value": "2718"
+      },
+      "event": "Ping",
+      "gas_used": 25078,
+      "note": "fired WHILE the poller was running; caught live in the next cycle",
+      "tx": "0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c",
+      "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c"
+    },
+    {
+      "event": "Ping",
+      "call": "ping(9002,\"t02-harden-live\")",
+      "block": 31486465,
+      "tx": "0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff",
+      "tx_explorer": "https://atlantic.pharosscan.xyz/tx/0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff",
+      "gas_used": 25090,
+      "gas_price_gwei": 1,
+      "cost_phrs": 2.509e-05,
+      "note": "fired DURING the HARDEN op while the poller was running; caught in the next confirmed cycle (ALERT block=31486465)",
+      "decoded": {
+        "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+        "value": "9002",
+        "note": "t02-harden-live"
+      }
+    }
+  ],
+  "monitor": {
+    "chunk_cap_blocks": 1000,
+    "confirm_lag_blocks": 2,
+    "kill9_restart": "killed with kill -9 mid-run; restarted -> cursor restored at 31481379, 0 re-emissions (alerts 1 -> 1)",
+    "live_catch": "Ping block=31481324 tx=0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c decoded in next poll cycle",
+    "poll_interval_s": 8,
+    "test": "monitor.py test --from-block=31481148 --to-block=<tip> --expect=Marker,Ping,Ping,Ping,Zap -> TEST PASS (exactly the 5 expected events over 5,359 blocks / 6 chunks)",
+    "harden_live_catch": "Ping block=31486465 tx=0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff decoded in next poll cycle (06:38:44 UTC); alerts 1 -> 2"
+  },
+  "network": "atlantic-testnet",
+  "spend": {
+    "budget_phrs": 0.15,
+    "budget_used_pct": 3.07,
+    "total_gas": 483754,
+    "total_phrs": 0.00461173
+  },
+  "task": "T02",
+  "title": "Event/Log Monitor",
+  "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+}
