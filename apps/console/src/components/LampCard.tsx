@@ -1,11 +1,53 @@
 import { motion } from "framer-motion";
-import { Flame } from "lucide-react";
+import { Flame, Lock } from "lucide-react";
 import type { Lamp } from "../types";
 import { taskRoute } from "../types";
+import { isTaskPubliclyOpen } from "../data/launch";
 
 /** Porcelain lamp card. LIT (gold accents) = shipped with evidence; DIM = in progress. */
 export default function LampCard({ lamp, index }: { lamp: Lamp; index: number }) {
   const lit = lamp.status === "shipped";
+  const open = isTaskPubliclyOpen(lamp.id);
+
+  // Staged launch: built but not yet public — a locked teaser card, no link.
+  // The underlying task work is untouched; founder mode bypasses via the route guard.
+  if (!open) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{ duration: 0.35, delay: (index % 8) * 0.04 }}
+        className="lamp-card relative flex min-h-[185px] flex-col p-5 opacity-80"
+        aria-label={`${lamp.id} ${lamp.name} — coming soon`}
+      >
+        <div className="mb-3 flex items-start justify-between">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-tint text-slate">
+            <Lock size={18} strokeWidth={1.8} />
+          </div>
+          <span className="chip chip-dim">Coming soon</span>
+        </div>
+
+        <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate">
+          {lamp.id} · {lamp.toolkit}
+        </div>
+        <h3 className="mt-1 break-words font-display text-lg font-semibold leading-snug text-ink md:text-xl">
+          {lamp.name}
+        </h3>
+
+        <div className="mt-auto flex items-end justify-between pt-4">
+          <div className="tabular text-2xl font-bold text-golddeep">
+            {lamp.points}
+            <span className="ml-1 text-xs font-semibold uppercase tracking-widest text-slate">
+              pts
+            </span>
+          </div>
+          <div className="text-[11px] font-medium text-slate">under wraps</div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.a
       href={taskRoute(lamp)}

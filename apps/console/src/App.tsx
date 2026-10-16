@@ -7,6 +7,8 @@ import ActivityFeed from "./components/ActivityFeed";
 import Header from "./components/Header";
 import { WalletProvider } from "./components/WalletContext";
 import { useFounderMode, useFounderNoindex, enableFounderMode } from "./hooks/useFounderMode";
+import ComingSoon from "./components/ComingSoon";
+import { isTaskPubliclyOpen } from "./data/launch";
 import lampsRaw from "./data/lamps.json";
 import type { LampsData } from "./types";
 
@@ -130,7 +132,14 @@ export default function App() {
                   </div>
                 }
               >
-                <TaskDetail lamp={task} />
+                {/* Staged launch: locked lamps show Coming soon to the public;
+                    founder mode bypasses so videos can be filmed and
+                    submissions prepared. */}
+                {isTaskPubliclyOpen(task.id) || founder ? (
+                  <TaskDetail lamp={task} />
+                ) : (
+                  <ComingSoon lamp={task} />
+                )}
               </Suspense>
             </main>
           ) : (
