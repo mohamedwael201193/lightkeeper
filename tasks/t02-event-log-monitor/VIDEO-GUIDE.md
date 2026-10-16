@@ -20,3 +20,10 @@ re-recordable live.**
 - Record the explorer page LIVE (URL bar visible) — no screenshots.
 - If a poll cycle is slow, trim silence, never fake the alert.
 - End card: repo link + the 4 tx hashes.
+
+## Shot 7 — The interactive console demo (new)
+
+| Time | What you see | Spoken script |
+|------|--------------|---------------|
+| 80–95s | Browser: lightkeeper-console.vercel.app → T02 → "Try it live — with your own wallet" → "Watch any contract live": preset "LogEmitter · Ping" selected, contract prefilled → click **Watch now** → decoded rows appear (block, tx hash, from/value/note) | "And now the interactive surface: anyone can watch any contract live — no wallet, no signature, free reads. Same events, decoded, with explorer links." |
+| 95–105s | Click a tx-hash link → explorer receipt, Logs tab; back to console, hit Refresh; toggle auto-refresh on, then off | "Click through to trace the full receipt. Refresh on demand, or labeled auto-refresh with an off switch — nothing polls silently." |

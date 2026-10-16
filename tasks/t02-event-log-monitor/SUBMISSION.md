@@ -49,6 +49,24 @@ https://github.com/mohamedwael201193/lightkeeper/tree/9ded8f2e69c089b69d9a054c92
 - Marker(9001): `0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186`
 - Ping(2718, live catch): `0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c`
 
+## Interactive console demo (new)
+
+LIGHTKEEPER console "Try it live — with your own wallet": `apps/console/src/components/try/event-log-monitor.tsx`
+(Tier A — live reads only, no wallet, costs nothing). "Watch any contract live": contract
+address + event signature inputs with presets (LogEmitter · Ping/Zap/Marker, ERC-20
+Transfer/Approval, custom signature); topic0 computed at runtime via a dependency-free
+keccak256 (`try/keccak256.ts`, verified against `cast keccak`); chunked `eth_getLogs`
+(≤1,000 blocks/call, auto-chunked); decoded rows = tx hash (explorer link), block,
+decoded fields; Refresh + labeled auto-refresh (30s, off by default, on/off switch —
+never silent background spam).
+
 ## Video
 
-PENDING-VIDEO (shot guide: VIDEO-GUIDE.md)
+PENDING-VIDEO (shot guide: VIDEO-GUIDE.md — includes the new interactive console shot)
+
+## Video guide update
+
+Shot 7 (new): console interactive demo — open the LIGHTKEEPER console → T02 →
+"Try it live": preset "LogEmitter · Ping" → Watch now → decoded rows appear with
+explorer links → hit Refresh → toggle auto-refresh on/off. Every row is a real
+mined log on Atlantic.
