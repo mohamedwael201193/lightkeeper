@@ -5,6 +5,9 @@
  * messages — it generates the exact env config + run commands for the T26
  * digest agent, which the visitor copies into their own terminal. The sample
  * below is the task's REAL delivered digest (Telegram message_id 723).
+ *
+ * The section picker is REAL: the checked sections become T26_SECTIONS, and
+ * src/digest.py only renders those digest blocks (unknown/empty fails loudly).
  */
 import { useState } from "react";
 import type { Lamp } from "../../types";
@@ -81,17 +84,19 @@ export default function TryWeeklyDigestAgent({ lamp }: { lamp: Lamp }) {
   const addrOk = isValidAddress(address);
   const valid = addrOk && sections.length > 0;
 
-  const sectionLines = SECTIONS.filter((s) => sections.includes(s.id))
-    .map((s) => `#   - ${s.label}: ${s.note}`)
-    .join("\n");
+  // Canonical digest order — the agent keeps this layout no matter the pick order.
+  const orderedSections = SECTIONS.map((s) => s.id).filter((id) =>
+    sections.includes(id)
+  );
 
   const configCmd = `# LIGHTKEEPER T26 — digest config (run inside tasks/t26-weekly-digest-agent)
 # Secrets are NEVER stored here: TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
 # come from your own environment (exported in your terminal), never from config or code.
+# T26_SECTIONS is real: the agent renders ONLY the blocks you list here.
 
 export WATCH_ADDRESS=${addrOk ? address : "<your-watched-address>"}
 export WINDOW_DAYS=${cadence.days}
-${sectionLines}
+export T26_SECTIONS=${orderedSections.join(",")}
 
 python3 src/digest.py --backfill   # once: real previous-window baseline -> state.json
 python3 src/digest.py --run        # weekly: current digest + deltas -> digests/
@@ -119,9 +124,10 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
           Pick the sections, set the schedule — copy the exact commands
         </h3>
         <p className="mt-1 text-sm text-slate">
-          The real T26 agent reads the chain directly and delivers one Telegram
-          message per run. Configure it here, run it in your own terminal —
-          nothing below is mock data.
+          The sections you tick become{" "}
+          <span className="font-mono text-xs">T26_SECTIONS</span> — the real T26
+          agent renders exactly those digest blocks, nothing more. Configure it
+          here, run it in your own terminal — nothing below is mock data.
         </p>
       </div>
 

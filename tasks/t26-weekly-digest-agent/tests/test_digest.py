@@ -162,6 +162,143 @@ class TestRecordedData(unittest.TestCase):
         self.assertIn("baseline", md)
         self.assertIn("quiet week", tg)
 
+    # ---- T26_SECTIONS: the digest builder's section picker is real ----
+    def _with_sections(self, value):
+        old = os.environ.get("T26_SECTIONS")
+        if value is None:
+            os.environ.pop("T26_SECTIONS", None)
+        else:
+            os.environ["T26_SECTIONS"] = value
+        return old
+
+    def _restore_sections(self, old):
+        if old is None:
+            os.environ.pop("T26_SECTIONS", None)
+        else:
+            os.environ["T26_SECTIONS"] = old
+
+    def test_sections_default_all(self):
+        old = self._with_sections(None)
+        try:
+            self.assertEqual(D.selected_sections(),
+                             ["top3", "volume", "gas", "whales", "tokens", "failed"])
+        finally:
+            self._restore_sections(old)
+
+    def test_sections_subset_canonical_order(self):
+        old = self._with_sections("gas,top3")
+        try:
+            self.assertEqual(D.selected_sections(), ["top3", "gas"])
+        finally:
+            self._restore_sections(old)
+
+    def test_sections_unknown_fails_loudly(self):
+        old = self._with_sections("top3,bogus")
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                D.selected_sections()
+            self.assertIn("bogus", str(cm.exception))
+        finally:
+            self._restore_sections(old)
+
+    def test_sections_empty_fails_loudly(self):
+        old = self._with_sections("  ")
+        try:
+            # blank is treated as unset (default all); a comma-only string is an error
+            self.assertEqual(len(D.selected_sections()), 6)
+        finally:
+            self._restore_sections(old)
+        old = self._with_sections(",")
+        try:
+            with self.assertRaises(SystemExit):
+                D.selected_sections()
+        finally:
+            self._restore_sections(old)
+
+    def test_markdown_section_filter(self):
+        ctx = self._ctx()
+        ctx["sections"] = ["top3"]
+        md = D.render_markdown(ctx)
+        self.assertIn("TOP 3", md)
+        self.assertNotIn("Key metrics", md)
+        self.assertNotIn("Whale moves", md)
+        self.assertNotIn("Token transfers", md)
+        self.assertNotIn("Failures & creations", md)
+        self.assertIn("Method breakdown", md)  # always rendered
+
+    def test_telegram_section_filter(self):
+        ctx = self._ctx()
+        ctx["sections"] = ["gas"]
+        tg = D.render_telegram(ctx)
+        self.assertIn("Gas spent:", tg)
+        self.assertNotIn("Txs:", tg)
+        self.assertNotIn("TOP 3", tg)
+        self.assertNotIn("Whale moves", tg)
+        self.assertLessEqual(len(tg), 4000)
+
+    def test_whale_moves_detected(self):
+        big = dict(self.cur_txs[0])
+        big["value"] = "0.1"
+        big["to_address"] = "0x" + "11" * 20
+        big["hash"] = "0x" + "ff" * 32
+        m = D.build_metrics([big], [], self.addr)
+        self.assertEqual(len(m["_large"]), 1)
+        self.assertEqual(m["_large"][0]["direction"], "OUT")
+        self.assertEqual(m["_large"][0]["value"], 0.1)
+        ctx = self._ctx()
+        ctx["whales"] = m["_large"]
+        ctx["sections"] = ["whales"]
+        md = D.render_markdown(ctx)
+        tg = D.render_telegram(ctx)
+        self.assertIn("Whale moves", md)
+        self.assertIn("0.1 PHRS OUT", md)
+        self.assertIn("Whale moves", tg)
+
+    def test_whale_section_quiet_when_none(self):
+        ctx = self._ctx()
+        ctx["whales"] = []
+        ctx["sections"] = ["whales"]
+        md = D.render_markdown(ctx)
+        self.assertIn("No whale-sized moves", md)
+
+    def test_failed_creations_section_lists(self):
+        ctx = self._ctx()
+        bad = dict(self.cur_txs[0])
+        bad["receipt_status"] = 0
+        ctx["detailed"] = {
+            "failed": [{"hash": bad["hash"], "block": bad["block_number"],
+                        "status": 0}],
+            "creations": [],
+        }
+        ctx["sections"] = ["failed"]
+        md = D.render_markdown(ctx)
+        self.assertIn("Failures & creations", md)
+        self.assertIn("reverted", md)
+        self.assertNotIn("Token transfers", md)
+
+    # ---- token symbol decoding: dynamic string AND bytes32 ----
+    def test_decode_abi_dynamic_string(self):
+        # symbol() -> "PHRS" as a Solidity string:
+        # word0=offset(32) word1=length(4) word2="PHRS" padded
+        h = ("0000000000000000000000000000000000000000000000000000000000000020"
+             "0000000000000000000000000000000000000000000000000000000000000004"
+             "5048525300000000000000000000000000000000000000000000000000000000")
+        self.assertEqual(D._decode_abi_string(h), "PHRS")
+
+    def test_decode_abi_bytes32(self):
+        # older tokens return bytes32 "TKN" directly in word0
+        h = "544b4e00000000000000000000000000000000000000000000000000000000000"
+        self.assertEqual(D._decode_abi_string(h), "TKN")
+
+    def test_decode_abi_garbage_is_none(self):
+        self.assertIsNone(D._decode_abi_string("00" * 10))  # too short
+        self.assertIsNone(D._decode_abi_string("zz"))  # not hex
+
+    def test_clean_symbol_strips_control_chars(self):
+        # regression: the old decoder grabbed the LENGTH word, yielding "\x05"
+        self.assertIsNone(D._clean_symbol("\x05"))
+        self.assertEqual(D._clean_symbol(" PHRS\x00 "), "PHRS")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -33,6 +33,8 @@ Env (never printed, never committed):
   ATLANTIC_RPC_URL    JSON-RPC endpoint (default https://atlantic.dplabs-internal.com)
   EXPLORER_API        explorer indexer base URL
   WINDOW_DAYS         digest window in days (default 7)
+  T26_SECTIONS        digest blocks to render, comma-separated ids from
+                      top3,volume,gas,whales,tokens,failed (default: all)
   TELEGRAM_BOT_TOKEN  bot token (deliver only)
   TELEGRAM_CHAT_ID    destination chat (deliver only)
 
@@ -68,6 +70,35 @@ DIGESTS_DIR = os.path.join(BASE_DIR, "digests")
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"  # keccak("Transfer(address,address,uint256)") via cast
 PADDED_ADDR = "0x" + "0" * 24 + WATCH_ADDRESS[2:]
 ZERO_ADDR_TOPIC = "0x" + "0" * 64
+
+# ---------------------------------------------------------------- digest sections
+# The digest is rendered as named blocks. The operator chooses which blocks
+# appear via T26_SECTIONS (comma-separated ids, any order — the digest keeps
+# its canonical layout). Unset = every section. Unknown/empty = loud failure.
+SECTION_IDS = ("top3", "volume", "gas", "whales", "tokens", "failed")
+WHALE_THRESHOLD = 0.05  # PHRS: native transfers >= this are "whale moves"
+
+
+def selected_sections():
+    raw = os.environ.get("T26_SECTIONS", "")
+    if not raw.strip():
+        return list(SECTION_IDS)
+    ids = [s.strip().lower() for s in raw.split(",") if s.strip()]
+    unknown = [s for s in ids if s not in SECTION_IDS]
+    if unknown:
+        raise SystemExit(
+            f"T26_SECTIONS: unknown section(s) {', '.join(unknown)} — "
+            f"valid sections: {', '.join(SECTION_IDS)}"
+        )
+    if not ids:
+        raise SystemExit("T26_SECTIONS is empty — pick at least one section "
+                         f"({', '.join(SECTION_IDS)})")
+    return [s for s in SECTION_IDS if s in ids]  # canonical order
+
+
+def ctx_sections(ctx):
+    return ctx.get("sections") or list(SECTION_IDS)
+
 
 TELEGRAM_API = "https://api.telegram.org"
 
@@ -221,6 +252,35 @@ def collect_transfer_logs(start_block, end_block, workers=None):
     return uniq
 
 
+def _decode_abi_string(h):
+    """Decode an eth_call return (hex, no 0x) as a Solidity string or bytes32.
+
+    string  -> word0 = offset (32), word1 = length, then the UTF-8 data.
+    bytes32 -> the 32-byte word IS the data (older tokens).
+    Returns None when the payload is not decodable text."""
+    if len(h) < 64:
+        return None
+    try:
+        offset = int(h[0:64], 16)
+        if offset == 32 and len(h) >= 128:
+            length = int(h[64:128], 16)
+            if 0 < length <= 64 and len(h) >= 128 + length * 2:
+                return bytes.fromhex(h[128:128 + length * 2]).decode("utf-8", "replace")
+        raw = bytes.fromhex(h[0:64]).rstrip(b"\x00")
+        if raw:
+            return raw.decode("utf-8", "replace")
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+def _clean_symbol(s):
+    if not s:
+        return None
+    s = "".join(c for c in s if c.isprintable()).strip()
+    return s or None
+
+
 _token_meta_cache = {}
 
 
@@ -236,11 +296,9 @@ def token_meta(token_addr):
     sym_raw = call("0x95d89b41")       # symbol()
     dec_raw = call("0x313ce567")       # decimals()
     symbol, decimals = None, 18
-    try:
-        if len(sym_raw) >= 130:
-            symbol = bytes.fromhex(sym_raw[2:][64:128]).rstrip(b"\x00").decode("utf-8", "replace") or None
-    except Exception:  # noqa: BLE001
-        pass
+    if sym_raw and sym_raw.startswith("0x"):
+        # dynamic string OR bytes32 — decode properly, then strip control chars
+        symbol = _clean_symbol(_decode_abi_string(sym_raw[2:]))
     try:
         if dec_raw and dec_raw != "0x":
             decimals = int(dec_raw, 16)
@@ -285,6 +343,23 @@ def build_metrics(txs, transfers, addr):
         methods[m] = methods.get(m, 0) + 1
     tok_in = sum(1 for x in transfers if x["to"] == addr and x["from"] != addr)
     tok_out = sum(1 for x in transfers if x["from"] == addr and x["to"] != addr)
+    # whale moves: native transfers >= WHALE_THRESHOLD PHRS (sent or received),
+    # sorted biggest-first. Real tx data — the "whales" digest section lists these.
+    large = []
+    for t in sent:
+        v = float(t.get("value") or 0)
+        to = (t.get("to_address") or "").lower()
+        if v >= WHALE_THRESHOLD and to != addr:
+            large.append({"direction": "OUT", "value": v,
+                          "counterparty": t.get("to_address"),
+                          "hash": t.get("hash"), "block": t.get("block_number")})
+    for t in recv:
+        v = float(t.get("value") or 0)
+        if v >= WHALE_THRESHOLD:
+            large.append({"direction": "IN", "value": v,
+                          "counterparty": t.get("from_address"),
+                          "hash": t.get("hash"), "block": t.get("block_number")})
+    large.sort(key=lambda x: -x["value"])
     return {
         "tx_total": len(txs), "tx_sent": len(sent), "tx_received": len(recv),
         "native_in_phrs": round(native_in, 9), "native_out_phrs": round(native_out, 9),
@@ -295,6 +370,7 @@ def build_metrics(txs, transfers, addr):
         "token_transfers_in": tok_in, "token_transfers_out": tok_out,
         "token_transfer_events": len(transfers),
         "_sent": sent, "_failed": failed, "_creations": creations, "_recv": recv,
+        "_large": large,
     }
 
 
@@ -395,8 +471,24 @@ def short_addr(a):
     return (a[:6] + "…" + a[-4:]) if a and len(a) > 12 else (a or "?")
 
 
+# (section_id, row label, metric key) — the Key metrics table shows only
+# the rows whose section is selected via T26_SECTIONS.
+METRIC_ROWS = [
+    ("volume", "Transactions (total)", "tx_total"),
+    ("volume", "  ↳ sent", "tx_sent"),
+    ("volume", "  ↳ received", "tx_received"),
+    ("volume", "Native in (PHRS)", "native_in_phrs"),
+    ("volume", "Native out (PHRS)", "native_out_phrs"),
+    ("gas", "Gas spent (PHRS)", "gas_spent_phrs"),
+    ("failed", "Contract creations", "contract_creations"),
+    ("failed", "Failed txs", "failed_txs"),
+    ("tokens", "Token transfer events", "token_transfer_events"),
+]
+
+
 def render_markdown(ctx):
     m, dl, top = ctx["metrics"], ctx["deltas"], ctx["top3"]
+    secs = ctx_sections(ctx)
     w = ctx["window"]
     lines = [
         f"# Weekly Digest — {short_addr(ctx['address'])}",
@@ -405,38 +497,77 @@ def render_markdown(ctx):
         f"**Window:** {w['start_iso'][:10]} → {w['end_iso'][:10]} "
         f"({WINDOW_DAYS}d, blocks {w['start_block']}–{w['end_block']})",
         f"**Generated:** {ctx['generated_iso']} · all figures from real chain reads",
+        f"**Sections:** {', '.join(secs)}",
         "",
-        "## Key metrics",
-        "",
-        "| Metric | This week | Prev week | Δ |",
-        "|---|---|---|---|",
     ]
-    rows = [
-        ("Transactions (total)", "tx_total"),
-        ("  ↳ sent", "tx_sent"),
-        ("  ↳ received", "tx_received"),
-        ("Native in (PHRS)", "native_in_phrs"),
-        ("Native out (PHRS)", "native_out_phrs"),
-        ("Gas spent (PHRS)", "gas_spent_phrs"),
-        ("Contract creations", "contract_creations"),
-        ("Failed txs", "failed_txs"),
-        ("Token transfer events", "token_transfer_events"),
-    ]
-    for label, k in rows:
-        if dl and k in dl:
-            r = dl[k]
-            lines.append(f"| {label} | {r['current']} | {r['previous']} | {r['fmt']} |")
+    rows = [(label, k) for (sid, label, k) in METRIC_ROWS if sid in secs]
+    if rows:
+        lines += ["## Key metrics",
+                  "",
+                  "| Metric | This week | Prev week | Δ |",
+                  "|---|---|---|---|"]
+        for label, k in rows:
+            if dl and k in dl:
+                r = dl[k]
+                lines.append(f"| {label} | {r['current']} | {r['previous']} | {r['fmt']} |")
+            else:
+                lines.append(f"| {label} | {m[k]} | — (baseline) | — |")
+        lines.append("")
+    if "top3" in secs:
+        lines += ["## TOP 3 notable events",
+                  "", "_Deterministic rule-based ranking: failed tx (100) > contract "
+                  "creation (50) > large native ≥0.05 PHRS (40) > token transfer (25) > "
+                  "contract interaction (10) > plain transfer (5); ties → newest block._", ""]
+        if top:
+            for i, e in enumerate(top, 1):
+                lines.append(f"{i}. **[{e['kind']}]** {e['text']}")
         else:
-            lines.append(f"| {label} | {m[k]} | — (baseline) | — |")
-    lines += ["", "## TOP 3 notable events",
-              "", "_Deterministic rule-based ranking: failed tx (100) > contract "
-              "creation (50) > large native ≥0.05 PHRS (40) > token transfer (25) > "
-              "contract interaction (10) > plain transfer (5); ties → newest block._", ""]
-    if top:
-        for i, e in enumerate(top, 1):
-            lines.append(f"{i}. **[{e['kind']}]** {e['text']}")
-    else:
-        lines.append("_No notable events this week._")
+            lines.append("_No notable events this week._")
+        lines.append("")
+    if "whales" in secs:
+        lines += [f"## Whale moves (native ≥{WHALE_THRESHOLD:g} PHRS)", ""]
+        for e in ctx.get("whales", []):
+            lines.append(f"- {e['value']:g} PHRS {e['direction']} "
+                         f"{short_addr(e.get('counterparty'))} "
+                         f"({(e.get('hash') or '?')[:12]}…, block {e.get('block')})")
+        if not ctx.get("whales"):
+            lines.append("_No whale-sized moves this week._")
+        lines.append("")
+    if "tokens" in secs:
+        lines += ["## Token transfers (ERC20)", ""]
+        flows = ctx.get("token_flows", [])
+        if flows:
+            for f in flows:
+                parts = []
+                if f["in_n"]:
+                    parts.append(f"{f['in_n']} in ({f['in_amt']:.6g} {f['symbol']})")
+                if f["out_n"]:
+                    parts.append(f"{f['out_n']} out ({f['out_amt']:.6g} {f['symbol']})")
+                lines.append(f"- `{f['token'][:12]}…` {f['symbol']}: "
+                             + (", ".join(parts) or "_no directed flow_"))
+        else:
+            lines.append("_No token transfers this week._")
+        lines.append("")
+    if "failed" in secs:
+        det = ctx.get("detailed", {})
+        failed, creations = det.get("failed", []), det.get("creations", [])
+        lines += ["## Failures & creations", ""]
+        lines.append(f"- Failed txs ({len(failed)}):")
+        for e in failed:
+            lines.append(f"  - `{(e.get('hash') or '?')[:12]}…` reverted "
+                         f"(receipt_status={e.get('status')}) in block {e.get('block')}")
+        if not failed:
+            lines.append("  - _none_")
+        lines.append(f"- Contract creations ({len(creations)}):")
+        for e in creations[:8]:
+            ca = short_addr(e.get("contract")) if e.get("contract") else "?"
+            lines.append(f"  - `{ca}` deployed via {(e.get('hash') or '?')[:12]}… "
+                         f"in block {e.get('block')}")
+        if len(creations) > 8:
+            lines.append(f"  - _…and {len(creations) - 8} more_")
+        if not creations:
+            lines.append("  - _none_")
+        lines.append("")
     lines += ["",
               "## Method breakdown (sent txs)",
               ""]
@@ -453,6 +584,7 @@ def render_markdown(ctx):
 
 def render_telegram(ctx):
     m, dl, top = ctx["metrics"], ctx["deltas"], ctx["top3"]
+    secs = ctx_sections(ctx)
     w = ctx["window"]
     L = [f"📊 Weekly Digest — {short_addr(ctx['address'])}",
          f"Atlantic testnet · {w['start_iso'][:10]} → {w['end_iso'][:10]}",
@@ -463,20 +595,38 @@ def render_telegram(ctx):
             L.append(f"{label}: {r['current']}{unit} ({r['fmt']})")
         else:
             L.append(f"{label}: {m[k]}{unit} (baseline)")
-    row("Txs", "tx_total")
-    L.append(f"Sent: {m['tx_sent']} · Received: {m['tx_received']}")
-    L.append(f"Native in/out: {m['native_in_phrs']}/{m['native_out_phrs']} PHRS")
-    L.append(f"Gas spent: {m['gas_spent_phrs']} PHRS")
-    L.append(f"Creations: {m['contract_creations']} · Failed: {m['failed_txs']} · "
-             f"Token xfers: {m['token_transfer_events']}")
+    if "volume" in secs:
+        row("Txs", "tx_total")
+        L.append(f"Sent: {m['tx_sent']} · Received: {m['tx_received']}")
+        L.append(f"Native in/out: {m['native_in_phrs']}/{m['native_out_phrs']} PHRS")
+    if "gas" in secs:
+        L.append(f"Gas spent: {m['gas_spent_phrs']} PHRS")
+    parts = []
+    if "failed" in secs:
+        parts += [f"Creations: {m['contract_creations']}",
+                  f"Failed: {m['failed_txs']}"]
+    if "tokens" in secs:
+        parts.append(f"Token xfers: {m['token_transfer_events']}")
+    if parts:
+        L.append(" · ".join(parts))
     L.append("")
-    L.append("TOP 3 notable:")
-    if top:
-        for i, e in enumerate(top, 1):
-            L.append(f"{i}. [{e['kind']}] {e['text']}")
-    else:
-        L.append("— quiet week, no notable events —")
-    L.append("")
+    if "top3" in secs:
+        L.append("TOP 3 notable:")
+        if top:
+            for i, e in enumerate(top, 1):
+                L.append(f"{i}. [{e['kind']}] {e['text']}")
+        else:
+            L.append("— quiet week, no notable events —")
+        L.append("")
+    if "whales" in secs:
+        L.append("Whale moves:")
+        for e in ctx.get("whales", []):
+            L.append(f"- {e['value']:g} PHRS {e['direction']} "
+                     f"{short_addr(e.get('counterparty'))} "
+                     f"({(e.get('hash') or '?')[:12]}…)")
+        if not ctx.get("whales"):
+            L.append("— none —")
+        L.append("")
     L.append("Full digest: see LIGHTKEEPER t26 deliverable.")
     txt = "\n".join(L)
     assert len(txt) <= 4000, f"telegram text too long: {len(txt)}"
@@ -511,6 +661,27 @@ def build_window_digest(start_block, end_block, start_iso, end_iso, label):
     transfers = [decode_transfer(l) for l in logs]
     metrics = build_metrics(txs, transfers, WATCH_ADDRESS)
     top = rank_notable(metrics, transfers, WATCH_ADDRESS)
+    # section payloads (public, JSON-safe) — the renderers pick blocks by T26_SECTIONS
+    token_flows = {}
+    for x in transfers:
+        f = token_flows.setdefault(
+            x["token"], {"token": x["token"], "symbol": x["symbol"],
+                         "in_n": 0, "out_n": 0, "in_amt": 0.0, "out_amt": 0.0})
+        if x["to"] == WATCH_ADDRESS and x["from"] != WATCH_ADDRESS:
+            f["in_n"] += 1
+            f["in_amt"] += x["amount"]
+        elif x["from"] == WATCH_ADDRESS and x["to"] != WATCH_ADDRESS:
+            f["out_n"] += 1
+            f["out_amt"] += x["amount"]
+    detailed = {
+        "failed": [{"hash": t.get("hash"), "block": t.get("block_number"),
+                    "status": t.get("receipt_status")}
+                   for t in metrics["_failed"]],
+        "creations": [{"hash": t.get("hash"), "block": t.get("block_number"),
+                       "contract": t.get("receipt_contract_address") or "",
+                       "fee": t.get("transaction_fee")}
+                      for t in metrics["_creations"]],
+    }
     return {
         "address": WATCH_ADDRESS,
         "label": label,
@@ -518,6 +689,10 @@ def build_window_digest(start_block, end_block, start_iso, end_iso, label):
                    "start_iso": start_iso, "end_iso": end_iso,
                    "days": WINDOW_DAYS, "chain_id": CHAIN_ID},
         "metrics": public_metrics(metrics),
+        "whales": metrics["_large"],
+        "token_flows": sorted(token_flows.values(),
+                              key=lambda f: -(f["in_n"] + f["out_n"])),
+        "detailed": detailed,
         "tx_hashes": [t["hash"] for t in txs],
         "top3": top,
         "generated_iso": datetime.now(timezone.utc).isoformat(),
@@ -541,7 +716,7 @@ def cmd_backfill():
     st["baseline"] = d
     save_state(st)
     os.makedirs(DIGESTS_DIR, exist_ok=True)
-    ctx = dict(d, deltas=None)
+    ctx = dict(d, deltas=None, sections=selected_sections())
     md = render_markdown(ctx)
     path = os.path.join(DIGESTS_DIR, "digest-previous-baseline.md")
     with open(path, "w") as f:
@@ -556,7 +731,7 @@ def cmd_run():
     st = load_state()
     prev = st.get("baseline")
     dl = delta(d["metrics"], prev["metrics"] if prev else None)
-    ctx = dict(d, deltas=dl)
+    ctx = dict(d, deltas=dl, sections=selected_sections())
     md = render_markdown(ctx)
     tg = render_telegram(ctx)
     os.makedirs(DIGESTS_DIR, exist_ok=True)
