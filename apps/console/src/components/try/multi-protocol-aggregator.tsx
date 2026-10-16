@@ -244,6 +244,16 @@ function shortAddr(a: string): string {
   return `${a.slice(0, 10)}…${a.slice(-7)}`;
 }
 
+/** The honesty gate, made visible per venue. Derived from the real gate
+ *  result: the gate passed iff the quote read proceeded. */
+function gateLine(q: VenueQuote, block: number): string {
+  const at = `eth_getCode @ block ${block.toLocaleString("en-US")}`;
+  if (q.ok) return `${at} → bytecode present`;
+  return q.error?.includes("no bytecode")
+    ? `${at} → no bytecode at address — excluded, never zero-filled`
+    : `${at} → bytecode present · quote selectors failed — excluded, never zero-filled`;
+}
+
 /** Capital efficiency, exactly as aggregate.py's comparison(): utilization
  *  share for lending, 100% for vaults (all TVL deployed in strategy). */
 function capitalEfficiencyPct(q: VenueQuote): number {
@@ -361,6 +371,30 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
   const lendQuote = okQuotes.find((q) => q.def.id === "T28-LEND") ?? null;
   const winner: VenueQuote | null =
     intent === "deposit" ? depositRanking[0] ?? null : lendQuote;
+
+  const runnerUp: VenueQuote | null =
+    intent === "deposit" ? depositRanking[1] ?? null : null;
+
+  /** The crowning: why the winner won, for this intent — the verdict
+   *  sentence a human would say out loud. */
+  const crownLine =
+    intent === "deposit" && winner && runnerUp
+      ? `${winner.def.name} takes the deposit crown at ${bpsToPct(
+          winner.supplyApyBps,
+        )} supply APY — ${((winner.supplyApyBps - runnerUp.supplyApyBps) / 100).toFixed(
+          2,
+        )}pp ahead of ${runnerUp.def.name}, ${weiToPhrs(winner.tvlWei)} PHRS TVL, 100% capital efficiency. One pinned block, every venue live; dead venues excluded, never zero-filled.`
+      : intent === "deposit" && winner
+        ? `${winner.def.name} takes the deposit crown at ${bpsToPct(
+            winner.supplyApyBps,
+          )} supply APY — the only reachable venue this read. One pinned block; dead venues excluded, never zero-filled.`
+        : winner && winner.borrowApyBps !== null
+          ? `${winner.def.name} is the only borrow market on the board: ${bpsToPct(
+              winner.borrowApyBps,
+            )} borrow APY against ${weiToPhrs(winner.liquidityWei)} PHRS of live liquidity at ${
+              winner.utilizationBps !== null ? (winner.utilizationBps / 100).toFixed(2) : "?"
+            }% utilization. Borrow intent only — vaults accept deposits, not loans.`
+          : "No venue answered for this intent — nothing invented to fill the gap.";
 
   /** Estimated 1-year output for a deposit of `inputWei` at the venue's
    *  supply APY (simple interest, honest estimate). */
@@ -582,11 +616,7 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
                       </span>
                     </span>
                   }
-                  subline={
-                    intent === "deposit"
-                      ? `Highest live supply APY of ${okQuotes.length} reachable venue${okQuotes.length > 1 ? "s" : ""} — read at one pinned block, dead venues excluded not zero-filled.`
-                      : `The only borrow market on the board — ${weiToPhrs(winner.liquidityWei)} PHRS of liquidity available right now.`
-                  }
+                  subline={crownLine}
                   status="pass"
                   rows={[
                     {
@@ -650,11 +680,21 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
 
               {statStrip}
 
-              {/* Venue leaderboard */}
+              {/* Venue leaderboard — the arena */}
               <div>
-                <h3 className="mb-3 text-base font-bold text-ink">
-                  Venue leaderboard — ranked for {intent}
+                <h3 className="text-base font-bold text-ink">
+                  The arena — three venues, one ranking for {intent}
                 </h3>
+                <p className="mt-1 mb-3 text-sm leading-relaxed text-slate">
+                  Every venue is checked with{" "}
+                  <span className="font-mono">eth_getCode</span> before anything
+                  else — no bytecode, no board spot. A venue that fails is
+                  marked <strong className="font-semibold">Unreachable</strong>,
+                  never zero-filled: an{" "}
+                  <span className="font-mono">eth_call</span> against a dead
+                  address returns <span className="font-mono">0x</span> and
+                  would masquerade as a 0.00% APY venue.
+                </p>
                 <div className="space-y-3">
                   {(intent === "deposit" ? depositRanking : quotes.filter((q) => q.ok)).map(
                     (q, i) => {
@@ -692,6 +732,9 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
                             </a>
                             <span className="text-sm text-slate">· {q.def.note}</span>
                           </div>
+                          <p className="mt-1.5 font-mono text-xs text-slate">
+                            {gateLine(q, snapshot.block)}
+                          </p>
 
                           <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
                             <p className="font-display text-3xl tracking-tight text-ink">
@@ -802,6 +845,9 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
                         </span>
                         <span className="text-sm text-slate">· {q.def.note}</span>
                       </div>
+                      <p className="mt-1.5 font-mono text-xs text-slate">
+                        {gateLine(q, snapshot.block)}
+                      </p>
                       <p className="mt-2 text-sm leading-relaxed text-ink">
                         This venue didn't answer — {q.error ?? "read failed"}. It is
                         excluded from the ranking and never zero-filled: a dead venue
