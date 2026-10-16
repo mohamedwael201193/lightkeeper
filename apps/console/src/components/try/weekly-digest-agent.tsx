@@ -472,7 +472,18 @@ function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
       className="btn-outline"
       disabled={disabled}
       onClick={async () => {
-        await navigator.clipboard.writeText(text);
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          // Clipboard unavailable (old browser / permissions) — fall back to
+          // a manual selection target so the value is still reachable.
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}

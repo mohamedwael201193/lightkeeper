@@ -149,7 +149,18 @@ function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
       className="btn-outline inline-flex min-h-[44px] items-center gap-2"
       disabled={disabled}
       onClick={async () => {
-        await navigator.clipboard.writeText(text);
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          // Clipboard unavailable (old browser / permissions) — fall back to
+          // a manual selection target so the value is still reachable.
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
@@ -169,7 +180,18 @@ function TxCopy({ text }: { text: string }) {
       title="Copy transaction hash"
       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-hairline bg-porcelain text-slate hover:border-accent hover:text-accent"
       onClick={async () => {
-        await navigator.clipboard.writeText(text);
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          // Clipboard unavailable (old browser / permissions) — fall back to
+          // a manual selection target so the value is still reachable.
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}

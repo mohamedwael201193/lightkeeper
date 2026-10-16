@@ -172,16 +172,20 @@ async function scanWindowLogs(
   phaseLabel: string
 ): Promise<LogScan> {
   const winFrom = Math.max(0, latest - LOG_WINDOW_BLOCKS);
-  const nChunks = Math.ceil(LOG_WINDOW_BLOCKS / LOG_CHUNK_BLOCKS);
+  // The Atlantic gateway rejects any eth_getLogs range over 1000 inclusive
+  // blocks (RPC-verified 2026-10-16): chunk from the tip backwards so every
+  // chunk is <= 1000 inclusive blocks and the full [winFrom, latest] window
+  // is covered with no gaps or overlap.
+  const spanBlocks = latest - winFrom + 1;
+  const nChunks = Math.max(1, Math.ceil(spanBlocks / LOG_CHUNK_BLOCKS));
   const calls: Array<Promise<unknown>> = [];
   for (let i = 0; i < nChunks; i++) {
-    const from = winFrom + i * LOG_CHUNK_BLOCKS;
-    // Last chunk runs to `latest` (inclusive); earlier chunks are full.
-    const to = i === nChunks - 1 ? latest : from + LOG_CHUNK_BLOCKS - 1;
+    const to = latest - i * LOG_CHUNK_BLOCKS;
+    const from = Math.max(winFrom, to - LOG_CHUNK_BLOCKS + 1);
     calls.push(
       rpcCall("eth_getLogs", [
         {
-          fromBlock: blockHex(Math.max(from, 0)),
+          fromBlock: blockHex(from),
           toBlock: blockHex(to),
           topics: [topic0, ...extraTopics],
         },
