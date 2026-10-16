@@ -4,7 +4,7 @@ title: Audit-Log Agent
 tier: medium
 points: 100
 toolkit: Compliance / Security
-status: in-progress
+status: ready-for-review
 chain: atlantic-testnet
 chain_id: 688689
 rpc: https://atlantic.dplabs-internal.com
