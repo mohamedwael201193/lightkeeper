@@ -1,62 +1,41 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Check,
-  Copy,
-  ExternalLink,
-  FileWarning,
-  Flame,
-  ScrollText,
-} from "lucide-react";
+import { ArrowLeft, ExternalLink, Flame } from "lucide-react";
 import type { Lamp } from "../types";
-import { ARENA_BOARD, arenaTaskUrl, explorerAddress, explorerTx, shortenAddress } from "../types";
-import Markdown from "./Markdown";
+import { explorerAddress, explorerTx, shortenAddress } from "../types";
 import TryPanel from "./TryPanel";
 
-function SectionLabel({ n, title }: { n: string; title: string }) {
+function SectionLabel({ title }: { title: string }) {
   return (
     <div className="mb-4 flex items-baseline gap-3">
-      <span className="font-display text-2xl font-bold text-accent">{n}</span>
       <h2 className="smallcaps !text-ink">{title}</h2>
     </div>
   );
 }
 
-/** Pull a readable scalar list of top-level config-ish keys from evidence. */
-function evidenceConfig(ev: Record<string, unknown> | null): [string, string][] {
-  if (!ev) return [];
-  const skip = new Set([
-    "runs",
-    "transactions",
-    "txs",
-    "emitter_txs",
-    "link_checks",
-    "links_verified_http200",
-    "honesty_notes",
-    "contracts",
-    "final_balances_wei",
-    "gas_report",
-    "watcher_runs",
-    "artifacts",
-    "links",
-    "portal_share_link",
-  ]);
-  const rows: [string, string][] = [];
-  for (const [k, v] of Object.entries(ev)) {
-    if (skip.has(k)) continue;
-    if (v === null || v === undefined) continue;
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
-      let s = String(v);
-      if (s.length > 120) s = s.slice(0, 117) + "…";
-      rows.push([k, s]);
-    } else if (typeof v === "object" && !Array.isArray(v)) {
-      const keys = Object.keys(v);
-      if (keys.length <= 8 && keys.every((kk) => typeof (v as Record<string, unknown>)[kk] !== "object"))
-        rows.push([k, keys.map((kk) => `${kk}=${String((v as Record<string, unknown>)[kk])}`).join(" · ")]);
-    }
-  }
-  return rows.slice(0, 24);
+/** Curated per-task copy — authored per lamp by the content pass.
+ *  Contract (apps/console/src/data/copy/<slug>.json):
+ *  { "one_liner": "...", "what_it_does": "max 3 sentences",
+ *    "config_plain": [{ "label": "…", "value": "…" }] }
+ *  Missing file → safe fallbacks; the page never crashes. */
+interface TaskCopy {
+  one_liner: string;
+  what_it_does: string;
+  config_plain: { label: string; value: string }[];
+}
+
+const copyModules = import.meta.glob("../data/copy/*.json", {
+  eager: true,
+}) as Record<string, { default: TaskCopy }>;
+
+function taskCopy(lamp: Lamp): TaskCopy {
+  const loaded = copyModules[`../data/copy/${lamp.slug}.json`]?.default;
+  const blank: TaskCopy = { one_liner: "", what_it_does: "", config_plain: [] };
+  const c = loaded ?? blank;
+  return {
+    one_liner: c.one_liner || lamp.readme_summary || "",
+    what_it_does: c.what_it_does || "",
+    config_plain: Array.isArray(c.config_plain) ? c.config_plain.slice(0, 8) : [],
+  };
 }
 
 interface RunRow {
@@ -64,10 +43,10 @@ interface RunRow {
   decision: string;
   tx_hash: string | null;
   block: string | number | null;
-  log: string | null;
   explorer: string | null;
 }
 
+/** Runs table — outcomes only. No log fragments, no tails, no raw text dumps. */
 function evidenceRuns(ev: Record<string, unknown> | null): RunRow[] {
   if (!ev) return [];
   const raw = (ev.runs ?? ev.transactions ?? ev.watcher_runs ?? []) as unknown;
@@ -83,7 +62,6 @@ function evidenceRuns(ev: Record<string, unknown> | null): RunRow[] {
       decision: String(o.decision ?? o.status ?? o.mode ?? "—"),
       tx_hash: tx,
       block: (o.block as string | number | null) ?? null,
-      log: (o.log as string | null) ?? null,
       explorer: (typeof o.explorer === "string" && o.explorer) || null,
     };
   });
@@ -99,40 +77,18 @@ function evidenceContracts(ev: Record<string, unknown> | null): [string, string]
 }
 
 /**
- * Per-task flow view — 01 Configuration → 02 Execution trace → 03 History,
- * all fed by the task's real task.yaml / policy.yaml / evidence.json / run-logs.
+ * PUBLIC task page (§0C two-faces restructure).
+ * Hero → Try it live → On-chain proof → How it's configured → What it does.
+ * Nothing founder-addressed here: no YAML dumps, no log tails, no README dump,
+ * no Arena panel, no submission tooling. Outcomes + receipts only.
  */
 export default function TaskDetail({ lamp }: { lamp: Lamp }) {
-  const [copied, setCopied] = useState(false);
   const lit = lamp.status === "shipped";
   const ev = lamp.evidence;
   const runs = evidenceRuns(ev);
-  const configRows = evidenceConfig(ev);
   const contracts = evidenceContracts(ev);
-
-  const downloadEvidence = () => {
-    const blob = new Blob([JSON.stringify(lamp, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${lamp.id.toLowerCase()}-${lamp.slug}-lamp.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const copySubmissionNote = async () => {
-    const note = [
-      `LIGHTKEEPER ${lamp.id} — ${lamp.name}`,
-      `Status: ${lamp.submission_status}`,
-      lamp.has_submission
-        ? `SUBMISSION.md is written in tasks/${lamp.dir ?? lamp.id.toLowerCase()}/ — the founder files it on the Arena board.`
-        : "SUBMISSION.md is not written yet by the task builder.",
-      `Arena task: ${arenaTaskUrl(lamp.slug)}`,
-    ].join("\n");
-    await navigator.clipboard.writeText(note);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const copy = taskCopy(lamp);
+  const hasProof = contracts.length > 0 || runs.length > 0 || lamp.txs.length > 0;
 
   const decisionChip = (d: string) => {
     const up = d.toUpperCase();
@@ -149,6 +105,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto max-w-4xl px-5 pb-24 pt-8"
     >
+      {/* ── back ─────────────────────────────────────────────────── */}
       <a
         href="#/"
         className="mb-8 inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-slate transition-colors hover:text-accent"
@@ -156,72 +113,32 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
         <ArrowLeft size={16} /> Back to the lamps
       </a>
 
+      {/* ── hero ─────────────────────────────────────────────────── */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate">
             {lamp.id} · {lamp.toolkit} · {lamp.tier} · {lamp.points} pts
           </div>
           <h1 className="wordmark mt-2 text-[clamp(1.7rem,4.5vw,2.8rem)]">{lamp.name}</h1>
+          {copy.one_liner && (
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink">
+              {copy.one_liner}
+            </p>
+          )}
         </div>
         <span className={`chip ${lit ? "chip-lit" : "chip-dim"} !px-4 !py-2`}>
           <Flame size={14} /> {lit ? "Lit" : "Dim"}
         </span>
       </div>
 
-      {/* ── 01 · Configuration ─────────────────────────────────────── */}
-      <section className="mb-2 rounded-2xl border border-hairline bg-paper p-6 md:p-8">
-        <SectionLabel n="01" title="Configuration — real inputs & policy" />
-        <p className="mb-5 text-xs text-slate">
-          Source: <code className="font-mono">tasks/{lamp.dir ?? "—"}/task.yaml</code>
-          {lamp.policy_yaml_text ? (
-            <>
-              {" "}· <code className="font-mono">policy.yaml</code>
-            </>
-          ) : null}
-        </p>
-        {lamp.task_config_text ? (
-          <div className="code-block mb-5">{lamp.task_config_text}</div>
-        ) : (
-          <div className="empty-panel px-5 py-6 text-sm text-slate">
-            The task builder hasn't written <code className="font-mono">task.yaml</code> yet.
-          </div>
-        )}
-        {lamp.policy_yaml_text && (
-          <>
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-ink">
-              Policy values
-            </h3>
-            <div className="code-block mb-5">{lamp.policy_yaml_text}</div>
-          </>
-        )}
-        {configRows.length > 0 && (
-          <>
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-ink">
-              Evidence-declared parameters
-            </h3>
-            <table className="data-table">
-              <tbody>
-                {configRows.map(([k, v]) => (
-                  <tr key={k}>
-                    <th className="font-mono normal-case tracking-normal" scope="row">
-                      {k}
-                    </th>
-                    <td className="font-mono text-[13px] text-ink">{v}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
-      </section>
-      <hr className="flow-rule my-2" />
+      {/* ── ◈ · Try it live — with your own wallet ─────────────────── */}
+      <TryPanel lamp={lamp} />
 
-      {/* ── 02 · Execution trace ───────────────────────────────────── */}
+      {/* ── On-chain proof ───────────────────────────────────────── */}
       <section className="mb-2 rounded-2xl border border-hairline bg-paper p-6 md:p-8">
-        <SectionLabel n="02" title="Execution trace — real runs & receipts" />
+        <SectionLabel title="On-chain proof" />
         <p className="mb-5 text-xs text-slate">
-          Source: <code className="font-mono">tasks/{lamp.dir ?? "—"}/evidence.json</code>
-          {lamp.has_evidence_json ? "" : " (not written yet)"}
+          Everything below happened on the Atlantic testnet and is clickable on the explorer.
         </p>
 
         {contracts.length > 0 && (
@@ -257,7 +174,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
           </>
         )}
 
-        {runs.length > 0 ? (
+        {runs.length > 0 && (
           <>
             <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-ink">
               Runs ({runs.length})
@@ -275,11 +192,9 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
                   <tr key={i}>
                     <td>
                       <div className="font-semibold text-ink">{r.label}</div>
-                      {(r.block || r.log) && (
+                      {r.block && (
                         <div className="mt-0.5 font-mono text-xs text-slate">
-                          {r.block ? `block ${r.block}` : ""}
-                          {r.block && r.log ? " · " : ""}
-                          {r.log ? r.log : ""}
+                          block {r.block}
                         </div>
                       )}
                     </td>
@@ -312,17 +227,6 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
               </tbody>
             </table>
           </>
-        ) : (
-          lamp.txs.length === 0 && (
-            <div className="empty-panel mb-6 flex items-center gap-3 px-5 py-6">
-              <FileWarning size={18} className="shrink-0 text-golddeep" />
-              <p className="text-sm text-slate">
-                {lit
-                  ? "Marked shipped with evidence that lists no run records — inspect the task folder."
-                  : "No runs recorded yet. This lamp stays dim until the task builder lands real evidence."}
-              </p>
-            </div>
-          )
         )}
 
         {lamp.txs.length > 0 && (
@@ -330,7 +234,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
             <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-ink">
               Transaction receipts ({lamp.txs.length})
             </h3>
-            <ul className="space-y-2">
+            <ul className={`space-y-2 ${hasProof ? "" : "mb-0"}`}>
               {lamp.txs.map((t) => (
                 <li key={t}>
                   <a
@@ -350,126 +254,54 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
             </ul>
           </>
         )}
+
+        {!hasProof && (
+          <div className="empty-panel px-5 py-6 text-sm text-slate">
+            No runs recorded yet. This lamp stays dim until real evidence lands.
+          </div>
+        )}
       </section>
       <hr className="flow-rule my-2" />
 
-      {/* ── ◈ · Try it live — rendered only when tasks/<slug> has a try/ module ── */}
-      <TryPanel lamp={lamp} />
-
-      {/* ── 03 · History ───────────────────────────────────────────── */}
+      {/* ── How it's configured ──────────────────────────────────── */}
       <section className="mb-2 rounded-2xl border border-hairline bg-paper p-6 md:p-8">
-        <SectionLabel n="03" title="History — run logs" />
+        <SectionLabel title="How it's configured" />
         <p className="mb-5 text-xs text-slate">
-          Real tails of <code className="font-mono">run-logs/*</code> written by the task builder —
-          never simulated.
+          Configured in plain words — nothing hard-coded.
         </p>
-        {lamp.activity.length > 0 && (
-          <ul className="mb-6 space-y-2.5">
-            {lamp.activity.map((a, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-3 rounded-xl border border-hairline bg-porcelain p-4"
-              >
-                <ScrollText size={16} className="mt-0.5 shrink-0 text-accent" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="text-xs font-bold text-ink">{a.title}</span>
-                    {a.at && <span className="font-mono text-[11px] text-slate">{a.at}</span>}
-                  </div>
-                  {a.detail && (
-                    <div className="truncate font-mono text-xs text-slate">{a.detail}</div>
-                  )}
-                </div>
-                {a.link && (
-                  <a
-                    href={a.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Open on the Atlantic explorer"
-                    className="shrink-0 rounded-full p-2 text-slate transition-colors hover:bg-tint hover:text-accent"
-                  >
-                    <ExternalLink size={15} />
-                  </a>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {lamp.run_log_files.length > 0 ? (
-          <div className="space-y-4">
-            {lamp.run_log_files.map((f) => (
-              <details key={f.name} className="rounded-xl border border-hairline bg-porcelain">
-                <summary className="cursor-pointer px-4 py-3 font-mono text-[13px] font-semibold text-ink hover:text-accent">
-                  {f.name}
-                </summary>
-                <div className="border-t border-hairline px-4 py-3">
-                  <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs leading-relaxed text-ink">
-                    {f.tail}
-                  </pre>
-                </div>
-              </details>
-            ))}
-          </div>
+        {copy.config_plain.length > 0 ? (
+          <table className="data-table">
+            <tbody>
+              {copy.config_plain.map((row) => (
+                <tr key={row.label}>
+                  <th className="normal-case tracking-normal" scope="row">
+                    {row.label}
+                  </th>
+                  <td className="text-[13px] text-ink">{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : (
           <div className="empty-panel px-5 py-6 text-sm text-slate">
-            No run-log files yet — the task builder hasn't committed any.
+            Parameters not recorded yet — they appear here once reviewed.
           </div>
         )}
       </section>
       <hr className="flow-rule my-2" />
 
-      {/* ── Builder's summary (markdown, rendered properly) ────────── */}
-      <section className="mb-2 rounded-2xl border border-hairline bg-paper p-6 md:p-8">
-        <SectionLabel n="✎" title="Builder's summary" />
-        <p className="mb-5 text-xs text-slate">
-          From <code className="font-mono">tasks/{lamp.dir ?? "—"}/README.md</code> — rendered as
-          markdown, not raw text.
-        </p>
-        {lamp.readme_markdown ? (
-          <Markdown source={lamp.readme_markdown} />
-        ) : (
-          <div className="empty-panel px-5 py-6 text-sm text-slate">
-            The task builder hasn't written the README yet.
-          </div>
-        )}
-      </section>
-      <hr className="flow-rule my-2" />
-
-      {/* ── Arena submission ───────────────────────────────────────── */}
+      {/* ── What it does ─────────────────────────────────────────── */}
       <section className="rounded-2xl border border-hairline bg-paper p-6 md:p-8">
-        <SectionLabel n="▣" title="Arena submission" />
-        <p className="mb-5 text-xs text-slate">
-          From <code className="font-mono">tasks/{lamp.dir ?? "—"}/SUBMISSION.md</code>
-        </p>
-        <div className="mb-5">
-          <span className={`chip ${lamp.has_submission ? "chip-pass" : "chip-dim"}`}>
-            {lamp.submission_status}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            className="btn-primary"
-            onClick={() => window.open(arenaTaskUrl(lamp.slug), "_blank", "noreferrer")}
-          >
-            <ExternalLink size={16} /> Open Arena task board
-          </button>
-          <button className="btn-outline" onClick={copySubmissionNote}>
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? "Copied" : "Copy submission note"}
-          </button>
-          <button className="btn-outline" onClick={downloadEvidence}>
-            Export lamp JSON
-          </button>
-        </div>
-        <p className="mt-4 text-xs leading-relaxed text-slate">
-          Standing rule: the assistant never submits on the founder's behalf — these packs are
-          copy-paste-ready, and <span className="font-semibold text-ink">he files them himself</span>.
-        </p>
+        <SectionLabel title="What it does" />
+        {copy.what_it_does ? (
+          <p className="max-w-3xl text-[15px] leading-relaxed text-ink">{copy.what_it_does}</p>
+        ) : (
+          <div className="empty-panel px-5 py-6 text-sm text-slate">
+            A plain-language description is being written — the on-chain proof above stands on its
+            own.
+          </div>
+        )}
       </section>
-
-      <div className="mt-8 text-center font-mono text-xs text-slate">
-        {ARENA_BOARD}/{lamp.slug}
-      </div>
     </motion.div>
   );
 }
