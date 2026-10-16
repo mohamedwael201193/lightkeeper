@@ -1,0 +1,80 @@
+{
+  "task": "t01-read-contract-state",
+  "tool": "cast 1.8.5 eth_call \u2014 the JSON-RPC primitive behind Chain MCP's eth_call (direct-RPC: hosted Chain MCP serves mainnet only)",
+  "chainId": 688689,
+  "chainName": "Pharos Atlantic testnet",
+  "contract": "0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD",
+  "blockReadAt": 31482092,
+  "blockHash": "0x464a58bd873f894746b069167b401dfc5917983c9ab8fcab338f974de4065efe",
+  "deployTx": "0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b",
+  "values": [
+    {
+      "name": "totalLamps",
+      "type": "uint256",
+      "slot": 0,
+      "raw": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "decoded": "3",
+      "human": "3 lamps"
+    },
+    {
+      "name": "keeper",
+      "type": "address",
+      "slot": 1,
+      "raw": "0x000000000000000000000000f76e6b0920e9332ff4410f6dd53f01722abc71a3",
+      "decoded": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "human": "keeper \u2014 deployer (LIGHTKEEPER Atlantic wallet)"
+    },
+    {
+      "name": "realmName",
+      "type": "string",
+      "slot": 2,
+      "raw": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000d41746c616e746963204465657000000000000000000000000000000000000000",
+      "decoded": "Atlantic Deep",
+      "human": "Atlantic Deep"
+    },
+    {
+      "name": "decimals",
+      "type": "uint8",
+      "slot": 3,
+      "raw": "0x0000000000000000000000000000000000000000000000000000000000000006",
+      "decoded": "6",
+      "human": "6 decimals"
+    },
+    {
+      "name": "lampBalanceOf(keeper)",
+      "type": "mapping(address=>uint256)",
+      "slot": "4 (keyed)",
+      "raw": "0x00000000000000000000000000000000000000000000000000000000002dc6c0",
+      "decoded": "3000000",
+      "human": "3.000000 lamps"
+    },
+    {
+      "name": "lampBearer(0)",
+      "type": "mapping(uint256=>address)",
+      "slot": "5 (keyed)",
+      "raw": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "decoded": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "human": "keeper \u2014 deployer (LIGHTKEEPER Atlantic wallet)"
+    },
+    {
+      "name": "lampBearer(1)",
+      "type": "mapping(uint256=>address)",
+      "slot": "5 (keyed)",
+      "raw": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "decoded": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "human": "keeper \u2014 deployer (LIGHTKEEPER Atlantic wallet)"
+    },
+    {
+      "name": "lampBearer(2)",
+      "type": "mapping(uint256=>address)",
+      "slot": "5 (keyed)",
+      "raw": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "decoded": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "human": "keeper \u2014 deployer (LIGHTKEEPER Atlantic wallet)"
+    }
+  ],
+  "slotCheck": "VERIFIED: eth_getStorageAt(keccak256(keeper ++ slot4)) == lampBalanceOf(keeper) view result",
+  "negativePath": "run with --negative (2/2 fail loudly by design)",
+  "noMockAttestation": "every value above is a live eth_call result at the pinned block; no mocks, no fixtures, no placeholders",
+  "generatedAt": "2026-10-16T04:24:46.010427+00:00"
+}

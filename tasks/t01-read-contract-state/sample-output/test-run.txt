@@ -1,0 +1,24 @@
+═══ T01 TESTS — live Atlantic reads ═══
+── [1] reader runs clean and emits a manifest
+  PASS: reader exit 0
+  PASS: manifest exists and non-empty
+── [2] independent re-reads at pinned block 31482092 (raw JSON-RPC, python+urllib — no cast)
+  PASS: totalLamps == 3
+  PASS: keeper == deployer
+  PASS: realmName == 'Atlantic Deep'
+  PASS: decimals == 6
+  PASS: lampBalanceOf(keeper) == 3000000
+  PASS: lampBearer(0) == keeper
+  PASS: lampBearer(1) == keeper
+  PASS: lampBearer(2) == keeper
+  PASS: manifest decoded values agree (8/8)
+SECTION2: 9 passed, 0 failed
+  PASS: section 2: all independent re-reads match
+── [3] mapping storage-slot layout verified independently
+  PASS: eth_getStorageAt(keccak256(keeper||slot4)) == 3000000
+── [4] negative path fails loudly
+  PASS: negative suite 2/2 loud
+  PASS: no-code address read aborts (exit 12)
+── [5] chain-id gate
+  PASS: chain-id mismatch aborts (exit 10)
+═══ RESULT: 6 passed, 0 failed ═══

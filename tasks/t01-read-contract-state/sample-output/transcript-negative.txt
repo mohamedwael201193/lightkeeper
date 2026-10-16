@@ -1,0 +1,6 @@
+═══ NEGATIVE-PATH SUITE ═══
+── case A: read state from a no-code address (0x000000000000000000000000000000000000dEaD)
+OK-LOUD: no code at address → reader would ERROR here (verified empty 0x).
+── case B: call an unknown selector on the real contract
+OK-LOUD: unknown selector reverts → reader reports ERROR, never a fabricated value.
+NEGATIVE-PATH SUITE: PASS (2/2 fail loudly)

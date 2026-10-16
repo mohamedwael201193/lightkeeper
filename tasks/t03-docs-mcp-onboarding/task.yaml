@@ -1,0 +1,49 @@
+id: T03
+slug: docs-mcp-onboarding
+title: Docs MCP Onboarding
+track: Pharos Season of AI Agent Arena
+difficulty: Easy
+base_points: 50
+video_bonus: 50
+toolkit: Developer Docs MCP
+status: built
+commit: PENDING
+
+summary: >
+  A feedback-task deliverable built with ONLY Docs MCP surfaces: a verbatim
+  step-by-step query log (9 queries -> answers received from the real docs
+  surfaces), 5 confirmed gaps each with the EXACT query and a suggested fix,
+  and a "First 5 Queries" quickstart artifact derived solely from real answers.
+
+deliverables:
+  - task.yaml
+  - REQUIREMENTS.md
+  - README.md
+  - QUICKSTART.md
+  - evidence.md
+  - evidence.json
+  - queries.json
+  - REVIEWER_NOTES.md
+  - LINKS.md
+  - SUBMISSION.md
+  - VIDEO-GUIDE.md
+  - scripts/query_log.py
+
+evidence:
+  log: evidence.md §1 + evidence.json (runs/)
+  gaps: evidence.md §2 (G1–G5)
+  build: README.md §6 + QUICKSTART.md
+  runner: python3 scripts/query_log.py run
+
+constraints:
+  - ONLY Docs MCP surfaces; no search engines, no community help
+  - hypotheses/external probes quarantined to evidence.md §3 (non-evidence appendix)
+  - no fabricated answers; unreachable queries SAY SO with the exact query
+  - no secrets in repo; Atlantic testnet only; spend ~0 PHRS
+
+notes: >
+  Portal-embedded Docs MCP chat (ai.pharos.xyz) requires a wallet sign-in this
+  agent cannot perform. All evidence comes from the publicly reachable docs
+  surfaces: llms.txt, the .md docs pages, and the documented GitBook ?ask=
+  dynamic query endpoint. Reachability discrepancy vs the verdict team's 403
+  finding is documented honestly in evidence.md.

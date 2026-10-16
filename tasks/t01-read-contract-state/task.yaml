@@ -1,0 +1,14 @@
+id: t01-read-contract-state
+title: Read Contract State
+difficulty: Easy
+points: 50
+toolkit: Chain MCP
+status: shipped
+contract: 0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD
+chain_id: 688689
+deploy_tx: 0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b
+proof_kind: live-tx + explorer + transcript
+video: PENDING-VIDEO
+no_mock_attestation: true
+spend_phrs: 0.00039961
+budget_phrs: 0.15
