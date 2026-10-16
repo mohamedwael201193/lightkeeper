@@ -435,7 +435,7 @@ export default function TryDryRun({ lamp }: { lamp: Lamp }) {
           </table>
           <p className="mt-2 text-xs text-slate">
             Chain unmodified — no signature was created. Estimates are predictions:
-            this network has shown ~28% estimate-vs-actual drift before, which is
+            this network has shown ~30% estimate-vs-actual drift before, which is
             what the 1.2× safety factor absorbs. If the chain moved since block{" "}
             {sim.blockNumber}, re-run the dry-run before signing.
           </p>

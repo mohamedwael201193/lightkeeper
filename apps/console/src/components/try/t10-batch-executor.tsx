@@ -10,8 +10,9 @@
  * Facts this surface is built on (from tasks/t10-batch-executor/evidence.json):
  *   - BatchDistributor 0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4, live on Atlantic.
  *   - Modes: ≤10 simple · 11–200 single-batch · >200 multi-batch (≤200/chunk).
- *   - Measured: individual send = 21,000 gas; single-batch n=12 (existing
- *     recipients) = 230,405 gas; marginal ≈ 13,866 gas/recipient; breakeven ≈ n=11.
+ *   - Measured: individual send = 21,000 gas; receipt-fitted batch model from
+ *     3 live runs (n=8/10/11 → 149,170/185,573/202,173 gas): ≈7,500 fixed +
+ *     ≈17,700 gas/recipient; measured breakeven ≈ n=3 (pre-existing EOAs).
  */
 import { useMemo, useRef, useState } from "react";
 import type { Lamp } from "../../types";
@@ -54,15 +55,17 @@ function modeFor(n: number): Mode {
   return "multi";
 }
 
-/** Gas estimate from LIVE Atlantic receipts — labeled as an estimate, never a fact. */
+/** Gas estimate from LIVE Atlantic receipts — labeled as an estimate, never a fact.
+ *  Receipt-fitted model (n=8/10/11 → 149,170/185,573/202,173 gas):
+ *  ≈7,500 fixed + ≈17,700 gas/recipient. */
 function estGas(mode: Mode, n: number): number {
   if (mode === "simple") return n * 21_000;
-  if (mode === "single") return 230_405 + Math.max(0, n - 12) * 13_866;
+  if (mode === "single") return 7_500 + n * 17_700;
   let g = 0;
   const chunks = Math.ceil(n / 200);
   for (let i = 0; i < chunks; i++) {
     const c = Math.min(200, n - i * 200);
-    g += 230_405 + Math.max(0, c - 12) * 13_866;
+    g += 7_500 + c * 17_700;
   }
   return g;
 }
