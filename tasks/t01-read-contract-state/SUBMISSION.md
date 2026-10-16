@@ -30,7 +30,7 @@ vs independent raw-JSON-RPC re-reads — all pass). Total spend: 0.00039961
 PHRS (1 deploy tx; reads are free). No mocks, no fixtures, no placeholders.
 
 ## Repo link (commit-pinned subfolder)
-https://github.com/mohamedwael201193/lightkeeper/tree/<COMMIT-SHA>/tasks/t01-read-contract-state
+https://github.com/mohamedwael201193/lightkeeper/tree/b4a53c58fcb92f3d41ed56ed880596ed8c7d6075/tasks/t01-read-contract-state
 
 ## Proof links
 - Deploy tx: https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b
