@@ -1,0 +1,7 @@
+# paid-stamp ledger: local idempotency state, never committed
+paid-stamps.jsonl
+# python
+__pycache__/
+*.pyc
+# editor / os
+.DS_Store

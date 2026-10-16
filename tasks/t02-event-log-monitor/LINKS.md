@@ -6,5 +6,5 @@
 - Zap (block 31481165): https://atlantic.pharosscan.xyz/tx/0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893
 - Marker (block 31481176): https://atlantic.pharosscan.xyz/tx/0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186
 - Ping #2 — live catch (block 31481324): https://atlantic.pharosscan.xyz/tx/0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c
-- GitHub (commit-pinned, added after commit): `https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t02-event-log-monitor`
+- GitHub (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/9ded8f2e69c089b69d9a054c9212b9ecbf685652/tasks/t02-event-log-monitor
 - Demo video: PENDING-VIDEO
