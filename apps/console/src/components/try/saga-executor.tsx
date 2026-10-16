@@ -1,31 +1,37 @@
 /**
  * T06 Saga Executor — Tier C (CLI-native saga orchestration).
- * SHOWTIME presentation (2026-10-16): rebuilt on the Presentation Standard.
+ * FLAGSHIP presentation (2026-10-16): rebuilt on the Presentation Standard +
+ * the FLAGSHIP-CREATIVE-BRIEF T06 direction (REFINE verdict).
  *
- * The journey: 01 Configure (pick one of three real saga runs) → 02 Run
- * (ProgressLoader over REAL eth_getTransactionReceipt reads — one per step) →
- * 03 Result (ResultCard showpiece + StatStrip + FeedList step timeline).
+ * The exhibition: three real saga runs hang on the wall as curated exhibits —
+ * a clean success, the forced-failure run that mined a REAL 0x0 revert, and
+ * the crash-recovery run killed mid-step at exit 137. 03 is a Tier-C evidence
+ * museum BY DESIGN: the evidence IS the result, framed as an exhibition, and
+ * "Verify receipts" is the live act that re-reads every receipt from Atlantic.
  *
- * "The saga that really failed": the canonical forced-failure run (approve →
- * lock → execute(0x0) → refund → revoke), the full-success run for contrast,
- * and the crash-recovery run (killed mid-step at exit 137, resumed to
- * SUCCEEDED with one broadcast tx per step), plus a failure-forensics panel
- * (revert reason, finality depth, compensation latency — pure reads).
+ * The signature visual — COMPENSATION RUNS IN REVERSE: the failure timeline
+ * runs forward (approve → lock → execute), detonates at the 0x0, then turns
+ * and unwinds RIGHT-TO-LEFT through refund → revoke → state restored. The
+ * reversal is the climax; the crash-recovery timeline is the emotional
+ * centerpiece; failure forensics is staged as a detective's case file.
  *
- * Every hash below is a REAL mined Atlantic tx, copied character-for-character
- * from tasks/t06-saga-executor/evidence.json. Nothing is simulated.
+ * Logic untouched: every hash, block, gas figure, decision, and the verify
+ * flow are character-identical to the SHOWTIME build. Selftests 10/10.
  * LIGHTKEEPER never signs here — reproduction happens in the visitor's own
  * terminal with their own key.
  */
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
+  ArrowLeft,
+  ArrowRight,
   Box,
   Check,
   ChevronDown,
   ExternalLink,
   FileSearch,
   Fuel,
+  Landmark,
   Layers,
   Radio,
   Receipt,
@@ -318,6 +324,7 @@ type PlanId = "a" | "b" | "c";
 interface RunPlan {
   id: PlanId;
   name: string;
+  exhibit: string;
   title: string;
   chip: string;
   tagline: string;
@@ -337,6 +344,7 @@ const PLANS: Record<PlanId, RunPlan> = {
   b: {
     id: "b",
     name: "Run B",
+    exhibit: "B",
     title: "Forced failure → compensated",
     chip: "COMPENSATED",
     tagline:
@@ -370,6 +378,7 @@ const PLANS: Record<PlanId, RunPlan> = {
   a: {
     id: "a",
     name: "Run A",
+    exhibit: "A",
     title: "Full success — the baseline",
     chip: "SUCCEEDED",
     tagline:
@@ -401,6 +410,7 @@ const PLANS: Record<PlanId, RunPlan> = {
   c: {
     id: "c",
     name: "Run C",
+    exhibit: "C",
     title: "Killed mid-step → resumed to success",
     chip: "SUCCEEDED",
     tagline:
@@ -469,7 +479,230 @@ function StepBadge({ s }: { s: SagaStep }) {
   );
 }
 
-/** The Run C crash-recovery story as a vivid five-beat vertical timeline. */
+/** One tile of the exhibit timeline. Tapping it opens the step's full evidence
+ *  entry below and scrolls to it. */
+function LaneTile({
+  s,
+  marker,
+  onOpen,
+}: {
+  s: SagaStep;
+  marker?: string;
+  onOpen: (id: string) => void;
+}) {
+  const detonation = s.kind === "failure";
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(s.id)}
+      title={s.title}
+      className={`flex w-[176px] shrink-0 flex-col gap-2 rounded-xl border p-3 text-left transition-colors hover:border-accent/70 ${
+        detonation ? "border-fail/60 bg-[#fdecec]" : "border-hairline bg-porcelain"
+      }`}
+    >
+      <span className="flex items-center justify-between gap-2">
+        <StepBadge s={s} />
+        <span className={`chip ${s.expected === "0x0" ? "chip-fail" : "chip-pass"}`}>
+          {s.expected}
+        </span>
+      </span>
+      <span className="truncate font-mono text-xs font-semibold text-ink">{s.title}</span>
+      <span className="font-mono text-[11px] leading-relaxed text-slate">
+        block {s.block}
+        <br />
+        {short(s.hash)}
+      </span>
+      {marker && <span className="chip chip-fail w-fit">{marker}</span>}
+      <span className="text-[11px] font-semibold text-accent">Read the evidence ↓</span>
+    </button>
+  );
+}
+
+function TravelArrow({ back }: { back?: boolean }) {
+  const Icon = back ? ArrowLeft : ArrowRight;
+  return (
+    <span className="flex shrink-0 items-center px-1" aria-hidden>
+      <Icon size={22} className={back ? "text-pass" : "text-slate"} />
+    </span>
+  );
+}
+
+/** The signature visual: the saga timeline as a path you travel.
+ *  Forward steps run left → right. At the detonation the path turns and the
+ *  compensation unwinds RIGHT → LEFT — the timeline literally reverses
+ *  direction. That reversal IS the climax of the exhibit. */
+function ReversalDiagram({
+  plan,
+  onOpenStep,
+}: {
+  plan: RunPlan;
+  onOpenStep: (id: string) => void;
+}) {
+  const reduce = useReducedMotion();
+  const rise = reduce
+    ? {}
+    : {
+        initial: { opacity: 0, y: 14 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: { once: true, margin: "-40px" },
+        transition: { duration: 0.3, ease: "easeOut" as const },
+      };
+
+  const title =
+    plan.id === "b"
+      ? "The reversal — compensation runs in reverse"
+      : plan.id === "c"
+        ? "Killed mid-step, resumed to success"
+        : "The clean run — four steps forward";
+  const sub =
+    plan.id === "b"
+      ? "Three steps forward, one detonation — then the timeline turns and unwinds backwards."
+      : plan.id === "c"
+        ? "The executor died between broadcast and confirm. The resume re-read the receipt instead of re-broadcasting."
+        : "Every step mined 0x1. The baseline the other two exhibits are measured against.";
+
+  const forward = plan.id === "b" ? plan.steps.slice(0, 3) : plan.steps;
+  const compensations = plan.id === "b" ? plan.steps.slice(3) : [];
+
+  return (
+    <motion.div
+      {...rise}
+      className="overflow-x-auto rounded-2xl border border-hairline bg-white p-6 sm:p-8"
+    >
+      <p className="smallcaps mb-1 flex items-center gap-2 text-slate">
+        <Landmark size={14} aria-hidden /> The timeline — Exhibit {plan.exhibit}
+      </p>
+      <h3 className="text-lg font-bold text-ink">{title}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-slate">{sub}</p>
+
+      <div className="mt-5 min-w-[640px]">
+        {/* FORWARD — the plan as written */}
+        <p className="smallcaps mb-2 text-slate">Forward — the plan as written</p>
+        <div className="flex items-stretch">
+          {forward.map((s, i) => (
+            <span key={s.id} className="flex items-stretch">
+              <LaneTile
+                s={s}
+                onOpen={onOpenStep}
+                marker={
+                  plan.id === "c" && s.id === "approve"
+                    ? "killed here — exit 137"
+                    : plan.id === "c" && s.id === "lock"
+                      ? "resumed — receipt re-read"
+                      : undefined
+                }
+              />
+              {i < forward.length - 1 && <TravelArrow />}
+            </span>
+          ))}
+          {plan.id !== "b" && (
+            <span className="flex items-stretch">
+              <TravelArrow />
+              <span className="flex w-[176px] shrink-0 flex-col gap-2 rounded-xl border border-pass/50 bg-[#e7f7ee] p-3">
+                <span className="flex items-center justify-between gap-2">
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pass text-white"
+                    aria-hidden
+                  >
+                    <Check size={18} strokeWidth={3} />
+                  </span>
+                  <span className="chip chip-pass">0x1</span>
+                </span>
+                <span className="text-xs font-bold text-ink">SUCCEEDED</span>
+                <span className="text-[11px] leading-relaxed text-slate">
+                  {plan.id === "c"
+                    ? "one broadcast tx per step — even across death"
+                    : "every gate check passed"}
+                </span>
+              </span>
+            </span>
+          )}
+        </div>
+
+        {/* THE DETONATION — the turn */}
+        {plan.id === "b" && (
+          <div className="my-5 rounded-2xl border border-fail/40 bg-[#fdecec] p-5">
+            <div className="flex items-start gap-4">
+              <motion.span
+                initial={reduce ? false : { scale: 1.15, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="chip chip-fail shrink-0"
+                aria-label="Reverted with status 0x0"
+              >
+                0x0 — REVERTED
+              </motion.span>
+              <div className="min-w-0">
+                <p className="text-base font-bold text-ink">
+                  execute(minOut = 2001) detonated on-chain
+                </p>
+                <p className="mt-1 font-mono text-sm text-ink">
+                  status 0x0 · block 31482534 · 24,231 gas burned — unrecoverable, reported
+                  honestly
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-ink">
+                  The executor classified it <strong>PERMANENT</strong> — exactly one attempt,
+                  no retry. RUNNING → COMPENSATING.
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-ink">
+                  <strong>This is what a saga is: a plan with a way back.</strong> The
+                  timeline turns here and unwinds backwards — refund undoes the lock, revoke
+                  undoes the approve.
+                </p>
+              </div>
+              <Undo2
+                size={44}
+                className="ml-auto hidden shrink-0 -scale-x-100 text-fail sm:block"
+                aria-hidden
+              />
+            </div>
+          </div>
+        )}
+
+        {/* REVERSE — compensation unwinds backwards, read right to left */}
+        {plan.id === "b" && (
+          <>
+            <p className="smallcaps mb-2 text-slate">Reverse — compensation unwinds backwards</p>
+            <p className="mb-2 text-sm leading-relaxed text-slate">
+              Read right to left: the timeline runs backwards from the detonation.
+            </p>
+            <div className="flex flex-row-reverse items-stretch">
+              {compensations.map((s, i) => (
+                <span key={s.id} className="flex flex-row-reverse items-stretch">
+                  <LaneTile s={s} onOpen={onOpenStep} />
+                  {i < compensations.length - 1 && <TravelArrow back />}
+                </span>
+              ))}
+              <span className="flex flex-row-reverse items-stretch">
+                <TravelArrow back />
+                <span className="flex w-[176px] shrink-0 flex-col gap-2 rounded-xl border border-pass/50 bg-[#e7f7ee] p-3">
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pass text-white"
+                    aria-hidden
+                  >
+                    <Check size={18} strokeWidth={3} />
+                  </span>
+                  <span className="text-xs font-bold text-ink">State restored</span>
+                  <span className="font-mono text-[11px] leading-relaxed text-slate">
+                    locked = 0 · allowance = 0 · settled = false
+                  </span>
+                </span>
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+      <p className="mt-4 text-xs leading-relaxed text-slate">
+        Tap any step to read its full evidence entry below — decision, receipt, and explorer
+        link.
+      </p>
+    </motion.div>
+  );
+}
+
+/** The Run C crash-recovery story as a vivid five-beat timeline — the
+ *  emotional centerpiece of the exhibition. */
 function CrashTimeline() {
   return (
     <div className="rounded-2xl border border-hairline bg-white p-6 sm:p-8">
@@ -524,6 +757,7 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
   const [verifiedOnce, setVerifiedOnce] = useState(false);
   const [rpcDown, setRpcDown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const evidenceRef = useRef<HTMLDivElement>(null);
 
   const selectPlan = (id: PlanId) => {
     if (id === planId || phase === "running") return;
@@ -532,6 +766,11 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
     setVerify({});
     setVerifiedOnce(false);
     setRpcDown(false);
+  };
+
+  const openStep = (id: string) => {
+    setOpen(id);
+    evidenceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   /** One REAL eth_getTransactionReceipt per step — the loader advances only
@@ -667,18 +906,24 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
       : null;
 
   const rows = liveRow ? [...plan.rows, liveRow] : plan.rows;
+  const otherPlans = (Object.keys(PLANS) as PlanId[]).filter((id) => id !== planId);
 
   return (
     <div className="space-y-6">
-      {/* 01 — Configure: pick the saga, read the plan, fire the live run */}
+      {/* 01 — Configure: pick the exhibit, read the plan, fire the live run */}
       <section aria-label="Configure the saga">
         <p className="smallcaps mb-2 text-slate">01 — Configure</p>
         <div className="rounded-2xl border border-hairline bg-porcelain p-6">
           <p className="text-sm font-bold text-ink">Tier C — CLI-native, read-only here</p>
+          <p className="mt-2 text-lg font-bold leading-snug text-ink">
+            Watch a real on-chain saga fail — then watch it unwind itself, step by step,
+            backwards.
+          </p>
           <p className="mt-2 text-sm leading-relaxed text-ink">
-            <strong>{lamp.name}</strong>: pick one of three real saga runs — a clean success,
-            the forced-failure run that mined a <strong>real 0x0 revert</strong>, and the
-            crash-recovery run killed mid-step at exit 137.
+            <strong>{lamp.name}</strong>: pick one of three real saga runs hanging in the
+            gallery — a clean success, the forced-failure run that mined a{" "}
+            <strong>real 0x0 revert</strong>, and the crash-recovery run killed mid-step at
+            exit 137.
           </p>
           <p className="mt-2 text-sm leading-relaxed text-slate">
             Saga orchestration runs in a terminal, not in this page — so the browser signs
@@ -686,7 +931,7 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
           </p>
         </div>
 
-        <h2 className="mt-6 text-xl font-bold text-ink">Pick the saga to examine</h2>
+        <h2 className="mt-6 text-xl font-bold text-ink">Pick the exhibit to examine</h2>
         <div
           className="mt-3 grid gap-3 md:grid-cols-3"
           role="group"
@@ -709,7 +954,10 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
                 } ${phase === "running" ? "opacity-60" : ""}`}
               >
                 <span className="flex items-center justify-between gap-2">
-                  <span className="chip chip-pass">{p.chip}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="chip chip-info">Exhibit {p.exhibit}</span>
+                    <span className="chip chip-pass">{p.chip}</span>
+                  </span>
                   {selected && <Check size={16} className="text-accent" aria-hidden />}
                 </span>
                 <span className="mt-3 block text-base font-bold text-ink">
@@ -727,7 +975,7 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
         </div>
 
         <div className="mt-4 rounded-2xl border border-hairline bg-white p-6">
-          <p className="smallcaps mb-1 text-slate">Run plan</p>
+          <p className="smallcaps mb-1 text-slate">Run plan — Exhibit {plan.exhibit}</p>
           <h3 className="text-lg font-bold text-ink">
             {plan.name} — {plan.title}
           </h3>
@@ -787,10 +1035,11 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
         </section>
       )}
 
-      {/* 03 — Result: the showpiece. Replaces 02 the moment the run finishes. */}
+      {/* 03 — Result: the exhibition. A Tier-C evidence museum by design: the
+          evidence hangs on the wall, and "Verify receipts" is the live act. */}
       {phase === "idle" && (
         <section aria-label="Result">
-          <p className="smallcaps mb-2 text-slate">03 — Result</p>
+          <p className="smallcaps mb-2 text-slate">03 — Result · the exhibition</p>
           {rpcDown ? (
             <ErrorState
               title="Atlantic didn't answer"
@@ -801,6 +1050,16 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
             />
           ) : (
             <div className="space-y-6" key={planId}>
+              <div className="flex items-start gap-3 rounded-2xl border border-hairline bg-porcelain p-5">
+                <Landmark size={20} className="mt-0.5 shrink-0 text-golddeep" aria-hidden />
+                <p className="text-sm leading-relaxed text-ink">
+                  <strong>The exhibition.</strong> Three real executions, thirteen mined
+                  transactions, nothing simulated. The evidence hangs on the wall below —
+                  press <strong>“Verify receipts”</strong> above and every one is re-read
+                  live from Atlantic.
+                </p>
+              </div>
+
               <ResultCard
                 eyebrow={`Result — saga ${plan.name}`}
                 headline={plan.headline}
@@ -810,21 +1069,35 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
                 status="pass"
                 copyValue={plan.runId}
               />
-              <StatStrip stats={plan.stats} />
 
-              <div>
-                <h3 className="mb-2 text-lg font-bold text-ink">Step timeline — every receipt</h3>
-                <p className="mb-3 text-sm leading-relaxed text-slate">
-                  Expand a step for the executor's decision at that point.{" "}
-                  {verifiedOnce
-                    ? "The live chips show what the chain just said."
-                    : "Use “Verify receipts on Atlantic” above to re-check every receipt live."}
-                </p>
-                <FeedList items={feedItems} maxHeight="max-h-none" emptyText="No steps." />
-              </div>
+              <ReversalDiagram plan={plan} onOpenStep={openStep} />
+
+              <StatStrip stats={plan.stats} />
 
               {plan.story === "forensics" && (
                 <>
+                  <div className="rounded-2xl border border-hairline bg-white p-6 sm:p-8">
+                    <p className="smallcaps mb-1 flex items-center gap-2 text-slate">
+                      <FileSearch size={14} aria-hidden /> Failure forensics — read from the
+                      chain, never sent
+                    </p>
+                    <h3 className="text-lg font-bold text-ink">The detective's file</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+                      Case: the 0x0 at block 31482534. Three exhibits, each a pure read —
+                      nothing here cost gas.
+                    </p>
+                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                      {FORENSICS.map((f, i) => (
+                        <div key={f.k} className="rounded-xl bg-porcelain p-4">
+                          <p className="smallcaps text-slate">Exhibit 0{i + 1}</p>
+                          <p className="mt-1 text-sm font-bold text-golddeep">{f.k}</p>
+                          <p className="mt-1 font-mono text-sm font-semibold text-ink">{f.v}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-slate">{f.d}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="rounded-2xl border border-hairline bg-white p-6">
                     <p className="smallcaps mb-3 text-slate">
                       What was constructed vs what the chain decided
@@ -858,25 +1131,68 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
                       </div>
                     </div>
                   </div>
-
-                  <div className="rounded-2xl border border-hairline bg-white p-6">
-                    <p className="smallcaps mb-3 text-slate">
-                      Failure forensics — read from the chain, never sent
-                    </p>
-                    <div className="grid gap-3 md:grid-cols-3">
-                      {FORENSICS.map((f) => (
-                        <div key={f.k} className="rounded-xl bg-porcelain p-4">
-                          <p className="text-sm font-bold text-golddeep">{f.k}</p>
-                          <p className="mt-1 font-mono text-sm font-semibold text-ink">{f.v}</p>
-                          <p className="mt-2 text-sm leading-relaxed text-slate">{f.d}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </>
               )}
 
+              {plan.story === "baseline" && (
+                <div className="rounded-2xl border border-hairline bg-white p-6">
+                  <p className="smallcaps mb-1 text-slate">The control group</p>
+                  <h3 className="text-lg font-bold text-ink">The clean run</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+                    Nothing was broken on purpose here — four steps, four 0x1 receipts. This is
+                    the control group the failure exhibit and the crash exhibit are measured
+                    against: the same fixture, the same dust, the same executor, no drama.
+                  </p>
+                </div>
+              )}
+
               {plan.story === "crash" && <CrashTimeline />}
+
+              <div ref={evidenceRef} className="scroll-mt-6">
+                <h3 className="mb-2 text-lg font-bold text-ink">The evidence file — every receipt</h3>
+                <p className="mb-3 text-sm leading-relaxed text-slate">
+                  Expand a step for the executor's decision at that point.{" "}
+                  {verifiedOnce
+                    ? "The live chips show what the chain just said."
+                    : "Use “Verify receipts on Atlantic” above to re-check every receipt live."}
+                </p>
+                <FeedList items={feedItems} maxHeight="max-h-none" emptyText="No steps." />
+              </div>
+
+              <div>
+                <h3 className="mb-1 text-lg font-bold text-ink">The other exhibits</h3>
+                <p className="mb-3 text-sm leading-relaxed text-slate">
+                  Three runs, one pattern. The failure is the legend; the other two prove it
+                  generalizes.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {otherPlans.map((id) => {
+                    const p = PLANS[id];
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => selectPlan(id)}
+                        className="rounded-2xl border border-hairline bg-white p-5 text-left transition-colors hover:border-accent/60"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className="chip chip-info">Exhibit {p.exhibit}</span>
+                          <span className="chip chip-pass">{p.chip}</span>
+                        </span>
+                        <span className="mt-3 block text-base font-bold text-ink">
+                          {p.name} — {p.title}
+                        </span>
+                        <span className="mt-1 block text-sm leading-relaxed text-slate">
+                          {p.tagline}
+                        </span>
+                        <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-accent">
+                          Examine this exhibit <ArrowRight size={15} aria-hidden />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </section>
