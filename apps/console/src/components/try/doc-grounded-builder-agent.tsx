@@ -1,12 +1,20 @@
 /**
  * T27 — Doc-Grounded Builder Agent · Tier C (CLI-native deepening module)
  *
- * SHOWTIME rebuild: 01 Configure (the build request) → 02 Run (ProgressLoader
- * over REAL work: classify → coverage gate → live on-chain verification) →
- * 03 Result (ResultCard showpiece — the GATE VERDICT is the hero; the R4
- * refusal gets the beautiful treatment as the feature it is).
+ * SHOWTIME rebuild + FLAGSHIP refine: 01 Configure (the build request) →
+ * 02 Run (ProgressLoader over REAL work: classify → coverage gate → live
+ * on-chain verification) → 03 Result (the GATE VERDICT is the hero).
  *
- * Honesty architecture:
+ * Flagship doctrine — "the gate is the product":
+ * - The R4 refusal gets the Beautiful Refusal treatment: a designed, SIGNED
+ *   refusal document — what was asked, the gate anatomy (which stage failed,
+ *   which terms are UNVERIFIED), and the path to unblocking. The double-beat
+ *   Stamp (1.18→1.0→1.07→1.0 + thud shadow) fires only when the verdict
+ *   actually issues; the refusal is the feature, not a failure.
+ * - The gate PASS gets the Draw: a check mark drawing itself as the verdict
+ *   seals — motion tied to the real verdict state, nothing else.
+ *
+ * Honesty architecture (UNTOUCHED — presentation only):
  * - classify() is the agent's real INTAKE classifier ported 1:1
  *   (doc-builder-logic.ts, node-verified 8/8 against src/agent.py).
  * - The coverage gate is computed in code from the real plan statuses —
@@ -17,6 +25,8 @@
  * - Every number on screen comes from that run. No mocks, no timers.
  */
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import type { Lamp } from "../../types";
 import { ResultCard, ProgressLoader, ErrorState, FeedList } from "../ui";
 import { rpcCall } from "../../hooks/useAtlantic";
@@ -287,6 +297,18 @@ function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
+function formatRunAt(d: Date | null): string {
+  if (!d) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Athens",
+  }).format(d);
+}
+
 // ---------------------------------------------------------------------------
 // Live on-chain verification — the REAL work of step 3 for covered goals.
 // ---------------------------------------------------------------------------
@@ -343,6 +365,134 @@ function StatusChip({ status }: { status: StepStatus }) {
   return <span className="chip chip-fail text-xs">UNVERIFIED</span>;
 }
 
+// ---------------------------------------------------------------------------
+// Flagship treatment — the Beautiful Refusal + the gate PASS seal.
+//
+// RefusalStamp: the double-beat Stamp (Beautiful Refusal doctrine). The scale
+// double-beat + soft thud-shadow fire exactly once, when the refusal verdict
+// actually issues. Not decoration — this IS the verdict arriving.
+// GateAnatomy: the refusal path as three named stages, each with its honest
+// state. The "thinking layer" made visible: intake → coverage gate → gap scan.
+// GatePassSeal: the Draw — a check mark drawing itself as the PASS verdict
+// seals. Fires once, on the real PASS state, nothing else.
+// ---------------------------------------------------------------------------
+
+function RefusalStamp() {
+  return (
+    <motion.div
+      initial={{ scale: 1.18, opacity: 0, rotate: -6 }}
+      animate={{
+        scale: [1.18, 1.0, 1.07, 1.0],
+        opacity: 1,
+        rotate: -6,
+        boxShadow: [
+          "0 0 0 rgba(220,38,38,0)",
+          "0 16px 38px rgba(220,38,38,0.32)",
+          "0 10px 28px rgba(220,38,38,0.20)",
+        ],
+      }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="inline-block rounded-md border-[3px] border-fail bg-white px-5 py-2.5 sm:px-7 sm:py-3"
+      aria-label="Verdict: refused"
+    >
+      <span className="font-display text-4xl font-bold tracking-tight text-fail sm:text-5xl">
+        REFUSED
+      </span>
+    </motion.div>
+  );
+}
+
+function GatePassSeal() {
+  return (
+    <motion.svg
+      width={52}
+      height={52}
+      viewBox="0 0 56 56"
+      fill="none"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <motion.circle
+        cx="28"
+        cy="28"
+        r="24"
+        stroke="#16A34A"
+        strokeWidth={3}
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      />
+      <motion.path
+        d="M18 29l7 7 13-15"
+        stroke="#16A34A"
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 0.35, delay: 0.45, ease: "easeOut" }}
+      />
+    </motion.svg>
+  );
+}
+
+// The PASS verdict headline — the drawn seal fires once, on the real verdict.
+const PASS_HEADLINE = (
+  <span className="inline-flex items-center gap-3 sm:gap-4">
+    <GatePassSeal />
+    PASS
+  </span>
+);
+
+function GateAnatomy({ gap }: { gap: GapScan }) {
+  const stages = [
+    {
+      n: "01",
+      name: "Intake",
+      line: "The intake classifier (ported 1:1 from the agent) found no build goal matching this request.",
+      chip: <span className="chip chip-dim text-xs">NO MATCH</span>,
+    },
+    {
+      n: "02",
+      name: "Coverage gate",
+      line: `${gap.uncovered.length} uncovered term${gap.uncovered.length === 1 ? "" : "s"} — ${gap.uncovered.join(" · ")} — 0 covered. The gate refuses what it cannot ground.`,
+      chip: <span className="chip chip-fail text-xs">REFUSED</span>,
+    },
+    {
+      n: "03",
+      name: "Gap scan",
+      line: `The full corpus searched for those terms: ${gap.docs.length} docs · ${gap.totalPassages} passages · 0 hits.`,
+      chip: <span className="chip chip-dim text-xs">0 HITS</span>,
+    },
+  ];
+  return (
+    <div>
+      <p className="text-sm font-semibold text-slate">The gate that failed</p>
+      <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-stretch md:gap-0">
+        {stages.map((s, i) => (
+          <div key={s.n} className="flex flex-1 flex-col md:flex-row md:items-center">
+            <div className="flex-1 rounded-xl border border-hairline bg-porcelain p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-slate">
+                  <span className="font-mono text-xs">{s.n}</span> · {s.name}
+                </p>
+                {s.chip}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-ink">{s.line}</p>
+            </div>
+            {i < stages.length - 1 && (
+              <>
+                <ArrowDown size={18} className="mx-auto my-1 shrink-0 text-slate md:hidden" aria-hidden />
+                <ArrowRight size={18} className="mx-2 hidden shrink-0 text-slate md:block" aria-hidden />
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PlanFeed({ steps, caption }: { steps: PlanStep[]; caption: string }) {
   return (
     <div>
@@ -397,6 +547,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
   const [chain, setChain] = useState<ChainState | null>(null);
   const [gap, setGap] = useState<GapScan | null>(null);
   const [runRequest, setRunRequest] = useState("");
+  const [runAt, setRunAt] = useState<Date | null>(null);
   const [rpcError, setRpcError] = useState("");
   const [copied, setCopied] = useState(false);
 
@@ -408,6 +559,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
     const req = request.trim();
     if (!req || phase === "running") return;
     setRunRequest(req);
+    setRunAt(new Date());
     setPhase("running");
     setRpcError("");
     setChain(null);
@@ -477,7 +629,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
         <div className="space-y-6">
           <ResultCard
             eyebrow="Gate verdict · R1 — deploy + verify"
-            headline="PASS"
+            headline={PASS_HEADLINE}
             status="pass"
             subline="The deploy plan ran for real on Atlantic testnet — and the chain still reports the deployed token exactly as deployed. Every step below cites the doc passage it came from."
             rows={[
@@ -522,7 +674,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
         <div className="space-y-6">
           <ResultCard
             eyebrow="Gate verdict · R2 — balance read"
-            headline="PASS"
+            headline={PASS_HEADLINE}
             status="pass"
             subline="The balance-read plan is one covered step — the doc's own InteractToken pattern — and the chain just answered it again, live."
             rows={[
@@ -556,7 +708,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
       <div className="space-y-6">
         <ResultCard
           eyebrow="Gate verdict · R3 — transfer"
-          headline="PASS"
+          headline={PASS_HEADLINE}
           status="pass"
           subline="The transfer plan is fully covered — but the broadcast step is policy-blocked by design: the agent prepared the real unsigned transaction for a wallet to sign and never sent it. That withholding is the safety feature, not a gap."
           rows={[
@@ -588,41 +740,125 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
   const renderRefusedResult = () => {
     if (!gap) return null;
     const terms = gap.uncovered.length > 0 ? gap.uncovered.join(" · ") : "—";
+    const unblockPresets = PRESETS.filter((p) => p.id !== "r4");
     return (
       <div className="space-y-6">
-        <ResultCard
-          eyebrow="Gate verdict · the agent said no"
-          headline="REFUSED"
-          status="fail"
-          subline={
-            <>
-              Request: <span className="font-mono">“{truncate(runRequest, 90)}”</span>
-              <br />
-              <span className="mt-2 inline-block">
-                “The docs do not cover this request — no passage mentions:{" "}
-                <span className="font-mono">{terms}</span>. The agent does not
-                improvise.”
-              </span>
-              <br />
-              <span className="mt-2 inline-block">
-                This is the coverage gate working as designed — the refusal is the
-                feature, not a failure. It is the negative proof of the coverage
-                map: the same gate that passed R1–R3 is what says no here.
-              </span>
-            </>
-          }
-          rows={[
-            { label: "Uncovered terms", value: terms },
-            {
-              label: "Corpus scanned",
-              value: `4 docs · ${gap.totalPassages} passages · 0 hits`,
-            },
-            {
-              label: "The planner covers",
-              value: "ERC-20 deploy · balance reads · transfers",
-            },
-          ]}
-        />
+        {/* The signed refusal document — the bravest moment on the page. */}
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="relative rounded-2xl border border-hairline bg-white p-6 sm:p-10"
+          aria-live="polite"
+        >
+          {/* double rule — the document frame */}
+          <div
+            className="pointer-events-none absolute inset-2 rounded-xl border border-hairline"
+            aria-hidden
+          />
+          <div className="relative">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-semibold text-slate">
+                Refusal document — the coverage gate at work
+              </p>
+              <p className="font-mono text-xs text-slate">{formatRunAt(runAt)}</p>
+            </div>
+
+            <div className="mt-6">
+              <RefusalStamp />
+            </div>
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-ink">
+              “The docs do not cover this request — no passage mentions:{" "}
+              <span className="font-mono">{terms}</span>. The agent does not
+              improvise.”
+            </p>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate">
+              This is the coverage gate working as designed — the refusal is the
+              feature, not a failure. It is the negative proof of the coverage
+              map: the same gate that passed R1–R3 is what says no here.
+            </p>
+
+            <div className="mt-8 border-t border-hairline pt-6">
+              <p className="text-sm font-semibold text-slate">What was asked</p>
+              <p className="mt-2 font-mono text-sm leading-relaxed text-ink">
+                “{runRequest}”
+              </p>
+            </div>
+
+            <div className="mt-8 border-t border-hairline pt-6">
+              <GateAnatomy gap={gap} />
+            </div>
+
+            <div className="mt-8 border-t border-hairline pt-6">
+              <p className="text-sm font-semibold text-slate">
+                The uncovered terms — every one UNVERIFIED
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {gap.uncovered.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-2 rounded-lg border border-fail bg-[#fdecec] px-3 py-1.5 font-mono text-sm text-[#b91c1c]"
+                  >
+                    {t}
+                    <span className="font-sans text-xs font-semibold">0 hits</span>
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-slate">
+                Each term was searched against all {gap.totalPassages} passages
+                of the verbatim corpus — zero hits, zero grounds to build on.
+              </p>
+            </div>
+
+            <div className="mt-8 border-t border-hairline pt-6">
+              <p className="text-sm font-semibold text-slate">
+                What would unblock this
+              </p>
+              <ol className="mt-4 space-y-5">
+                <li>
+                  <p className="text-sm font-semibold text-ink">
+                    1 · Ask for a goal the docs cover
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-slate">
+                    The planner is grounded on three goals — run any of them for
+                    real right now:
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {unblockPresets.map((p) => (
+                      <button
+                        key={p.id}
+                        className="btn-outline"
+                        onClick={() => run(p.request)}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </li>
+                <li>
+                  <p className="text-sm font-semibold text-ink">2 · Cite a source</p>
+                  <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate">
+                    If a doc documents private or shielded transactions on
+                    Atlantic, cite it — the gate passes whatever the docs cover.
+                    Nothing undocumented gets built.
+                  </p>
+                </li>
+              </ol>
+            </div>
+
+            <div className="mt-8 border-t border-hairline pt-6">
+              <p className="font-display text-2xl italic text-ink">
+                — the coverage gate
+              </p>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+                Issued by the coverage gate — computed locally against the
+                verbatim {gap.totalPassages}-passage corpus. No human override.
+                Atlantic testnet 688689 · {formatRunAt(runAt)}
+              </p>
+            </div>
+          </div>
+        </motion.section>
+
         <div>
           <p className="mb-3 text-sm font-semibold text-slate">
             What the gate consulted — zero hits, everywhere (real scan, this run)
