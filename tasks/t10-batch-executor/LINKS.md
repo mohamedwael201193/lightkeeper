@@ -23,9 +23,9 @@ Every link below was curl-verified (HTTP 200) on 2026-10-16. Atlantic testnet.
 | BatchDistributor | https://atlantic.pharosscan.xyz/address/0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4 |
 | RevertingReceiver | https://atlantic.pharosscan.xyz/address/0x49b26d4685262e7756cbE623f134cFa97d142B94 |
 
-## Repo (pin after commit — replace <commit> with the real SHA)
+## Repo (pin after commit — replace 57fa81d9d11e30a6d3e590a198cce218c2176ca2 with the real SHA)
 
-- https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t10-batch-executor
+- https://github.com/mohamedwael201193/lightkeeper/tree/57fa81d9d11e30a6d3e590a198cce218c2176ca2/tasks/t10-batch-executor
 
 ## Pending
 
