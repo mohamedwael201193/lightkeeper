@@ -1,0 +1,22 @@
+[
+  {
+    "name": "unsupported-function",
+    "result": "call refused as designed: unsupported call signature (negative probe): nonExistentView()(uint256)",
+    "honest": true
+  },
+  {
+    "name": "untracked-protocol",
+    "result": "I don't know: that protocol/asset is not in my verified on-chain registry. I only report positions I can read from verified contracts at a pinned block — I won't guess. Tracked sources: PHRS, USDC, USDT, WBTC, WETH, WPHRS, LPK.",
+    "honest": true
+  },
+  {
+    "name": "no-price-feed",
+    "result": "I don't know the USD value: Atlantic testnet assets have no market value and I query no price feed. I will never invent a price. Balances are reported in native token units only.",
+    "honest": true
+  },
+  {
+    "name": "no-code-address",
+    "result": "no code at address → reported as unknown, never as zero balance",
+    "honest": true
+  }
+]
