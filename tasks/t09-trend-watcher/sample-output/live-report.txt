@@ -1,0 +1,19 @@
+t09-trend-watcher :: observation summary
+  observations: 60 (LIVE 60, synthetic 0)
+  block range:  31481567 .. 31481678
+  decisions:    FIRE x0 | HOLD x60
+  current streak: 0 | lastFireBlock: none | firesTotal: 0
+
+Why acted / why not (last 10 decisions):
+  block 31481669 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481670 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481671 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481672 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481673 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481674 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481675 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481676 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481677 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+  block 31481678 [LIVE] HOLD — FLAT_INSIDE_BAND_STREAK_RESET (value 1 gwei, streak 0)
+
+No FIRE yet: the rule requires 3 CONSECUTIVE above-band samples; single spikes reset the streak (see spike-demo).
