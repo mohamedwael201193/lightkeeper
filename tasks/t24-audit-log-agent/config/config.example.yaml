@@ -1,0 +1,16 @@
+# Example config for t24-audit-log-agent. Copy values as needed; never put
+# real private keys or tokens in this file or in the repo.
+network: atlantic-testnet
+chainId: 688689
+rpcUrl: https://atlantic.dplabs-internal.com
+explorer: https://atlantic.pharosscan.xyz/
+# read-only audit wallet (public address only)
+wallet: 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+logFile: state/audit-log.jsonl
+report:
+  maxScanBlocks: 2000
+  exports: [md, csv, pdf]
+# Dust-write budget for the live demo (PHRS, testnet)
+demo:
+  dustValuePhrs: "0.0001"
+  maxTotalPhrs: "0.15"

@@ -1,0 +1,2 @@
+entries checked: 14
+VERIFY: PASS — chain intact, every entry hash matches its content and links to its predecessor.

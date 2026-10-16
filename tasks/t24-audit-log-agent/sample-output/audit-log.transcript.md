@@ -1,0 +1,130 @@
+# Audit-log transcript
+
+Entries: 14
+Exported: 2026-10-16T05:05:12.870Z
+
+## #0 — read:chain-id
+- timestamp: 2026-10-16T04:13:14.782Z
+- actor: lk-t24-agent
+- params: `{"chainId":688689,"rpc":"https://atlantic.dplabs-internal.com","network":"atlantic-testnet"}`
+- tx: —
+- note: —
+- prevHash: 0000000000000000000000000000000000000000000000000000000000000000
+- entryHash: aef77dc8cfd39ef851294f1b5eaf416da13e7926442bf3201c906f035c175297
+
+## #1 — read:balance
+- timestamp: 2026-10-16T04:13:18.070Z
+- actor: lk-t24-agent
+- params: `{"wallet":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","balancePhrs":"6.004912958989312956","block":31481612}`
+- tx: —
+- note: —
+- prevHash: aef77dc8cfd39ef851294f1b5eaf416da13e7926442bf3201c906f035c175297
+- entryHash: 421652f13b19c6cd702c8df6e84de7c2e6708e192676050f14465d7a9356859a
+
+## #2 — tx:dust-send-1
+- timestamp: 2026-10-16T04:13:49.536Z
+- actor: lk-t24-agent
+- params: `{"to":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","valuePhrs":"0.0001","purpose":"t24 audit-log live demo entry"}`
+- tx: [0x3327baea59b0851af7e8edea7deccc9ea9a5804eb5330589ca0f8970add9d9e7](https://atlantic.pharosscan.xyz/tx/0x3327baea59b0851af7e8edea7deccc9ea9a5804eb5330589ca0f8970add9d9e7)
+- note: —
+- prevHash: 421652f13b19c6cd702c8df6e84de7c2e6708e192676050f14465d7a9356859a
+- entryHash: c830b62f4f61e084923f86020ba1c4f52f0487b5f076145a674b844f9322ec15
+
+## #3 — tx:dust-send-2
+- timestamp: 2026-10-16T04:14:19.283Z
+- actor: lk-t24-agent
+- params: `{"to":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","valuePhrs":"0.0001","purpose":"t24 audit-log live demo entry"}`
+- tx: [0x80a5506d8c77c36d7fe665a4c8e5842e88bcb489707e32081a24289eb1806061](https://atlantic.pharosscan.xyz/tx/0x80a5506d8c77c36d7fe665a4c8e5842e88bcb489707e32081a24289eb1806061)
+- note: —
+- prevHash: c830b62f4f61e084923f86020ba1c4f52f0487b5f076145a674b844f9322ec15
+- entryHash: 503389f84aca658fc2b532380e6ba99a981fcee6fca7d39f65564c7fee86064f
+
+## #4 — tx:dust-send-1-attempt-dropped
+- timestamp: 2026-10-16T04:27:24.373Z
+- actor: lk-t24-agent
+- params: `{"hash":"0x3209751b648ec9c5d6650c152c610bc2a13ac4d095a7dc9f40d4102a9c1ea105","cause":"dropped from mempool under shared-key nonce contention, not mined"}`
+- tx: [0x3209751b648ec9c5d6650c152c610bc2a13ac4d095a7dc9f40d4102a9c1ea105](https://atlantic.pharosscan.xyz/tx/0x3209751b648ec9c5d6650c152c610bc2a13ac4d095a7dc9f40d4102a9c1ea105)
+- note: —
+- prevHash: 503389f84aca658fc2b532380e6ba99a981fcee6fca7d39f65564c7fee86064f
+- entryHash: 95d9526481b56508d4de564020a67b0cdd02091f7eadbb5b905e520ece1d4d24
+
+## #5 — tx:dust-send-1-attempt-dropped
+- timestamp: 2026-10-16T04:29:09.955Z
+- actor: lk-t24-agent
+- params: `{"hash":"0xf7e529d802f576b918d964a581704c04724278b6d1dfb7fc500588eaef8c6f8c","cause":"dropped from mempool under shared-key nonce contention, not mined"}`
+- tx: [0xf7e529d802f576b918d964a581704c04724278b6d1dfb7fc500588eaef8c6f8c](https://atlantic.pharosscan.xyz/tx/0xf7e529d802f576b918d964a581704c04724278b6d1dfb7fc500588eaef8c6f8c)
+- note: —
+- prevHash: 95d9526481b56508d4de564020a67b0cdd02091f7eadbb5b905e520ece1d4d24
+- entryHash: 7e219890d181f1f034615cf446243732d2e1f09ecc0c7de4ffd76988b2f12ef8
+
+## #6 — tx:dust-send-1-attempt-dropped
+- timestamp: 2026-10-16T04:31:13.671Z
+- actor: lk-t24-agent
+- params: `{"hash":"0x7cdb8b3828b132888426b1fd507e658de414dde4881a0f6b113ffbb60451984b","cause":"dropped from mempool under shared-key nonce contention, not mined"}`
+- tx: [0x7cdb8b3828b132888426b1fd507e658de414dde4881a0f6b113ffbb60451984b](https://atlantic.pharosscan.xyz/tx/0x7cdb8b3828b132888426b1fd507e658de414dde4881a0f6b113ffbb60451984b)
+- note: —
+- prevHash: 7e219890d181f1f034615cf446243732d2e1f09ecc0c7de4ffd76988b2f12ef8
+- entryHash: 124edcb90b845ab1b3baf5b2d2dc2a43c98fa9f66d1140354543b534b6919959
+
+## #7 — tx:dust-send-1-attempt-dropped
+- timestamp: 2026-10-16T04:32:36.161Z
+- actor: lk-t24-agent
+- params: `{"hash":"0x7b564bbfd81066f2534ea62cd2b50a61b516e8e31af796ee413ce26e039d635b","cause":"dropped from mempool under shared-key nonce contention, not mined"}`
+- tx: [0x7b564bbfd81066f2534ea62cd2b50a61b516e8e31af796ee413ce26e039d635b](https://atlantic.pharosscan.xyz/tx/0x7b564bbfd81066f2534ea62cd2b50a61b516e8e31af796ee413ce26e039d635b)
+- note: —
+- prevHash: 124edcb90b845ab1b3baf5b2d2dc2a43c98fa9f66d1140354543b534b6919959
+- entryHash: 1f83564e28d5f4b8d719ef64c71deb6abbb28856abad02fba018d9871c2ebb31
+
+## #8 — tx:dust-send-1-attempt-dropped
+- timestamp: 2026-10-16T04:33:52.821Z
+- actor: lk-t24-agent
+- params: `{"hash":"0xdda27a002fdce4833ccafeef1ab6fac75d29659a3c0c8f237b2934c54d3d53ac","cause":"dropped from mempool under shared-key nonce contention, not mined"}`
+- tx: [0xdda27a002fdce4833ccafeef1ab6fac75d29659a3c0c8f237b2934c54d3d53ac](https://atlantic.pharosscan.xyz/tx/0xdda27a002fdce4833ccafeef1ab6fac75d29659a3c0c8f237b2934c54d3d53ac)
+- note: —
+- prevHash: 1f83564e28d5f4b8d719ef64c71deb6abbb28856abad02fba018d9871c2ebb31
+- entryHash: f72f202357977867c8175e2653d631d1629be9543b8463ae57de28a29fa42eaf
+
+## #9 — note:mempool-drop-disclosure
+- timestamp: 2026-10-16T05:05:07.619Z
+- actor: lk-t24-agent
+- params: `{"summary":"first broadcast attempts (entries 2-3) were accepted by the RPC but never mined under shared-key nonce contention; retried with --async and both mined","mined":["0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1","0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68"]}`
+- tx: —
+- note: —
+- prevHash: f72f202357977867c8175e2653d631d1629be9543b8463ae57de28a29fa42eaf
+- entryHash: 902510e9eef35fa6b84d738e4e955fe11c640e78d329e016df4f6f75e983fd54
+
+## #10 — tx:dust-send-1
+- timestamp: 2026-10-16T05:05:09.954Z
+- actor: lk-t24-agent
+- params: `{"to":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","valuePhrs":"0.0001","mode":"--async broadcast, mined","attempt":"final"}`
+- tx: [0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1](https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1)
+- note: —
+- prevHash: 902510e9eef35fa6b84d738e4e955fe11c640e78d329e016df4f6f75e983fd54
+- entryHash: 60bdfd8f2bbbe98b035a34635ae23aef800c20c1d7291900c3ead61fa2606c95
+
+## #11 — read:receipt-1
+- timestamp: 2026-10-16T05:05:10.080Z
+- actor: lk-t24-agent
+- params: `{"status":"0x1","gasUsed":"0x5208","gasUsedDec":21000,"blockHex":"0x1e066da","blockDec":31483610,"effectiveGasPriceWei":"0x3b9aca01","txFeeWeiHex":"0x1319718aa208","txFeeWeiDec":"21000000021000"}`
+- tx: [0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1](https://atlantic.pharosscan.xyz/tx/0x3356b1db217d6e569ad3067d7e8f486a43343dfeaf50245f535392ce97f241c1)
+- note: —
+- prevHash: 60bdfd8f2bbbe98b035a34635ae23aef800c20c1d7291900c3ead61fa2606c95
+- entryHash: 3083d757c6cd35285b847c26a13c95a483e42e27cb4559f200779017b747ffe5
+
+## #12 — tx:dust-send-2
+- timestamp: 2026-10-16T05:05:12.154Z
+- actor: lk-t24-agent
+- params: `{"to":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","valuePhrs":"0.0001","mode":"--async broadcast, mined","attempt":"final"}`
+- tx: [0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68](https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68)
+- note: —
+- prevHash: 3083d757c6cd35285b847c26a13c95a483e42e27cb4559f200779017b747ffe5
+- entryHash: 7029f8ccfed1ce4e925a54fced8eb951b99cf43f0692bf3a0e75b1d4ef2376e4
+
+## #13 — read:receipt-2
+- timestamp: 2026-10-16T05:05:12.254Z
+- actor: lk-t24-agent
+- params: `{"status":"0x1","gasUsed":"0x5208","gasUsedDec":21000,"blockHex":"0x1e066fe","blockDec":31483646,"effectiveGasPriceWei":"0x3b9aca01","txFeeWeiHex":"0x1319718aa208","txFeeWeiDec":"21000000021000"}`
+- tx: [0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68](https://atlantic.pharosscan.xyz/tx/0xf52e77a545c858c0f0ec8aa181850fe44d9157e17dca172ee6ebd5ac91635f68)
+- note: —
+- prevHash: 7029f8ccfed1ce4e925a54fced8eb951b99cf43f0692bf3a0e75b1d4ef2376e4
+- entryHash: 9f08a4ffaea527610be001b77266c3c1d2b48f3f92540ff8bea67387b63da22c

@@ -1,0 +1,3 @@
+entries checked: 14
+VERIFY: FAIL
+  entry #12: entryHash mismatch — field content was altered after logging
