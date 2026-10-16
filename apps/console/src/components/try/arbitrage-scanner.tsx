@@ -22,8 +22,8 @@
  * (scanner.py --execute); the two mined execution legs are linked below.
  */
 import { useEffect, useRef, useState } from "react";
-import { animate, useReducedMotion } from "framer-motion";
-import { Fuel, Layers, TrendingUp, Zap } from "lucide-react";
+import { animate, motion, useReducedMotion } from "framer-motion";
+import { Crown, Fuel, Layers, TrendingUp, Zap } from "lucide-react";
 import type { Lamp } from "../../types";
 import { EXPLORER_ADDRESS, EXPLORER_TX, rpcCall, useAtlanticRead } from "../../hooks/useAtlantic";
 import {
@@ -34,7 +34,6 @@ import {
   ResultCard,
   StatStrip,
 } from "../ui";
-import type { FeedItem } from "../ui";
 
 /* ---------- task sources (exact, from tasks/t07-arbitrage-scanner/evidence.json) ---------- */
 const VENUES = [
@@ -396,41 +395,147 @@ function ActLabel({ n, title }: { n: string; title: string }) {
   );
 }
 
-function CycleFeedItem({ c, rank }: { c: Cycle; rank: number }) {
-  const unit = c.start === "WPHRS" ? "WPHRS" : "TKB";
+/* ---------- the trading board: all twelve cycles, settled into place ---------- */
+
+/** Why a row lost its board: honest, machine-readable, never greyed out. */
+function rowVerdict(c: Cycle, rank: number, thresholdWei: bigint): { label: string; cls: string } {
+  if (rank === 0) return { label: c.start === "WPHRS" ? "BOARD WINNER" : "BOARD TOP", cls: "chip-pass" };
+  if (c.net <= 0n) return { label: "NEGATIVE_NET", cls: "chip-fail" };
+  if (c.net <= thresholdWei) return { label: "BELOW_THRESHOLD", cls: "chip-fail" };
+  return { label: "BEATEN", cls: "chip-dim" };
+}
+
+function BoardRow({
+  c,
+  rank,
+  thresholdWei,
+  gasWei,
+  guardWei,
+  reduced,
+}: {
+  c: Cycle;
+  rank: number;
+  thresholdWei: bigint;
+  gasWei: bigint;
+  guardWei: bigint;
+  reduced: boolean;
+}) {
+  const v = rowVerdict(c, rank, thresholdWei);
+  const unit = c.start;
   const pos = c.net > 0n;
+  const winner = rank === 0;
+  // The Settle: rows sorting into place, stagger ≤ 0.5s total, mapped to the
+  // ranking resolving from the live reads. Instant under reduced-motion.
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <p className="min-w-0 text-sm font-semibold text-ink">
-          {rank === 0 && (
-            <span className="chip chip-pass mr-2 !px-1.5 !py-0.5">best</span>
-          )}
-          <span className="font-mono">
-            {c.leg1Venue} → {c.leg2Venue}
-          </span>
-        </p>
-        <p
-          className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
+    <motion.li
+      initial={reduced ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: reduced ? 0 : Math.min(rank * 0.07, 0.35), ease: "easeOut" }}
+      className={`border-b border-hairline last:border-0 ${
+        winner ? "border-l-4 border-l-gold bg-golddeep/10" : ""
+      }`}
+    >
+      <div className="flex items-baseline gap-3 px-4 py-3 sm:px-5">
+        <span
+          className={`w-6 shrink-0 font-mono text-sm font-bold tabular-nums ${
+            winner ? "text-golddeep" : "text-slate"
+          }`}
+          aria-label={`rank ${rank + 1}`}
+        >
+          {rank + 1}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-sm font-semibold text-ink">
+              {c.leg1Venue} → {c.leg2Venue}
+            </span>
+            <span className={`chip !px-1.5 !py-0.5 ${v.cls}`}>{v.label}</span>
+            {winner && (
+              <span className="chip inline-flex items-center gap-1 !px-1.5 !py-0.5 !text-golddeep">
+                <Crown size={12} aria-hidden /> winner
+              </span>
+            )}
+          </div>
+          <p className="mt-1 font-mono text-xs text-slate">
+            gross {fmt(c.gross, 4)} − fees {fmt(c.fee1 + c.fee2, 4)} − slippage{" "}
+            {fmt(c.slip1 + c.slip2, 4)} − gas {fmt(gasWei, 4)} − guard {fmt(guardWei, 4)} {unit}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 font-mono text-sm font-bold tabular-nums ${
             pos ? "text-[#0f7a37]" : "text-fail"
           }`}
         >
           {fmtSignedNum(Number(c.net) / 1e18, 4)} {unit}
-        </p>
+        </span>
       </div>
-      <p className="mt-1 font-mono text-xs text-slate">
-        gross {fmt(c.gross, 4)} · fees {fmt(c.fee1 + c.fee2, 4)} · slippage{" "}
-        {fmt(c.slip1 + c.slip2, 4)} {unit}
-      </p>
+    </motion.li>
+  );
+}
+
+/**
+ * One leaderboard board — a trading-floor panel. Rows settle into place when
+ * the ranking resolves from the live reads; losers stay visible with their
+ * honest reason for losing.
+ */
+function CycleBoard({
+  title,
+  note,
+  cycles,
+  thresholdWei,
+  gasWei,
+  guardWei,
+}: {
+  title: string;
+  note: string;
+  cycles: Cycle[];
+  thresholdWei: bigint;
+  gasWei: bigint;
+  guardWei: bigint;
+}) {
+  const reduced = useReducedMotion();
+  return (
+    <div className="overflow-hidden rounded-2xl border border-hairline bg-white">
+      <div className="border-b border-hairline bg-porcelain px-4 py-3 sm:px-5">
+        <p className="text-sm font-bold text-ink">{title}</p>
+        <p className="mt-0.5 text-xs text-slate">{note}</p>
+      </div>
+      {cycles.length > 0 ? (
+        <ul>
+          {cycles.map((c, i) => (
+            <BoardRow
+              key={`${c.start}-${c.leg1Venue}-${c.leg2Venue}`}
+              c={c}
+              rank={i}
+              thresholdWei={thresholdWei}
+              gasWei={gasWei}
+              guardWei={guardWei}
+              reduced={!!reduced}
+            />
+          ))}
+        </ul>
+      ) : (
+        <p className="px-5 py-6 text-sm text-slate">
+          No cycles priced on this board this scan — the reads failed or the venues were empty.
+        </p>
+      )}
     </div>
   );
 }
 
-function cycleFeedItems(cycles: Cycle[]): FeedItem[] {
-  return cycles.map((c, i) => ({
-    key: `${c.start}-${c.leg1Venue}-${c.leg2Venue}`,
-    node: <CycleFeedItem c={c} rank={i} />,
-  }));
+/** The Beautiful Refusal: SKIP lands as a designed verdict — the reason IS the product. */
+function SkipVerdict({ reason }: { reason: string }) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.span
+      initial={reduced ? false : { scale: 1.15 }}
+      animate={{ scale: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="inline-block"
+    >
+      SKIP — <span className="font-mono text-[0.55em]">{reason}</span>
+    </motion.span>
+  );
 }
 
 /** Translate a failed scan into a plain-language error. Raw RPC text never renders. */
@@ -547,6 +652,8 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
   const profitRoutes = data
     ? [...data.cyclesWphrs, ...data.cyclesTkb].filter((c) => c.net > 0n).length
     : 0;
+  // Staged against the field: the winner's margin over the runner-up, WPHRS board.
+  const runnerUp = data && data.cyclesWphrs.length > 1 ? data.cyclesWphrs[1] : null;
 
   return (
     <div className="space-y-6">
@@ -557,6 +664,9 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
         </div>
 
         <h3 className="text-xl font-semibold text-ink">Live spread scanner</h3>
+        <p className="mt-2 max-w-3xl text-sm font-semibold text-ink">
+          Twelve arbitrage paths priced live from one pinned block — winner, losers, and the receipts.
+        </p>
         <p className="mb-5 mt-2 max-w-3xl text-sm leading-relaxed text-ink">
           The T07 <strong>config → scan → verdict</strong> rhythm, live in your browser. One scan
           pins a block, reads the three real T07 venues on Atlantic testnet via{" "}
@@ -647,22 +757,45 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
               <ResultCard
                 eyebrow={`Scan ${runId} · Atlantic testnet · block ${data.pinnedBlock}`}
                 headline={
-                  <>
-                    <HeroTicker valueWei={data.net} />{" "}
-                    <span className="text-3xl sm:text-4xl">WPHRS</span>
-                  </>
+                  data.verdict === "OPPORTUNITY" ? (
+                    <>
+                      <HeroTicker valueWei={data.net} />{" "}
+                      <span className="text-3xl sm:text-4xl">WPHRS</span>
+                    </>
+                  ) : (
+                    <SkipVerdict reason={data.skipReason ?? "NO_ROUTE"} />
+                  )
                 }
                 subline={
                   data.verdict === "OPPORTUNITY" && data.best ? (
                     <>
                       <strong>OPPORTUNITY</strong> — {data.best.leg1Venue} →{" "}
-                      {data.best.leg2Venue} clears your {fmt(data.thresholdWei)} WPHRS threshold.
-                      This panel never signs or broadcasts; acting is the CLI&apos;s job.
+                      {data.best.leg2Venue} clears your {fmt(data.thresholdWei)} WPHRS threshold
+                      {runnerUp && (
+                        <>
+                          {" "}and beats the runner-up (
+                          <span className="font-mono">
+                            {runnerUp.leg1Venue} → {runnerUp.leg2Venue}
+                          </span>
+                          ) by{" "}
+                          <span className="font-mono">
+                            {fmt(data.best.net - runnerUp.net)} WPHRS
+                          </span>{" "}
+                          — a field of twelve, one winner
+                        </>
+                      )}
+                      . This panel never signs or broadcasts; acting is the CLI&apos;s job.
                     </>
                   ) : (
                     <>
-                      <strong>SKIP — {data.skipReason}</strong>.{" "}
                       {VERDICT_COPY[data.skipReason ?? ""] ?? "No route cleared your threshold."}
+                      <br />
+                      Best route net{" "}
+                      <span className="font-mono">{fmt(data.net)} WPHRS</span> against your{" "}
+                      <span className="font-mono">{fmt(data.thresholdWei)} WPHRS</span> threshold —
+                      the numbers said no, so nothing was prepared.{" "}
+                      {data.onChainMatch === true &&
+                        "The refusal is receipted: the panel's math was contract-verified, so the skip is final."}
                     </>
                   )
                 }
@@ -728,6 +861,17 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                         <tr><td>Slippage leg 2 — quoted vs zero-fee ideal</td><td className="font-mono text-right">{fmt(data.best.slip2)} WPHRS</td></tr>
                         <tr><td>Gas — 2 legs × {GAS_PER_LEG.toString()} gas × live price (PHRS 1:1 by test construction)</td><td className="font-mono text-right">{fmt(data.gasWei)} WPHRS</td></tr>
                         <tr><td>Slippage guard — your {data.guardBps / 100}% buffer on size</td><td className="font-mono text-right">{fmt(data.guardWei)} WPHRS</td></tr>
+                        {runnerUp && data.best && (
+                          <tr>
+                            <td>
+                              Margin over the runner-up —{" "}
+                              <span className="font-mono">
+                                {runnerUp.leg1Venue} → {runnerUp.leg2Venue}
+                              </span>
+                            </td>
+                            <td className="font-mono text-right">{fmt(data.best.net - runnerUp.net)} WPHRS</td>
+                          </tr>
+                        )}
                         <tr><td className="font-semibold text-ink">Net</td><td className="font-mono text-right font-semibold text-ink">{fmt(data.net)} WPHRS</td></tr>
                       </tbody>
                     </table>
@@ -815,34 +959,37 @@ export default function TryArbitrageScanner({ lamp }: { lamp: Lamp }) {
                 </div>
               </div>
 
-              {/* the whole market: both leaderboards */}
+              {/* the whole market: the trading board — both leaderboards settle into place */}
               <div className="space-y-5">
-                <p className="text-sm font-semibold text-ink">
-                  The whole market — every cycle, losers included
-                </p>
                 <div>
-                  <p className="mb-2 text-sm font-semibold text-slate">
-                    WPHRS-start cycles — the verdict runs on these
+                  <p className="text-sm font-bold text-ink">
+                    The trading board — all twelve cycles, losers included
                   </p>
-                  <FeedList
-                    items={cycleFeedItems(data.cyclesWphrs)}
-                    emptyText="No WPHRS-start cycles priced this scan."
-                  />
-                  <p className="mt-1 text-xs text-slate">
-                    Leg 1 swaps WPHRS → TKB, leg 2 swaps back. Net = gross − gas − your slippage
-                    guard.
+                  <p className="mt-1 text-sm text-slate">
+                    Every cycle is ranked with its full cost decomposition; the rows settle in as the
+                    ranking resolves from the live reads. Losers stay visible with the honest reason
+                    they lost — NEGATIVE_NET, BELOW_THRESHOLD, or simply BEATEN.
                   </p>
                 </div>
-                <div>
-                  <p className="mb-2 text-sm font-semibold text-slate">TKB-start cycles</p>
-                  <FeedList
-                    items={cycleFeedItems(data.cyclesTkb)}
-                    emptyText="No TKB-start cycles priced this scan."
+                <div className="grid gap-5 lg:grid-cols-2" role="group" aria-label="Cycle leaderboards">
+                  <CycleBoard
+                    key={`scan-${runId}-wphrs`}
+                    title="WPHRS-start board"
+                    note={`${data.cyclesWphrs.length} cycles · the verdict runs on these · ranked by net`}
+                    cycles={data.cyclesWphrs}
+                    thresholdWei={data.thresholdWei}
+                    gasWei={data.gasWei}
+                    guardWei={data.guardWei}
                   />
-                  <p className="mt-1 text-xs text-slate">
-                    Priced with the same wei size, denominated in TKB — the CLI&apos;s second half.
-                    Ranked separately: WPHRS and TKB are different units and are never mixed.
-                  </p>
+                  <CycleBoard
+                    key={`scan-${runId}-tkb`}
+                    title="TKB-start board"
+                    note={`${data.cyclesTkb.length} cycles · priced in TKB, ranked separately — never mixed with WPHRS`}
+                    cycles={data.cyclesTkb}
+                    thresholdWei={data.thresholdWei}
+                    gasWei={data.gasWei}
+                    guardWei={data.guardWei}
+                  />
                 </div>
               </div>
             </>
