@@ -35,7 +35,15 @@ live-pasted example Q&As plus a miss-path demo. Zero chain interaction, 0 PHRS s
 - Reviewer notes (architecture, `?ask=` investigation, threshold tuning): `tasks/t04-doc-search-cli/REVIEWER_NOTES.md`
 - Link verification: `tasks/t04-doc-search-cli/LINKS.md` (all URLs curl-verified 2026-10-16)
 
-**Video:** PENDING-VIDEO — shot-by-shot guide in `tasks/t04-doc-search-cli/VIDEO-GUIDE.md` (ask → cited answer → miss → graceful refusal, ~80s, real terminal output only).
+**Video:** PENDING-VIDEO — shot-by-shot guide in `tasks/t04-doc-search-cli/VIDEO-GUIDE.md` (ask → cited answer → miss → graceful refusal, ~90s, real terminal output only).
+
+## Try it live (LIGHTKEEPER console — Tier C)
+
+- https://lightkeeper-console.vercel.app/#/task/doc-search-cli — "Search the docs, get the command":
+  keyword search over the 7 real doc-grounded answer patterns from `evidence/evidence.json` (verbatim
+  quotes + doc-page citations + retrieval date) → the exact `./pharos-docs` CLI each maps to,
+  copy-paste ready, with the same honest UNVERIFIED refusal when nothing matches. Nothing executes in
+  the browser; the visitor runs the CLI in their own terminal.
 
 ---
 

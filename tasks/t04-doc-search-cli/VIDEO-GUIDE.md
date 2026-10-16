@@ -1,7 +1,7 @@
 # T04 — Doc-Search CLI: Video Guide (45–90s)
 
 **Status:** PENDING-VIDEO (script + shots below; film in one terminal take, no edits to outputs).
-**Total:** ~80 seconds. Film at 1080p, terminal font ≥16pt. Every command below is real;
+**Total:** ~90 seconds. Film at 1080p, terminal font ≥16pt. Every command below is real;
 the expected outputs are pasted from actual runs on 2026-10-16 — do NOT retype or "clean up" outputs.
 
 ## Shot list
@@ -77,6 +77,15 @@ to improvise. That refusal is the feature."
 
 **Say:** "Fourteen tests, all passing — including tests that assert the tool refuses to answer when
 the index has no covering passage, and that every quote is traceable to the fetched docs."
+
+### Shot 6 — From question to command in the console (1:20–1:30)
+**On screen:** `https://lightkeeper-console.vercel.app/#/task/doc-search-cli` — type
+"how do I deploy a contract?", show the DOC-GROUNDED card (verbatim quote + doc citation), then copy
+the mapped `./pharos-docs` command.
+
+**Say:** "And the fastest honest path from question to command: the LIGHTKEEPER console gives you the
+doc-grounded answer with its citation and the exact command that produces it — copy, paste, run.
+It never invents."
 
 ## Filming notes
 
