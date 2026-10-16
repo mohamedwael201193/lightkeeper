@@ -1,0 +1,13 @@
+{
+  "kind": "run-c",
+  "dust": 1000,
+  "locked_before": 0,
+  "bal_before": 1000000000000000000000000,
+  "step_order": [
+    "approve",
+    "lock",
+    "execute",
+    "settle"
+  ],
+  "note": "resume replays state.log; in-flight tx receipts are re-read, never re-broadcast"
+}

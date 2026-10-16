@@ -2,18 +2,19 @@
  * T28 Multi-Protocol Aggregator — Tier A (live reads, no wallet, costs nothing).
  *
  * "One view, every venue": the console reads all three real T28 venues on
- * Atlantic (two SimpleVaults + one SimpleLending) at the current tip via
- * eth_call, normalizes TVL / APYs / share price / utilization / liquidity
- * depth into ONE quote board, and ranks the venues for a deposit or borrow
- * intent the visitor configures. A venue whose read fails is marked
- * UNREACHABLE — never zero-filled.
+ * Atlantic (two SimpleVaults + one SimpleLending) at one pinned block via
+ * plain JSON-RPC, normalizes TVL / APYs / share price / utilization /
+ * liquidity depth into ONE quote board, and ranks the venues for a deposit
+ * or borrow intent the visitor configures. A venue whose read fails — or
+ * whose address holds no bytecode — is marked UNREACHABLE, never zero-filled.
  *
  * Quotes only. No execution happens in this page; the run command stays in
  * the CLI (panel at the bottom).
  *
  * Addresses copied character-for-character from
  * tasks/t28-multi-protocol-aggregator/evidence.json. Selectors are the
- * 4-byte function selectors of src/SimpleVault.sol and src/SimpleLending.sol.
+ * 4-byte function selectors of src/SimpleVault.sol and src/SimpleLending.sol
+ * (all 11 verified live against Atlantic on 2026-10-16).
  */
 import { useState } from "react";
 import type { Lamp } from "../../types";
@@ -82,6 +83,20 @@ interface Snapshot {
   quotes: VenueQuote[];
 }
 
+function unreachable(def: VenueDef, error: string): VenueQuote {
+  return {
+    def,
+    ok: false,
+    error,
+    supplyApyBps: 0,
+    borrowApyBps: null,
+    tvlWei: 0n,
+    liquidityWei: 0n,
+    sharePriceWei: null,
+    utilizationBps: null,
+  };
+}
+
 async function ethCall(to: string, data: string, block: string): Promise<bigint> {
   const hex = (await rpcCall("eth_call", [{ to, data }, block])) as string;
   if (typeof hex !== "string" || !hex.startsWith("0x")) {
@@ -92,6 +107,13 @@ async function ethCall(to: string, data: string, block: string): Promise<bigint>
 
 async function readVenue(def: VenueDef, block: string): Promise<VenueQuote> {
   try {
+    /* Same gate as aggregate.py's venue_reachable: an address with no
+       bytecode must be UNREACHABLE — an eth_call would return 0x and the
+       venue would look alive with 0.00% APY. Never zero-filled. */
+    const code = (await rpcCall("eth_getCode", [def.address, block])) as string;
+    if (typeof code !== "string" || code === "0x" || code === "0x0") {
+      return unreachable(def, "no bytecode at address (get_code empty)");
+    }
     if (def.kind === "vault") {
       const [totalAssets, supplyApyBps, sharePrice] = await Promise.all([
         ethCall(def.address, SEL.totalAssets, block),
@@ -129,17 +151,7 @@ async function readVenue(def: VenueDef, block: string): Promise<VenueQuote> {
     };
   } catch (e) {
     /* A venue that fails is UNREACHABLE — never zero-filled. */
-    return {
-      def,
-      ok: false,
-      error: e instanceof Error ? e.message : "read failed",
-      supplyApyBps: 0,
-      borrowApyBps: null,
-      tvlWei: 0n,
-      liquidityWei: 0n,
-      sharePriceWei: null,
-      utilizationBps: null,
-    };
+    return unreachable(def, e instanceof Error ? e.message : "read failed");
   }
 }
 
@@ -177,6 +189,31 @@ function shortAddr(a: string): string {
   return `${a.slice(0, 10)}…${a.slice(-7)}`;
 }
 
+/** Capital efficiency, exactly as aggregate.py's comparison(): utilization
+ *  share for lending, 100% for vaults (all TVL deployed in strategy). */
+function capitalEfficiencyPct(q: VenueQuote): number {
+  if (!q.ok) return 0;
+  return q.def.kind === "lending" ? (q.utilizationBps ?? 0) / 100 : 100;
+}
+
+/** Risk flags, same thresholds as aggregate.py risk_flags(). Pure, from the
+ *  same live read — no second data source. */
+function riskFlags(q: VenueQuote): string[] {
+  if (!q.ok) return ["UNREACHABLE"];
+  const flags: string[] = [];
+  const tvlPhrs = Number(q.tvlWei) / 1e18;
+  if ((q.utilizationBps ?? 0) > 8000) {
+    flags.push("ELEVATED: utilization >80% — withdrawal liquidity thin");
+  }
+  if (tvlPhrs < 0.0005) {
+    flags.push("THIN: TVL < 0.0005 PHRS — dust-scale venue");
+  }
+  if (q.def.kind === "vault" && tvlPhrs < 0.001) {
+    flags.push("NOTE: small vault TVL — slippage not modeled");
+  }
+  return flags;
+}
+
 const CLI_CMD = `export ATLANTIC_RPC_URL="https://atlantic.dplabs-internal.com"   # your own RPC endpoint
 export PATH="$HOME/.foundry/bin:$PATH"
 cd ~/workspace/lightkeeper/tasks/t28-multi-protocol-aggregator
@@ -186,7 +223,10 @@ python3 aggregate.py run
 
 # explained routing: deposit and borrow intents, per-venue verdict lines
 python3 aggregate.py route --intent deposit --amount-wei 1000000000000000
-python3 aggregate.py route --intent borrow  --amount-wei 100000000000000`;
+python3 aggregate.py route --intent borrow  --amount-wei 100000000000000
+
+# degraded mode: one venue forced down, the rest must still aggregate
+python3 aggregate.py chaos`;
 
 type Intent = "deposit" | "borrow";
 
@@ -206,7 +246,8 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
   const winner: VenueQuote | null =
     intent === "deposit" ? depositRanking[0] ?? null : lendQuote;
 
-  /** Estimated 1-year output for a deposit of `inputWei` at the venue's supply APY. */
+  /** Estimated 1-year output for a deposit of `inputWei` at the venue's
+   *  supply APY (simple interest, honest estimate). */
   const estDepositOut = (q: VenueQuote): string =>
     inputWei === null
       ? "—"
@@ -218,26 +259,37 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
       ? "—"
       : weiToPhrs((inputWei * BigInt(q.borrowApyBps)) / 10000n);
 
+  /** Gap behind the winner in percentage points — the comparison a trader wants. */
+  const gapVsWinner = (q: VenueQuote): string | null => {
+    if (!q.ok || !winner || q.def.id === winner.def.id) return null;
+    if (intent !== "deposit") return null;
+    const gapPp = (winner.supplyApyBps - q.supplyApyBps) / 100;
+    return `−${gapPp.toFixed(2)}pp vs ${winner.def.name}`;
+  };
+
   const verdictFor = (q: VenueQuote): { chip: string; tone: string; text: string } => {
+    if (!q.ok) {
+      return { chip: "unavailable", tone: "chip-fail", text: "" };
+    }
     if (intent === "deposit") {
       if (q.def.id === winner?.def.id) {
         return {
           chip: "SELECTED",
           tone: "chip-pass",
-          text: `supply APY ${bpsToPct(q.supplyApyBps)} (block ${data?.block}), TVL ${weiToPhrs(q.tvlWei)} PHRS`,
+          text: `supply APY ${bpsToPct(q.supplyApyBps)} (block ${data?.block}), TVL ${weiToPhrs(q.tvlWei)} PHRS — highest live supply APY on the board`,
         };
       }
       return {
         chip: "passed-over",
         tone: "chip-info",
-        text: `supply APY ${bpsToPct(q.supplyApyBps)} (block ${data?.block}), TVL ${weiToPhrs(q.tvlWei)} PHRS — lower than ${bpsToPct(winner?.supplyApyBps ?? 0)}`,
+        text: `supply APY ${bpsToPct(q.supplyApyBps)} (block ${data?.block}), TVL ${weiToPhrs(q.tvlWei)} PHRS — ${gapVsWinner(q)}`,
       };
     }
     if (q.def.kind === "lending") {
       return {
         chip: "SELECTED",
         tone: "chip-pass",
-        text: `borrow APY ${bpsToPct(q.borrowApyBps ?? 0)} (block ${data?.block}), ${weiToPhrs(q.liquidityWei)} PHRS liquidity available`,
+        text: `borrow APY ${bpsToPct(q.borrowApyBps ?? 0)} (block ${data?.block}), ${weiToPhrs(q.liquidityWei)} PHRS liquidity available — the only borrow market`,
       };
     }
     return {
@@ -265,14 +317,15 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
         <p className="text-sm text-ink">
           <strong>{lamp.name}</strong>: one view over every venue. The board
           below reads the <strong>three real T28 venues on Pharos Atlantic</strong>{" "}
-          (two vaults + one lending pool) with plain JSON-RPC calls — TVL, APYs,
-          share price, utilization, liquidity depth — normalized into one table
-          and ranked for the intent you pick.
+          (two vaults + one lending pool) at one pinned block with plain
+          JSON-RPC calls — TVL, APYs, share price, utilization, liquidity
+          depth — normalized into one table and ranked for the intent you pick.
         </p>
         <p className="mt-2 text-xs text-slate">
           No wallet, no signature, no gas — LIGHTKEEPER never sees, holds, or
           asks for private keys. The venues are minimal purpose-built contracts
-          at dust scale; every figure is real on-chain state.
+          at dust scale; every figure is real on-chain state, every verdict
+          traced to the block above the table.
         </p>
       </div>
 
@@ -300,6 +353,7 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
             onChange={(e) => setAmount(e.target.value)}
             inputMode="decimal"
             placeholder="0.001"
+            aria-label="Input amount in PHRS"
           />
         </div>
         <button className="btn-outline" onClick={refetch} disabled={loading}>
@@ -313,7 +367,17 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
           a few seconds…
         </p>
       )}
-      {error && <p className="text-sm text-fail">{error}</p>}
+      {error && (
+        <div className="rounded-xl border border-fail/40 bg-white p-4">
+          <p className="text-sm font-semibold text-fail">
+            Couldn't read the venues — the Atlantic RPC didn't answer in time.
+          </p>
+          <p className="mt-1 font-mono text-xs text-slate">{error}</p>
+          <button className="btn-outline mt-2" onClick={refetch}>
+            Retry
+          </button>
+        </div>
+      )}
 
       {data && (
         <>
@@ -334,6 +398,7 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
                   <th>TVL (PHRS)</th>
                   <th>Liquidity depth (PHRS)</th>
                   <th>Share price</th>
+                  <th>Cap. efficiency</th>
                   <th>
                     {intent === "deposit" ? "Est. 1-yr output" : "Est. 1-yr cost"}
                   </th>
@@ -344,7 +409,7 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
                 {data.quotes.map((q) => {
                   const isWinner = q.ok && winner?.def.id === q.def.id;
                   return (
-                    <tr key={q.def.id} className={isWinner ? "bg-passbg/40" : undefined}>
+                    <tr key={q.def.id} className={isWinner ? "bg-pass/40" : undefined}>
                       <td>
                         <a
                           className="font-mono font-semibold text-accent hover:underline"
@@ -374,6 +439,11 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
                         {q.ok && q.sharePriceWei !== null
                           ? `${weiToPhrs(q.sharePriceWei)} PHRS/share`
                           : "—"}
+                      </td>
+                      <td className="font-mono text-ink" title={q.def.kind === "lending"
+                        ? "capital efficiency = utilization share of supplied capital earning"
+                        : "vault: all TVL deployed in strategy"}>
+                        {q.ok ? `${capitalEfficiencyPct(q).toFixed(2)}%` : "—"}
                       </td>
                       <td className="font-mono text-ink">
                         {q.ok
@@ -408,9 +478,24 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
               Explained routing — intent: {intent}{" "}
               {winner && <span className="chip chip-pass ml-1">winner: {winner.def.name}</span>}
             </h3>
-            <div className="space-y-2">
+            {okQuotes.length === 0 && (
+              <p className="rounded-xl border border-hairline bg-porcelain p-3 text-sm text-slate">
+                No venue answered on this read — the RPC is likely just slow.
+                Press <strong>Refresh quotes</strong> to retry; nothing here is
+                invented.
+              </p>
+            )}
+            {intent === "borrow" && !winner && okQuotes.length > 0 && (
+              <p className="rounded-xl border border-hairline bg-porcelain p-3 text-sm text-slate">
+                No venue can fill a borrow intent right now — TidepoolLending is
+                unreachable and vaults accept deposits only. Try the Deposit
+                intent, or press <strong>Refresh quotes</strong>.
+              </p>
+            )}
+            <div className="mt-2 space-y-2">
               {data.quotes.map((q) => {
                 const v = verdictFor(q);
+                const flags = riskFlags(q);
                 return (
                   <div
                     key={q.def.id}
@@ -421,12 +506,17 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
                       <span className="font-mono font-semibold text-ink">{q.def.id}</span>
                       {!q.ok && (
                         <span className="ml-2 text-xs text-slate">
-                          UNREACHABLE — {q.error ?? "read failed"} (excluded from ranking, never
-                          zero-filled)
+                          UNREACHABLE — {q.error ?? "read failed"} (excluded from
+                          ranking, never zero-filled)
                         </span>
                       )}
                     </p>
                     {q.ok && <p className="mt-1 pl-1 text-xs text-slate">{v.text}</p>}
+                    {q.ok && flags.length > 0 && (
+                      <p className="mt-1 pl-1 text-xs text-slate">
+                        risk: {flags.join(" · ")}
+                      </p>
+                    )}
                     {q.def.id === "T28-LEND" && q.utilizationBps !== null && q.ok && (
                       <p className="mt-1 pl-1 text-xs text-slate">
                         utilization {(q.utilizationBps / 100).toFixed(2)}%

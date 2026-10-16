@@ -4,7 +4,10 @@
  * "The saga that really failed": an interactive timeline of the canonical
  * forced-failure run (approve → lock → execute(0x0) → refund → revoke),
  * a live-receipt verifier (Tier A reads, costs nothing), the full-success
- * run for contrast, and a copy-paste reproduce panel.
+ * run for contrast, the crash-recovery run (killed mid-step at exit 137,
+ * resumed to SUCCEEDED with one broadcast tx per step), a failure-forensics
+ * panel (revert reason, finality depth, compensation latency — pure reads),
+ * and a copy-paste reproduce panel.
  *
  * Every hash below is a REAL mined Atlantic tx, copied character-for-character
  * from tasks/t06-saga-executor/evidence.json. Nothing is simulated.
@@ -107,6 +110,25 @@ const RUN_A = [
   { n: "4", title: "settle()", hash: "0xa13311d24cd0aff5eb91c389f14b22e9be8f9cab7958583d00d7785b09ca5873", block: 31481460, gas: 46830 },
 ];
 
+/** Run C — the executor was hard-killed (exit 137) between approve's BROADCAST
+ *  and CONFIRMING, then resumed from the state log. Every hash is a REAL mined
+ *  Atlantic tx. The idempotency claim: approve appears with exactly ONE
+ *  broadcast tx across both invocations — the resume re-read the receipt,
+ *  never re-sent it. */
+const RUN_C = [
+  { n: "1", title: "approve(fixture, 1000) — broadcast before the crash", hash: "0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14", block: 31486478, gas: 46663, note: "receipt re-read at resume" },
+  { n: "2", title: "lock(1000)", hash: "0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6", block: 31486635, gas: 80306, note: "" },
+  { n: "3", title: "execute(minOut = 1000)", hash: "0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62", block: 31486759, gas: 25688, note: "" },
+  { n: "4", title: "settle()", hash: "0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75", block: 31486778, gas: 46830, note: "" },
+];
+
+/** Failure forensics for Run B — all pure reads, zero new spend. */
+const FORENSICS = [
+  { k: "Revert reason", v: "TestFixture: minOut exceeds locked balance", d: "Confirmed by replaying execute(2001) against block 31482533 — the exact pre-failure chain state. A pure eth_call read; nothing was sent." },
+  { k: "Finality depth", v: "3,730 blocks", d: "The 0x0 receipt (block 31482534) measured 3,730 blocks deep — no re-org can move it." },
+  { k: "Compensation latency", v: "24 / 41 blocks", d: "Failure @31482534 → refund @31482558 → revoke @31482599. The executor detected the 0x0, classified it permanent, and finished both compensations within 41 blocks." },
+];
+
 const REPRODUCE_CMD = `export PATH="$HOME/.foundry/bin:$PATH"
 export ATLANTIC_RPC_URL="https://atlantic.dplabs-internal.com"   # your own RPC endpoint
 export DEPLOYER_PRIVATE_KEY="<your-private-key>"                  # your own key — never shared
@@ -119,7 +141,12 @@ python3 scripts/saga.py --selftest
 python3 scripts/saga.py run-a 1000
 
 # forced-failure saga -> compensation (dust wei)
-python3 scripts/saga.py run-b 2000`;
+python3 scripts/saga.py run-b 2000
+
+# crash-recovery saga: hard-kills itself mid-step (exit 137 is the real crash),
+# then resume replays the state log -> SUCCEEDED with one broadcast tx per step
+python3 scripts/saga.py run-c 1000 --kill-after approve
+python3 scripts/saga.py resume t06-run-c-<run-id>`;
 
 function short(hash: string): string {
   return `${hash.slice(0, 10)}…${hash.slice(-7)}`;
@@ -203,6 +230,20 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
               <li>Both compensations mining with status 0x1 and restoring the balance</li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      {/* Failure forensics — pure reads, zero new spend */}
+      <div className="rounded-xl border border-hairline bg-white p-4">
+        <p className="smallcaps mb-2">Failure forensics — read from the chain, never sent</p>
+        <div className="grid gap-3 md:grid-cols-3">
+          {FORENSICS.map((f) => (
+            <div key={f.k} className="rounded-lg bg-porcelain p-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-golddeep">{f.k}</p>
+              <p className="mt-1 font-mono text-xs font-semibold text-ink">{f.v}</p>
+              <p className="mt-1 text-xs text-slate">{f.d}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -306,7 +347,7 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
           </p>
           <p className="mt-1 text-xs text-slate">
             What compensation can never recover: gas. The 0x0 burned 24,231 gas and both
-            compensation txs cost gas too — accounted in evidence.json, spend 0.00218 of 0.15 PHRS.
+            compensation txs cost gas too — accounted in evidence.json, spend 0.00238 of 0.15 PHRS.
           </p>
         </div>
       </div>
@@ -332,6 +373,64 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
                 <tr key={s.hash}>
                   <td className="font-mono">{s.n}</td>
                   <td className="font-mono">{s.title}</td>
+                  <td>
+                    <a
+                      className="font-mono text-accent hover:underline"
+                      href={`${EXPLORER_TX}${s.hash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {short(s.hash)}
+                    </a>
+                  </td>
+                  <td className="font-mono">{s.block}</td>
+                  <td>
+                    <span className="chip chip-pass">0x1</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Run C — mid-step crash → resume */}
+      <div>
+        <h3 className="mb-2 text-base font-bold text-ink">
+          Run C — killed mid-step, resumed to success{" "}
+          <span className="chip chip-pass ml-1">SUCCEEDED</span>
+        </h3>
+        <p className="mb-3 text-xs text-slate">
+          Dust 1000 wei LKTEST · run id{" "}
+          <span className="font-mono">t06-run-c-20261016-063734</span> · the executor hard-killed
+          itself (<span className="font-mono">os._exit(137)</span> — no cleanup, SIGKILL-like) between
+          approve's <span className="font-mono">BROADCAST</span> and{" "}
+          <span className="font-mono">CONFIRMING</span>. The resume replayed the state log, re-read
+          the in-flight receipt, and finished the saga.{" "}
+          <strong className="text-ink">
+            One broadcast tx per step, even across death — the log proves it: approve carries exactly
+            one BROADCAST line with a tx hash across both invocations.
+          </strong>
+        </p>
+        <div className="overflow-x-auto rounded-xl border border-hairline bg-white">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Step</th>
+                <th>Tx</th>
+                <th>Block</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {RUN_C.map((s) => (
+                <tr key={s.hash}>
+                  <td className="font-mono">{s.n}</td>
+                  <td className="font-mono">
+                    {s.title}
+                    {s.note && <span className="block text-[10px] text-pass">↩ {s.note}</span>}
+                  </td>
                   <td>
                     <a
                       className="font-mono text-accent hover:underline"

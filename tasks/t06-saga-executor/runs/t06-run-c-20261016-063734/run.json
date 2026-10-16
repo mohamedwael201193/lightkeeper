@@ -1,0 +1,54 @@
+{
+  "run_id": "t06-run-c-20261016-063734",
+  "saga_state": "SUCCEEDED",
+  "txs": [
+    {
+      "step": "approve",
+      "hash": "0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31486478,
+      "gasUsed": 46663,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x96d304d53c427e155d157a0234297f63b494c18f6317bf616a77bf9f88d16a14",
+      "note": "broadcast before crash; receipt re-read at resume"
+    },
+    {
+      "step": "lock",
+      "hash": "0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31486635,
+      "gasUsed": 80306,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6"
+    },
+    {
+      "step": "execute",
+      "hash": "0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31486759,
+      "gasUsed": 25688,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62"
+    },
+    {
+      "step": "settle",
+      "hash": "0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31486778,
+      "gasUsed": 46830,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75"
+    }
+  ],
+  "total_gas_wei_spent": 199487000199487,
+  "state_log": "/home/hatch/workspace/lightkeeper/tasks/t06-saga-executor/runs/t06-run-c-20261016-063734/state.log",
+  "contracts": {
+    "token": "0x1F3fb438824140b7E1125502f80B686D95072939",
+    "fixture": "0x29bf11Cd948CE845687A21819b2844d5321432Cf"
+  },
+  "explorer": "https://atlantic.pharosscan.xyz"
+}

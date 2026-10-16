@@ -68,11 +68,17 @@ PENDING-VIDEO
 
 Deployed on the LIGHTKEEPER console: `apps/console/src/components/try/multi-protocol-aggregator.tsx`.
 One view over every venue — reads all three live venue contracts on Atlantic
-via `eth_call` (TVL, APYs, share price, utilization, liquidity depth), pins
-the quote to the current block, normalizes into one table, ranks the venues
-for a deposit or borrow intent the visitor configures, and shows the
-explained router verdicts (per-venue SELECTED / passed-over lines with the
-numbers). A venue whose read fails is marked UNREACHABLE — never zero-filled.
+via `eth_call` pinned to one block (TVL, APYs, share price, utilization,
+liquidity depth), normalizes into one table, ranks the venues for a deposit or
+borrow intent the visitor configures, and shows the explained router verdicts
+(per-venue SELECTED / passed-over lines with the numbers, including the
+percentage-point gap behind the winner).
+A venue whose read fails — or whose address holds no bytecode (checked with
+`eth_getCode` before every read) — is marked UNREACHABLE, never zero-filled.
+The board also carries the capital-efficiency column and the risk flags from
+the same live reads (ELEVATED / THIN / small-vault notes, same thresholds as
+`aggregate.py risk_flags()`). Every error is a plain-language message with a
+retry; no dead ends.
 Quotes only: no wallet, no signature, no execution in the browser; the run
 command stays CLI.
 
