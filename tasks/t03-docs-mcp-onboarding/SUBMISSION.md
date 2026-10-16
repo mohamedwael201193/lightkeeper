@@ -49,6 +49,16 @@ query — including a SkillEngine query that failed 3 times (`IncompleteRead`).
 - Docs-MCP query log (this submission's evidence): commit-pinned link above
 - Demo video: PENDING-VIDEO
 
+## Try it live (LIGHTKEEPER console — Tier C)
+
+- https://lightkeeper-console.vercel.app/#/task/docs-mcp-onboarding — "From question to command in 30
+  seconds": a guided picker (read state / send / deploy / watch events) that generates the EXACT
+  copy-paste `cast`/`forge` command with the Atlantic RPC and chain ID filled in, a one-line
+  explanation of every flag, and a copy button per command — all derived from this task's real
+  Docs-MCP answers (`evidence.json`: 688689/PHRS chain identity, the 100-block `eth_getLogs` paging
+  answer, the 1672-vs-688689 chain-identity trap). Nothing executes in the browser; the visitor runs
+  the command in their own terminal. LIGHTKEEPER never sees, holds, or asks for private keys.
+
 ## Video
 
 PENDING-VIDEO — filming guide: `VIDEO-GUIDE.md` (45–90 s, shot-by-shot, real screen content only).
