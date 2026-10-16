@@ -15,13 +15,15 @@
  * installs nothing.
  *
  * Presentation (SHOWTIME standard): 01 Configure → 02 Run (ProgressLoader
- * over the three real composition steps) → 03 Result (ResultCard showpiece
- * with the schedule as a premium document, idempotency key prominent, and
- * the TideTimeout/broadcast-unknown recovery story as a timeline).
+ * over the three real composition steps) → 03 Result (the TIDE CHART —
+ * the schedule as a horizontal timeline, total committed as hero —
+ * then the ResultCard document, the idempotency key prominent, the exact
+ * schedule.json + CLI commands, and the TideTimeout/broadcast-unknown
+ * recovery story as a timeline).
  */
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Copy, Eye, Hourglass, Receipt, ShieldCheck } from "lucide-react";
+import { Check, Copy, Eye, Hourglass, Receipt, ShieldCheck, Waves } from "lucide-react";
 import type { Lamp } from "../../types";
 import { isDustWarning, isValidAddress, phrsToWeiHex } from "../../hooks/useAtlantic";
 import { EmptyState, ErrorState, FeedList, ProgressLoader, ResultCard } from "../ui";
@@ -57,6 +59,9 @@ interface Snapshot {
   floor: string;
   scheduleJson: string;
   runUtc: string[];
+  /** Epoch ms of each run — the TideChart's data. Same frozen values as
+   *  runUtc, kept as numbers so the chart needs no string parsing. */
+  runMs: number[];
 }
 
 function todayISO(): string {
@@ -89,6 +94,181 @@ function mulPhrs(amount: string, n: number): string {
   const int = s.slice(0, -18);
   const frac = s.slice(-18).replace(/0+$/, "");
   return frac ? `${int}.${frac}` : int;
+}
+
+function fmtShortDate(ms: number): string {
+  return new Date(ms).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/**
+ * THE TIDE CHART — the wow moment. The schedule rendered as a horizontal
+ * timeline: every payment a tick on the line with its date, the total
+ * committed as the hero. Pure presentation over the frozen snapshot — the
+ * logic that produced it is untouched.
+ *
+ * The axis draws left-to-right as the timeline "completes"; each tick
+ * fades in on the real snapshot data (stagger capped at 0.5s total, per the
+ * standard). Beyond 16 payments the chart samples 12 even ticks —
+ * including first and last — and says so plainly.
+ */
+function TideChart({ result }: { result: Snapshot }) {
+  const spec = INTERVALS[result.intervalKey];
+  const n = result.countN;
+
+  const markers = useMemo(() => {
+    if (n <= 16) return Array.from({ length: n }, (_, i) => i);
+    const idx = new Set<number>();
+    for (let i = 0; i < 12; i++) idx.add(Math.round((i * (n - 1)) / 11));
+    return [...idx].sort((a, b) => a - b);
+  }, [n]);
+  const sampled = markers.length < n;
+
+  const W = 1000;
+  const LINE_Y = 150;
+  const X0 = 70;
+  const X1 = 930;
+  const m = markers.length;
+  const px = (i: number) => (m === 1 ? W / 2 : X0 + (i / (m - 1)) * (X1 - X0));
+
+  // A faint wave above the axis — the tide, in geometry.
+  const wave = useMemo(() => {
+    let d = "";
+    for (let x = X0; x <= X1; x += 10) {
+      const y = LINE_Y - 34 - 12 * Math.sin(((x - X0) / (X1 - X0)) * Math.PI * 4);
+      d += (x === X0 ? "M" : "L") + `${x},${y.toFixed(1)}`;
+    }
+    return d;
+  }, []);
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="overflow-hidden rounded-2xl border border-hairline bg-white"
+    >
+      <div className="p-6 pb-2 sm:p-8 sm:pb-2">
+        <div className="flex items-center gap-2.5">
+          <Waves size={20} className="text-accent" aria-hidden />
+          <h4 className="text-lg font-semibold text-ink">The tide chart</h4>
+        </div>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate">
+          {n} {n === 1 ? "payment" : "payments"}, {spec.every} — from{" "}
+          <span className="font-semibold text-ink">{fmtShortDate(result.runMs[0])}</span>{" "}
+          to{" "}
+          <span className="font-semibold text-ink">{fmtShortDate(result.runMs[n - 1])}</span>.
+          That's your next {n === 1 ? "payment" : "payments"}, designed.
+        </p>
+        <p className="mt-5 text-sm font-semibold text-slate">Total committed</p>
+        <p className="font-display text-4xl tracking-tight text-ink sm:text-5xl">
+          {result.total} <span className="text-xl font-normal text-slate sm:text-2xl">PHRS</span>
+        </p>
+      </div>
+      <div className="overflow-x-auto px-2 pb-2 sm:px-4">
+        <svg
+          viewBox={`0 0 ${W} 252`}
+          className="h-auto min-w-[620px] w-full"
+          role="img"
+          aria-label={`Timeline of ${n} payments, ${spec.every}`}
+        >
+          <path d={wave} fill="none" stroke="#DCE6FA" strokeWidth={2.5} />
+          <motion.line
+            x1={X0}
+            y1={LINE_Y}
+            x2={X1}
+            y2={LINE_Y}
+            stroke="#2456E6"
+            strokeWidth={3}
+            strokeLinecap="round"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+          {markers.map((k, i) => {
+            const cx = px(i);
+            const above = i % 2 === 0;
+            const first = k === 0;
+            const last = k === n - 1;
+            const r = first || last ? 9 : 6.5;
+            const stemEnd = above ? LINE_Y - 46 : LINE_Y + 30;
+            const delay = Math.min(0.12 + i * 0.03, 0.5);
+            return (
+              <g key={k}>
+                <motion.line
+                  x1={cx}
+                  y1={LINE_Y}
+                  x2={cx}
+                  y2={stemEnd}
+                  stroke="#C4D1EC"
+                  strokeWidth={1.5}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay, duration: 0.25 }}
+                />
+                <motion.circle
+                  cx={cx}
+                  cy={LINE_Y}
+                  r={r}
+                  fill={first || last ? "#2456E6" : "#8A97B8"}
+                  stroke="#FFFFFF"
+                  strokeWidth={2.5}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay, duration: 0.25 }}
+                >
+                  <title>
+                    Payment #{k + 1} — due {fmtUtc(new Date(result.runMs[k]))}
+                  </title>
+                </motion.circle>
+                <motion.text
+                  x={cx}
+                  y={above ? LINE_Y - 56 : LINE_Y + 42}
+                  textAnchor="middle"
+                  fontSize={15}
+                  fontWeight={700}
+                  className="fill-ink font-mono"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: delay + 0.05, duration: 0.25 }}
+                >
+                  #{k + 1}
+                </motion.text>
+                <motion.text
+                  x={cx}
+                  y={above ? LINE_Y - 38 : LINE_Y + 60}
+                  textAnchor="middle"
+                  fontSize={12.5}
+                  className="fill-slate font-mono"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: delay + 0.05, duration: 0.25 }}
+                >
+                  {fmtShortDate(result.runMs[k])}
+                </motion.text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <div className="px-6 pb-6 sm:px-8 sm:pb-8">
+        {sampled ? (
+          <p className="text-sm text-slate">
+            Showing 12 of {n} payments — first, last, and the even rhythm between them.
+            Every installment is listed below, each with its idempotency key.
+          </p>
+        ) : (
+          <p className="text-sm text-slate">
+            Every tick is one installment of {result.amount} PHRS — same rhythm, same
+            idempotency pattern, no surprises.
+          </p>
+        )}
+      </div>
+    </motion.section>
+  );
 }
 
 export default function TryT18({ lamp }: { lamp: Lamp }) {
@@ -220,6 +400,7 @@ export default function TryT18({ lamp }: { lamp: Lamp }) {
       floor: floorOk ? floor.trim() : "1.0",
       scheduleJson: json,
       runUtc: runs.map((d) => fmtUtc(d)),
+      runMs: runs.map((d) => d.getTime()),
     };
   }
 
@@ -540,6 +721,8 @@ python3 src/tide.py tick
         <div className="space-y-6">
           <p className="text-sm font-semibold text-slate">03 · Result — your schedule</p>
 
+          <TideChart result={result} />
+
           <ResultCard
             eyebrow="Result — composed schedule"
             headline={
@@ -606,6 +789,34 @@ python3 src/tide.py tick
             </p>
           </motion.section>
 
+          {/* The file + the commands */}
+          <div>
+            <h4 className="mb-3 text-lg font-semibold text-ink">Take it to your terminal</h4>
+            <p className="mb-2 text-sm font-semibold text-ink">
+              schedule.json <span className="font-mono font-normal text-slate">({result.scheduleId})</span>
+              <span className="ml-2 font-normal text-slate">— copied with the button on the result card</span>
+            </p>
+            <div className="code-block mb-4 max-h-72 overflow-auto whitespace-pre font-mono text-xs leading-relaxed">
+              {result.scheduleJson}
+            </div>
+            <p className="mb-2 text-sm font-semibold text-ink">Commands</p>
+            <div className="code-block mb-3 max-h-80 overflow-auto whitespace-pre font-mono text-xs leading-relaxed">
+              {commands}
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button className="btn-outline" onClick={() => copy(commands, "cmds")}>
+                {copiedCmds ? "Copied ✓" : "Copy commands"}
+              </button>
+              <p className="max-w-xl text-sm text-slate">
+                Nothing here broadcasts anything: this is a file and a set of commands. The
+                schedule runs only after <span className="font-semibold">you</span> install the
+                cron line on <span className="font-semibold">your</span> machine, with{" "}
+                <span className="font-semibold">your</span> keys, on Atlantic testnet.
+                LIGHTKEEPER never sees your keys.
+              </p>
+            </div>
+          </div>
+
           {/* Recovery — what happens when something goes wrong */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
@@ -641,34 +852,6 @@ python3 src/tide.py tick
           <div>
             <h4 className="mb-3 text-lg font-semibold text-ink">Installments</h4>
             <FeedList items={feedItems} maxHeight="max-h-96" emptyText="No installments." />
-          </div>
-
-          {/* The file + the commands */}
-          <div>
-            <h4 className="mb-3 text-lg font-semibold text-ink">Take it to your terminal</h4>
-            <p className="mb-2 text-sm font-semibold text-ink">
-              schedule.json <span className="font-mono font-normal text-slate">({result.scheduleId})</span>
-              <span className="ml-2 font-normal text-slate">— copied with the button on the result card</span>
-            </p>
-            <div className="code-block mb-4 max-h-72 overflow-auto whitespace-pre font-mono text-xs leading-relaxed">
-              {result.scheduleJson}
-            </div>
-            <p className="mb-2 text-sm font-semibold text-ink">Commands</p>
-            <div className="code-block mb-3 max-h-80 overflow-auto whitespace-pre font-mono text-xs leading-relaxed">
-              {commands}
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <button className="btn-outline" onClick={() => copy(commands, "cmds")}>
-                {copiedCmds ? "Copied ✓" : "Copy commands"}
-              </button>
-              <p className="max-w-xl text-sm text-slate">
-                Nothing here broadcasts anything: this is a file and a set of commands. The
-                schedule runs only after <span className="font-semibold">you</span> install the
-                cron line on <span className="font-semibold">your</span> machine, with{" "}
-                <span className="font-semibold">your</span> keys, on Atlantic testnet.
-                LIGHTKEEPER never sees your keys.
-              </p>
-            </div>
           </div>
         </div>
       )}
