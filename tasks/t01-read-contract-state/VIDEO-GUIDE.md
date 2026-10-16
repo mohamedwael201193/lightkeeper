@@ -13,7 +13,8 @@ a recovered failure beats a staged success.
 | 3 | 20–28s | Browser: deploy tx page `…/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b` — point at status Success, block 31481260. | "One deploy transaction, block 31481260, status success. That's the only transaction this task ever sends." |
 | 4 | 28–55s | Terminal: run `bin/read-contract-state.sh` live. Let it print. Highlight: pinned block line, the 8 values, `3.000000 lamps`, labelled keeper address, the VERIFIED slot-check line. | "Now the reader: chain asserted, block pinned, eight typed values — raw hex, decoded, human. Decimals come from the contract itself, and the mapping slot is proven, not asserted." |
 | 5 | 55–70s | Terminal: run `bin/read-contract-state.sh --negative` — show both OK-LOUD lines. | "And the failure paths: empty address, unknown selector — both fail loudly. No silent zeros, no mock data, anywhere." |
-| 6 | 70–80s | Editor: README.md open at the sample-output section + evidence manifest. | "README, per-run evidence manifest, transcripts, and a test suite that re-reads everything through an independent path. Lamp one: lit." |
+| 6 | 70–80s | Editor: README.md open at the sample-output section + evidence manifest. | "README, per-run evidence manifest, transcripts, and a test suite that re-reads everything through an independent path." |
+| 7 | 80–95s | Browser: the LIGHTKEEPER console, T01 lamp page — the "Ask any contract anything" try-it-live panel. Type a contract address (default WPHRS pre-filled), press "Read contract state", watch name/symbol/decimals/totalSupply decode live with the pinned block chip. Then paste an EOA address and show the loud plain-language failure. | "And now it's live for anyone: open the T01 lamp on the console, paste any contract, and read its state yourself — same pinned-block reads, same loud failures. Lamp one: lit." |
 
 ## Filming notes
 

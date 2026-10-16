@@ -29,6 +29,14 @@ evidence manifest, real terminal transcripts, and a live test suite (reader
 vs independent raw-JSON-RPC re-reads — all pass). Total spend: 0.00039961
 PHRS (1 deploy tx; reads are free). No mocks, no fixtures, no placeholders.
 
+**Console try-it-live (2026-10-16):** the T01 lamp page on the LIGHTKEEPER
+console ships an interactive "Ask any contract anything" panel
+(`apps/console/src/components/try/read-contract-state.tsx`): any visitor
+pastes an ERC-20 contract address and gets live name()/symbol()/decimals()/
+totalSupply() (+ optional balanceOf) reads on Atlantic, all pinned to one
+block, human-formatted with decimals from the contract itself — free reads,
+no wallet. Empty or wallet addresses fail loudly in plain language.
+
 ## Repo link (commit-pinned subfolder)
 https://github.com/mohamedwael201193/lightkeeper/tree/b4a53c58fcb92f3d41ed56ed880596ed8c7d6075/tasks/t01-read-contract-state
 
