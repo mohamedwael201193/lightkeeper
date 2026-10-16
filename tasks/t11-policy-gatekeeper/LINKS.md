@@ -8,4 +8,4 @@
 
 Repo path (post-commit): `tasks/t11-policy-gatekeeper/` in
 `mohamedwael201193/lightkeeper`.
-Commit-pinned tree link: filled in SUBMISSION.md after commit.
+Commit-pinned tree link: https://github.com/mohamedwael201193/lightkeeper/tree/626f4d6bd9244e01d81a8fd1b4c7b28dff351c18/tasks/t11-policy-gatekeeper
