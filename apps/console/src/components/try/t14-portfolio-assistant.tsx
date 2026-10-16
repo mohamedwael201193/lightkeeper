@@ -1,17 +1,21 @@
 /**
  * T14 — Portfolio Assistant "try it live" (Tier A: live reads, no wallet, no signature).
  *
- * The first thing a connected visitor sees is THEIR OWN Atlantic portfolio, read
- * live across three views: Balances (block-pinned eth_getBalance + balanceOf),
- * Activity (real ERC20 Transfer events scanned from eth_getLogs), and Gas
- * headroom (eth_gasPrice × balance, in token units — no USD anywhere).
+ * A three-act journey: 01 Configure (address) → 02 Run (honest ProgressLoader over
+ * the three real read phases: balances → activity → gas) → 03 Result (ResultCard
+ * showpiece: the PHRS balance as the hero number with an animated ticker —
+ * the only honest "total" on a testnet with no price feeds — plus StatStrip,
+ * clean tabs, and the Activity feed as a FeedList).
+ *
  * Paste any address to read any portfolio. Below, the keeper's reference — the
  * LIGHTKEEPER operator wallet's block-pinned evidence snapshot — is shown as a
  * historical record, not live data.
  *
  * LIGHTKEEPER never sees, holds, or asks for private keys. Testnet only (688689).
  */
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
+import { RefreshCw, Wallet } from "lucide-react";
 import type { Lamp } from "../../types";
 import { useWallet } from "../WalletContext";
 import {
@@ -19,8 +23,16 @@ import {
   EXPLORER_TX,
   isValidAddress,
   rpcCall,
-  useAtlanticRead,
 } from "../../hooks/useAtlantic";
+import {
+  EmptyState,
+  ErrorState,
+  FeedList,
+  ProgressLoader,
+  ResultCard,
+  StatStrip,
+} from "../ui";
+import type { FeedItem, Stat } from "../ui";
 
 /** Verified token registry — mirrors tasks/t14-portfolio-assistant/sources.yaml. */
 interface TokenDef {
@@ -92,6 +104,12 @@ function formatUnits(raw: bigint, decimals: number): string {
   frac = frac.replace(/0+$/, "");
   const out = frac ? `${int}.${frac}` : int.toString();
   return (neg ? "-" : "") + out;
+}
+
+/** Display format for the animated hero ticker: up to 4 trimmed fraction digits. */
+function formatTicker(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("en-US", { maximumFractionDigits: 4 });
 }
 
 function hexToNumber(hex: string): number {
@@ -263,7 +281,60 @@ async function readGas(address: string): Promise<GasResult> {
   };
 }
 
+/** Translate an RPC failure into plain language. Raw RPC strings never render. */
+function friendlyError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/wrong network/i.test(msg)) {
+    return "The RPC endpoint answered for the wrong network, so every read was refused. Nothing was charged and nothing changed on chain.";
+  }
+  if (/did not answer|stopped responding|fetch|network|timeout/i.test(msg)) {
+    return "The Atlantic node didn't answer in time. Your address wasn't read and nothing on chain changed.";
+  }
+  return "The read failed before any data arrived. The node may be busy — retry in a moment.";
+}
+
 type TabId = "balances" | "activity" | "gas";
+type Phase = "idle" | "running" | "result" | "error";
+
+const RUN_STEPS = [
+  "Reading balances — live, block-pinned",
+  "Scanning activity — 10 block-paged getLogs",
+  "Checking gas headroom — gas price × balance",
+];
+
+/** Number ticker for the hero value. Animates ONLY when the real value changes. */
+function AnimatedTicker({ value, format }: { value: number; format: (n: number) => string }) {
+  const reduce = useReducedMotion();
+  const mv = useMotionValue(value);
+  const spring = useSpring(mv, { stiffness: 90, damping: 22 });
+  const [display, setDisplay] = useState(() => format(value));
+
+  useEffect(() => {
+    mv.set(value);
+  }, [value, mv]);
+
+  useEffect(() => {
+    if (reduce) {
+      setDisplay(format(value));
+      return;
+    }
+    return spring.on("change", (v) => setDisplay(format(v)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spring, reduce, value]);
+
+  return <span className="tabular-nums">{display}</span>;
+}
+
+function ActHeader({ n, title, hint }: { n: string; title: string; hint?: string }) {
+  return (
+    <div className="mb-4">
+      <p className="text-sm font-semibold text-accent">
+        {n} · {title}
+      </p>
+      {hint && <p className="mt-1 text-sm text-slate">{hint}</p>}
+    </div>
+  );
+}
 
 export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
   const { state: wallet, connect } = useWallet();
@@ -276,40 +347,123 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
   const pastedValid = isValidAddress(pasted);
   const target = connectedAddress ?? (pastedValid ? pasted.trim() : null);
 
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [runStep, setRunStep] = useState(0);
+  const [balances, setBalances] = useState<PortfolioResult | null>(null);
+  const [activity, setActivity] = useState<ActivityResult | null>(null);
+  const [gas, setGas] = useState<GasResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
   const [tab, setTab] = useState<TabId>("balances");
+  const runId = useRef(0);
 
-  const balances = useAtlanticRead<PortfolioResult>(
-    () => {
-      if (!target) throw new Error("no address");
-      return readPortfolio(target);
-    },
-    [target],
-    { auto: !!target }
-  );
+  async function run(address: string) {
+    const id = ++runId.current;
+    setPhase("running");
+    setRunStep(0);
+    setErrorMsg("");
+    setBalances(null);
+    setActivity(null);
+    setGas(null);
+    try {
+      const b = await readPortfolio(address);
+      if (runId.current !== id) return;
+      setBalances(b);
+      setRunStep(1);
+      const a = await readActivity(address);
+      if (runId.current !== id) return;
+      setActivity(a);
+      setRunStep(2);
+      const g = await readGas(address);
+      if (runId.current !== id) return;
+      setGas(g);
+      setRunStep(RUN_STEPS.length);
+      setPhase("result");
+    } catch (e) {
+      if (runId.current !== id) return;
+      setErrorMsg(friendlyError(e));
+      setPhase("error");
+    }
+  }
 
-  const activity = useAtlanticRead<ActivityResult>(
-    () => {
-      if (!target) throw new Error("no address");
-      return readActivity(target);
-    },
-    [target, tab],
-    { auto: !!target && tab === "activity" }
-  );
+  // One run covers all three reads — auto-run as soon as an address exists.
+  useEffect(() => {
+    if (target) run(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
 
-  const gas = useAtlanticRead<GasResult>(
-    () => {
-      if (!target) throw new Error("no address");
-      return readGas(target);
-    },
-    [target, tab],
-    { auto: !!target && tab === "gas" }
-  );
+  const phrsRow = balances?.rows.find((r) => r.token.symbol === "PHRS");
+  const phrsNum =
+    phrsRow && phrsRow.status === "ok" && phrsRow.balance !== "—"
+      ? Number.parseFloat(phrsRow.balance)
+      : null;
+  const tokensHeld =
+    balances?.rows.filter((r) => r.status === "ok" && Number(r.balance) !== 0).length ?? 0;
 
-  const referenceRows = useMemo(() => REFERENCE.rows, []);
+  const stats: Stat[] = [];
+  if (gas) {
+    stats.push({
+      label: "Gas price",
+      value: Number.parseFloat(gas.gasPriceGwei),
+      format: (n) => n.toLocaleString("en-US", { maximumFractionDigits: 2 }),
+      suffix: "Gwei",
+    });
+    stats.push({
+      label: "Transfers covered",
+      value: gas.simpleTransfers,
+      format: (n) => Math.round(n).toLocaleString("en-US"),
+    });
+  }
+  stats.push({ label: "Tokens held", value: tokensHeld });
+  if (balances?.txCount !== null && balances?.txCount !== undefined) {
+    stats.push({ label: "Outgoing transactions", value: balances.txCount });
+  }
+
+  const portfolioEmpty =
+    balances !== null &&
+    activity !== null &&
+    tokensHeld === 0 &&
+    activity.events.length === 0 &&
+    (balances.txCount ?? 0) === 0;
+
+  const feedItems: FeedItem[] = (activity?.events ?? []).map((e) => ({
+    key: e.txHash,
+    node: (
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="text-sm text-ink">
+          <span className={`chip ${e.dir === "in" ? "chip-lit" : "chip-dim"}`}>
+            {e.dir === "in" ? "received" : e.dir === "out" ? "sent" : "self-transfer"}
+          </span>
+          <span className="ml-2 font-mono font-semibold">
+            {e.amount} {e.symbol}
+          </span>{" "}
+          <span className="text-slate">
+            {e.dir === "out"
+              ? `to ${shortAddr(e.to)}`
+              : e.dir === "in"
+                ? `from ${shortAddr(e.from)}`
+                : "within this wallet"}
+          </span>
+        </p>
+        <p className="text-sm text-slate">
+          <a
+            className="font-mono text-accent hover:underline"
+            href={`${EXPLORER_TX}${e.txHash}`}
+            target="_blank"
+            rel="noreferrer"
+            title={e.txHash}
+          >
+            {e.txHash.slice(0, 10)}…
+          </a>{" "}
+          · block {e.block.toLocaleString()}
+        </p>
+      </div>
+    ),
+  }));
 
   const tabButton = (id: TabId, label: string) => (
     <button
       key={id}
+      type="button"
       className={tab === id ? "btn-primary" : "btn-outline"}
       onClick={() => setTab(id)}
       aria-pressed={tab === id}
@@ -319,332 +473,305 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
   );
 
   return (
-    <div className="space-y-6">
-      {/* ---- Visitor's own portfolio ---- */}
+    <div className="space-y-8">
+      {/* ================= 01 · Configure ================= */}
       <section>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-semibold text-ink">
-            {connectedAddress ? "Your Atlantic portfolio" : "Any Atlantic portfolio"}
-          </h3>
-          <span className="chip chip-lit">live reads</span>
-        </div>
-
+        <ActHeader
+          n="01"
+          title="Configure"
+          hint="Connect your wallet to see your own portfolio live, or paste any Atlantic address. Reading is free and never needs a signature."
+        />
         {!connectedAddress && (
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <button className="btn-primary" onClick={connect}>
+          <div className="mb-3">
+            <button
+              type="button"
+              className="btn-primary inline-flex min-h-[44px] items-center gap-2"
+              onClick={connect}
+            >
+              <Wallet size={16} aria-hidden />
               Connect wallet — see your own portfolio
             </button>
-            <span className="text-xs text-slate">…or paste an address below:</span>
           </div>
         )}
-
         <div className="flex flex-wrap items-center gap-2">
           <input
-            className="w-full min-w-0 flex-1 rounded-lg border border-hairline bg-porcelain px-3 py-2 font-mono text-sm text-ink"
+            className="min-h-[44px] w-full min-w-0 flex-1 rounded-lg border border-hairline bg-porcelain px-3 py-2 font-mono text-sm text-ink"
             placeholder="0x… address"
             value={connectedAddress ?? pasted}
             readOnly={!!connectedAddress}
             onChange={(e) => setPasted(e.target.value)}
             aria-label="Atlantic address to inspect"
           />
-          {!connectedAddress && (
+          {target && phase !== "running" && (
             <button
-              className="btn-outline"
-              disabled={!pastedValid}
-              onClick={() => setPasted(pasted.trim())}
+              type="button"
+              className="btn-outline inline-flex min-h-[44px] items-center gap-2"
+              onClick={() => run(target)}
             >
-              Read portfolio
+              <RefreshCw size={16} aria-hidden />
+              Re-read portfolio
             </button>
           )}
         </div>
         {!connectedAddress && pasted.length > 0 && !pastedValid && (
-          <p className="mt-1 text-xs text-fail">That is not a valid 0x address (0x + 40 hex).</p>
+          <p className="mt-1 text-sm text-fail">That is not a valid 0x address (0x + 40 hex).</p>
         )}
-
-        {target && (
-          <div className="mt-4 flex flex-wrap items-center gap-2" role="tablist" aria-label="Portfolio views">
-            {tabButton("balances", "Balances")}
-            {tabButton("activity", "Activity")}
-            {tabButton("gas", "Gas headroom")}
+        {!target && phase === "idle" && (
+          <div className="mt-4">
+            <EmptyState
+              title="No address yet"
+              message="Connect a wallet or paste an Atlantic address above and the keeper will read its portfolio live — PHRS, USDC, USDT, WBTC, WETH, WPHRS and LPK."
+              actionLabel="Connect wallet"
+              onAction={connect}
+            />
           </div>
         )}
+      </section>
 
-        <div className="mt-4">
-          {!target && (
-            <div className="empty-panel px-5 py-6 text-sm text-slate">
-              Connect your wallet to see <strong className="text-ink">your own</strong> Atlantic
-              portfolio live — PHRS, USDC, USDT, WBTC, WETH, WPHRS and LPK — or paste any
-              address above. Reading is free and never needs a signature.
-            </div>
-          )}
+      {/* ================= 02 · Run ================= */}
+      {phase === "running" && target && (
+        <section>
+          <ActHeader n="02" title="Run" hint="Live network calls — nothing here advances on a timer." />
+          <ProgressLoader
+            steps={RUN_STEPS}
+            current={runStep}
+            title={`Reading ${shortAddr(target)} on Atlantic`}
+          />
+        </section>
+      )}
 
-          {/* ---------- Balances tab ---------- */}
-          {target && tab === "balances" && (
+      {/* ================= 03 · Result ================= */}
+      {phase === "error" && target && (
+        <section>
+          <ActHeader n="03" title="Result" />
+          <ErrorState
+            title="The read failed"
+            message={errorMsg}
+            hint="Reading is free and changes nothing on chain — the failure is on the read path, not your funds."
+            retryLabel="Retry the read"
+            onRetry={() => run(target)}
+          />
+        </section>
+      )}
+
+      {phase === "result" && balances && activity && gas && target && (
+        <section>
+          <ActHeader
+            n="03"
+            title="Result"
+            hint={`Read live at block ${balances.block.toLocaleString()} — block-pinned, one address.`}
+          />
+          {portfolioEmpty ? (
+            <EmptyState
+              title="Empty portfolio"
+              message={`Every balance read zero at block ${balances.block.toLocaleString()} and no transfers were found in the scanned window. That's an honest answer, not an error.`}
+              actionLabel="Re-read portfolio"
+              onAction={() => run(target)}
+            />
+          ) : (
             <>
-              {balances.loading && (
-                <p className="text-sm text-slate">
-                  Reading from Atlantic… block-pinned, one eth_blockNumber plus live
-                  balanceOf calls.
-                </p>
-              )}
-              {!balances.loading && balances.error && (
-                <div className="empty-panel px-5 py-6">
-                  <p className="text-sm text-fail">{balances.error}</p>
-                  <button className="btn-outline mt-3" onClick={balances.refetch}>
-                    Retry
-                  </button>
-                </div>
-              )}
-              {!balances.loading && !balances.error && balances.data && (
-                <>
-                  <div className="overflow-x-auto">
-<table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Token</th>
-                        <th className="text-right">Balance</th>
-                        <th>Source</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {balances.data.rows.map((r) => (
-                        <tr key={r.token.symbol}>
-                          <td className="font-semibold text-ink">{r.token.symbol}</td>
-                          <td
-                            className="text-right font-mono text-ink"
-                            title={r.full ?? undefined}
-                          >
-                            {r.status === "unknown" ? (
-                              <span className="text-slate">unknown</span>
-                            ) : (
-                              r.balance
-                            )}
-                          </td>
-                          <td className="text-xs text-slate">
-                            {r.token.address === null ? (
-                              "eth_getBalance"
-                            ) : (
-                              <a
-                                className="font-mono hover:underline"
-                                href={`${EXPLORER_ADDRESS}${r.token.address}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                title={r.token.note}
-                              >
-                                {r.token.address.slice(0, 10)}…
-                              </a>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-</div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate">
-                    <span>
-                      Address{" "}
+              <ResultCard
+                eyebrow={`Portfolio result — ${shortAddr(target)}`}
+                headline={
+                  phrsNum !== null ? (
+                    <>
+                      <AnimatedTicker value={phrsNum} format={formatTicker} />
+                      <span className="ml-2 align-middle font-display text-2xl font-normal text-slate">
+                        PHRS
+                      </span>
+                    </>
+                  ) : (
+                    <>Balance unreadable</>
+                  )
+                }
+                subline="The native balance is the anchor of an Atlantic portfolio — it pays every gas fee. Testnet assets have no market value, so every figure is in token units; no fiat valuation exists or is implied."
+                rows={[
+                  {
+                    label: "Address",
+                    value: (
                       <a
-                        className="font-mono text-accent hover:underline"
+                        className="text-accent hover:underline"
                         href={`${EXPLORER_ADDRESS}${target}`}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        {target.slice(0, 10)}…
+                        {target}
                       </a>
-                    </span>
-                    <span>read at block {balances.data.block.toLocaleString()}</span>
-                    {balances.data.txCount !== null && (
-                      <span>{balances.data.txCount} outgoing transactions (eth_getTransactionCount)</span>
-                    )}
-                    <button className="btn-outline" onClick={balances.refetch} disabled={balances.loading}>
-                      Refresh
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-slate">
-                    Token units only — Atlantic testnet assets have no market value and no
-                    price feed exists, so no USD valuation is shown or implied. Balances
-                    marked "unknown" failed to read (no code, non-standard token, or RPC
-                    hiccup) and are never reported as zero. Hover a balance for its full
-                    raw precision.
-                  </p>
-                </>
-              )}
-            </>
-          )}
+                    ),
+                  },
+                  { label: "Read at block", value: balances.block.toLocaleString() },
+                  { label: "Tokens read", value: `${TOKENS.length} — the keeper's verified registry` },
+                  {
+                    label: "Activity scanned",
+                    value: `blocks ${activity.from.toLocaleString()}–${activity.to.toLocaleString()} · eth_getLogs Transfer events`,
+                  },
+                  ...(balances.txCount !== null
+                    ? [{ label: "Outgoing transactions", value: balances.txCount.toLocaleString() }]
+                    : []),
+                ]}
+                links={[{ label: "View address on the explorer", href: `${EXPLORER_ADDRESS}${target}` }]}
+                copyValue={target}
+              />
 
-          {/* ---------- Activity tab ---------- */}
-          {target && tab === "activity" && (
-            <>
-              {activity.loading && (
-                <p className="text-sm text-slate">
-                  Scanning Transfer events on Atlantic… 10 block-paged eth_getLogs calls
-                  over the last {ACTIVITY_WINDOW_BLOCKS.toLocaleString()} blocks. This is
-                  the slow read; balances never wait on it.
-                </p>
-              )}
-              {!activity.loading && activity.error && (
-                <div className="empty-panel px-5 py-6">
-                  <p className="text-sm text-fail">{activity.error}</p>
-                  <button className="btn-outline mt-3" onClick={activity.refetch}>
-                    Retry
-                  </button>
-                </div>
-              )}
-              {!activity.loading && !activity.error && activity.data && (
-                <>
-                  {activity.data.events.length === 0 ? (
-                    <div className="empty-panel px-5 py-6 text-sm text-slate">
-                      No ERC20 Transfer events involving this address in the scanned
-                      window (blocks {activity.data.from.toLocaleString()}–
-                      {activity.data.to.toLocaleString()}). Older activity is out of scope —
-                      stated, not hidden.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-<table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Tx</th>
-                          <th>Move</th>
-                          <th className="text-right">Amount</th>
-                          <th>Block</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activity.data.events.map((e) => (
-                          <tr key={e.txHash}>
-                            <td>
-                              <a
-                                className="font-mono text-accent hover:underline"
-                                href={`${EXPLORER_TX}${e.txHash}`}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {e.txHash.slice(0, 10)}…
-                              </a>
-                            </td>
-                            <td className="text-xs">
-                              {e.dir === "in" && <span className="chip chip-lit">received</span>}
-                              {e.dir === "out" && <span className="chip chip-dim">sent</span>}
-                              {e.dir === "self" && <span className="chip chip-dim">self-transfer</span>}
-                            </td>
-                            <td className="text-right font-mono text-ink">
-                              {e.amount} {e.symbol}
-                              <div className="text-xs text-slate">
-                                {e.dir === "out" ? `to ${shortAddr(e.to)}` : `from ${shortAddr(e.from)}`}
-                              </div>
-                            </td>
-                            <td className="font-mono text-xs text-slate">{e.block.toLocaleString()}</td>
+              <div className="mt-6">
+                <StatStrip stats={stats} />
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Portfolio views">
+                {tabButton("balances", "Balances")}
+                {tabButton("activity", "Activity")}
+                {tabButton("gas", "Gas headroom")}
+              </div>
+
+              <div className="mt-4">
+                {/* ---------- Balances tab ---------- */}
+                {tab === "balances" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    <div className="overflow-x-auto rounded-2xl border border-hairline bg-white">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Token</th>
+                            <th className="text-right">Balance</th>
+                            <th>Source</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-</div>
-                  )}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate">
-                    <span>
-                      Scanned blocks {activity.data.from.toLocaleString()}–
-                      {activity.data.to.toLocaleString()} · source: eth_getLogs Transfer events
-                      across the 6-token registry
-                    </span>
-                    <button className="btn-outline" onClick={activity.refetch} disabled={activity.loading}>
-                      Rescan
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-slate">
-                    What the keeper can't see, it says: native PHRS transfers emit no
-                    events, so this scan only covers ERC20 Transfers. Events older than
-                    the window aren't claimed.
-                  </p>
-                </>
-              )}
+                        </thead>
+                        <tbody>
+                          {balances.rows.map((r) => (
+                            <tr key={r.token.symbol}>
+                              <td className="font-semibold text-ink">{r.token.symbol}</td>
+                              <td className="text-right font-mono text-ink" title={r.full ?? undefined}>
+                                {r.status === "unknown" ? (
+                                  <span className="text-slate">unknown</span>
+                                ) : (
+                                  r.balance
+                                )}
+                              </td>
+                              <td className="text-sm text-slate">
+                                {r.token.address === null ? (
+                                  "eth_getBalance"
+                                ) : (
+                                  <a
+                                    className="font-mono text-accent hover:underline"
+                                    href={`${EXPLORER_ADDRESS}${r.token.address}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={r.token.note}
+                                  >
+                                    {r.token.address.slice(0, 10)}…
+                                  </a>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="mt-3 text-sm text-slate">
+                      Balances marked "unknown" failed to read (no code, non-standard token, or
+                      RPC hiccup) and are never reported as zero. Hover a balance for its full
+                      raw precision.
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* ---------- Activity tab ---------- */}
+                {tab === "activity" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    {activity.events.length === 0 ? (
+                      <EmptyState
+                        title="Quiet window"
+                        message={`No ERC20 Transfer events involving this address in blocks ${activity.from.toLocaleString()}–${activity.to.toLocaleString()}. That's an honest answer, not an error.`}
+                        actionLabel="Re-read portfolio"
+                        onAction={() => run(target)}
+                      />
+                    ) : (
+                      <FeedList
+                        items={feedItems}
+                        emptyText="No transfer events in the scanned window."
+                      />
+                    )}
+                    <p className="mt-3 text-sm text-slate">
+                      What the keeper can't see, it says: native PHRS transfers emit no
+                      events, so this scan only covers ERC20 Transfers. Events older than
+                      the window aren't claimed.
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* ---------- Gas headroom tab ---------- */}
+                {tab === "gas" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-hairline bg-porcelain px-5 py-5">
+                        <p className="text-sm font-semibold text-slate">Gas price</p>
+                        <p className="mt-2 font-mono text-xl text-ink">{gas.gasPriceGwei} Gwei</p>
+                        <p className="mt-1 text-sm text-slate">eth_gasPrice, block {gas.block.toLocaleString()}</p>
+                      </div>
+                      <div className="rounded-2xl border border-hairline bg-porcelain px-5 py-5">
+                        <p className="text-sm font-semibold text-slate">PHRS balance</p>
+                        <p className="mt-2 font-mono text-xl text-ink">{gas.balance} PHRS</p>
+                        <p className="mt-1 text-sm text-slate">eth_getBalance, block {gas.block.toLocaleString()}</p>
+                      </div>
+                      <div className="rounded-2xl border border-hairline bg-porcelain px-5 py-5">
+                        <p className="text-sm font-semibold text-slate">Covers roughly</p>
+                        <p className="mt-2 font-mono text-xl text-ink">
+                          {gas.simpleTransfers.toLocaleString()} simple transfers
+                        </p>
+                        <p className="mt-1 text-sm text-slate">21,000 gas each, token units only</p>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-sm text-slate">
+                      This is a rough estimate at the pinned block — it assumes simple
+                      transfers at the current gas price. Contract calls cost more. No fiat
+                      conversion: testnet assets have no market value.
+                    </p>
+                  </motion.div>
+                )}
+              </div>
             </>
           )}
+        </section>
+      )}
 
-          {/* ---------- Gas headroom tab ---------- */}
-          {target && tab === "gas" && (
-            <>
-              {gas.loading && (
-                <p className="text-sm text-slate">
-                  Reading eth_gasPrice and the PHRS balance…
-                </p>
-              )}
-              {!gas.loading && gas.error && (
-                <div className="empty-panel px-5 py-6">
-                  <p className="text-sm text-fail">{gas.error}</p>
-                  <button className="btn-outline mt-3" onClick={gas.refetch}>
-                    Retry
-                  </button>
-                </div>
-              )}
-              {!gas.loading && !gas.error && gas.data && (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-hairline bg-porcelain px-5 py-4">
-                      <p className="text-xs text-slate">Gas price</p>
-                      <p className="font-mono text-lg text-ink">{gas.data.gasPriceGwei} Gwei</p>
-                      <p className="text-xs text-slate">eth_gasPrice, block {gas.data.block.toLocaleString()}</p>
-                    </div>
-                    <div className="rounded-xl border border-hairline bg-porcelain px-5 py-4">
-                      <p className="text-xs text-slate">PHRS balance</p>
-                      <p className="font-mono text-lg text-ink">{gas.data.balance} PHRS</p>
-                      <p className="text-xs text-slate">eth_getBalance, block {gas.data.block.toLocaleString()}</p>
-                    </div>
-                    <div className="rounded-xl border border-hairline bg-porcelain px-5 py-4">
-                      <p className="text-xs text-slate">Covers roughly</p>
-                      <p className="font-mono text-lg text-ink">
-                        {gas.data.simpleTransfers.toLocaleString()} simple transfers
-                      </p>
-                      <p className="text-xs text-slate">21,000 gas each, token units only</p>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <button className="btn-outline" onClick={gas.refetch} disabled={gas.loading}>
-                      Refresh
-                    </button>
-                  </div>
-                  <p className="mt-2 text-xs text-slate">
-                    This is a rough estimate at the pinned block — it assumes simple
-                    transfers at the current gas price. Contract calls cost more. No fiat
-                    conversion: testnet assets have no market value.
-                  </p>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* ---- Keeper's reference ---- */}
+      {/* ---- Keeper's reference (historical) ---- */}
       <section>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-semibold text-ink">Keeper's reference</h3>
-          <span className="chip chip-dim">historical snapshot</span>
-        </div>
-        <p className="mb-3 text-xs text-slate">
-          The LIGHTKEEPER operator wallet's portfolio as captured for the task's evidence
-          ledger — pinned at block {REFERENCE.block.toLocaleString()}, not live data.
-          Your own portfolio above is the live one.
-        </p>
-        <div className="overflow-x-auto">
-<table className="data-table">
-          <thead>
-            <tr>
-              <th>Token</th>
-              <th className="text-right">Balance (block {REFERENCE.block.toLocaleString()})</th>
-            </tr>
-          </thead>
-          <tbody>
-            {referenceRows.map((r) => (
-              <tr key={r.symbol}>
-                <td className="font-semibold text-ink">{r.symbol}</td>
-                <td className="text-right font-mono text-ink">{r.formatted}</td>
+        <ActHeader
+          n="·"
+          title="Keeper's reference"
+          hint={`The LIGHTKEEPER operator wallet's portfolio as captured for the task's evidence ledger — pinned at block ${REFERENCE.block.toLocaleString()}, not live data. Your own portfolio above is the live one.`}
+        />
+        <div className="overflow-x-auto rounded-2xl border border-hairline bg-white">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Token</th>
+                <th className="text-right">Balance (block {REFERENCE.block.toLocaleString()})</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-</div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate">
+            </thead>
+            <tbody>
+              {REFERENCE.rows.map((r) => (
+                <tr key={r.symbol}>
+                  <td className="font-semibold text-ink">{r.symbol}</td>
+                  <td className="text-right font-mono text-ink">{r.formatted}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate">
           <span>
             Wallet{" "}
             <a
@@ -671,7 +798,7 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
         </div>
       </section>
 
-      <p className="text-xs text-slate">
+      <p className="text-sm text-slate">
         Read-only by construction: {lamp.name} has no key, no signer, no broadcast path.
         LIGHTKEEPER never sees, holds, or asks for private keys.
       </p>
