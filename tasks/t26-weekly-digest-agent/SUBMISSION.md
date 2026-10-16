@@ -40,6 +40,24 @@ this is documented honestly rather than faked.
   https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
 - Demo video: PENDING-VIDEO
 
+## Console try surface (Tier C builder)
+
+The LIGHTKEEPER console ships an interactive digest builder for this task:
+`apps/console/src/components/try/weekly-digest-agent.tsx`, live at
+`https://lightkeeper-console.vercel.app/#/task/weekly-digest-agent`.
+
+"Build your digest": pick the digest sections (TOP 3, volume, gas stats,
+whale moves, token transfers, failures), set the schedule
+(weekly/daily/monthly), point at a watched address — the page generates the
+exact `WATCH_ADDRESS`/`WINDOW_DAYS` env config, the
+`--backfill` → `--run` → `--deliver` run commands, and the cron/GitHub
+Actions scheduling lines, copy-paste ready. The same panel shows the task's
+real delivered sample digest (Telegram message_id 723, blocks
+31186577–31482619). Differentiator: from section picker to running digest in
+one copy-paste. Tier C honest: the console never signs and never sends
+Telegram messages — config only, run in your own terminal with your own bot
+token.
+
 ## How to run (reviewer)
 
 ```bash

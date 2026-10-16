@@ -22,6 +22,8 @@ show it finishing. Never simulate output.
 | 6 | 65–75s | Show `evidence.json` (message_id, block range, tx hashes) + the explorer address page. | "Everything is evidenced: the digest text, the block range, all 110 transaction hashes, zero PHRS spent — the agent is read-only." |
 | 7 | 75–90s | `cron/install-weekly-cron.sh` on screen (not executed). | "Scheduling is external — a cron installer is provided, because SkillEngine has no cron. Documented honestly, not faked." |
 
+| 0 | 0–8s (alt) | Console: `lightkeeper-console.vercel.app/#/task/weekly-digest-agent` — section picker generating the config + cron lines | "Or build the digest in the LIGHTKEEPER console: pick the sections, set the schedule, copy the exact config and run commands." |
+
 ## Rules
 
 - Film the real commands on the real repo. If anything fails, keep the
