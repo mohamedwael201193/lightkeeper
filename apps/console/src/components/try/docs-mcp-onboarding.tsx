@@ -146,7 +146,7 @@ function SanityCheck({ ctxLabel }: { ctxLabel: string }) {
   );
 }
 
-export default function TryDocsMcpOnboarding({ lamp }: { lamp: Lamp }) {
+export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
   const [goal, setGoal] = useState<GoalId>("read");
   const [readKind, setReadKind] = useState<ReadKind>("balance");
   const [addr, setAddr] = useState("");

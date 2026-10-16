@@ -570,7 +570,7 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
             />
           ) : (
             <>
-              {winner && heroApyBps !== null ? (
+              {winner && heroApyBps != null ? (
                 <ResultCard
                   eyebrow={`03 — Result · winner for the ${intent} intent`}
                   headline={
