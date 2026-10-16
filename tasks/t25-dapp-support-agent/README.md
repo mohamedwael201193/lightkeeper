@@ -10,10 +10,10 @@
 
 A dApp support agent for the Pharos Atlantic testnet with **two real capabilities**:
 
-1. **Live diagnostics** — hand it a tx hash and it fetches the tx + receipt, identifies the failure cause (revert reason, out-of-gas, panic, insufficient balance/allowance…), and explains it in plain language with a suggested fix. Hand it an address and it reports balance, tx count, and recent activity.
+1. **Live diagnostics** — hand it a tx hash and it fetches the tx + receipt, identifies the failure cause (revert reason, out-of-gas, panic, constructor revert, insufficient balance/allowance/token-balance…), and explains it in plain language with a suggested fix. Hand it an address and it reports balance, tx count, and recent activity.
 2. **Doc-grounded Q&A** — answers Pharos questions from a local knowledge base built from real doc-page fetches (2026-10-16). Every claim is labeled **DOC-GROUNDED** (URL + date + excerpt) / **INFERENCE** / **UNVERIFIED** — and when the docs don't cover a question, it **says so instead of improvising**.
 
-Stdlib Python only. Read-only by design: `diagnose`, `account`, and `ask` never broadcast. Total chain spend for the whole build: **≈ 0.0011 PHRS** (budget was 0.15).
+Stdlib Python only. Read-only by design: `diagnose`, `account`, and `ask` never broadcast. Total chain spend for the whole build: **≈ 0.0020 PHRS** (budget was 0.15).
 
 ## 2. Quickstart
 
@@ -53,7 +53,8 @@ python3 tests/test_agent.py
 | `revert_custom` | unknown selector | **selector reported honestly** — never invented |
 | `insufficient_balance` | value tx, balance shortfall | `eth_getBalance(from, block−1)` vs `value + gasLimit × price` |
 | `insufficient_allowance` | `transferFrom` too big | `allowance(owner, spender)` + `balanceOf(owner)` reads at block−1 |
-| `insufficient_token_balance` | owner lacks tokens | same pre-condition reads |
+| `insufficient_token_balance` | owner lacks tokens | same pre-condition reads; fires only when the allowance already covered the amount |
+| `revert_constructor_reason` / `_panic` / `_custom` / `revert_constructor` | deployment failed | init code replayed via `eth_call` at block−1 (no `to`); decoded like a call revert, framed as a deployment |
 
 Every verdict prints: the verdict, the key numbers, a plain-language explanation, a suggested fix, the label, and the explorer link.
 
@@ -68,15 +69,18 @@ Every verdict prints: the verdict, the key numbers, a plain-language explanation
 
 Retrieval is keyword-scored; below threshold the agent returns `not_covered` with an explicit "I won't improvise" message (proven live — see `evidence/transcripts/t2-ask-sayso.txt`). The GitBook `?ask=` endpoint is **not** used (it 403s plain GETs — verified first-hand).
 
-## 5. Evidence — three distinct real failures, all mined on Atlantic
+## 5. Evidence — six distinct real failures, all mined on Atlantic
 
 | # | Type | Tx | Receipt proof |
 |---|---|---|---|
 | 1 | **Revert with reason** — `Error("SUPPORT-DIAG: intentional revert with reason")`, decoded from replay | [`0x405295cd…0ca23`](https://atlantic.pharosscan.xyz/tx/0x405295cd89ef7469ded00bf6fe1ba99ab42739bc9154b10b9ed9641185c0ca23) | block 31482154, status 0, gas 21510/100000 |
 | 2 | **Out of gas** — `gasUsed == gasLimit == 120000` | [`0x31993dc8…f3f5cf`](https://atlantic.pharosscan.xyz/tx/0x31993dc871fea0f0788d2f8647f9f45749b0f4a5793053ddfcd9ae12d1f3f5cf) | block 31482265, status 0 |
 | 3 | **Solidity panic** — `Panic(0x11)` arithmetic overflow | [`0x2c78309c…048`](https://atlantic.pharosscan.xyz/tx/0x2c78309c41ce0bd53f611ac5a1ad5e2bfa0e29b7f5e3514b9f0a429c2dcab048) | block 31482171, status 0 |
+| 4 | **Insufficient allowance** — `transferFrom` of 1 SDT, 0 approved (`allowance`/`balanceOf` reads at block−1) | [`0x8e655c34…dadd01`](https://atlantic.pharosscan.xyz/tx/0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01) | block 31486989, status 0 |
+| 5 | **Insufficient token balance** — `transferFrom` of 2000 SDT, 10000 approved, 1000 held | [`0x9e1561f8…9e0613`](https://atlantic.pharosscan.xyz/tx/0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613) | block 31487003, status 0 |
+| 6 | **Constructor revert decoded** — `Error("SUPPORT-DIAG: constructor always reverts")` from init-code replay | [`0x1e70dc67…f4e167`](https://atlantic.pharosscan.xyz/tx/0x1e70dc673ec96753bf6c45962186a4586db0b663c0ff81912707d53958f4e167) | block 31487042, status 0 |
 
-All three are **self-generated dust failures on Atlantic, labeled as such** — explicitly allowed by the official implementation note ("organic PharosScan mainnet failures **or** self-generated real dust failures on Atlantic — labeled, never fabricated"). Fixture: `src/TestReverter.sol`, deployed v2 at [`0xC987a20fEEDc38772cE0786c3233148586a67e53`](https://atlantic.pharosscan.xyz/address/0xC987a20fEEDc38772cE0786c3233148586a67e53). Full transcripts: `evidence.md` + `evidence/transcripts/`.
+All six are **self-generated dust failures on Atlantic, labeled as such** — explicitly allowed by the official implementation note ("organic PharosScan mainnet failures **or** self-generated real dust failures on Atlantic — labeled, never fabricated"). Fixtures: `src/TestReverter.sol` (v2 at [`0xC987a20fEEDc38772cE0786c3233148586a67e53`](https://atlantic.pharosscan.xyz/address/0xC987a20fEEDc38772cE0786c3233148586a67e53)); `src/TestToken.sol` (minimal ERC-20 at [`0xCbdd6E1EFf8264DDb611BA7F887A8e8DAfCDb5BE`](https://atlantic.pharosscan.xyz/address/0xCbdd6E1EFf8264DDb611BA7F887A8e8DAfCDb5BE)); `src/AlwaysReverts.sol` (constructor-revert fixture — its deploy reverted as designed). Full transcripts: `evidence.md` + `evidence/transcripts/`.
 
 ## 6. Tests
 

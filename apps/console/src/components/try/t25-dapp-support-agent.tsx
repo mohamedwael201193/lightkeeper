@@ -4,9 +4,11 @@
  * "Every failed tx, explained": paste ANY Pharos Atlantic tx hash (0x + 64 hex)
  * and the panel fetches the live transaction + receipt and runs a diagnosis
  * engine on it — out of gas, revert reasons decoded from an eth_call replay at
- * block−1 (Error(string), Panic(uint256), custom selectors), silent reverts,
- * intrinsic-gas shortfalls, no-code-at-destination, balance shortfalls, plus
- * honest success / pending / not-found paths.
+ * block−1 (Error(string), Panic(uint256), custom selectors — including for
+ * reverted contract deployments, whose init code is replayed), silent reverts,
+ * intrinsic-gas shortfalls, no-code-at-destination, native-balance shortfalls,
+ * ERC-20 transferFrom allowance / token-balance shortfalls (read at block−1),
+ * plus honest success / pending / not-found paths.
  *
  * The three preset hashes are the task's REAL mined Atlantic evidence txs,
  * copied character-for-character from tasks/t25-dapp-support-agent/evidence.json.
@@ -92,6 +94,15 @@ const PANIC_CODES: Record<string, string> = {
   "0x41": "too much memory allocated, or array too large",
   "0x51": "call to a zero-initialized internal function",
 };
+
+const SEL_TRANSFERFROM = "0x23b872dd"; // transferFrom(address,address,uint256)
+const SEL_ALLOWANCE = "0xdd62ed3e"; // allowance(address,address)
+const SEL_BALANCEOF = "0x70a08231"; // balanceOf(address)
+
+/** 20-byte address → 32-byte ABI word (lowercase hex, no 0x prefix). */
+function padAddr(a: string): string {
+  return a.replace(/^0x/i, "").toLowerCase().padStart(64, "0");
+}
 
 function hexToBigInt(h: string | null | undefined): bigint {
   if (!h) return 0n;
@@ -194,7 +205,8 @@ interface ReceiptLike {
   contractAddress?: string | null;
 }
 
-async function diagnose(hash: string): Promise<Diagnosis> {
+/** Diagnosis engine entry — exported for the live-chain test harness. */
+export async function diagnose(hash: string): Promise<Diagnosis> {
   const tx = (await rpcCall("eth_getTransactionByHash", [hash])) as TxLike | null;
   const receipt = (await rpcCall("eth_getTransactionReceipt", [hash])) as ReceiptLike | null;
 
@@ -355,15 +367,40 @@ async function diagnose(hash: string): Promise<Diagnosis> {
     };
   }
 
-  // (c) parallel evidence: code at destination, balance pre-check, replay.
-  const [codeRes, balRes, replayRes] = await Promise.allSettled([
+  // (c) parallel evidence: code at destination, balance pre-check, replay,
+  // plus ERC-20 transferFrom pre-condition reads (allowance + token balance).
+  // The replay also covers contract creation: eth_call with the init code and
+  // no `to` reproduces a constructor revert.
+  const inputLower = (t.input ?? "0x").toLowerCase();
+  // calldata layout (with 0x prefix): selector[2:10] owner-word[10:74]
+  // spender-word[74:138] amount-word[138:202]
+  const isTransferFrom =
+    !!t.to && inputLower.startsWith(SEL_TRANSFERFROM) && inputLower.length >= 202;
+  const tfOwner = isTransferFrom ? "0x" + inputLower.slice(10, 74).slice(-40) : null;
+  const tfAmount = isTransferFrom ? hexToBigInt("0x" + inputLower.slice(138, 202)) : 0n;
+
+  const [codeRes, balRes, replayRes, allowRes, tokBalRes] = await Promise.allSettled([
     t.to ? rpcCall("eth_getCode", [t.to, blockMinus1]) : Promise.resolve("0x"),
     t.value && hexToBigInt(t.value) > 0n
       ? rpcCall("eth_getBalance", [t.from, blockMinus1])
       : Promise.resolve(null),
-    t.to && t.input && t.input !== "0x"
-      ? replayCall({ from: t.from, to: t.to, data: t.input, value: t.value }, blockMinus1)
+    t.input && t.input !== "0x"
+      ? replayCall(
+          t.to
+            ? { from: t.from, to: t.to, data: t.input, value: t.value }
+            : { from: t.from, data: t.input, value: t.value },
+          blockMinus1
+        )
       : Promise.resolve({ ok: false as const, data: null, message: "no calldata to replay" }),
+    isTransferFrom && tfOwner
+      ? rpcCall("eth_call", [
+          { to: t.to, data: SEL_ALLOWANCE + padAddr(tfOwner) + padAddr(t.from) },
+          blockMinus1,
+        ])
+      : Promise.resolve(null),
+    isTransferFrom && tfOwner
+      ? rpcCall("eth_call", [{ to: t.to, data: SEL_BALANCEOF + padAddr(tfOwner) }, blockMinus1])
+      : Promise.resolve(null),
   ]);
   const code = codeRes.status === "fulfilled" ? String(codeRes.value) : null;
   const balance = balRes.status === "fulfilled" && balRes.value ? hexToBigInt(String(balRes.value)) : null;
@@ -388,8 +425,52 @@ async function diagnose(hash: string): Promise<Diagnosis> {
     };
   }
 
+  // (d2) transferFrom with insufficient allowance or owner token balance.
+  // The token contract rejected the call before any logic ran; the reads at
+  // block-1 name the exact shortfall. (Mirrors the CLI agent's Branch C.)
+  if (isTransferFrom && tfOwner && code !== null && code !== "0x") {
+    const allowance =
+      allowRes.status === "fulfilled" && allowRes.value ? hexToBigInt(String(allowRes.value)) : null;
+    const tokenBal =
+      tokBalRes.status === "fulfilled" && tokBalRes.value ? hexToBigInt(String(tokBalRes.value)) : null;
+    if (allowance !== null && tfAmount > allowance) {
+      return {
+        kind: "failure",
+        verdictId: "insufficient_allowance",
+        title: "transferFrom rejected — allowance too small",
+        explanation: `At the block before this transaction, ${tfOwner} had approved this sender for ${fmtInt(allowance)} token units, but the transferFrom tried to move ${fmtInt(tfAmount)} — a shortfall of ${fmtInt(tfAmount - allowance)} units. The token contract refused before moving anything; the fee was still paid.`,
+        fixes: [
+          `From the OWNER's wallet, call approve(sender, at least ${fmtInt(tfAmount)}) on the token contract first — approvals must come from the token holder, not the spender.`,
+          "Then resend the transferFrom unchanged; the gas settings were fine.",
+          "Beware stale approvals: an earlier approve() for a smaller amount does not stack — the latest approval is the whole allowance.",
+        ],
+        provenance: "READ FROM CHAIN — allowance(owner, spender) and balanceOf(owner) read via eth_call at block−1.",
+        stats,
+        revertData: null,
+        rawReceipt: r,
+      };
+    }
+    if (tokenBal !== null && tfAmount > tokenBal) {
+      return {
+        kind: "failure",
+        verdictId: "insufficient_token_balance",
+        title: "transferFrom rejected — owner held too few tokens",
+        explanation: `The allowance was sufficient, but at the block before this transaction the owner ${tfOwner} held only ${fmtInt(tokenBal)} token units while the transferFrom tried to move ${fmtInt(tfAmount)} — a shortfall of ${fmtInt(tfAmount - tokenBal)} units. The token contract refused; the fee was still paid.`,
+        fixes: [
+          "Reduce the transfer amount to what the owner actually holds, or fund the owner with more tokens first.",
+          "Then resend the transferFrom — no approval change is needed since the allowance already covered the amount.",
+        ],
+        provenance: "READ FROM CHAIN — balanceOf(owner) read via eth_call at block−1; allowance already covered the amount.",
+        stats,
+        revertData: null,
+        rawReceipt: r,
+      };
+    }
+  }
+
   // (e) call into an address with no code: wrong address, or contract gone.
-  if (code !== null && code === "0x" && t.input !== "0x") {
+  // Guarded on t.to — contract creation has no destination by definition.
+  if (t.to && code !== null && code === "0x" && t.input !== "0x") {
     return {
       kind: "failure",
       verdictId: "no_code_at_destination",
@@ -415,7 +496,9 @@ async function diagnose(hash: string): Promise<Diagnosis> {
         ? replay.data
         : null;
 
-  if (revertPayload) {
+  // (f) replay decoded revert data — calls only; contract creation is
+  // handled by (h) below, which frames the same payload as a deployment.
+  if (t.to && revertPayload) {
     const reason = decodeErrorString(revertPayload);
     if (reason !== null) {
       return {
@@ -475,7 +558,81 @@ async function diagnose(hash: string): Promise<Diagnosis> {
     }
   }
 
-  // (g) silent revert: no payload at all.
+  // (h) constructor revert (contract creation). The replay above ran the init
+  // code, so a reverting constructor often yields decodable data too.
+  // Placed before the silent branch: a failed deployment is never "silent".
+  if (!t.to) {
+    if (revertPayload) {
+      const reason = decodeErrorString(revertPayload);
+      if (reason !== null) {
+        return {
+          kind: "failure",
+          verdictId: "revert_constructor_reason",
+          title: "Deployment reverted with a reason",
+          explanation: `The constructor rejected the deployment and explained itself: "${reason}". No contract was created at any address, and the ${weiToPhrs(gasUsed * price)} PHRS gas was still paid.`,
+          fixes: [
+            `Fix whatever the reason names — "${reason}" — then redeploy with the same gas settings.`,
+            "Simulate the deployment locally first (forge script against a fork) so constructor reverts surface before they cost gas.",
+          ],
+          provenance: "READ FROM CHAIN — constructor revert reason decoded from an eth_call replay of the init code at block−1 (Error(string)).",
+          stats,
+          revertData: revertPayload,
+          rawReceipt: r,
+        };
+      }
+      const panicHex = decodePanic(revertPayload);
+      if (panicHex !== null) {
+        const meaning = PANIC_CODES[panicHex] ?? "undocumented panic code";
+        return {
+          kind: "failure",
+          verdictId: "revert_constructor_panic",
+          title: `Deployment hit Solidity panic ${panicHex} — ${meaning}`,
+          explanation: `The constructor hit a Solidity panic (${panicHex}): ${meaning}. The deployment was rolled back — no contract exists — and the gas was still paid.`,
+          fixes: [
+            "Check the constructor's arithmetic and array access against the deployed arguments — panics fire on violated invariants, not bad gas.",
+            "Simulate the deployment locally first so constructor panics surface before they cost gas.",
+          ],
+          provenance: "READ FROM CHAIN — Panic(uint256) decoded from an eth_call replay of the init code at block−1. Code meanings are INFERENCE from standard EVM semantics.",
+          stats,
+          revertData: revertPayload,
+          rawReceipt: r,
+        };
+      }
+      const selector = revertPayload.slice(0, 10);
+      return {
+        kind: "failure",
+        verdictId: "revert_constructor_custom",
+        title: `Deployment reverted — custom error ${selector}`,
+        explanation: `The constructor reverted with a custom error whose selector is ${selector}. No contract was created, and the gas was still paid. The error name lives in the contract source, which this panel cannot read from the chain.`,
+        fixes: [
+          `Look up ${selector} in the contract source to get the error name, then fix the constructor inputs it guards.`,
+          "Simulate the deployment locally first so constructor reverts surface before they cost gas.",
+        ],
+        provenance: "READ FROM CHAIN — raw revert payload from an eth_call replay of the init code at block−1; selector reported, never invented.",
+        stats,
+        revertData: revertPayload,
+        rawReceipt: r,
+      };
+    }
+    return {
+      kind: "failure",
+      verdictId: "revert_constructor",
+      title: "Contract deployment reverted",
+      explanation:
+        "This was a contract creation and its constructor reverted — the deployment was rolled back, no contract exists at any new address, and the gas was still paid.",
+      fixes: [
+        "Check the constructor's require() conditions: initial parameters, owner setup, and any external calls it makes.",
+        "Deploy locally first (forge script / hardhat run against a fork) so constructor reverts surface before they cost gas.",
+      ],
+      provenance: "READ FROM CHAIN — status 0x0 on a transaction with no `to` (contract creation).",
+      stats,
+      revertData: null,
+      rawReceipt: r,
+    };
+  }
+
+  // (g) silent revert: no payload at all. (Only reachable for calls now —
+  // contract creation is handled above.)
   if (replay && !replay.ok && (replay.data === "0x" || replay.data === null)) {
     const share = gasLimit > 0n ? Number((gasUsed * 100n) / gasLimit) : 0;
     const early = share < 10;
@@ -500,25 +657,6 @@ async function diagnose(hash: string): Promise<Diagnosis> {
         "READ FROM CHAIN — empty revert payload from an eth_call replay at block−1. The early/late read is INFERENCE from the gas-burn share.",
       stats,
       revertData: replay.data,
-      rawReceipt: r,
-    };
-  }
-
-  // (h) constructor revert (contract creation with no `to`).
-  if (!t.to) {
-    return {
-      kind: "failure",
-      verdictId: "revert_constructor",
-      title: "Contract deployment reverted",
-      explanation:
-        "This was a contract creation and its constructor reverted — the deployment was rolled back, no contract exists at any new address, and the gas was still paid.",
-      fixes: [
-        "Check the constructor's require() conditions: initial parameters, owner setup, and any external calls it makes.",
-        "Deploy locally first (forge script / hardhat run against a fork) so constructor reverts surface before they cost gas.",
-      ],
-      provenance: "READ FROM CHAIN — status 0x0 on a transaction with no `to` (contract creation).",
-      stats,
-      revertData: null,
       rawReceipt: r,
     };
   }
@@ -562,6 +700,7 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
   const [error, setError] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const valid = HASH_RE.test(input.trim());
 
@@ -573,6 +712,7 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
     setError(null);
     setDiag(null);
     setShowRaw(false);
+    setCopied(false);
     setActiveHash(h);
     try {
       setDiag(await diagnose(h));
@@ -753,18 +893,42 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
             )}
           </div>
 
-          <button className="btn-outline" onClick={() => run(activeHash ?? "")}>
-            Re-run diagnosis
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-outline" onClick={() => run(activeHash ?? "")}>
+              Re-run diagnosis
+            </button>
+            <button
+              className="btn-outline"
+              onClick={async () => {
+                if (!diag) return;
+                const text =
+                  `${diag.title}\n\n${diag.explanation}\n\nWhat to do next:\n` +
+                  diag.fixes.map((f) => `- ${f}`).join("\n") +
+                  `\n\nProvenance: ${diag.provenance}\nExplorer: ${EXPLORER_TX}${activeHash}`;
+                try {
+                  await navigator.clipboard.writeText(text);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {
+                  setCopied(false);
+                }
+              }}
+            >
+              {copied ? "Copied to clipboard" : "Copy plain-language summary"}
+            </button>
+          </div>
         </div>
       )}
 
       <p className="text-xs text-slate">
         Diagnosis engine mirrors the task's CLI agent{" "}
         <span className="font-mono">tasks/t25-dapp-support-agent/src/support_agent.py</span> and
-        deepens it: intrinsic-gas shortfall, no-code-at-destination, early/late silent-revert
-        heuristic, and a live <span className="font-mono">eth_estimateGas</span> retry suggestion
-        for out-of-gas cases. Full evidence and transcripts live in the repo at{" "}
+        deepens it: intrinsic-gas shortfall, no-code-at-destination, transferFrom
+        allowance / token-balance pre-condition reads, constructor-revert decoding
+        via init-code replay, early/late silent-revert heuristic, a live{" "}
+        <span className="font-mono">eth_estimateGas</span> retry suggestion for
+        out-of-gas cases, and a one-click plain-language summary. Full evidence
+        and transcripts live in the repo at{" "}
         <span className="font-mono">tasks/t25-dapp-support-agent/</span>.
       </p>
     </div>

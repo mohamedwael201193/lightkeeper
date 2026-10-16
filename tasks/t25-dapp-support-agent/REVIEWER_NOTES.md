@@ -19,11 +19,11 @@
 
 ## Honest gaps
 
-- No organic third-party failure demonstrated (400-block scan found none in-window); covered by 3 distinct self-generated types, which the spec allows.
+- No organic third-party failure demonstrated (400-block scan found none in-window; re-scanned 250 blocks 2026-10-16, still none); covered by 6 distinct self-generated types, which the spec allows.
 - `account` activity covers ERC-20 Transfers only (plain PHRS transfers emit no logs) — disclosed in every report.
 - Pending-vs-dropped is unknowable from public RPC — the agent says so.
 - Panic-code meanings labeled INFERENCE (standard EVM semantics, no Pharos doc page covers them).
 
 ## Spend
 
-≈ 0.0011 PHRS total (3 fixture deploys + 4 diagnostic txs + 2 mis-targeted calls), budget was 0.15. Itemized per-tx in `evidence.json`.
+≈ 0.0020 PHRS total (4 fixture deploys + 7 diagnostic txs + 2 mis-targeted calls), budget was 0.15. Itemized per-tx in `evidence.json`.

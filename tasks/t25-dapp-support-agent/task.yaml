@@ -10,7 +10,7 @@ status: built
 built: "2026-10-16"
 
 capabilities:
-  - diagnose: "tx hash -> tx+receipt -> failure cause -> plain-language explanation + fix"
+  - diagnose: "tx hash -> tx+receipt -> failure cause -> plain-language explanation + fix (incl. ERC-20 transferFrom allowance/token-balance pre-checks and constructor-revert decoding via init-code replay)"
   - account: "address -> balance, tx count, EOA/contract, recent ERC-20 activity"
   - ask: "doc-grounded Q&A with DOC-GROUNDED / INFERENCE / UNVERIFIED labels + say-so path"
 
@@ -33,10 +33,14 @@ evidence_txs:
   panic_overflow: "0x2c78309c41ce0bd53f611ac5a1ad5e2bfa0e29b7f5e3514b9f0a429c2dcab048"
   deploy_testreverter_v1: "0x719016bd20168bf8f7a3cd264a61e0a88925b467dba07cd5bc98c89c7be1d481"
   deploy_testreverter_v2: "0x48adea8bae24bcc9fa94f175e7a86c424c483f804599ada1dfd72a6ad5aec9e7"
+  insufficient_allowance: "0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01"
+  insufficient_token_balance: "0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613"
+  ctor_revert_reason: "0x1e70dc673ec96753bf6c45962186a4586db0b663c0ff81912707d53958f4e167"
 
 contracts:
   testreverter_v2: "0xC987a20fEEDc38772cE0786c3233148586a67e53"
   testreverter_v1: "0x5C5803746A187727090a44FbAe2a956f3d2525a3"
+  testtoken_erc20: "0xCbdd6E1EFf8264DDb611BA7F887A8e8DAfCDb5BE"  # minimal ERC-20 fixture for allowance/balance failure proofs
 
 spend_budget_phrs: 0.15
 # actual spend logged in evidence.json

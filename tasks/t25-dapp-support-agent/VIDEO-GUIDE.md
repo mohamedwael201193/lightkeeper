@@ -43,6 +43,11 @@ cd ~/workspace/lightkeeper/tasks/t25-dapp-support-agent
 **Show:** diagnose a hash whose cause the engine can't pin down; scroll to "Unknown cause — here is the raw receipt."
 **Say:** "When it can't pin down the cause, it says so and shows the raw receipt — it never invents a diagnosis."
 
+### Shot 8 — The allowance killer (1:55–2:10, optional)
+**Show:** run:
+`python3 src/support_agent.py diagnose 0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01`
+**Say:** "And the one wallets never explain: a transferFrom that failed because the allowance was zero. The agent read the allowance at the block before, names the exact shortfall, and tells you to approve first — then resend."
+
 ## Spoken script (full, ~75s)
 
 > "This is the dApp Support Agent, lamp twenty-five. A user pastes a failed transaction hash. The agent pulls the real receipt from the Atlantic testnet — status zero, gas used equals the gas limit: out of gas. It explains that in plain words, suggests a higher limit, and cites the Pharos FAQ with the source URL and the exact excerpt. A second hash: a contract revert — the agent replays the call and decodes the reason, telling the user exactly which input to fix. And when the docs don't cover a question, it says so instead of improvising. Three real failure types, real receipts, checkable on the explorer. That's the lamp."

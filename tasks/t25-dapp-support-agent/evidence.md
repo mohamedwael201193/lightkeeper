@@ -2,7 +2,7 @@
 
 **Chain:** Pharos Atlantic testnet (chain id 688689) · **Date:** 2026-10-16
 **Wallet:** `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3` (shared LIGHTKEEPER deployer)
-**Spend:** ≈ 0.0011 PHRS total (budget ≤ 0.15 PHRS) — itemized in `evidence.json`
+**Spend:** ≈ 0.0020 PHRS total (budget ≤ 0.15 PHRS) — itemized in `evidence.json`
 **Tests:** `python3 tests/test_agent.py` → **8/8 PASS**, every diagnostic value asserted against live `cast` chain queries.
 
 All transcripts below are real program output (also saved verbatim under `evidence/transcripts/`).
@@ -75,6 +75,40 @@ All transcripts below are real program output (also saved verbatim under `eviden
 
 ---
 
+
+## Transcript 7 — Live diagnostic: INSUFFICIENT ALLOWANCE (official required cause)
+
+**Input:** tx `0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01`
+(self-generated dust failure — `transferFrom` of 1 SDT with zero approval on the T25 ERC-20 fixture `0xCbdd6E1EFf8264DDb611BA7F887A8e8DAfCDb5BE`)
+
+**Agent output (verdict: insufficient_allowance):** the panel and CLI both read `allowance(owner, spender)` and `balanceOf(owner)` at block−1 and name the exact shortfall (0 approved vs 1 SDT attempted). Fix: `approve()` from the owner's wallet first, then resend.
+
+- Explorer: https://atlantic.pharosscan.xyz/tx/0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01
+
+---
+
+## Transcript 8 — Live diagnostic: INSUFFICIENT TOKEN BALANCE (official required cause)
+
+**Input:** tx `0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613`
+(self-generated dust failure — `transferFrom` of 2000 SDT with 10000 SDT approved but only 1000 SDT held, on the T25 ERC-20 fixture `0xCbdd6E1EFf8264DDb611BA7F887A8e8DAfCDb5BE`)
+
+**Agent output (verdict: insufficient_token_balance):** allowance covered the amount, so the agent reports the owner's token shortfall instead (1000 held vs 2000 attempted). Fix: reduce the amount or fund the owner.
+
+- Explorer: https://atlantic.pharosscan.xyz/tx/0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613
+
+---
+
+## Transcript 9 — Live diagnostic: CONSTRUCTOR REVERT DECODED (bonus)
+
+**Input:** tx `0x1e70dc673ec96753bf6c45962186a4586db0b663c0ff81912707d53958f4e167`
+(self-generated dust failure — deployment of `src/AlwaysReverts.sol`, whose constructor always reverts)
+
+**Agent output (verdict: revert_constructor_reason):** the agent replays the init code at block−1 and decodes `Error("SUPPORT-DIAG: constructor always reverts")` — a failed deployment is never reported as a generic silent revert.
+
+- Explorer: https://atlantic.pharosscan.xyz/tx/0x1e70dc673ec96753bf6c45962186a4586db0b663c0ff81912707d53958f4e167
+
+---
+
 ## Coverage statement
 
 | Official requirement | Status |
@@ -82,7 +116,7 @@ All transcripts below are real program output (also saved verbatim under `eviden
 | Accepts tx hash, fetches tx+receipt | ✅ `diagnose` command, live RPC |
 | Identifies failure cause (revert reason / out of gas / insufficient balance or allowance…) | ✅ branches: out_of_gas, revert_with_reason, revert_panic, revert_no_data, revert_custom, insufficient_balance, insufficient_allowance, insufficient_token_balance |
 | Plain-language explanation + suggested fix | ✅ every verdict carries both |
-| ≥3 DIFFERENT failure types demonstrated | ✅ revert-with-reason, out-of-gas, panic (3 distinct, all real mined txs) |
+| ≥3 DIFFERENT failure types demonstrated | ✅ 6 distinct, all real mined txs: revert-with-reason, out-of-gas, panic, insufficient allowance, insufficient token balance, constructor revert |
 | Citation discipline DOC-GROUNDED / INFERENCE / UNVERIFIED | ✅ every answer labeled; say-so path proven |
 | Unknown revert selectors reported honestly | ✅ `revert_custom` reports the raw selector |
 | Pending tx honest path | ✅ `pending_or_dropped` states the mempool unknown explicitly |

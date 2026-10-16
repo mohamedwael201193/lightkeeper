@@ -1,0 +1,13 @@
+[t25 support-agent] verdict: insufficient_token_balance
+  tx: 0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613
+  block: 31487003
+  status: 0
+  gas_used: 27511
+  gas_limit: 200000
+  fee_phrs: 2.7511e-05
+  value_phrs: 0.0
+
+Your transaction FAILED at block 31487003: the owner only held 1000000000000000000000 token-units at block 31487002 but the tx tried to move 2000000000000000000000. Fix: reduce the amount or fund the owner address with more tokens, then retry.
+
+Label: DOC-GROUNDED — balanceOf is a direct eth_call read at block-1.
+Explorer: https://atlantic.pharosscan.xyz/tx/0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613

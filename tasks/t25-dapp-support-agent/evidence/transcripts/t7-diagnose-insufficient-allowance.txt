@@ -1,0 +1,13 @@
+[t25 support-agent] verdict: insufficient_allowance
+  tx: 0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01
+  block: 31486989
+  status: 0
+  gas_used: 25267
+  gas_limit: 200000
+  fee_phrs: 2.5267e-05
+  value_phrs: 0.0
+
+Your transaction FAILED at block 31486989: the token contract rejected transferFrom because the allowance was too small. At block 31486988, 0xf76e6b0920e9332ff4410f6dd53f01722abc71a3 had approved the spender for 0 token-units but the tx tried to move 1000000000000000000. Fix: call approve(spender, >= 1000000000000000000) from the owner's wallet first, then retry the transfer.
+
+Label: DOC-GROUNDED — allowance/balance are direct eth_call reads at block-1.
+Explorer: https://atlantic.pharosscan.xyz/tx/0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01

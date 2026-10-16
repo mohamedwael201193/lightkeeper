@@ -126,16 +126,21 @@ def decode_revert(data):
 
 
 def eth_call_replay(tx, block_minus_1):
-    """Replay the tx's call at block-1 to capture revert data. Read-only."""
+    """Replay the tx's call at block-1 to capture revert data. Read-only.
+
+    For contract creation there is no `to`: the init code itself is replayed
+    (eth_call with data and no to), which reproduces constructor reverts.
+    """
     call = {
         "from": tx["from"],
-        "to": tx.get("to"),
         "data": tx.get("input", "0x"),
         "value": tx.get("value", "0x0"),
         "gas": tx.get("gas", "0x7a1200"),
     }
-    if not call["to"]:
-        return None  # contract creation: no replay target
+    if tx.get("to"):
+        call["to"] = tx["to"]
+    if not call["data"] or call["data"] == "0x":
+        return None  # no calldata / init code to replay
     res = rpc("eth_call", [call, hex(block_minus_1)])
     if isinstance(res, dict) and "_rpc_error" in res:
         return res["_rpc_error"].get("data") or res["_rpc_error"].get("message")
@@ -262,10 +267,10 @@ def cmd_diagnose(txhash, as_json):
     if tx.get("to"):
         to_code = rpc("eth_getCode", [tx["to"], hex(prev)]) or "0x"
     data = (tx.get("input") or "0x").lower()
-    if to_code not in ("0x", "") and data.startswith(SEL_TRANSFERFROM) and len(data) >= 138:
+    if to_code not in ("0x", "") and data.startswith(SEL_TRANSFERFROM) and len(data) >= 202:
         owner = "0x" + data[10:74][-40:]
         spender = tx["from"]
-        amount = int(data[74:138], 16)
+        amount = int(data[138:202], 16)
         allow_data = SEL_ALLOWANCE + owner[2:].rjust(64, "0") + spender[2:].rjust(64, "0")
         bal_data = SEL_BALANCEOF + owner[2:].rjust(64, "0")
         allow_raw = rpc("eth_call", [{"to": tx["to"], "data": allow_data}, hex(prev)])
@@ -300,13 +305,20 @@ def cmd_diagnose(txhash, as_json):
             })
             return _emit(base, as_json)
 
-    # Branch D: generic revert — replay at block-1, decode revert data
+    # Branch D: generic revert — replay at block-1, decode revert data.
+    # For contract creation the replay runs the init code (constructor).
     replay = eth_call_replay(tx, prev)
+    is_creation = not tx.get("to")
     if isinstance(replay, str) and replay.startswith("0x"):
         kind, detail, dlabel = decode_revert(replay)
-    elif replay is None and not tx.get("to"):
+        if is_creation:
+            kind = {"revert_with_reason": "revert_constructor_reason",
+                    "revert_panic": "revert_constructor_panic",
+                    "revert_custom": "revert_constructor_custom",
+                    "revert_no_data": "revert_constructor"}.get(kind, kind)
+    elif replay is None and is_creation:
         kind, detail, dlabel = ("revert_contract_creation",
-                                "Contract creation reverted; replay target unavailable — inspect constructor args.", "INFERENCE")
+                                "Contract creation reverted; no init code to replay — inspect constructor args.", "INFERENCE")
     elif isinstance(replay, str):
         kind, detail, dlabel = ("revert_no_data", f"The contract reverted; the node returned message: {replay[:160]}", "INFERENCE")
     else:
@@ -314,15 +326,16 @@ def cmd_diagnose(txhash, as_json):
                                 "Replay at block-1 unexpectedly succeeded — chain state moved between blocks; "
                                 "the revert is real on the mined receipt.", "INFERENCE")
 
-    if kind == "revert_with_reason":
+    ctor = kind.startswith("revert_constructor") or kind == "revert_contract_creation"
+    if kind in ("revert_with_reason", "revert_constructor_reason"):
         fix = (f"Fix: the contract itself refused the call with reason \"{detail}\". Read the contract's docs or "
                "source for that exact message — it names the failed requirement (e.g. wrong phase, cap reached, "
                "bad parameter). Adjust your inputs to satisfy it and resend.")
-    elif kind == "revert_panic":
+    elif kind in ("revert_panic", "revert_constructor_panic"):
         fix = ("Fix: this is a low-level Solidity panic — almost always a bug in the CALLER's inputs or the "
                "contract's assumptions (e.g. math overflow, array out of bounds). Double-check array indices and "
                "amounts; if the contract is yours, add a require() with a message at the suspect line.")
-    elif kind == "revert_no_data":
+    elif kind in ("revert_no_data", "revert_constructor"):
         fix = ("Fix: the contract reverted silently. If it's yours, add require() messages; if it's a third-party "
                "contract, check its docs for preconditions (paused? allowlist? deadline passed?) and simulate with "
                "eth_call before resending.")
@@ -330,10 +343,12 @@ def cmd_diagnose(txhash, as_json):
         fix = ("Fix: unknown revert shape — inspect the contract source around the failing call and simulate with "
                "eth_call to reproduce before resending.")
 
+    action = ("the contract deployment reverted — no contract was created"
+              if ctor else "the contract reverted")
     base.update({
         "verdict": kind,
         "revert_detail": detail,
-        "plain": (f"Your transaction FAILED at block {block}: the contract reverted. {detail} "
+        "plain": (f"Your transaction FAILED at block {block}: {action}. {detail} "
                   f"It still cost {fmt_phrs(fee_wei)} in gas (failed txs pay for work done). {fix}"),
         "label": dlabel + " — revert data captured by eth_call replay at block-1, decoded locally.",
     })
