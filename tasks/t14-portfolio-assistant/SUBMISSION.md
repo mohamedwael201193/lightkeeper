@@ -49,7 +49,23 @@ https://github.com/mohamedwael201193/lightkeeper/tree/8dcebf3/tasks/t14-portfoli
 ## Video
 
 PENDING-VIDEO — shot-by-shot guide in VIDEO-GUIDE.md (45–90s: questions → cited
-answers → "I don't know" → write-attempt refusal → explorer proof).
+answers → "I don't know" → write-attempt refusal → explorer proof). The console
+"try it live" surface (below) adds a second filming angle: connect wallet → the
+visitor's OWN live portfolio.
+
+## Try it live (console surface, new)
+
+`apps/console/src/components/try/t14-portfolio-assistant.tsx` — Tier A, pure
+reads, no signature anywhere. If the visitor connects their wallet, the first
+thing they see is THEIR OWN Atlantic portfolio, read live: native PHRS
+(`eth_getBalance`) plus `eth_call balanceOf` across the verified 7-source
+registry (USDC/USDT/WBTC/WETH/WPHRS + LPK), block-pinned to one
+`eth_blockNumber`, with `eth_getTransactionCount` and explorer links per token.
+No wallet: a validated address input reads any portfolio. Below, the "keeper's
+reference" shows the LIGHTKEEPER operator wallet's evidence snapshot
+(block 31483013: 5.865657109313757106 PHRS, 18.5 USDC, 0.0025 WPHRS, 1,000,000
+LPK, 139 txs) — clearly labeled historical, never confused with the live read.
+Unreadable tokens report "unknown", never zero; no USD anywhere.
 
 ## Reviewer notes
 

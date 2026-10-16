@@ -77,3 +77,25 @@ Atlantic explorer."
 - Never display a private key, mnemonic, or `.env` contents on screen.
 - Keep it under 90 seconds; one take is fine.
 - Status: **PENDING-VIDEO** — slot reserved in task.yaml; record after this build.
+
+## Bonus angle — console "try it live" (15–20s add-on or standalone clip)
+
+Film lightkeeper-console.vercel.app → T14 lamp → "Try it live" section:
+
+1. **Connect wallet** — click the console's wallet connect (MetaMask, Atlantic
+   testnet). **Say:** "Now the wallet-interactive surface. I connect my own wallet —
+   the console proposes nothing, signs nothing, reads only."
+2. **Your own portfolio appears** — point at the live table: PHRS balance plus
+   every registry token, each row linking to its contract on the explorer, the
+   read pinned to the current block with the outgoing tx count. **Say:** "The first
+   thing I see is my own portfolio, read live from Atlantic — block-pinned, every
+   number citable, and still no dollar values invented."
+3. **Paste an address** — disconnect, paste the keeper's wallet
+   `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3`, read it. **Say:** "No wallet
+   needed either — any valid address reads the same way. The keeper's reference
+   below it is the task's historical evidence snapshot, clearly labeled as such."
+4. **Honesty line (say it on camera):** "Reads are free and need no signature —
+   LIGHTKEEPER never sees your keys, because it never asks for them."
+
+Status: **PENDING-VIDEO** — record alongside the terminal shots; the browser
+surface needs no wallet with funds, a read-only connect is enough.
