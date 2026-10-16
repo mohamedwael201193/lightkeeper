@@ -3,6 +3,13 @@
 All figures below come from real chain reads on Pharos Atlantic testnet
 (chain ID 688689). Nothing is mocked, estimated, or fabricated.
 
+> Format note (v1.1, 2026-10-16): the digest renderer now supports
+> `T26_SECTIONS` (sections `top3,volume,gas,whales,tokens,failed` — the
+> console's section picker writes this env var, and the agent renders only
+> the listed blocks) plus new `Whale moves` / `Token transfers` /
+> `Failures & creations` sections. The artifact below is the verbatim
+> 2026-10-16 run (all sections), unchanged.
+
 ## The delivered digest (markdown)
 
 ```markdown

@@ -34,6 +34,9 @@ every delta in the digest is real data vs real data.
 2. **`--run`** — measures the chain head, anchors a true calendar 7-day
    window on real block timestamps, collects metrics, diffs against the
    baseline, renders `digests/digest-<date>.md` + the Telegram short version.
+   Renders only the `T26_SECTIONS` blocks (default: all six —
+   `top3,volume,gas,whales,tokens,failed`); the same env var the console's
+   section picker writes.
 3. **`--deliver`** — validates the bot token with `getMe`, sends **one**
    `sendMessage`, records the returned `message_id` in `state.json` and
    `evidence.json`. That id is the delivery receipt.
@@ -90,6 +93,7 @@ Read-only: the agent broadcasts **zero** transactions. Chain spend: 0 PHRS.
 | `WATCH_ADDRESS` | no | `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3` |
 | `ATLANTIC_RPC_URL` | no | `https://atlantic.dplabs-internal.com` |
 | `WINDOW_DAYS` | no | `7` |
+| `T26_SECTIONS` | no | all of `top3,volume,gas,whales,tokens,failed` — the agent renders only the listed blocks (unknown ids fail loudly) |
 | `T26_LOG_WORKERS` | no | `16` (parallel log-chunk fetchers) |
 | `TELEGRAM_BOT_TOKEN` | yes, for `--deliver` | — (env only, never in repo/logs) |
 | `TELEGRAM_CHAT_ID` | yes, for `--deliver` | — |

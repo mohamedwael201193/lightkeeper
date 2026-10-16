@@ -25,7 +25,10 @@ Delivery is to a REAL Telegram channel: one `sendMessage`, with the returned
 `message_id` 723 as the receipt. Live evidence (2026-10-16): 110 txs
 (109 sent / 1 received), 0.05 PHRS in / 0.139866667 out, 0.022912577 PHRS gas,
 25 contract creations, 7 failed txs, 31 token-transfer events — all delta'd
-against a real quiet baseline week (0 txs). Read-only: 0 PHRS spent, zero
+against a real quiet baseline week (0 txs). The digest is sectioned
+(`top3,volume,gas,whales,tokens,failed` — whale moves ≥0.05 PHRS, per-token
+flows, failure/creation lists) and the console's section picker writes the
+real `T26_SECTIONS` env var the agent honors. Read-only: 0 PHRS spent, zero
 transactions broadcast. Scheduling is external (cron installer + GitHub
 Actions workflow provided) — Pharos SkillEngine has no cron primitive, and
 this is documented honestly rather than faked.
@@ -49,10 +52,11 @@ The LIGHTKEEPER console ships an interactive digest builder for this task:
 "Build your digest": pick the digest sections (TOP 3, volume, gas stats,
 whale moves, token transfers, failures), set the schedule
 (weekly/daily/monthly), point at a watched address — the page generates the
-exact `WATCH_ADDRESS`/`WINDOW_DAYS` env config, the
+exact `WATCH_ADDRESS`/`WINDOW_DAYS`/`T26_SECTIONS` env config, the
 `--backfill` → `--run` → `--deliver` run commands, and the cron/GitHub
-Actions scheduling lines, copy-paste ready. The same panel shows the task's
-real delivered sample digest (Telegram message_id 723, blocks
+Actions scheduling lines, copy-paste ready. The section picker is real: the
+agent renders only the listed blocks (unknown ids fail loudly). The same panel
+shows the task's real delivered sample digest (Telegram message_id 723, blocks
 31186577–31482619). Differentiator: from section picker to running digest in
 one copy-paste. Tier C honest: the console never signs and never sends
 Telegram messages — config only, run in your own terminal with your own bot
