@@ -99,3 +99,19 @@ python3 -m unittest tests.test_cli          # 14/14, no network, no chain
 ./pharos-docs "what is the birthday of the Pharos CEO"; echo $?  # exit 2, UNVERIFIED
 python3 evidence/run_evidence.py            # replays all 9 evidence queries
 ```
+
+## 8. HARDEN pass 2026-10-16 — rebuild pipeline re-verified from live docs
+
+The rebuild path (`./pharos-docs --rebuild-index` → `fetch_corpus.sh` + `src/build_index.py`)
+was re-run end-to-end in a throwaway copy of the task dir (shipped index/corpus untouched):
+
+- Refetched `llms.txt` + `llms-full.txt` + `sitemap.md` from the live Pharos docs.
+- Live corpus is **byte-identical** to the 2026-10-16 snapshot (`llms-full.txt` = 403670 bytes
+  both); zero drift between fetch and the shipped index.
+- Rebuilt index: 146 pages parsed, 74 indexed, **438 passages** — identical to the shipped index.
+- Evidence battery re-run against the freshly built index: **9/9 expectations PASS**
+  (E1–E7 DOC-GROUNDED exit 0, M1–M2 UNVERIFIED exit 2).
+
+So the "refresh the corpus" answer to the stale-snapshot objection is verified, not aspirational:
+a from-scratch rebuild reproduces the shipped index exactly, and every evidence query still
+lands on its expected label and exit code.

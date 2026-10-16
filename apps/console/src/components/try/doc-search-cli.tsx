@@ -113,6 +113,13 @@ const SUGGESTIONS = [
   "how do I install the Pharos MCP server",
 ];
 
+// The two real miss queries from the evidence battery (M1/M2): one-tap demos
+// of the honest UNVERIFIED refusal — the feature the task grades.
+const REFUSALS = [
+  "what is the birthday of the Pharos CEO",
+  "how do I run a Pharos node on a Raspberry Pi",
+];
+
 function CopyBtn({ text, label }: { text: string; label: string }) {
   const [done, setDone] = useState(false);
   return (
@@ -157,12 +164,20 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
   const [result, setResult] = useState<Entry | null>(null);
   const [miss, setMiss] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const [emptyHint, setEmptyHint] = useState(false);
 
   const run = (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      // Never a dead end: empty search gets a plain-language nudge, not a blank panel.
+      setEmptyHint(true);
+      return;
+    }
+    setEmptyHint(false);
     setSearched(true);
-    const hit = match(q);
+    const hit = match(trimmed);
     setResult(hit);
-    setMiss(hit ? null : q.trim());
+    setMiss(hit ? null : trimmed);
   };
 
   return (
@@ -177,7 +192,8 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
         Type a Pharos developer question. This panel matches it against the real doc-grounded answer
         patterns from our evidence battery — every match shows the verbatim docs quote with its page
         citation plus the exact <code className="font-mono">pharos-docs</code> command that produces it,
-        copy-paste ready. When nothing matches, it refuses — the same UNVERIFIED behavior as the real CLI.
+        copy-paste ready. The sharp edge: <span className="font-semibold text-ink">it would rather
+        refuse than invent</span> — tap a refusal demo below and watch it say no.
       </p>
 
       {/* search */}
@@ -195,23 +211,46 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
           Search docs
         </button>
       </div>
-      {!searched && (
-        <div className="flex flex-wrap gap-2">
-          <span className="text-xs text-slate self-center">Try one from the real battery:</span>
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              className="chip chip-dim hover:border-[var(--accent)] transition"
-              onClick={() => {
-                setInput(s);
-                run(s);
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+      {emptyHint && (
+        <p className="rounded-lg bg-[var(--tint)] px-4 py-2 text-xs text-slate" role="status">
+          <span className="font-semibold text-ink">Type a question first</span> — e.g. “how do I deploy
+          a contract?” — then hit Search. Or tap one of the patterns below.
+        </p>
       )}
+      <div className="flex flex-wrap gap-2">
+        <span className="text-xs text-slate self-center">
+          {searched ? "Try another:" : "Try one from the real battery:"}
+        </span>
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s}
+            className="chip chip-dim hover:border-[var(--accent)] transition"
+            onClick={() => {
+              setInput(s);
+              run(s);
+            }}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-slate self-center">
+          Watch the refusal — the real CLI exits 2 on these:
+        </span>
+        {REFUSALS.map((s) => (
+          <button
+            key={s}
+            className="chip chip-fail hover:border-[var(--accent)] transition"
+            onClick={() => {
+              setInput(s);
+              run(s);
+            }}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
 
       {/* result */}
       {searched && result && (

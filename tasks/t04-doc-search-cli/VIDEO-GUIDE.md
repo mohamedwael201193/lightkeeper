@@ -81,11 +81,13 @@ the index has no covering passage, and that every quote is traceable to the fetc
 ### Shot 6 — From question to command in the console (1:20–1:30)
 **On screen:** `https://lightkeeper-console.vercel.app/#/task/doc-search-cli` — type
 "how do I deploy a contract?", show the DOC-GROUNDED card (verbatim quote + doc citation), then copy
-the mapped `./pharos-docs` command.
+the mapped `./pharos-docs` command. Then tap one of the "Watch the refusal" chips (the birthday of
+the Pharos CEO) and show the UNVERIFIED card.
 
 **Say:** "And the fastest honest path from question to command: the LIGHTKEEPER console gives you the
 doc-grounded answer with its citation and the exact command that produces it — copy, paste, run.
-It never invents."
+And the refusal travels with it: the console's one-tap refusal demos prove it would rather say
+nothing than make something up. It never invents."
 
 ## Filming notes
 

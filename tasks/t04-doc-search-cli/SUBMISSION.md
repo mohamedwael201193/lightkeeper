@@ -42,8 +42,12 @@ live-pasted example Q&As plus a miss-path demo. Zero chain interaction, 0 PHRS s
 - https://lightkeeper-console.vercel.app/#/task/doc-search-cli — "Search the docs, get the command":
   keyword search over the 7 real doc-grounded answer patterns from `evidence/evidence.json` (verbatim
   quotes + doc-page citations + retrieval date) → the exact `./pharos-docs` CLI each maps to,
-  copy-paste ready, with the same honest UNVERIFIED refusal when nothing matches. Nothing executes in
-  the browser; the visitor runs the CLI in their own terminal.
+  copy-paste ready, with the same honest UNVERIFIED refusal when nothing matches. One-tap "Watch the
+  refusal" chips demo the refusal on the two real miss queries (M1/M2 — the CLI exits 2 on both).
+  Nothing executes in the browser; the visitor runs the CLI in their own terminal.
+
+- Rebuild pipeline re-verified 2026-10-16 (see REVIEWER_NOTES.md §8): refetching the live docs
+  reproduces the shipped index byte-for-byte and all 9 evidence expectations still pass.
 
 ---
 
