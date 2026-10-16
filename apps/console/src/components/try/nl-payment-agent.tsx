@@ -14,18 +14,24 @@
  *
  * LIGHTKEEPER never sees, holds, or asks for private keys.
  *
- * Presentation (SHOWTIME standard): 01 Configure → 02 Parse (ProgressLoader
- * over the three real parse stages) → 03 Result (ResultCard showpiece with
- * the parsed plan as a precision document, the rule-tag vocabulary as chips,
- * then mandatory review → sign → receipt).
+ * Presentation (FLAGSHIP): 01 Configure → 02 The Parser's Mind — the input
+ * highlighting phrase-by-phrase as each extracted field ticks into the plan
+ * document (the Assembly transition: one beat per REAL extracted slot,
+ * ≤0.5s total, no timer theater — the parse itself is synchronous) → 03 the
+ * plan as a precision document (the rule-tag vocabulary as chips, the
+ * SHA-256 plan hash as the seal), then mandatory review → visitor signs →
+ * receipt. Refusals get the Beautiful Refusal: the REFUSED stamp lands
+ * double-beat with its rule tag and the exact flagged phrase — "I won't
+ * guess" as a designed verdict, never a generic error.
  */
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Fingerprint, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Ban, Check, Copy, Fingerprint, ShieldCheck } from "lucide-react";
 import type { Lamp } from "../../types";
 import { EXPLORER_TX, isDustWarning, useProposeAndSign } from "../../hooks/useAtlantic";
 import { useWallet } from "../WalletContext";
-import { EmptyState, ErrorState, ProgressLoader, ResultCard } from "../ui";
+import { ErrorState, ProgressLoader, ResultCard } from "../ui";
 
 // ---------------------------------------------------------------------------
 // Deterministic intent parser — a TypeScript port of the audited parse.py
@@ -459,14 +465,646 @@ const PRESETS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Component — 01 Configure → 02 Parse → 03 Result (ResultCard showpiece).
+// THE PARSER'S MIND — presentation-only span extraction.
+//
+// The parser above is the audited grammar and is NEVER re-implemented here:
+// parsePayment() runs once, synchronously, and its ParseResult is the single
+// source of truth. These helpers only locate WHERE in the visitor's own
+// sentence the matched phrases sit, so the 02 act can highlight each phrase
+// as its field ticks into the plan document. They reuse the grammar's own
+// regex constants (fresh instances — the module-level ones carry /g/ state)
+// and never influence the parse outcome or the plan hash.
 // ---------------------------------------------------------------------------
 
-const PARSE_STEPS = [
-  "Parsing into machine slots",
-  "Applying rule tags",
-  "Hashing the canonical plan",
-];
+interface Span {
+  start: number;
+  end: number;
+}
+
+function fresh(re: RegExp): RegExp {
+  return new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+}
+
+function esc(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function firstSpan(text: string, re: RegExp): Span | null {
+  const r = fresh(re);
+  r.lastIndex = 0;
+  const m = r.exec(text);
+  return m && m.index !== undefined ? { start: m.index, end: m.index + m[0].length } : null;
+}
+
+function allSpans(text: string, re: RegExp): Span[] {
+  const out: Span[] = [];
+  for (const m of text.matchAll(fresh(re))) {
+    if (m.index !== undefined) out.push({ start: m.index, end: m.index + m[0].length });
+  }
+  return out;
+}
+
+/** All "<number> PHRS" phrases, in original-text coordinates. Address hex is
+ *  blanked length-preserving so it is never read as a number — the same rule
+ *  the parser applies. */
+function phrsAmountSpans(text: string): Span[] {
+  const blank = (m: string) => " ".repeat(m.length);
+  const noAddr = text.replace(fresh(ADDR_RE), blank).replace(fresh(BARE_HEX40_RE), blank);
+  const out: Span[] = [];
+  for (const m of noAddr.matchAll(fresh(NUMUNIT_RE))) {
+    const unit = m[2];
+    if (unit && PHRS_UNIT_RE.test(unit) && m.index !== undefined) {
+      out.push({ start: m.index, end: m.index + m[0].length });
+    }
+  }
+  return out;
+}
+
+/** Locate the plan's "<amount> PHRS" phrase in the original sentence. */
+function planAmountSpan(text: string, amountPhrs: string): Span | null {
+  const addrs = allSpans(text, ADDR_RE);
+  const re = new RegExp(`${esc(amountPhrs)}\\s*(?:phrs|pharos)`, "gi");
+  for (const m of text.matchAll(re)) {
+    if (m.index === undefined) continue;
+    const s: Span = { start: m.index, end: m.index + m[0].length };
+    const insideAddr = addrs.some((a) => s.start < a.end && a.start < s.end);
+    if (!insideAddr) return s;
+  }
+  return null;
+}
+
+/** "…" quoted fragments from a refusal/clarify reason. */
+function quotedPhrases(reason: string): string[] {
+  const out: string[] = [];
+  for (const m of reason.matchAll(/"([^"]+)"/g)) {
+    if (m[1]) out.push(m[1]);
+  }
+  return out;
+}
+
+/** "label: a, b, c." → ["a", "b", "c"] from a reason string. */
+function listedPhrases(reason: string, marker: string): string[] {
+  const i = reason.indexOf(marker);
+  if (i < 0) return [];
+  const tail = reason.slice(i + marker.length);
+  const end = tail.indexOf(".");
+  return (end < 0 ? tail : tail.slice(0, end))
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function findPhrase(text: string, phrase: string): Span | null {
+  const needle = phrase.endsWith("…") ? phrase.slice(0, -1) : phrase;
+  if (!needle) return null;
+  const i = text.indexOf(needle);
+  return i < 0 ? null : { start: i, end: i + needle.length };
+}
+
+function findWord(text: string, word: string): Span | null {
+  const m = new RegExp(`\\b${esc(word)}\\b`).exec(text);
+  return m && m.index !== undefined ? { start: m.index, end: m.index + word.length } : null;
+}
+
+/** Phrases that fired a refusal rule — highlighted red in the 02 scan and
+ *  quoted in the refusal verdict. Presentation only. */
+function refusalSpans(rule: string, reason: string, text: string): Span[] {
+  switch (rule) {
+    case "R-VERB-2":
+      return allSpans(text, VERB_RE);
+    case "R-ADDR-2":
+      return allSpans(text, ADDR_RE);
+    case "R-ADDR-BARE":
+      return allSpans(text, BARE_HEX40_RE);
+    case "R-ADDR-ZERO":
+      return allSpans(text, ADDR_RE).filter((a) => /^0x0{40}$/.test(text.slice(a.start, a.end)));
+    case "R-AMOUNT-2":
+      return phrsAmountSpans(text);
+    case "R-AMOUNT-ZERO":
+    case "R-AMOUNT-CAP": {
+      const s = phrsAmountSpans(text)[0];
+      return s ? [s] : [];
+    }
+    case "R-AMOUNT-WORD":
+      return allSpans(text, WORD_AMOUNT_RE);
+    case "R-AMOUNT-PCT":
+      return allSpans(text, PERCENT_RE);
+    case "R-NUM-NEG":
+      return allSpans(text, /-\s*\d+(?:\.\d{1,18})?/);
+    case "R-NUM-COMMA":
+      return allSpans(text, COMMA_NUM_RE);
+    case "R-NUM-MALFORMED": {
+      const q = quotedPhrases(reason)[0];
+      const s = q ? findPhrase(text, q) : null;
+      if (s) return [s];
+      return [firstSpan(text, MALFORMED_LEAD_RE), firstSpan(text, MALFORMED_TRAIL_RE)].filter(
+        (x): x is Span => x !== null
+      );
+    }
+    case "R-NUM-STRAY":
+      return listedPhrases(reason, "no token:")
+        .map((p) => findWord(text, p))
+        .filter((x): x is Span => x !== null);
+    case "R-TOKEN-UNK":
+      return listedPhrases(reason, "unit(s):")
+        .map((p) => findWord(text, p))
+        .filter((x): x is Span => x !== null);
+    default:
+      return quotedPhrases(reason)
+        .map((p) => findPhrase(text, p))
+        .filter((x): x is Span => x !== null);
+  }
+}
+
+type BeatTone = "slot" | "seal" | "missing" | "offense";
+
+interface Beat {
+  key: string;
+  /** Document row label, e.g. "action". */
+  field: string;
+  /** Document row value. Null for offense beats (highlight only, no row). */
+  value: ReactNode;
+  span?: Span;
+  tone: BeatTone;
+  /** For missing slots: the question the machine asks instead of guessing. */
+  question?: string;
+}
+
+interface Shot {
+  text: string;
+  result: ParseResult;
+  beats: Beat[];
+}
+
+/** One extracted slot as a beat: the exact phrase from the input. */
+function textBeat(key: string, field: string, text: string, span: Span | null): Beat | null {
+  if (!span) return null;
+  const phrase = text.slice(span.start, span.end);
+  return {
+    key,
+    field,
+    span,
+    tone: "slot",
+    value: <span className="font-mono break-all">{phrase}</span>,
+  };
+}
+
+/** The beat list for one parse, in reading order, the seal last. Derived
+ *  from — never influencing — the ParseResult. */
+function buildBeats(text: string, result: ParseResult): Beat[] {
+  const push = (arr: Beat[], b: Beat | null) => {
+    if (b) arr.push(b);
+  };
+  if (result.kind === "refuse") {
+    return refusalSpans(result.rule, result.reason, text)
+      .slice(0, 4)
+      .map((span, i) => ({
+        key: `offense-${i}`,
+        field: "flagged phrase",
+        value: null,
+        span,
+        tone: "offense" as BeatTone,
+      }));
+  }
+  if (result.kind === "clarify") {
+    const beats: Beat[] = [];
+    const verb = firstSpan(text, VERB_RE);
+    const addr = firstSpan(text, ADDR_RE);
+    if (result.rule === "R-ADDR-0" || result.rule === "R-AMOUNT-0" || result.rule === "R-TOKEN-UNK") {
+      push(beats, textBeat("action", "action", text, verb));
+    }
+    if (result.rule === "R-AMOUNT-0" || result.rule === "R-TOKEN-UNK") {
+      push(beats, textBeat("recipient", "recipient", text, addr));
+    }
+    if (result.rule === "R-TOKEN-UNK") {
+      refusalSpans(result.rule, result.reason, text)
+        .slice(0, 2)
+        .forEach((span, i) => {
+          beats.push({ key: `offense-${i}`, field: "unknown token", value: null, span, tone: "offense" });
+        });
+    }
+    beats.sort((a, b) => (a.span?.start ?? 0) - (b.span?.start ?? 0));
+    // The missing slot lands last — the machine states what it won't guess.
+    const missingField =
+      result.rule === "R-VERB-0" ? "action" : result.rule === "R-ADDR-0" ? "recipient" : "amount";
+    beats.push({
+      key: "missing",
+      field: missingField,
+      tone: "missing",
+      value: <span className="text-slate">missing — not guessed</span>,
+      question: result.question,
+    });
+    return beats;
+  }
+  // plan — the signature moment: words → machine-checkable plan
+  const plan = result.plan;
+  const beats: Beat[] = [];
+  push(beats, textBeat("action", "action", text, firstSpan(text, VERB_RE)));
+  const amountSpan = planAmountSpan(text, plan.amountPhrs);
+  push(
+    beats,
+    amountSpan
+      ? {
+          key: "amount",
+          field: "amount",
+          span: amountSpan,
+          tone: "slot",
+          value: (
+            <span className="font-mono font-semibold text-ink">
+              {plan.amountPhrs} {NATIVE}
+            </span>
+          ),
+        }
+      : null
+  );
+  push(beats, textBeat("recipient", "recipient", text, firstSpan(text, ADDR_RE)));
+  beats.sort((a, b) => (a.span?.start ?? 0) - (b.span?.start ?? 0));
+  beats.push({
+    key: "seal",
+    field: "plan hash",
+    tone: "seal",
+    value: <span className="font-mono">sha256:{plan.planId}</span>,
+  });
+  return beats;
+}
+
+// ---------------------------------------------------------------------------
+// Flagship presentation components — 02 The Parser's Mind + 03 verdicts.
+// The Assembly: one beat per real extracted slot, ≤0.5s total, instant under
+// prefers-reduced-motion. Every beat names real parser output.
+// ---------------------------------------------------------------------------
+
+const STAGE_LABELS = ["Extract slots", "Apply rule tag", "Seal the plan hash"];
+const BEAT_GAP = 0.08;
+const BEAT_DUR = 0.16;
+
+function RuleTagChip({ tag, dim }: { tag: string; dim?: boolean }) {
+  const meaning = RULE_CATALOG.find((r) => r.tag === tag)?.meaning;
+  return (
+    <span
+      title={meaning ?? tag}
+      className={`chip font-mono !normal-case !tracking-normal ${
+        dim ? "chip-dim" : "chip-info !border-accent font-semibold"
+      }`}
+    >
+      {tag}
+    </span>
+  );
+}
+
+/** The three real parse stages as chapter markers — each lights when its
+ *  work is shown, never on a fake timer. */
+function StageStrip({ delays, reduce }: { delays: (number | null)[]; reduce: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-2" aria-label="Parse stages">
+      {STAGE_LABELS.map((label, i) => {
+        const d = delays[i] ?? null;
+        return (
+          <motion.span
+            key={label}
+            initial={reduce ? { opacity: d === null ? 0.4 : 1 } : { opacity: 0.4 }}
+            animate={{ opacity: d === null ? 0.4 : 1 }}
+            transition={{ delay: d ?? 0, duration: 0.2 }}
+            className={`chip ${d === null ? "chip-dim" : "chip-info"}`}
+          >
+            {i + 1} · {label}
+          </motion.span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The visitor's sentence, each extracted phrase lighting up on its beat. */
+function HighlightedInput({
+  text,
+  beats,
+  gap,
+  dur,
+  reduce,
+  onBeatDone,
+}: {
+  text: string;
+  beats: Beat[];
+  gap: number;
+  dur: number;
+  reduce: boolean;
+  onBeatDone: (i: number) => void;
+}) {
+  const items = beats
+    .map((b, i) => ({ b, i }))
+    .filter(({ b }) => b.span)
+    .sort((x, y) => (x.b.span as Span).start - (y.b.span as Span).start);
+  const segs: ReactNode[] = [];
+  let pos = 0;
+  items.forEach(({ b, i }, k) => {
+    const s = b.span as Span;
+    if (s.start < pos) return; // overlapping span — never double-paint
+    if (s.start > pos) segs.push(<span key={`t${k}`}>{text.slice(pos, s.start)}</span>);
+    const offense = b.tone === "offense";
+    segs.push(
+      <motion.span
+        key={`h${k}`}
+        title={offense ? "Flagged by the refusal rule" : `Parsed as ${b.field}`}
+        initial={reduce ? false : { opacity: 0.25 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: i * gap, duration: dur }}
+        onAnimationComplete={() => onBeatDone(i)}
+        className={
+          offense
+            ? "rounded border-b-2 border-fail bg-fail/10 px-0.5 font-mono text-fail"
+            : "rounded border-b-2 border-accent bg-accent/10 px-0.5 font-mono text-ink"
+        }
+      >
+        {text.slice(s.start, s.end)}
+      </motion.span>
+    );
+    pos = s.end;
+  });
+  if (pos < text.length) segs.push(<span key="tail">{text.slice(pos)}</span>);
+  return (
+    <p
+      className="break-words font-mono text-sm leading-relaxed text-ink sm:text-base"
+      aria-label="Your instruction, with the parsed phrases highlighted"
+    >
+      {segs}
+    </p>
+  );
+}
+
+/** The plan hash seal with its copy button — and the single expanding ring,
+ *  the one beat when the result lands (gone in 0.6s). */
+function SealCopy({ planId, delay, reduce }: { planId: string; delay: number; reduce: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(planId);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = planId;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <span className="relative inline-flex items-center">
+      {!reduce && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute -inset-1.5 rounded-lg border-2 border-accent"
+          initial={{ opacity: 0.55, scale: 0.92 }}
+          animate={{ opacity: 0, scale: 1.18 }}
+          transition={{ delay: delay + 0.08, duration: 0.6, ease: "easeOut" }}
+        />
+      )}
+      <button
+        type="button"
+        onClick={copy}
+        className="chip chip-dim !py-1"
+        aria-label="Copy the full plan hash"
+      >
+        {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+        <span className="font-mono">{copied ? "copied" : "copy hash"}</span>
+      </button>
+    </span>
+  );
+}
+
+/** The plan document, assembling one real field per beat. */
+function DocumentRows({
+  beats,
+  gap,
+  dur,
+  reduce,
+  planId,
+  onBeatDone,
+}: {
+  beats: Beat[];
+  gap: number;
+  dur: number;
+  reduce: boolean;
+  planId: string;
+  onBeatDone: (i: number) => void;
+}) {
+  const rows = beats.filter((b) => b.tone !== "offense");
+  if (rows.length === 0) return null;
+  return (
+    <div className="mt-2 divide-y divide-hairline border-t border-hairline">
+      {rows.map((b) => {
+        const i = beats.indexOf(b);
+        const missing = b.tone === "missing";
+        const seal = b.tone === "seal";
+        return (
+          <motion.div
+            key={b.key}
+            initial={reduce ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * gap, duration: dur }}
+            onAnimationComplete={() => onBeatDone(i)}
+            className="py-3"
+          >
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="w-24 shrink-0 text-sm font-semibold text-slate">{b.field}</span>
+              {missing ? (
+                <span className="rounded-lg border-2 border-dashed border-hairline px-3 py-1 text-sm text-slate">
+                  {b.value}
+                </span>
+              ) : (
+                <span className="min-w-0 flex-1 text-sm">{b.value}</span>
+              )}
+              {seal && <SealCopy planId={planId} delay={i * gap} reduce={reduce} />}
+            </div>
+            {missing && b.question && <p className="mt-1 text-sm text-slate">{b.question}</p>}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * The 02 act — THE PARSER'S MIND. The input highlights phrase-by-phrase as
+ * each field ticks into the plan document; the three stage markers light as
+ * their real work is shown. In "complete" mode everything stands still.
+ */
+function ParseShowcase({
+  shot,
+  mode,
+  onAssembled,
+}: {
+  shot: Shot;
+  mode: "assembling" | "complete";
+  onAssembled?: () => void;
+}) {
+  const reduce = useReducedMotion();
+  const { text, result, beats } = shot;
+  const live = mode === "assembling" && !reduce;
+  const gap = live ? BEAT_GAP : 0;
+  const dur = live ? BEAT_DUR : 0;
+  const last = beats.length - 1;
+  const fired = useRef(false);
+
+  useEffect(() => {
+    if (beats.length === 0) onAssembled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const beatDone = (i: number) => {
+    if (i === last && !fired.current) {
+      fired.current = true;
+      onAssembled?.();
+    }
+  };
+
+  const slotCount = beats.filter((b) => b.tone === "slot").length;
+  const sealIdx = beats.findIndex((b) => b.tone === "seal");
+  const delays: (number | null)[] =
+    result.kind === "plan"
+      ? [0, slotCount * gap, sealIdx < 0 ? null : sealIdx * gap]
+      : result.kind === "clarify"
+        ? [0, slotCount * gap, null]
+        : [0, 0, null];
+  const chipDelay = slotCount * gap;
+  const planId = result.kind === "plan" ? result.plan.planId : "";
+  const hasDoc = beats.some((b) => b.tone !== "offense");
+
+  return (
+    <div className="space-y-4">
+      <StageStrip delays={delays} reduce={reduce} />
+      <div className="rounded-2xl border border-hairline bg-white p-6 sm:p-8">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-slate">
+            {result.kind === "plan"
+              ? "Parsed payment plan"
+              : result.kind === "clarify"
+                ? "Partial parse — one slot missing"
+                : "The scan — what the rule flagged"}
+          </p>
+          {result.kind !== "refuse" && (
+            <motion.span
+              initial={reduce ? false : { opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: chipDelay, duration: 0.18 }}
+              className="inline-flex"
+            >
+              <RuleTagChip tag={result.rule} />
+            </motion.span>
+          )}
+        </div>
+        {result.kind === "plan" && (
+          <h4 className="mt-3 font-display text-4xl font-bold tracking-tight text-ink sm:text-5xl">
+            Send {result.plan.amountPhrs} {NATIVE}
+          </h4>
+        )}
+        <div className="mt-3">
+          <HighlightedInput
+            text={text}
+            beats={beats}
+            gap={gap}
+            dur={dur}
+            reduce={reduce}
+            onBeatDone={beatDone}
+          />
+        </div>
+        {hasDoc && (
+          <DocumentRows
+            beats={beats}
+            gap={gap}
+            dur={dur}
+            reduce={reduce}
+            planId={planId}
+            onBeatDone={beatDone}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Beautiful Refusal (flagship doctrine §3A): the refusal is a designed
+ * verdict, not an error state. Double beat — the REFUSED stamp lands, then
+ * the plain-language reason rises — with the fired rule tag and the exact
+ * flagged phrase. "The machine said no, and here's exactly why."
+ */
+function RefusalCard({
+  result,
+  text,
+  onExample,
+}: {
+  result: Extract<ParseResult, { kind: "refuse" }>;
+  text: string;
+  onExample: () => void;
+}) {
+  const reduce = useReducedMotion();
+  const meaning = RULE_CATALOG.find((r) => r.tag === result.rule)?.meaning;
+  const flagged = refusalSpans(result.rule, result.reason, text)
+    .slice(0, 4)
+    .map((s) => text.slice(s.start, s.end));
+  const stampMotion = reduce
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0 } }
+    : {
+        initial: { opacity: 0, scale: 1.15, rotate: -4 },
+        animate: { opacity: 1, scale: 1, rotate: -2 },
+        transition: { type: "spring" as const, stiffness: 320, damping: 20 },
+      };
+  const riseMotion = reduce
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0 } }
+    : {
+        initial: { opacity: 0, y: 16 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.3, delay: 0.22, ease: "easeOut" as const },
+      };
+  return (
+    <div className="rounded-2xl border border-hairline bg-white p-6 sm:p-8" aria-live="polite">
+      {/* beat 1 — the stamp lands */}
+      <motion.div {...stampMotion} className="flex justify-center sm:justify-start">
+        <span
+          role="status"
+          aria-label={`Refused: ${result.rule}`}
+          style={{ boxShadow: "0 10px 28px -10px currentColor" }}
+          className="inline-flex items-center gap-3 rounded-xl border-2 border-fail bg-white px-6 py-3 text-fail"
+        >
+          <Ban size={34} aria-hidden />
+          <span className="font-display text-4xl font-bold tracking-wide sm:text-5xl">REFUSED</span>
+        </span>
+      </motion.div>
+      {/* beat 2 — the reason rises: the denial IS the product */}
+      <motion.div {...riseMotion} className="mt-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <RuleTagChip tag={result.rule} />
+          {meaning && <span className="text-sm text-slate">{meaning}</span>}
+        </div>
+        <p className="mt-3 text-base leading-relaxed text-ink">{result.reason}</p>
+        {flagged.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Phrases that fired the rule">
+            {flagged.map((f, i) => (
+              <span
+                key={i}
+                title="The exact phrase that fired the rule"
+                className="chip border-fail/40 bg-fail/10 font-mono !normal-case !tracking-normal text-fail"
+              >
+                “{f}”
+              </span>
+            ))}
+          </div>
+        )}
+        <p className="mt-3 text-sm font-semibold text-ink">{result.question}</p>
+        <button type="button" onClick={onExample} className="btn-outline mt-5 min-h-[44px]">
+          Try the dust example
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Component — 01 Configure → 02 The Parser's Mind → 03 Result.
+// ---------------------------------------------------------------------------
 
 const SIGN_STEPS = [
   "Waiting for your wallet signature",
@@ -476,68 +1114,50 @@ const SIGN_STEPS = [
 
 type Phase = "configure" | "parsing" | "result";
 
-/** Run `fn` after yielding to the browser so each ProgressLoader step is
- *  visible while the REAL synchronous stage executes. No timer-only steps:
- *  every label names work that actually runs. */
-function nextFrame(): Promise<void> {
-  return new Promise((r) => setTimeout(r, 280));
-}
-
 export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<Phase>("configure");
-  const [parseStep, setParseStep] = useState(0);
-  const [result, setResult] = useState<ParseResult | null>(null);
+  const [shot, setShot] = useState<Shot | null>(null);
   const { state: wallet, connect } = useWallet();
   const { state, proposal, txHash, error, propose, approve, cancel } =
     useProposeAndSign();
 
-  async function runParse(next: string) {
+  /** The three parse stages, run synchronously — this IS the work. The 02
+   *  act is then the Assembly choreography over the real computed slots
+   *  (one beat per extracted field, ≤0.5s total), not a loader over sleeps. */
+  function runParse(next: string) {
     if (state !== "idle") cancel();
     setText(next);
-    setResult(null);
-    setPhase("parsing");
-    setParseStep(0);
-    try {
-      // Stage 1 — the real deterministic parse.
-      await nextFrame();
-      const parsed = parsePayment(next);
-      setParseStep(1);
-      // Stage 2 — rule-tag extraction is real work: map the outcome onto the
-      // parser's tag vocabulary (drives the chips in 03 Result).
-      await nextFrame();
-      const ruleTag = parsed.rule;
-      void RULE_CATALOG.find((r) => r.tag === ruleTag);
-      setParseStep(2);
-      // Stage 3 — recompute the SHA-256 plan hash through the same planIdOf()
-      // the CONFIRM gate binds, proving console ↔ CLI byte-identity.
-      await nextFrame();
-      if (parsed.kind === "plan") {
-        const recomputed = planIdOf(parsed.plan.amountPhrs, parsed.plan.to);
-        if (recomputed !== parsed.plan.planId) {
-          throw new Error("Plan hash mismatch — this should never happen.");
-        }
+    // Stage 1 — the real deterministic parse.
+    const parsed = parsePayment(next);
+    // Stage 2 — the rule tag, mapped onto the parser's tag vocabulary
+    // (drives the chips and the refusal verdict).
+    void RULE_CATALOG.find((r) => r.tag === parsed.rule);
+    // Stage 3 — the SHA-256 plan hash, recomputed through the same
+    // planIdOf() the CONFIRM gate binds, proving console ↔ CLI byte-identity.
+    if (parsed.kind === "plan") {
+      const recomputed = planIdOf(parsed.plan.amountPhrs, parsed.plan.to);
+      if (recomputed !== parsed.plan.planId) {
+        throw new Error("Plan hash mismatch — this should never happen.");
       }
-      setParseStep(3);
-      setResult(parsed);
-      setPhase("result");
-    } catch {
-      // Never swallow a parse failure into a stuck loader.
-      setPhase("configure");
     }
+    const beats = buildBeats(next, parsed);
+    setShot({ text: next, result: parsed, beats });
+    // Empty input: nothing to assemble — straight to the clarification.
+    setPhase(parsed.rule === "R-EMPTY" ? "result" : "parsing");
   }
 
   function handlePropose() {
-    if (result?.kind !== "plan") return;
+    if (shot?.result.kind !== "plan") return;
     propose({
-      to: result.plan.to,
-      valuePhrs: result.plan.amountPhrs,
-      label: `Send ${result.plan.amountPhrs} PHRS`,
+      to: shot.result.plan.to,
+      valuePhrs: shot.result.plan.amountPhrs,
+      label: `Send ${shot.result.plan.amountPhrs} PHRS`,
     });
   }
 
   function fillExample() {
-    void runParse(PRESETS[0].text);
+    runParse(PRESETS[0].text);
   }
 
   const walletLabel = (() => {
@@ -557,7 +1177,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
   const showConnectFix =
     (state === "blocked" || state === "error") && wallet.status !== "connected";
 
-  const planResult = result?.kind === "plan" ? result : null;
+  const planResult = shot && shot.result.kind === "plan" ? shot.result : null;
   const plan = planResult?.plan ?? null;
 
   return (
@@ -586,18 +1206,23 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && text.trim()) void runParse(text);
+              if (e.key === "Enter" && text.trim()) runParse(text);
             }}
             placeholder="send 0.001 PHRS to 0x…"
             className="w-full min-h-[44px] rounded-xl border border-hairline bg-white px-4 py-3 font-mono text-sm text-ink placeholder:text-slate/60 focus:border-accent focus:outline-none"
             aria-label="Payment instruction in plain language"
           />
+          <p className="text-sm text-slate">
+            The grammar&rsquo;s shape:{" "}
+            <span className="font-mono text-ink">verb amount PHRS to 0x…</span> — one
+            verb, one amount, one address. Anything else gets a named rule, not a guess.
+          </p>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((p) => (
               <button
                 key={p.label}
                 className="chip chip-dim !py-2 hover:border-accent"
-                onClick={() => void runParse(p.text)}
+                onClick={() => runParse(p.text)}
                 title={p.text}
               >
                 {p.label}
@@ -607,7 +1232,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
           <div>
             <button
               className="btn-primary min-h-[44px]"
-              onClick={() => void runParse(text)}
+              onClick={() => runParse(text)}
               disabled={!text.trim() || phase === "parsing"}
             >
               Parse my instruction
@@ -616,72 +1241,60 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
         </div>
       </div>
 
-      {/* 02 — parse (only while work is in flight) */}
-      {phase === "parsing" && (
+      {/* 02 — the parser's mind: the input highlights phrase-by-phrase as each
+          extracted field ticks into the plan document. One beat per REAL
+          slot, ≤0.5s total — the parse itself ran synchronously above. */}
+      {phase === "parsing" && shot && (
         <div>
-          <p className="mb-2 text-sm font-semibold text-slate">02 · Parsing</p>
-          <ProgressLoader steps={PARSE_STEPS} current={parseStep} />
+          <p className="mb-2 text-sm font-semibold text-slate">02 · Parsing — the parser&rsquo;s mind</p>
+          <ParseShowcase shot={shot} mode="assembling" onAssembled={() => setPhase("result")} />
+          <p className="mt-2 text-sm text-slate">
+            Each phrase lights up as its field joins the plan — nothing inferred, nothing defaulted.
+          </p>
         </div>
       )}
 
-      {/* 03 — result */}
-      {phase === "result" && result && (
+      {/* 03 — the plan as a precision document (climax), or the designed
+          refusal / clarification verdict. The showcase stands complete;
+          the rule tags, the review pipeline and the sign flow follow. */}
+      {phase === "result" && shot && (
         <div className="space-y-6">
-          <p className="text-sm font-semibold text-slate">03 · Result — the parsed plan</p>
+          <p className="text-sm font-semibold text-slate">
+            03 ·{" "}
+            {shot.result.kind === "plan"
+              ? "Result — the parsed plan"
+              : shot.result.kind === "refuse"
+                ? "Verdict — refused"
+                : "Result — one clarification"}
+          </p>
 
-          {plan && (
-            <ResultCard
-              eyebrow="Parsed payment plan"
-              headline={
-                <>
-                  Send {plan.amountPhrs} {NATIVE}
-                </>
-              }
-              subline={planResult ? planResult.confidence : undefined}
-              status="neutral"
-              copyValue={plan.planId}
-              rows={[
-                { label: "Recipient", value: plan.to },
-                { label: "Action", value: plan.action },
-                { label: "Token", value: `${NATIVE} — native, Atlantic testnet` },
-                { label: "Rule", value: planResult ? planResult.rule : "" },
-                { label: "Plan hash", value: `sha256:${plan.planId}` },
-              ]}
-            >
+          {shot.result.rule !== "R-EMPTY" && (
+            <ParseShowcase shot={shot} mode="complete" />
+          )}
+
+          {plan && planResult && (
+            <>
               {/* Rule-tag vocabulary — the parser's vocabulary as chips */}
               <div>
                 <p className="text-sm font-semibold text-slate">
                   Rule tags — every tag this parser enforces
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {RULE_CATALOG.map((r) => {
-                    const active = planResult !== null && r.tag === planResult.rule;
-                    return (
-                      <span
-                        key={r.tag}
-                        title={r.meaning}
-                        className={`chip font-mono !normal-case !tracking-normal ${
-                          active
-                            ? "chip-info !border-accent font-semibold"
-                            : "chip-dim"
-                        }`}
-                      >
-                        {r.tag}
-                      </span>
-                    );
-                  })}
+                  {RULE_CATALOG.map((r) => (
+                    <RuleTagChip key={r.tag} tag={r.tag} dim={r.tag !== planResult.rule} />
+                  ))}
                 </div>
               </div>
 
-              {planResult?.warning && (
+              {planResult.warning && (
                 <div className="mt-4 flex items-start gap-2 rounded-lg border border-gold/50 bg-[#fdf8e8] px-4 py-3">
                   <ShieldCheck size={16} className="mt-0.5 shrink-0 text-golddeep" aria-hidden />
-                  <p className="text-sm text-golddeep">{planResult?.warning}</p>
+                  <p className="text-sm text-golddeep">{planResult.warning}</p>
                 </div>
               )}
               {isDustWarning(plan.amountPhrs) && (
                 <p className="mt-3 text-sm font-semibold text-golddeep">
-                  Above the 0.01 PHRS dust limit — you'll see an amber warning
+                  Above the 0.01 PHRS dust limit — you&rsquo;ll see an amber warning
                   at the review step.
                 </p>
               )}
@@ -690,7 +1303,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
                 <Fingerprint size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
                 <p>
                   The plan hash is the SHA-256 of the canonical plan —
-                  byte-identical to the CLI agent's <span className="font-mono">plan_id</span>.
+                  byte-identical to the CLI agent&rsquo;s <span className="font-mono">plan_id</span>.
                   Parse, review and signature share one plan identity.
                 </p>
               </div>
@@ -703,26 +1316,30 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
                   Propose this payment — review it next
                 </button>
               )}
-            </ResultCard>
+            </>
           )}
 
-          {result.kind === "clarify" && (
-            <EmptyState
-              title="Needs one clarification"
-              message={`${result.reason} ${result.question}`}
-              actionLabel="Try the dust example"
-              onAction={fillExample}
-            />
+          {shot.result.kind === "clarify" && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="rounded-2xl border-2 border-dashed border-hairline bg-porcelain px-6 py-8"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="text-lg font-semibold text-ink">Needs one clarification</h4>
+                <RuleTagChip tag={shot.result.rule} />
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-ink">{shot.result.reason}</p>
+              <p className="mt-1 text-sm font-semibold text-ink">{shot.result.question}</p>
+              <button type="button" onClick={fillExample} className="btn-outline mt-5 min-h-[44px]">
+                Try the dust example
+              </button>
+            </motion.div>
           )}
 
-          {result.kind === "refuse" && (
-            <ErrorState
-              title="Refused — I won't guess"
-              message={result.reason}
-              hint={result.question}
-              retryLabel="Try the dust example"
-              onRetry={fillExample}
-            />
+          {shot.result.kind === "refuse" && (
+            <RefusalCard result={shot.result} text={shot.text} onExample={fillExample} />
           )}
 
           {/* mandatory review + sign pipeline */}
