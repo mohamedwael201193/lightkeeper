@@ -62,6 +62,32 @@ Atlantic RPC rejects some Foundry request shapes (disclosed root-cause in
 `REVIEWER_NOTES.md`; worked around with a local request normalizer, all data
 still live from Atlantic).
 
+## Live interactive demo (LIGHTKEEPER console)
+
+The task ships a wallet-interactive "try it live" surface in the LIGHTKEEPER
+console (`apps/console/src/components/try/dry-run-executor.tsx`, Tier B —
+propose + sign in the visitor's own wallet):
+
+- **"See the outcome before your wallet opens."** The visitor builds a tx
+  (to / value / data — with one-click presets for the live probe's `ping()`
+  and `boom()`), then **Dry-run** runs `eth_call` + `eth_estimateGas` against
+  Atlantic: no wallet, no signature, nothing broadcast. The outcome preview is
+  the product — PASS (gas estimate, 1.2× safety limit, predicted cost, block
+  height) or FAIL (exact revert reason decoded from the chain's error payload:
+  `Error(string)` / `Panic(uint256)` / custom).
+- **FAIL blocks the sign path with the reason stated** — the disabled button
+  reads "Sign — blocked: would revert: …" and the plain-language revert reason
+  is shown beside it. Never a dead button.
+- **PASS unlocks propose → mandatory review** (to / value / gas / predicted
+  cost, dust warning rendered AMBER) → the visitor approves and signs in
+  **their own wallet** with **their testnet PHRS** → receipt + explorer link
+  labeled "Your tx — signed in your wallet." LIGHTKEEPER never holds keys.
+- The honest simulation/reality drift is stated on the page (the 1.2× factor
+  exists because estimates have drifted ~28% on this network), and the review
+  step names the block the simulation ran at.
+
+New filming shots for the console demo are in `VIDEO-GUIDE.md` (§ Shot 4).
+
 ## Repo link (commit-pinned)
 
 `https://github.com/mohamedwael201193/lightkeeper/tree/e47ac9a0edaadb3af4d076005001c968138be373/tasks/t08-dry-run-executor`

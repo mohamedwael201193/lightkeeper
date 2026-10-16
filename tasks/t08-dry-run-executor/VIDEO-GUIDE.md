@@ -67,6 +67,31 @@ reality; total spend for the whole task: three ten-thousandths of a PHRS."*
 
 **End card (text overlay):** `LIGHTKEEPER T08 · DRY-RUN EXECUTOR · simulate before you sign`
 
+## Shot 4 — the console interactive demo (0:00–0:45, film separately or splice)
+
+**Show:** the LIGHTKEEPER console, T08 Dry-Run Executor page, real browser.
+
+**Do (live, narrate):**
+
+1. Click the **probe `ping()`** preset → **Dry-run** → point at the
+   **PASS** chip, the gas estimate, the 1.2× safety limit, the predicted cost.
+   **Say:** *"In the console now — same dry-run, live in the browser. No
+   wallet connected, no signature, nothing broadcast. It says PASS, with the
+   gas math, before any key exists."*
+2. Click the **probe `boom()`** preset → **Dry-run** → point at the
+   **FAIL** chip and the decoded revert reason. **Say:** *"The hostile case:
+   the console decodes the chain's own revert payload — 'DryRunProbe: forced
+   boom'. And the sign button is blocked with the reason printed on it."*
+3. Back on the passing case: **Propose transaction** → point at the mandatory
+   review panel (to / value / gas / predicted cost, amber dust warning if
+   applicable) → click **Sign in my wallet** → approve in MetaMask (your own
+   wallet, your own testnet PHRS) → show the mined receipt and the explorer
+   link. **Say:** *"Only a passing simulation unlocks the sign step. Review
+   is mandatory, signing happens in my own wallet — LIGHTKEEPER never holds
+   keys. Your tx, signed in your wallet."*
+
+**End card (text overlay):** `LIGHTKEEPER T08 · DRY-RUN EXECUTOR · simulate before you sign`
+
 ## Spoken script (full, ~85s at natural pace)
 
 > "Every transaction deserves a rehearsal before it touches the chain. This is
@@ -88,3 +113,6 @@ reality; total spend for the whole task: three ten-thousandths of a PHRS."*
 - [ ] Explorer pages loaded live (not screenshots) — tx `0x639f87…012ee`
 - [ ] Keep the `blocked-execution.log` refusal line on screen ≥ 3 seconds
 - [ ] No background browser tabs with unrelated content
+- [ ] Shot 4: console on T08 page with a funded Atlantic-testnet wallet ready;
+      film the browser UI, not screenshots; keep the MetaMask approval popup on
+      screen ≥ 3 seconds; the sign must complete live on camera
