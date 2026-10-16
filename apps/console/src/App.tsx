@@ -147,7 +147,7 @@ export default function App() {
               <Hero data={data} />
               <StackSection lamps={data.tasks} />
               <LampsSection lamps={data.tasks} />
-              <ActivityFeed lamps={data.tasks} />
+              <ActivityFeed lamps={data.tasks.filter((t) => founder || isTaskPubliclyOpen(t.id))} />
             </main>
           )}
           <Footer />
