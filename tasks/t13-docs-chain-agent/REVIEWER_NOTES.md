@@ -31,6 +31,14 @@
   it, and the 4th is the mandated fail-closed probe (docs don't cover WPHRS
   pricing → `[UNVERIFIED]`, nothing executed).
 
+## Findings
+
+- **Docs-vs-chain mismatch (2026-10-16, curl-verified live):** the corpus token-registry page says
+  WPHRS's name is "Wrapped PHRS"; the contract's `name()` returns "Wrapped Pharos" on-chain.
+  The console try module's 04 VERDICT renders this as DOCS ≠ CHAIN with the contract as live
+  truth. `symbol()` ("WPHRS") and `decimals()` (18) agree with the docs (DOCS ≡ CHAIN).
+  This is exactly the behavior the loop is built for: proof that can disagree with the docs.
+
 ## Honest limitations
 
 - The "Docs MCP" here is retrieval over 6 real docs.pharos.xyz pages fetched

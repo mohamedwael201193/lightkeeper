@@ -1,10 +1,10 @@
-# T13 VIDEO GUIDE — "The agent that cites, then proves" (45–90 seconds)
+# T13 VIDEO GUIDE — "The agent that cites, then proves" (60–120 seconds)
 
 Goal: question → docs answer WITH visible sources → the SAME function executed
 live on Atlantic → the interpreted result → second function. NO staged fakes:
 every terminal command and every explorer page is real.
 
-## Shot plan (total ~75s)
+## Shot plan (total ~110s)
 
 | # | Time | Shot | Spoken script |
 |---|---|---|---|
@@ -15,6 +15,7 @@ every terminal command and every explorer page is real.
 | 5 | 50–65s | Terminal: `python3 src/doc_agent.py logs` (fast-forward the two broadcasts) → browser: the transfer tx on atlantic.pharosscan.xyz, then the matched log | "Question three: event logs. The agent creates a real on-chain footprint — a dust deposit and transfer — then queries eth_getLogs and matches the log to its own transaction hash." |
 | 6 | 65–75s | Terminal: `python3 src/doc_agent.py failclosed` — the UNVERIFIED answer; `python3 tests/test_transcripts.py` tail: "Ran 10 tests … OK" | "And when the docs don't cover it — like a WPHRS price feed — it says so and executes nothing. Ten tests, all live, all pass." |
 | 7 | 75–95s | Browser: the LIGHTKEEPER console, T13 lamp page — the "Explain then prove" try-it-live panel. Type WPHRS + `balanceOf(address)` with a holder address, press "Explain then prove": the docs-grounded explanation (DOC-GROUNDED citations with URLs and excerpts) appears left, the live on-chain proof decodes right. Then type a made-up signature like `priceFeed()` and show the UNVERIFIED fail-closed panel — nothing executed. | "And now it's live for anyone: ask the panel a function, get the docs-grounded explanation with sources, and watch the same function execute on Atlantic — side by side. Unknown function? It says UNVERIFIED and touches nothing. That's the loop." |
+| 8 | 95–110s | Same panel: run `decimals()` — show the 04 VERDICT panel rendering DOCS ≡ CHAIN ("docs claimed 18, chain answered 18"). Then run `name()` — show DOCS ≠ CHAIN: the docs registry says "Wrapped PHRS", the contract answers "Wrapped Pharos" live, and the panel flags the mismatch with the contract as live truth. | "And it closes the loop — the verdict. Decimals: the docs claimed eighteen, the chain answered eighteen, they agree. Name: the docs say Wrapped PHRS, the contract says Wrapped Pharos — the panel flags it, because the chain is the live truth. Proof can disagree with the docs, and this panel says so." |
 
 ## Filming rules
 
