@@ -44,6 +44,14 @@ Proven end-to-end on Atlantic, all real transactions:
 4. The watcher detected the crossing and delivered the Telegram alert
    (message_id 716): "Health factor: 1.2000 … Concrete action: repay $0.000400
    of debt OR add 0.000267 PHRS collateral to restore HF ≥ 1.5" (block 31481762).
+   Honesty note (2026-10-16 hardening pass): the add-collateral leg quoted in
+   the delivered message used the original formula (`repay_usd / price`) and
+   re-verified on live reads restores HF to only 1.36, not 1.5 — the repay leg
+   was exact ($0.0004 → HF exactly 1.5, proven by tx 5). The watcher and the
+   console module now use the exact restore-to-target solution
+   (`target × debt / lt − collateral` → 0.000500 PHRS at alert-time state; both
+   legs provably restore HF = 1.5). The Telegram message is quoted verbatim as
+   the historical record.
 5. Repaid $0.0004 on-chain (HF 1.2 → 1.5) —
    https://atlantic.pharosscan.xyz/tx/0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4 —
    the watcher logged RECOVERED with no alert.
@@ -68,14 +76,27 @@ https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb
 
 **Video:** PENDING-VIDEO
 
-## Console interactive surface (added 2026-10-16)
+## Console interactive surface (added 2026-10-16; hardened same day)
 
 - Module: `apps/console/src/components/try/liquidation-watchdog.tsx` — Tier A, live reads
   only (no wallet, no signature, costs nothing).
 - **"Your position, live risk":** paste any address → the module calls
-  `getUserAccountData()` on MiniLend via `eth_call` and shows collateral, debt, oracle
-  price and the on-chain health factor with a PASS / AT RISK / LIQUIDATABLE chip, the
-  exact oracle price that would trigger liquidation, and the concrete repay-X or
-  add-Y-PHRS amounts that restore HF ≥ 1.5 — the same math the Telegram watcher fires.
-- Differentiator: real risk math on any address you paste — not a canned demo of one
-  position. The console video shot is shot 7 in VIDEO-GUIDE.md.
+  `getUserAccountData()` on MiniLend via `eth_call` and renders the watcher's
+  verdict on that address: PASS / AT RISK / LIQUIDATABLE chip, a risk gauge
+  (HF 0→2.0 with liquidation 1.0 / critical 1.1 / warn 1.3 / target 1.5 markers),
+  collateral, debt, oracle price, the exact oracle price that would trigger
+  liquidation, the price cushion (how far PHRS can fall first), and the concrete
+  repay-X or add-Y-PHRS amounts that restore HF ≥ 1.5 — the corrected formula,
+  the same math the Telegram watcher fires.
+- Edge states, all honest: an address with no position says so plainly; a
+  debt-free address (collateral, zero debt) gets a SAFE chip and an "HF is
+  infinite, nothing to liquidate" panel instead of a crash (fixed 2026-10-16 —
+  the zone map previously had no debt-free entry and threw); a zero-collateral
+  debt position (HF 0) is shown as liquidatable-at-any-price with full-debt
+  repay as the concrete action. RPC failures show a plain-language error with
+  a Retry button; invalid addresses are rejected inline. Verified: `tsc` clean,
+  `vite build` clean, and all 7 zone paths (healthy / warning / critical /
+  liquidatable / debt-free / empty / zero-collateral) exercised against the
+  live RPC with restore-math asserted ≥ 1.5.
+- Differentiator: real risk verdict on any address you paste — not a canned
+  demo of one position. The console video shot is shot 7 in VIDEO-GUIDE.md.

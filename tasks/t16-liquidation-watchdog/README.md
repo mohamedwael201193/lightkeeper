@@ -71,6 +71,13 @@ The delivered alert read: *"🟠 LIQUIDATION WATCHDOG — WARNING … Health fac
 1.2000 … Concrete action: repay $0.000400 of debt OR add 0.000267 PHRS
 collateral to restore HF ≥ 1.5"* — with position, block, and explorer link.
 
+> **Formula correction (2026-10-16):** the alert's add-collateral leg used the
+> original formula (`repay_usd / price`); re-verified on live reads it restores
+> HF to only 1.36, not 1.5. The repay leg was exact ($0.0004 → HF 1.5 on-chain).
+> `watch.py` and the console try module now use the exact restore-to-target
+> solution (`target × debt / lt − collateral` → 0.000500 PHRS at alert-time
+> state; both legs provably restore HF = 1.5). See `evidence.md`.
+
 ## 6. Run it yourself
 
 ```bash

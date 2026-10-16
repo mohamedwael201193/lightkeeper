@@ -27,6 +27,10 @@
   *"repay $0.000400 of debt OR add 0.000267 PHRS collateral to restore HF ≥ 1.5"*.
   The recovery repay then executed the first option on-chain (tx 5) and the
   watcher logged RECOVERED.
+  - Honesty note (2026-10-16 hardening): the add-collateral leg quoted in alert
+    716 used the original formula and restores HF to only 1.36 — the code now
+    uses the exact restore-to-target solution (0.000500 PHRS at alert-time
+    state, provably HF = 1.5). Details in `evidence.md`.
 
 ## Deliberate design choices (and their trade-offs)
 

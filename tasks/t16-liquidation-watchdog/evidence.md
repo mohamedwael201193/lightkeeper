@@ -24,6 +24,19 @@ Contract: [0x108989a165a446e1d89CEe3C9936344ea7ADbf4a](https://atlantic.pharossc
 - A second watcher run in WARNING sent **no duplicate** (transition-only).
 - The recovery run logged `RECOVERED` and sent **no alert**.
 
+### Formula correction (2026-10-16, hardening pass)
+
+The delivered alert 716 quoted the original add-collateral formula
+(`add_phrs = repay_usd / price` → 0.000267 PHRS). Re-verified 2026-10-16
+against live Atlantic reads of the alert-time state (collateral $0.003, debt
+$0.002, price $1.50): that amount restores HF to only **1.36**, not 1.5 — the
+repay leg ($0.0004 → HF exactly 1.5, proven on-chain by tx 5) was exact.
+The formula was corrected to the exact restore-to-target solution
+(`need_coll_usd = target × debt / lt − collateral` → 0.000500 PHRS; both legs
+now provably restore HF = 1.5 on the live numbers). The watcher
+(`concrete_actions`) and the console try module both use the corrected
+formula. The Telegram message above is the historical record, quoted verbatim.
+
 ## Watcher log (real run, UTC timestamps)
 
 ```
