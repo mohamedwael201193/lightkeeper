@@ -15,7 +15,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
-import { RefreshCw, Wallet } from "lucide-react";
+import { EyeOff, RefreshCw, Wallet } from "lucide-react";
 import type { Lamp } from "../../types";
 import { useWallet } from "../WalletContext";
 import {
@@ -325,6 +325,132 @@ function AnimatedTicker({ value, format }: { value: number; format: (n: number) 
   return <span className="tabular-nums">{display}</span>;
 }
 
+/**
+ * The one beat — a single expanding ring over the hero value when the real
+ * result lands. Gone in 0.6s. Maps to "the answer arrived"; instant (absent)
+ * under prefers-reduced-motion.
+ */
+function Beat({ beatKey }: { beatKey: number }) {
+  const reduce = useReducedMotion();
+  if (reduce) return null;
+  return (
+    <motion.span
+      key={beatKey}
+      aria-hidden
+      className="pointer-events-none absolute -inset-x-6 inset-y-0 rounded-full border-2 border-accent"
+      initial={{ scale: 0.75, opacity: 0.55 }}
+      animate={{ scale: 1.3, opacity: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    />
+  );
+}
+
+/** Zone word for the survival meter — plain language, no PASS/FAIL semantics. */
+function zoneWord(transfers: number): string {
+  if (transfers < 1) return "stranded";
+  if (transfers < 10) return "a handful";
+  if (transfers < 100) return "a busy session";
+  if (transfers < 1000) return "an operating stretch";
+  return "deep runway";
+}
+
+/**
+ * The survival meter — the gas tab's flagship instrument. Real equation:
+ * PHRS balance ÷ (21,000 gas × live gas price) = simple transfers covered.
+ * Log-scale meter from 1 to 1,000,000 transfers; the fill and marker animate
+ * ONLY when the real value changes.
+ */
+function SurvivalMeter({ gas }: { gas: GasResult }) {
+  const reduce = useReducedMotion();
+  const LOG_MAX = 6; // meter spans 10^0 → 10^6 transfers
+  const transfers = gas.simpleTransfers;
+  const pos = transfers > 0 ? Math.min(Math.log10(Math.max(transfers, 1)) / LOG_MAX, 1) : 0;
+  const perTxGwei = 21000 * Number.parseFloat(gas.gasPriceGwei);
+  const ticks = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000];
+
+  const fmtCount = (n: number) =>
+    n.toLocaleString("en-US", { maximumFractionDigits: n >= 1000 ? 0 : 1 });
+  const fmtTick = (n: number) => (n >= 1000 ? `${n / 1000}k` : `${n}`);
+
+  return (
+    <div className="rounded-2xl border border-hairline bg-white p-6 sm:p-8">
+      <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate">
+        The survival meter
+        <span className="chip chip-lit">{zoneWord(transfers)}</span>
+      </p>
+      <p className="mt-3 font-display text-3xl tracking-tight text-ink sm:text-4xl">
+        <span className="tabular-nums">~{fmtCount(transfers)}</span>{" "}
+        <span className="font-display text-xl font-normal text-slate">simple transfers</span>
+      </p>
+      <p className="mt-2 text-sm text-slate">
+        {gas.balance} PHRS ÷ (21,000 gas × {gas.gasPriceGwei} Gwei) — the room this
+        balance buys at the pinned block.
+      </p>
+
+      <div
+        className="mt-8"
+        role="img"
+        aria-label={`Meter: this balance covers about ${fmtCount(transfers)} simple transfers`}
+      >
+        <div className="relative h-3 rounded-full bg-hairline">
+          <motion.div
+            className="absolute inset-y-0 left-0 rounded-full bg-accent"
+            initial={reduce ? { width: `${pos * 100}%` } : { width: 0 }}
+            animate={{ width: `${pos * 100}%` }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+          <div
+            className="absolute -top-1 h-5 w-0.5 bg-ink"
+            style={{ left: `${pos * 100}%` }}
+            aria-hidden
+          />
+        </div>
+        <div className="relative mt-2 h-4 font-mono text-xs text-slate">
+          {ticks.map((t) => (
+            <span
+              key={t}
+              className="absolute -translate-x-1/2"
+              style={{ left: `${(Math.log10(t) / LOG_MAX) * 100}%` }}
+            >
+              {fmtTick(t)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-porcelain px-4 py-4">
+          <p className="text-sm font-semibold text-slate">Gas price</p>
+          <p className="mt-1 font-mono text-lg text-ink">{gas.gasPriceGwei} Gwei</p>
+          <p className="mt-1 text-sm text-slate">
+            eth_gasPrice · block {gas.block.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-xl bg-porcelain px-4 py-4">
+          <p className="text-sm font-semibold text-slate">PHRS balance</p>
+          <p className="mt-1 font-mono text-lg text-ink">{gas.balance} PHRS</p>
+          <p className="mt-1 text-sm text-slate">
+            eth_getBalance · block {gas.block.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-xl bg-porcelain px-4 py-4">
+          <p className="text-sm font-semibold text-slate">Cost per transfer</p>
+          <p className="mt-1 font-mono text-lg text-ink">
+            {perTxGwei.toLocaleString("en-US", { maximumFractionDigits: 2 })} Gwei
+          </p>
+          <p className="mt-1 text-sm text-slate">21,000 gas — the simple-transfer unit</p>
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm text-slate">
+        A rough estimate at the pinned block: it assumes simple transfers at the
+        current gas price. Contract calls cost more, gas prices move. No fiat
+        conversion — testnet assets have no market value.
+      </p>
+    </div>
+  );
+}
+
 function ActHeader({ n, title, hint }: { n: string; title: string; hint?: string }) {
   return (
     <div className="mb-4">
@@ -574,12 +700,13 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
                 eyebrow={`Portfolio result — ${shortAddr(target)}`}
                 headline={
                   phrsNum !== null ? (
-                    <>
+                    <span className="relative inline-block px-6">
+                      <Beat beatKey={balances.block} />
                       <AnimatedTicker value={phrsNum} format={formatTicker} />
                       <span className="ml-2 align-middle font-display text-2xl font-normal text-slate">
                         PHRS
                       </span>
-                    </>
+                    </span>
                   ) : (
                     <>Balance unreadable</>
                   )
@@ -619,8 +746,8 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
 
               <div className="mt-6 flex flex-wrap items-center gap-2" role="tablist" aria-label="Portfolio views">
                 {tabButton("balances", "Balances")}
-                {tabButton("activity", "Activity")}
-                {tabButton("gas", "Gas headroom")}
+                {tabButton("activity", `Activity (${activity.events.length})`)}
+                {tabButton("gas", "Survival meter")}
               </div>
 
               <div className="mt-4">
@@ -707,39 +834,42 @@ export default function TryPortfolio({ lamp }: { lamp: Lamp }) {
                   </motion.div>
                 )}
 
-                {/* ---------- Gas headroom tab ---------- */}
+                {/* ---------- Survival meter tab ---------- */}
                 {tab === "gas" && (
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25, ease: "easeOut" }}
                   >
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl border border-hairline bg-porcelain px-5 py-5">
-                        <p className="text-sm font-semibold text-slate">Gas price</p>
-                        <p className="mt-2 font-mono text-xl text-ink">{gas.gasPriceGwei} Gwei</p>
-                        <p className="mt-1 text-sm text-slate">eth_gasPrice, block {gas.block.toLocaleString()}</p>
-                      </div>
-                      <div className="rounded-2xl border border-hairline bg-porcelain px-5 py-5">
-                        <p className="text-sm font-semibold text-slate">PHRS balance</p>
-                        <p className="mt-2 font-mono text-xl text-ink">{gas.balance} PHRS</p>
-                        <p className="mt-1 text-sm text-slate">eth_getBalance, block {gas.block.toLocaleString()}</p>
-                      </div>
-                      <div className="rounded-2xl border border-hairline bg-porcelain px-5 py-5">
-                        <p className="text-sm font-semibold text-slate">Covers roughly</p>
-                        <p className="mt-2 font-mono text-xl text-ink">
-                          {gas.simpleTransfers.toLocaleString()} simple transfers
-                        </p>
-                        <p className="mt-1 text-sm text-slate">21,000 gas each, token units only</p>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-sm text-slate">
-                      This is a rough estimate at the pinned block — it assumes simple
-                      transfers at the current gas price. Contract calls cost more. No fiat
-                      conversion: testnet assets have no market value.
-                    </p>
+                    <SurvivalMeter gas={gas} />
                   </motion.div>
                 )}
+              </div>
+              <div className="mt-6 rounded-2xl border border-hairline bg-porcelain p-6 sm:p-8">
+                <p className="flex items-center gap-2 text-sm font-semibold text-ink">
+                  <EyeOff size={16} className="text-slate" aria-hidden />
+                  What the keeper can't see
+                </p>
+                <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
+                  <li>
+                    Native PHRS transfers emit no events — the activity scan only
+                    covers ERC20 <span className="font-mono">Transfer</span> events, never
+                    plain PHRS movement.
+                  </li>
+                  <li>
+                    Balances read only the seven registry-verified tokens above —
+                    anything else the address holds is outside this surface.
+                  </li>
+                  <li>
+                    The activity window covers the last 5,000 blocks only: the
+                    node caps each <span className="font-mono">eth_getLogs</span> page
+                    at 1,000 blocks, and older history isn't claimed.
+                  </li>
+                  <li>
+                    No fiat valuation anywhere — testnet assets have no market
+                    value, so there is nothing honest to price against.
+                  </li>
+                </ul>
               </div>
             </>
           )}
