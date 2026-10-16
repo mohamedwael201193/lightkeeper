@@ -1,0 +1,59 @@
+{
+  "run_id": "t06-run-a-20261016-040851",
+  "saga_state": "SUCCEEDED",
+  "txs": [
+    {
+      "step": "approve",
+      "hash": "0x30183882c8021b6daa017b03d5eecca595bf7faa2128e25eb59ad530e1763a75",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31481355,
+      "gasUsed": 46663,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x30183882c8021b6daa017b03d5eecca595bf7faa2128e25eb59ad530e1763a75"
+    },
+    {
+      "step": "lock",
+      "hash": "0xe46a8c40db9656ecb37baf933f1d6044a0e13a03bfdf7e9e03b022d250256587",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31481383,
+      "gasUsed": 80306,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xe46a8c40db9656ecb37baf933f1d6044a0e13a03bfdf7e9e03b022d250256587"
+    },
+    {
+      "step": "execute",
+      "hash": "0x9c2598384dfdbfd688bbd42e4006308decd455a1940bac95da6d2c529100cd43",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31481413,
+      "gasUsed": 25688,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x9c2598384dfdbfd688bbd42e4006308decd455a1940bac95da6d2c529100cd43"
+    },
+    {
+      "step": "settle",
+      "hash": "0xa13311d24cd0aff5eb91c389f14b22e9be8f9cab7958583d00d7785b09ca5873",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31481460,
+      "gasUsed": 46830,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xa13311d24cd0aff5eb91c389f14b22e9be8f9cab7958583d00d7785b09ca5873"
+    }
+  ],
+  "total_gas_wei_spent": 199487000199487,
+  "state_log": "/home/hatch/workspace/lightkeeper/tasks/t06-saga-executor/runs/t06-run-a-20261016-040851/state.log",
+  "contracts": {
+    "token": "0x1F3fb438824140b7E1125502f80B686D95072939",
+    "fixture": "0x29bf11Cd948CE845687A21819b2844d5321432Cf"
+  },
+  "explorer": "https://atlantic.pharosscan.xyz",
+  "balances": {
+    "native_wei_before": 6014788682995937900,
+    "native_wei_after": 6008424507989824505,
+    "token_wei_before": 1000000000000000000000000,
+    "token_wei_after": 999999999999999999999000
+  }
+}

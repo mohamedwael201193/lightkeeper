@@ -1,0 +1,29 @@
+name: t06-saga-executor
+title: Saga Executor
+track: hard
+points: 200
+toolkit: SkillEngine
+chain: atlantic-testnet
+chain_id: 688689
+contracts:
+  token: 0x1F3fb438824140b7E1125502f80B686D95072939   # TestToken (LKTEST)
+  fixture: 0x29bf11Cd948CE845687A21819b2844d5321432Cf # TestFixture
+runs:
+  canonical_run_a: t06-run-a-20261016-040851   # SUCCEEDED, 4 steps all 0x1
+  canonical_run_b: PENDING                     # forced 0x0 -> COMPENSATED
+budget_phrs_max: 0.15
+deliverables:
+  - task.yaml
+  - REQUIREMENTS.md
+  - README.md
+  - evidence.md
+  - evidence.json
+  - REVIEWER_NOTES.md
+  - LINKS.md
+  - SUBMISSION.md
+  - VIDEO-GUIDE.md
+  - src/TestToken.sol
+  - src/TestFixture.sol
+  - scripts/saga.py
+  - runs/<run-id>/{state.log,run.json}
+status: complete
