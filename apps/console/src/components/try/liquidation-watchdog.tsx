@@ -119,6 +119,7 @@ function RiskGauge({ hf }: { hf: bigint }) {
 }
 
 export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
+  void lamp; // page shell renders the name — the module doesn't need it
   const [input, setInput] = useState(DEMO_ACCOUNT);
   const [checked, setChecked] = useState<string>(DEMO_ACCOUNT);
   const valid = isValidAddress(input);
@@ -165,7 +166,7 @@ export default function TryLiquidationWatchdog({ lamp }: { lamp: Lamp }) {
       <div>
         <p className="smallcaps !text-slate">Tier A · live reads, no wallet</p>
         <h3 className="mt-1 text-lg font-semibold text-ink">
-          Your position, live risk — {lamp.name}
+          Your position, live risk
         </h3>
         <p className="mt-1 max-w-2xl text-sm text-slate">
           Paste any address and get the watcher's verdict on it: collateral, debt, oracle

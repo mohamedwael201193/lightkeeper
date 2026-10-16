@@ -921,15 +921,10 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
       )}
 
       <p className="text-xs text-slate">
-        Diagnosis engine mirrors the task's CLI agent{" "}
-        <span className="font-mono">tasks/t25-dapp-support-agent/src/support_agent.py</span> and
-        deepens it: intrinsic-gas shortfall, no-code-at-destination, transferFrom
-        allowance / token-balance pre-condition reads, constructor-revert decoding
-        via init-code replay, early/late silent-revert heuristic, a live{" "}
-        <span className="font-mono">eth_estimateGas</span> retry suggestion for
-        out-of-gas cases, and a one-click plain-language summary. Full evidence
-        and transcripts live in the repo at{" "}
-        <span className="font-mono">tasks/t25-dapp-support-agent/</span>.
+        The diagnosis engine is the same one the T25 agent runs — mirrored
+        here. Every number above is read live from Atlantic and provable on
+        the explorer; the task's on-chain receipts live in the proof section
+        below.
       </p>
     </div>
   );

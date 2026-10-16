@@ -568,9 +568,9 @@ export default function TryAggregator({ lamp }: { lamp: Lamp }) {
       </div>
 
       <p className="text-xs text-slate">
-        Full evidence: 7 real transactions, pinned-block reports, route
-        transcripts, and the chaos demo live in the repo at{" "}
-        <span className="font-mono">tasks/t28-multi-protocol-aggregator/</span>.
+        The board above is live Atlantic state — every verdict is traced to the
+        pinned block at the top of the table. The task's real transactions are
+        in the on-chain proof section below.
       </p>
     </div>
   );

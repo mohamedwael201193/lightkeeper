@@ -120,6 +120,7 @@ async function batchRpc(
 }
 
 export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
+  void lamp; // page shell renders the name — the module doesn't need it
   const [threshold, setThreshold] = useState("1");
   const [blockCount, setBlockCount] = useState("20");
   const [whales, setWhales] = useState<WhaleTx[] | null>(null);
@@ -298,12 +299,16 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
 
   return (
     <div className="space-y-5">
-      <p className="max-w-3xl text-sm leading-relaxed text-slate">
-        <span className="font-semibold text-ink">{lamp.name}.</span> Native PHRS moves
+      <div>
+        <p className="smallcaps">Tier A — live reads, no wallet, costs nothing</p>
+        <h3 className="mt-1 text-lg font-semibold text-ink">Whale radar</h3>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate">
+        Native PHRS moves
         emit no logs, so LIGHTKEEPER reads Atlantic's blocks directly — full
         transactions, filtered by your whale threshold, ranked largest-first. No API
         key, no wallet, no signature: live on-chain flow, right here.
       </p>
+      </div>
 
       {/* 01 · Configure */}
       <div className="rounded-xl border border-hairline bg-porcelain p-4">

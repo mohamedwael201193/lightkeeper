@@ -344,7 +344,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
     <div className="space-y-5">
       <div>
         <p className="smallcaps">Doc-Grounded Builder Agent · T27</p>
-        <h3 className="mt-1 text-xl font-bold text-ink">Every step cites its source</h3>
+        <h3 className="mt-1 text-lg font-semibold text-ink">Every step cites its source</h3>
         <p className="mt-2 max-w-3xl text-sm text-slate">
           Type a build goal. The builder renders the agent's real plan — each step carrying its doc
           URL and excerpt — and runs the coverage gate before anything is generated for execution.

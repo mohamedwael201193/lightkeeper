@@ -592,7 +592,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       {/* Tier A honesty header */}
       <div className="rounded-xl border border-hairline bg-porcelain p-4">
         <p className="smallcaps mb-2">Tier A — live reads · no wallet · no signature · free</p>
-        <h3 className="text-base font-bold text-ink">X-ray any wallet</h3>
+        <h3 className="text-lg font-semibold text-ink">X-ray any wallet</h3>
         <p className="mt-1 text-sm text-ink">
           Paste an address and <strong>{lamp.name}</strong> scans it live against the Atlantic RPC:
           all 8 checks — account age, funding pattern, balance, EOA-vs-contract, activity burst,

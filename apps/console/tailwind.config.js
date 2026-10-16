@@ -6,6 +6,7 @@ export default {
       colors: {
         paper: "#FFFFFF",
         porcelain: "#F8FAFF",
+        cream: "#FDFCF7",
         tint: "#EAF1FF",
         tintdeep: "#D9E6FF",
         ink: "#0B1533",

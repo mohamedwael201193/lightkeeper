@@ -167,6 +167,7 @@ interface NetRow {
 }
 
 export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
+  void lamp; // page shell renders the name — the module doesn't need it
   const [horizon, setHorizon] = useState<number>(1000);
   const [principal, setPrincipal] = useState<number>(0.02);
   const { data, loading, error, refetch } = useAtlanticRead(readLive, ["yield-optimizer-v2"]);
@@ -203,7 +204,7 @@ export default function TryYieldOptimizer({ lamp }: { lamp: Lamp }) {
         <div>
           <p className="smallcaps !text-slate">Tier A · live reads, no wallet</p>
           <h3 className="mt-1 text-lg font-semibold text-ink">
-            Vaults, live — net math, not APY theater · {lamp.name}
+            Vaults, live — net math, not APY theater
           </h3>
           <p className="mt-1 max-w-2xl text-sm text-slate">
             The LIGHTKEEPER optimizer reads both live vault rate cards off Atlantic and

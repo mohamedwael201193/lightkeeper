@@ -472,7 +472,7 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
         </h3>
         <p className="mt-1 max-w-3xl text-sm text-slate">
           {lamp.name}: a deterministic parser (same grammar as the audited CLI
-          agent — 20/20 unit tests, no LLM) turns your words into a payment
+          agent — 34/34 unit tests, no LLM) turns your words into a payment
           plan, or <strong className="text-ink">refuses to guess</strong>. A
           valid plan still goes through a mandatory review — then{" "}
           <strong className="text-ink">you</strong> sign it in your own wallet

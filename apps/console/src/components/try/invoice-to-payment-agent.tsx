@@ -546,13 +546,19 @@ export default function TryInvoice({ lamp }: { lamp: Lamp }) {
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-slate">
+      <div>
+        <p className="smallcaps">Tier B — paste → review → sign yourself</p>
+        <h3 className="mt-1 text-lg font-semibold text-ink">
+          Invoice to money in one review
+        </h3>
+        <p className="mt-1 max-w-3xl text-sm text-slate">
         Paste an invoice in any of 4 formats — <strong className="text-ink">JSON</strong>,{" "}
         <strong className="text-ink">CSV</strong>, <strong className="text-ink">KEY: value</strong>, or{" "}
         <strong className="text-ink">free text</strong>. LIGHTKEEPER extracts payee, amount, token, and
         reference with the same no-guess rules as the invoice agent: mismatches and missing fields are
         flagged, never guessed. Then it hands you one review — and your wallet settles it on Atlantic.
       </p>
+      </div>
 
       {/* step indicator */}
       <ol className="flex gap-2 text-xs">
