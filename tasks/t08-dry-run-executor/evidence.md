@@ -71,7 +71,45 @@ Simulation only — nothing broadcast. (Run via `tools/rpc-normalize-proxy.py`; 
 
 **Prediction vs reality:** status PASS→success ✓ · gas 45,470 ≤ 69,863 limit ✓ · state 0→1 ✓.
 
-*Honest drift note:* `cast estimate` predicted 58,219 but the tx used 45,470 (estimates over-predicted by ~28%). This is the documented simulation/reality drift — the 1.2× safety factor absorbed it with room to spare.
+## Scenario C — repeatability: the prediction holds a SECOND time
+
+**Dry-run** (`runs/receipt-C.json`, block 31486270) — the same `ping()` call, fresh chain state:
+
+```
+[dry-run] PASS  gas=37379 limit(1.2x)=44855 predictedCost=0.00044855 PHRS
+```
+
+Before-state snapshot: `count = 1` (left there by Scenario B); projected after: `count = 2`.
+
+**Gate re-test:** `broadcast.py` pointed at the fresh FAIL receipt (`runs/receipt-A-rerun.json`) → **EXECUTION REFUSED** (exit 2), appended to `runs/blocked-execution.log`.
+
+**Real broadcast** through the gate (`runs/broadcast-C.log`):
+
+| Item | Value |
+|---|---|
+| Tx | [`0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03`](https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03) |
+| Status | 1 (success) — matches predicted PASS |
+| Block | 31486429 |
+| Gas used | **28,370** — within the predicted 1.2× limit of 44,855 ✓ |
+| Gas limit sent | 44,855 (exactly the receipt's 1.2× value, replayed by the gate) |
+| Event | `Pinged(0xf76e…71a3, 2)` |
+| State | probe `count`: **1 → 2**, exactly as projected |
+
+**Prediction vs reality:** status PASS→success ✓ · gas 28,370 ≤ 44,855 limit ✓ · state 1→2 ✓.
+
+## The prediction ledger
+
+One-shot proof is easy to cherry-pick, so the executor keeps score: every gated
+broadcast appends a prediction-vs-reality row to
+[`runs/prediction-ledger.jsonl`](runs/prediction-ledger.jsonl) — automatically
+via `tools/ledger.py`, invoked by `src/broadcast.py` after each success.
+
+| Tx | Est | Used | Drift | Limit | Status |
+|---|---|---|---|---|---|
+| `0x639f87…012ee` | 58,219 | 45,470 | +28.0% | 69,863 ✓ | success |
+| `0xd294bb…4fb03` | 37,379 | 28,370 | +31.8% | 44,855 ✓ | success |
+
+*Honest drift note, now measured across two broadcasts:* `cast estimate` over-predicts by ~30% on Atlantic. The 1.2× safety factor exists precisely for this drift — both txs fit inside their limits with margin. Estimates are predictions; now with public drift data.
 
 ## Unit tests
 
@@ -86,7 +124,8 @@ gate rules (PASS allowed; FAIL/ERROR/missing blocked), and the no-signer-in-dryr
 |---|---|---|---|
 | Deploy DryRunProbe | `0xbb5fac…4748e44` | 252,561 @ 1.000000001 gwei | 0.0002525610 |
 | Scenario B broadcast (`ping`) | `0x639f87…012ee` | 45,470 @ 1.000000001 gwei | 0.0000454700 |
-| Dry-runs (A + B), forge simulation, gate refusal | — | 0 (read-only) | 0 |
-| **Total** | | | **0.00029803 PHRS** (0.2% of budget) |
+| Scenario C broadcast (`ping`, second PASS ticket) | `0xd294bb…4fb03` | 28,370 @ 1.000000001 gwei | 0.0000283700 |
+| Dry-runs (A + B + C), forge simulation, gate refusals | — | 0 (read-only) | 0 |
+| **Total** | | | **0.00032640 PHRS** (0.2% of budget) |
 
 All broadcasts were `flock /tmp/lk-nonce.lock`-wrapped (shared-key nonce safety).
