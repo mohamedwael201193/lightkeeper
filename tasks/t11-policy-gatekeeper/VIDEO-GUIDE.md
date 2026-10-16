@@ -52,9 +52,46 @@ refusal and the blocked bypass attempt."*
 Show `policy.json` briefly. Voice: *"Clear policy. Named denials. No
 bypass. That's the gatekeeper."*
 
-## Spoken script (full, ~75 s at natural pace)
+## NEW — console interactive demo shots (film on the live console after deploy)
 
-> "The arm that says no. Before any agent writes to the chain, the policy
+Film the REAL console page, a REAL connected wallet on Atlantic testnet, and the
+REAL explorer. Every number on the trace must come from a live RPC read.
+
+**Shot C1 — the violating address → DENY with named rule (console, ~15 s)**
+On the T11 "Try it live" panel: connect your wallet, click "Stranger address
+(BLOCK demo)", then "Run the gate". Show the trace: five conditions PASS with
+live numbers, and the DENY banner — rule `destination_allowlist`, the exact
+non-allowlisted address, plain-language reason. Show that NO "Propose transfer"
+button appears — the gate refuses to propose.
+Voice: *"A stranger address. Five checks pass on live numbers — but the
+destination is not allowlisted, so the gate denies, names the rule, and refuses
+to propose anything."*
+
+**Shot C2 — mainnet preview → unconditional REFUSE (console, ~10 s)**
+Tick "Preview: evaluate as mainnet (chain 1672)", "Run the gate" again. Show the
+REFUSED_MAINNET banner: rule `network_firewall`, mainnet.enabled=false,
+re-confirmation never granted, no broadcast path exists.
+Voice: *"And mainnet? Refused outright — the policy will not touch chain
+1672, unconditionally."*
+
+**Shot C3 — the allowlisted dust transfer → all PASS → sign yourself
+(console + wallet + explorer, ~30 s)**
+Click "Dust sink (allowlisted)", value `0.001`, untick the mainnet preview, "Run
+the gate". Show all six rows PASS with exact live numbers (chain 688689, gas
+price in gwei, your balance covering value + reserve). Click "Propose transfer"
+→ the MANDATORY review panel (to, value, your-wallet notice) → "Sign in my
+wallet" → approve in MetaMask → "Your tx — signed in your wallet" → open the
+REAL explorer link and show the confirmed receipt.
+Voice: *"Allowlisted destination, dust amount, live balance covers it — all six
+conditions pass, with the numbers on screen. Propose, review, and I sign in my
+own wallet. Confirmed — my transaction, my keys, the gate's approval."*
+
+**Shot C4 — the policy receipt (console, ~5 s)**
+Scroll to the decision JSON code block (policy id, decision, named rule, action).
+Voice: *"Every decision ships as a receipt: policy version, decision, the rule
+that fired. That's the gatekeeper."*
+
+## Spoken script (full, ~75 s at natural pace)> "The arm that says no. Before any agent writes to the chain, the policy
 > speaks. Watch: a transfer to a stranger address — the gate denies it,
 > names the rule, destination allowlist, and nothing is broadcast. Same
 > action type, allowlisted destination, inside the time window — approved,

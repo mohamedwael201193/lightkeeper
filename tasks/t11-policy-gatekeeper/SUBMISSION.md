@@ -39,6 +39,14 @@ https://github.com/mohamedwael201193/lightkeeper/tree/626f4d6bd9244e01d81a8fd1b4
 ## Share / demo links
 - Tx (RUN B): https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb
 - Wallet: https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+- Interactive console demo (Tier B): the LIGHTKEEPER console's T11 "Try it live"
+  panel — `apps/console/src/components/try/policy-gatekeeper.tsx`. Visitors propose
+  a native transfer; the policy engine evaluates it client-side against LIVE Atlantic
+  reads (chain id, gas price, their wallet balance) and renders all six gate
+  conditions as a PASS/BLOCK trace with exact numbers. ALLOW path: propose →
+  mandatory review → the visitor signs in their own wallet. BLOCK path: the named
+  blocking rule, the exact breached number, and refusal to propose — including a
+  mainnet (1672) preview that demonstrates the unconditional REFUSE.
 
 ## Transaction hashes
 - `0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb` — APPROVED dust broadcast (Atlantic, block 31481699, status 0x1)
