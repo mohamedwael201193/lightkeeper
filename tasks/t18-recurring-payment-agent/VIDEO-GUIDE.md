@@ -24,10 +24,12 @@ If a shot cannot be reproduced live, cut it — do not simulate it.
 | 4 | 40–55s | Browser: the explorer tx page — point at status Success, block 31481497, value 0.0005 PHRS | "On the explorer: success, block 31481497, exactly 0.0005 PHRS." |
 | 5 | 55–70s | Terminal: run `tick` again — show `SKIP: no installment due` | "And the idempotency guarantee: run the tick again and it skips — the same installment can never be paid twice." |
 | 6 | 70–85s | Terminal: `python3 src/tide.py pause` then `tick` → SKIP, then `resume` | "Pause, resume, cancel — the operator always has the kill switch. No cron was installed by the build; scheduling is the operator's own cron." |
+| 7 (optional) | 85–95s | Console: the TIDE task page → "Try it live" builder. Fill a weekly 0.01 PHRS × 4 schedule, show the plain-language summary + installment table, copy the generated schedule.json. | "And in the LIGHTKEEPER console you can design the whole schedule — it validates everything live and generates the exact config. Still your terminal, your keys, your cron — the console never pays anything." |
 
 ## Notes for the editor
 
 - Keep terminal font large; the tx hash must be legible.
 - Shot 5 is the money shot — linger on the SKIP line.
-- Total target: 60–75s. If over 90s, cut shot 6's resume/cancel demo.
+- Total target: 60–75s. If over 90s, cut shot 6's resume/cancel demo, then the
+  optional shot 7. Keep the SKIP money shot at all costs.
 - Export 1080p, upload, paste the link into SUBMISSION.md replacing `PENDING-VIDEO`.

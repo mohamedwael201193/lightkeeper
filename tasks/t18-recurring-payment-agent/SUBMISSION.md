@@ -47,3 +47,13 @@ non-claims (schedule not running; native PHRS only; self-payment dust;
 reorg-depth posture).
 
 **Spend:** 0.000521 PHRS total (0.0005 value + 0.000021 fee), 1 broadcast.
+
+**Try it live (LIGHTKEEPER console, Tier C):** the console ships a schedule
+designer (`apps/console/src/components/try/t18-recurring-payment-agent.tsx`,
+auto-wired by TryPanel via the lamp slug) — recipient, amount,
+weekly/monthly interval, run count, start time, and balance floor, all
+validated live; a plain-language summary ("0.01 PHRS every 7 days, 4 times,
+first run …") with the full installment-date table; and the exact
+`tide.py`-shaped `schedule.json` plus the CLI + cron commands, copy-paste
+ready. It states plainly that nothing runs until the operator installs the
+cron line on their own machine — no signing, no broadcasting, no keys.
