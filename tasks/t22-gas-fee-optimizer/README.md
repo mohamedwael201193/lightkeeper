@@ -45,9 +45,21 @@ with honest, real-number savings math.
 
 ## 3. The real finding (savings math on real numbers)
 
-Both broadcasts submitted at the recommended **standard** price of 10 gwei, but
-the chain settled each tx at **`effectiveGasPrice` = 1,000,000,001 wei
-(~1.000000001 gwei)** — the ~1-gwei base fee plus 1 wei.
+Three broadcasts submitted at the recommended **standard** price of 10 gwei —
+Jobs A and B settled each tx at **`effectiveGasPrice` = 1,000,000,001 wei
+(~1.000000001 gwei)**, and Job C (2026-10-16 ~09:45 EEST, HARDEN round) confirmed
+the pattern persists: submitted at 10 gwei, settled at **1,000,000,001 wei** in
+block 31486593 (tx `0x799d56741f7b31251f59c8e3126a6a5910cdd55302a9ca7451b004fd43717305`).
+
+**The sharper finding (HARDEN round):** every gas tool quotes `eth_gasPrice`
+(10 gwei on Atlantic). LIGHTKEEPER measures what the chain **actually charged**:
+`scripts/probe_settled_price.py` backwalks the latest blocks and averages the
+`effectiveGasPrice` of the most recent settled transactions
+(`evidence/settled-price.json`). The last 7 settled txs averaged **3.57 gwei** —
+5 settled at ~1 gwei (the base fee, priority rewards 0), 2 large ones
+(~650k–745k gas) paid the full quoted 10 gwei. Real variance, not flat: most
+txs over-provision ~10× by following the quote, while urgent heavy txs genuinely
+need it. The optimizer's honest savings math uses SETTLED numbers, not quoted ones.
 
 | | Job A (favorable) | Job B (deadline-forced) |
 |---|---|---|
@@ -91,8 +103,13 @@ flock /tmp/lk-nonce.lock cast send 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 \
 
 - `evidence/fee-snapshot.json` — 12 block-pinned `eth_gasPrice` samples
 - `evidence/tier-table.json` — tier computation output + methodology
-- `evidence/job-reports.json` — both job reports: deadlines, reasons, hashes,
+- `evidence/job-reports.json` — Jobs A+B reports: deadlines, reasons, hashes,
   receipts, paid-vs-requested, savings math
+- `evidence/job-c-gap-persistence.json` — Job C (gap persists, 2.5h later)
+- `evidence/settled-price.json` — quoted-vs-settled probe: 7 recent settled txs
+  with full receipts, avg effectiveGasPrice, real variance (1–10 gwei)
+- `evidence/abort-drill.txt` — Job D: missing-data fail-safe, abort exit code 2
+- `scripts/probe_settled_price.py` — the quoted-vs-settled probe (reads only)
 - `evidence/run-log.txt` — full terminal log of the live run (no secrets)
 - `evidence.md` / `evidence.json` — human + machine summaries with spend log
 - `tests/real_snapshot_1.json` — labeled REAL snapshot used by unit tests

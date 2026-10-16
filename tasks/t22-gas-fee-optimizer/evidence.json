@@ -1,1 +1,100 @@
-{"budget_phrs":0.15,"chain_id":688689,"fee_snapshot":{"file":"evidence/fee-snapshot.json","first_block":31481423,"last_block":31481529,"max_wei":10000000000,"method":"eth_gasPrice agent-side polling, block-pinned","min_wei":10000000000,"samples":12},"jobs":[{"block_number":31481582,"cost_wei":21000000021000,"deadline_s":45,"effective_gas_price_wei":1000000001,"explorer":"https://atlantic.pharosscan.xyz/tx/0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050","gas_used":21000,"job":"A-favorable-window","price_at_request_wei":10000000000,"submit_elapsed_s":3.9,"submit_reason":"favorable_window","submitted_gas_price_wei":10000000000,"threshold_wei":10000000000,"tx_hash":"0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050"},{"block_number":31481636,"cost_wei":21000000021000,"deadline_s":30,"effective_gas_price_wei":1000000001,"explorer":"https://atlantic.pharosscan.xyz/tx/0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366","gas_used":21000,"job":"B-deadline-forced","price_at_request_wei":10000000000,"submit_elapsed_s":24.9,"submit_reason":"deadline_reached_forced_submit","submitted_gas_price_wei":10000000000,"threshold_wei":1,"tx_hash":"0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366"}],"network":"Pharos Atlantic testnet","run_at":"2026-10-16T07:10-07:15+03:00","savings_vs_fast_tier_per_tx_phrs":0.000188999999979,"savings_vs_fast_tier_per_tx_wei":188999999979000,"secrets_in_evidence":false,"spend_log_phrs_total":0.000062000000042,"spend_log_wei":{"dust_values":20000000000000,"gas_job_a":21000000021000,"gas_job_b":21000000021000,"total":62000000042000},"task":"T22 Gas Fee Optimizer","tiers":{"fast_wei":10000000000,"file":"evidence/tier-table.json","method":"nearest-rank percentiles: slow=p25, standard=p50, fast=p75","slow_wei":10000000000,"standard_wei":10000000000},"unit_tests":"tests/test_tiers.py — 18/18 pass","wallet":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"}
+{
+  "budget_phrs": 0.15,
+  "chain_id": 688689,
+  "fee_snapshot": {
+    "file": "evidence/fee-snapshot.json",
+    "first_block": 31481423,
+    "last_block": 31481529,
+    "max_wei": 10000000000,
+    "method": "eth_gasPrice agent-side polling, block-pinned",
+    "min_wei": 10000000000,
+    "samples": 12
+  },
+  "jobs": [
+    {
+      "block_number": 31481582,
+      "cost_wei": 21000000021000,
+      "deadline_s": 45,
+      "effective_gas_price_wei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050",
+      "gas_used": 21000,
+      "job": "A-favorable-window",
+      "price_at_request_wei": 10000000000,
+      "submit_elapsed_s": 3.9,
+      "submit_reason": "favorable_window",
+      "submitted_gas_price_wei": 10000000000,
+      "threshold_wei": 10000000000,
+      "tx_hash": "0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050"
+    },
+    {
+      "block_number": 31481636,
+      "cost_wei": 21000000021000,
+      "deadline_s": 30,
+      "effective_gas_price_wei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366",
+      "gas_used": 21000,
+      "job": "B-deadline-forced",
+      "price_at_request_wei": 10000000000,
+      "submit_elapsed_s": 24.9,
+      "submit_reason": "deadline_reached_forced_submit",
+      "submitted_gas_price_wei": 10000000000,
+      "threshold_wei": 1,
+      "tx_hash": "0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366"
+    },
+    {
+      "job": "C-gap-persistence",
+      "purpose": "quoted-vs-settled gap persists (submitted at standard 10 gwei, settled ~1 gwei), ~2.5h after Jobs A/B",
+      "tx_hash": "0x799d56741f7b31251f59c8e3126a6a5910cdd55302a9ca7451b004fd43717305",
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x799d56741f7b31251f59c8e3126a6a5910cdd55302a9ca7451b004fd43717305",
+      "block_number": 31486593,
+      "price_at_request_wei": 10000000000,
+      "submitted_gas_price_wei": 10000000000,
+      "effective_gas_price_wei": 1000000001,
+      "gas_used": 21000,
+      "cost_wei": 21000000021000,
+      "savings_vs_fast_tier_wei": 188999999979000
+    }
+  ],
+  "network": "Pharos Atlantic testnet",
+  "run_at": "2026-10-16T07:10-07:15+03:00",
+  "savings_vs_fast_tier_per_tx_phrs": 0.000188999999979,
+  "savings_vs_fast_tier_per_tx_wei": 188999999979000,
+  "secrets_in_evidence": false,
+  "spend_log_phrs_total": 9.3000000063e-05,
+  "spend_log_wei": {
+    "dust_values": 30000000000000,
+    "gas_job_a": 21000000021000,
+    "gas_job_b": 21000000021000,
+    "total": 93000000063000,
+    "gas_job_c": 21000000021000,
+    "dust_job_c": 10000000000000
+  },
+  "task": "T22 Gas Fee Optimizer",
+  "tiers": {
+    "fast_wei": 10000000000,
+    "file": "evidence/tier-table.json",
+    "method": "nearest-rank percentiles: slow=p25, standard=p50, fast=p75",
+    "slow_wei": 10000000000,
+    "standard_wei": 10000000000
+  },
+  "unit_tests": "tests/test_tiers.py \u2014 18/18 pass",
+  "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "abort_drill": {
+    "job": "D-missing-data-abort",
+    "file": "evidence/abort-drill.txt",
+    "rpc": "http://127.0.0.1:1 (unreachable, simulated dead endpoint)",
+    "result": "aborted loudly, exit code 2 \u2014 never held silently past the deadline",
+    "cost_wei": 0
+  },
+  "settled_price_snapshot": {
+    "file": "evidence/settled-price.json",
+    "script": "scripts/probe_settled_price.py",
+    "quoted_gas_price_wei": 10000000000,
+    "avg_effective_gas_price_wei": 3571428571,
+    "settled_count": 7,
+    "blocks_scanned": 60,
+    "min_wei": 1000000000,
+    "max_wei": 10000000000,
+    "finding": "5/7 recent txs settled at ~1 gwei (base fee); 2/7 large txs (650k-745k gas) paid the quoted 10 gwei \u2014 real variance, not flat"
+  }
+}

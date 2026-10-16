@@ -17,11 +17,13 @@ A gas-fee optimizer for Pharos Atlantic testnet (chain 688689). It polls
 `eth_gasPrice` across 12 block-pinned samples (blocks 31481423–31481529),
 computes speed tiers with an explicit percentile methodology (slow=p25,
 standard=p50, fast=p75), and recommends a price per urgency (low→slow,
-medium→standard, high→fast). It then executes two REAL dust transactions:
+medium→standard, high→fast). It then executes three REAL dust transactions:
 Job A (deadline 45s) submitted on a favorable reading at t+3.9s; Job B
 (deadline 30s, threshold deliberately below market to force the path)
 submitted at deadline−SUBMIT_MARGIN at t+24.9s — the deadline was never
-missed, and a missing-data failure aborts loudly instead of holding silently.
+missed, and a missing-data failure aborts loudly instead of holding silently
+(proven by Job D's dead-RPC drill, exit code 2); Job C (~2.5h later) proved
+the quoted-vs-settled gap persists.
 Both receipts show `effectiveGasPrice` 1,000,000,001 wei (~1 gwei) against the
 requested 10-gwei standard — real savings of 188,999,999,979,000 wei
 (≈0.000189 PHRS) per tx vs the fast tier. Flat testnet gas is reported

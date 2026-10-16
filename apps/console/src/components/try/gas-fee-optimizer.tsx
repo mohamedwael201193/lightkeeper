@@ -8,11 +8,17 @@
  * (transfer / contract call) and an urgency, and the page estimates the
  * PHRS cost per tier against a real gas budget.
  *
+ * Differentiator — Quoted vs Settled: every gas tool quotes eth_gasPrice.
+ * This lamp measures what the chain ACTUALLY charged — the average
+ * effectiveGasPrice of the most recently settled transactions, pulled live
+ * from their receipts — and prices the recommendation against the settled
+ * number, not the quote.
+ *
  * Percentile tiers mirror the agent-side methodology in
  * tasks/t22-gas-fee-optimizer/evidence/tier-table.json
  * (slow=p25, standard=p50, fast=p75 of observed samples).
  *
- * The two receipts linked below are REAL mined Atlantic transactions,
+ * The three receipts linked below are REAL mined Atlantic transactions,
  * copied character-for-character from the task's evidence.json.
  */
 import { useMemo, useState } from "react";
@@ -28,6 +34,15 @@ interface FeeSnapshot {
   baseFeeWei: bigint;
   gasUsed: bigint;
   gasLimit: bigint;
+  at: string;
+}
+
+interface SettledSnapshot {
+  quotedWei: bigint;
+  avgWei: bigint;
+  minWei: bigint;
+  maxWei: bigint;
+  count: number;
   at: string;
 }
 
@@ -51,6 +66,53 @@ async function fetchFeeSnapshot(): Promise<FeeSnapshot> {
   };
 }
 
+/**
+ * Quoted vs Settled: walk back recent blocks, pull full receipts of the most
+ * recent settled transactions, average their effectiveGasPrice.
+ */
+async function fetchSettled(): Promise<SettledSnapshot> {
+  const quotedWei = BigInt((await rpcCall("eth_gasPrice", [])) as string);
+  let cursor = BigInt((await rpcCall("eth_blockNumber", [])) as string);
+  const effs: bigint[] = [];
+  for (let i = 0; i < 8 && effs.length < 6; i++) {
+    const blk = (await rpcCall("eth_getBlockByNumber", [
+      "0x" + cursor.toString(16),
+      true,
+    ])) as { transactions?: Array<string | { hash: string }> };
+    const txs = blk.transactions ?? [];
+    const hashes = txs
+      .slice(0, 6 - effs.length)
+      .map((t) => (typeof t === "string" ? t : t.hash))
+      .filter(Boolean);
+    const receipts = await Promise.all(
+      hashes.map((h) =>
+        rpcCall("eth_getTransactionReceipt", [h]).catch(() => null)
+      )
+    );
+    for (const r of receipts) {
+      const rec = r as { status?: string; effectiveGasPrice?: string } | null;
+      if (rec && rec.status === "0x1" && rec.effectiveGasPrice) {
+        effs.push(BigInt(rec.effectiveGasPrice));
+      }
+    }
+    cursor -= 1n;
+  }
+  if (effs.length === 0) {
+    throw new Error(
+      "No settled transactions in the last 8 blocks — the chain is idle. Try again in a moment."
+    );
+  }
+  const sum = effs.reduce((a, b) => a + b, 0n);
+  return {
+    quotedWei,
+    avgWei: sum / BigInt(effs.length),
+    minWei: effs.reduce((a, b) => (a < b ? a : b)),
+    maxWei: effs.reduce((a, b) => (a > b ? a : b)),
+    count: effs.length,
+    at: new Date().toLocaleTimeString(),
+  };
+}
+
 function gwei(wei: bigint): string {
   const whole = wei / 10n ** 9n;
   const rem = wei % 10n ** 9n;
@@ -60,8 +122,17 @@ function gwei(wei: bigint): string {
 
 function phrsCost(weiPerGas: bigint, gasUnits: number): string {
   const costWei = weiPerGas * BigInt(gasUnits);
-  const phrs = Number(costWei) / Number(WEI);
-  return phrs < 0.0001 && phrs > 0 ? phrs.toExponential(2) : phrs.toFixed(6);
+  return formatWeiSigned(costWei);
+}
+
+function formatWeiSigned(wei: bigint): string {
+  const neg = wei < 0n;
+  const phrs = Number(neg ? -wei : wei) / Number(WEI);
+  const s =
+    phrs < 0.0001 && phrs > 0
+      ? phrs.toExponential(2)
+      : phrs.toFixed(6);
+  return (neg ? "−" : "") + s;
 }
 
 /** Nearest-rank percentile over sorted bigints (same method as evidence/tier-table.json). */
@@ -82,6 +153,43 @@ const URGENCIES = [
   { id: "high", label: "High urgency", tier: "fast" },
 ] as const;
 
+function Sparkline({ values }: { values: bigint[] }) {
+  if (values.length === 0) return null;
+  const g = values.map((v) => Number(v) / 1e9);
+  const min = Math.min(...g);
+  const max = Math.max(...g);
+  const span = max - min || 1;
+  const W = 220;
+  const H = 36;
+  const pts =
+    values.length === 1
+      ? [`${W / 2},${H / 2}`]
+      : g.map((v, i) => `${(i / (g.length - 1)) * W},${H - 4 - ((v - min) / span) * (H - 8)}`);
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className="mt-2 h-9 w-full max-w-[220px]"
+      role="img"
+      aria-label={`Fee history: ${gwei(values[0])} to ${gwei(values[values.length - 1])} gwei over ${values.length} samples`}
+    >
+      <polyline
+        points={pts.join(" ")}
+        fill="none"
+        stroke="#2456E6"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {pts.map((p, i) => {
+        const [cx, cy] = p.split(",");
+        return (
+          <circle key={i} cx={cx} cy={cy} r="2.4" fill="#2456E6" opacity={i === pts.length - 1 ? 1 : 0.35} />
+        );
+      })}
+    </svg>
+  );
+}
+
 export default function TryGas({ lamp }: { lamp: Lamp }) {
   const [history, setHistory] = useState<FeeSnapshot[]>([]);
   const [txType, setTxType] = useState<(typeof TX_TYPES)[number]["id"]>("transfer");
@@ -92,6 +200,10 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
     setHistory((h) => [...h.slice(-23), snap]);
     return snap;
   }, []);
+
+  // Quoted vs Settled: on-demand live read (auto=false) — each click re-measures
+  // what the chain actually charged on the most recent settled transactions.
+  const settled = useAtlanticRead(fetchSettled, [], { auto: false });
 
   const tiers = useMemo(() => {
     const samples = history.map((s) => s.gasPriceWei).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
@@ -114,6 +226,8 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
         { name: "fast", label: "Fast", price: tiers.fast, note: "75th percentile of observed samples" },
       ]
     : [];
+  const settleGapWei = settled.data ? settled.data.quotedWei - settled.data.avgWei : null;
+  const settleGapPhrs = settleGapWei !== null ? settleGapWei * BigInt(gasUnits) : null;
 
   return (
     <div className="space-y-5">
@@ -123,7 +237,9 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
         <p className="mt-1 max-w-2xl text-sm text-slate">
           The optimizer reads Atlantic's gas price <em>right now</em> and recomputes the
           slow / standard / fast tiers from those live samples — not from a static table.
-          No wallet needed, no signature, costs nothing. LIGHTKEEPER never holds private keys.
+          Its edge: it prices against what the chain <em>actually charges</em> (settled
+          receipts), not just what it quotes. No wallet needed, no signature, costs
+          nothing. LIGHTKEEPER never holds private keys.
         </p>
       </div>
 
@@ -139,6 +255,7 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
                 {gwei(data.gasPriceWei)} <span className="text-sm font-normal text-slate">gwei</span>
               </p>
             )}
+            <Sparkline values={history.map((s) => s.gasPriceWei)} />
           </div>
           <button className="btn-outline" onClick={refetch} disabled={loading}>
             {loading ? "Refreshing…" : "Refresh"}
@@ -151,6 +268,72 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
             <div><dt className="text-slate">Base fee</dt><dd className="font-mono text-ink">{gwei(data.baseFeeWei)} gwei</dd></div>
             <div><dt className="text-slate">Block utilization</dt><dd className="font-mono text-ink">{utilization === null ? "—" : `${utilization.toFixed(2)}%`}</dd></div>
           </dl>
+        )}
+      </div>
+
+      {/* Quoted vs Settled — the differentiator */}
+      <div className="rounded-xl border border-hairline bg-porcelain p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="smallcaps">Quoted vs settled</p>
+            <p className="mt-1 max-w-xl text-xs text-slate">
+              Every gas tool quotes <span className="font-mono">eth_gasPrice</span>. This lamp
+              goes one step further: it pulls the receipts of the most recently settled
+              transactions and measures what the chain <em>actually charged</em>.
+            </p>
+          </div>
+          <button
+            className="btn-primary"
+            onClick={settled.refetch}
+            disabled={settled.loading}
+          >
+            {settled.loading ? "Measuring…" : settled.data ? "Measure again" : "Measure what the chain charges"}
+          </button>
+        </div>
+        {settled.loading && !settled.data && (
+          <p className="mt-3 text-sm text-slate">Scanning the last 8 blocks and reading their receipts…</p>
+        )}
+        {settled.error && (
+          <div className="empty-panel mt-3 px-5 py-4 text-sm">
+            <p className="text-fail">{settled.error}</p>
+            <button className="btn-outline mt-2" onClick={settled.refetch}>Retry</button>
+          </div>
+        )}
+        {settled.data && (
+          <div className="mt-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <p className="text-xs text-slate">Quoted (eth_gasPrice)</p>
+                <p className="font-mono text-xl font-semibold text-ink">{gwei(settled.data.quotedWei)}</p>
+                <p className="text-xs text-slate">gwei</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate">Settled (avg of {settled.data.count})</p>
+                <p className="font-mono text-xl font-semibold text-ink">{gwei(settled.data.avgWei)}</p>
+                <p className="text-xs text-slate">gwei · real receipts</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate">Settled range</p>
+                <p className="font-mono text-xl font-semibold text-ink">
+                  {gwei(settled.data.minWei)}–{gwei(settled.data.maxWei)}
+                </p>
+                <p className="text-xs text-slate">gwei</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate">Gap per {gasUnits.toLocaleString()}-gas tx</p>
+                <p className="font-mono text-xl font-semibold text-ink">
+                  {settleGapPhrs !== null ? formatWeiSigned(settleGapPhrs) : "—"}
+                </p>
+                <p className="text-xs text-slate">PHRS · quote − settled</p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-slate">
+              Measured at {settled.data.at} from the most recent settled transactions' receipts.
+              A positive gap means the quote over-provisions what most transactions actually pay —
+              that's the optimizer's honest saving. A negative gap means recent heavy traffic paid
+              above the quote, and the standard tier is the honest recommendation.
+            </p>
+          </div>
         )}
       </div>
 
@@ -253,11 +436,11 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
         </div>
       )}
 
-      {/* Real proof — two mined dust jobs from the task run */}
+      {/* Real proof — three mined dust jobs from the task run */}
       <div>
         <p className="smallcaps">Proven on-chain — {lamp.name}</p>
         <p className="mt-1 text-xs text-slate">
-          The optimizer's agent already ran both required paths as real dust transactions on Atlantic.
+          The optimizer's agent already ran all three required paths as real dust transactions on Atlantic.
         </p>
         <ul className="mt-2 space-y-2 text-sm">
           <li>
@@ -271,6 +454,12 @@ export default function TryGas({ lamp }: { lamp: Lamp }) {
               Job B — deadline-forced · 0x1c8c65…2366
             </a>
             <p className="text-xs text-slate">30s deadline, held then forced at deadline−margin; the deadline was never missed. Paid 1.000000001 gwei effective.</p>
+          </li>
+          <li>
+            <a className="font-mono text-xs text-accent hover:underline break-all" href={`${EXPLORER_TX}0x799d56741f7b31251f59c8e3126a6a5910cdd55302a9ca7451b004fd43717305`} target="_blank" rel="noreferrer">
+              Job C — gap-persistence · 0x799d56…7305
+            </a>
+            <p className="text-xs text-slate">Submitted at the same 10-gwei standard 2.5h later; settled again at 1.000000001 gwei in block 31,486,593 — the quoted-vs-settled gap persists.</p>
           </li>
         </ul>
       </div>

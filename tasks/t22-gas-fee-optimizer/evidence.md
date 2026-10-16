@@ -1,7 +1,8 @@
 # T22 Gas Fee Optimizer — Evidence
 
 Chain: **Atlantic testnet, chain ID 688689** · Wallet:
-`0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3` · Run: 2026-10-16 ~07:10–07:15 EEST.
+`0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3` · Run: 2026-10-16 ~07:10–07:15 EEST
+(Jobs A/B); HARDEN additions 2026-10-16 ~09:45 EEST (Jobs C/D, settled-price probe).
 
 ## Fee snapshot (official req 1 — tracks gas price over time)
 
@@ -46,11 +47,42 @@ deadline−SUBMIT_MARGIN (t+24.9s) submitted on the freshest sample at standard
 - block 31481636 · status 1 (success) · gasUsed 21,000
 - **effectiveGasPrice 1,000,000,001 wei** (~1.000000001 gwei)
 
+## Job C — gap-persistence proof (2026-10-16 ~09:45 EEST, HARDEN round)
+
+One more real dust broadcast to prove the quoted-vs-settled gap persists
+(~2.5h after Jobs A/B): submitted at the recommended standard 10 gwei,
+settled at **1,000,000,001 wei (~1 gwei)** in block 31486593.
+
+- tx: https://atlantic.pharosscan.xyz/tx/0x799d56741f7b31251f59c8e3126a6a5910cdd55302a9ca7451b004fd43717305
+- status 1 (success) · gasUsed 21,000 · savings vs fast tier: 188,999,999,979,000 wei
+- Full report: `evidence/job-c-gap-persistence.json`
+
+## Job D — missing-data fail-safe drill (no broadcast, no cost)
+
+The deadline guarantee was re-proven at the transport level: the hold loop was
+pointed at an unreachable RPC (`http://127.0.0.1:1`). It aborted LOUDLY
+(exit code 2, explicit message, full log in `evidence/abort-drill.txt`) —
+never silently holding past the deadline. The logic-level fail-safe remains
+unit-tested (18/18).
+
+## Quoted vs Settled — the differentiator (evidence/settled-price.json)
+
+Every gas tool quotes `eth_gasPrice` (10 gwei on Atlantic). LIGHTKEEPER measures
+what the chain **actually charged**: `scripts/probe_settled_price.py`
+backwalks the latest blocks, pulls full receipts of the most recent settled
+transactions, and averages their `effectiveGasPrice`. Last probe (2026-10-16
+~09:50 EEST, 60 blocks scanned, 7 settled txs): **avg 3.57 gwei** — 5/7 settled
+at ~1 gwei (the base fee, priority rewards 0), 2 large ones (~650k–745k gas)
+paid the full quoted 10 gwei. Real variance, not flat: most transactions
+over-provision ~10× by following the quote, while urgent heavy transactions
+genuinely need it. The optimizer's honest savings math uses the SETTLED
+number, not the quoted one.
+
 ## Paid vs requested (official req 3)
 
-- Price at request time (both jobs): 10,000,000,000 wei.
+- Price at request time (all three jobs): 10,000,000,000 wei.
 - Submitted at (standard tier): 10,000,000,000 wei.
-- **Actually paid (receipt): 1,000,000,001 wei** — ~1 gwei base fee + 1 wei,
+- **Actually paid (receipts): 1,000,000,001 wei** — ~1 gwei base fee + 1 wei,
   roughly 10× below what we submitted at.
 
 ## Savings math (real numbers only)
@@ -64,8 +96,9 @@ Savings vs the fast tier (10 gwei), per tx:
 |---|---|
 | gas, Job A (21,000 × 1,000,000,001 wei) | 21,000,000,021,000 wei |
 | gas, Job B (21,000 × 1,000,000,001 wei) | 21,000,000,021,000 wei |
-| dust values (2 × 0.00001 PHRS self-transfers) | 20,000,000,000,000 wei |
-| **total T22 spend** | **62,000,000,042,000 wei ≈ 0.000062 PHRS** (budget ≤ 0.15 PHRS) |
+| gas, Job C (21,000 × 1,000,000,001 wei) | 21,000,000,021,000 wei |
+| dust values (3 × 0.00001 PHRS self-transfers) | 30,000,000,000,000 wei |
+| **total T22 spend** | **93,000,000,063,000 wei ≈ 0.000093 PHRS** (budget ≤ 0.15 PHRS) |
 
 All broadcasts wrapped in `flock /tmp/lk-nonce.lock` (shared-key nonce safety).
 No secrets in any evidence file (run log contains only variable names + public hashes).

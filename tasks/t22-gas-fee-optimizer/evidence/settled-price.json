@@ -1,0 +1,55 @@
+{
+  "chain_id": 688689,
+  "quoted_gas_price_wei": 10000000000,
+  "latest_block_scanned": 31486745,
+  "blocks_scanned": 60,
+  "settled_count": 7,
+  "settled": [
+    {
+      "hash": "0x7061d3c08cc96d8f102a7f866fad4c894c4497932a3c0997b18a6860101a0297",
+      "block": 31486735,
+      "effective_gas_price_wei": 1000000000,
+      "gas_used": 232352
+    },
+    {
+      "hash": "0x550318a0ed629148a2683ae09c21bcac3c06bc08beee2aeb63c06178b0806047",
+      "block": 31486732,
+      "effective_gas_price_wei": 1000000000,
+      "gas_used": 104079
+    },
+    {
+      "hash": "0x4561b2b5c1bbcf77829f97bb4cc1b153c696c63183d029dce167fea27537f5cf",
+      "block": 31486731,
+      "effective_gas_price_wei": 1000000000,
+      "gas_used": 116195
+    },
+    {
+      "hash": "0x33a046262d7e4606d0c7196ec08ef35fdb42cc4d2b28ccfa9f0015f97951fff9",
+      "block": 31486729,
+      "effective_gas_price_wei": 10000000000,
+      "gas_used": 744878
+    },
+    {
+      "hash": "0x8ca15f804860e4398ff6cab92fd234de189ff23a3cf933512c97a46ae6133902",
+      "block": 31486720,
+      "effective_gas_price_wei": 10000000000,
+      "gas_used": 655462
+    },
+    {
+      "hash": "0x04a71d5e65fec8ce380d2a5452b19d50225c26c6c11b111edb851ca91a3a79bd",
+      "block": 31486710,
+      "effective_gas_price_wei": 1000000000,
+      "gas_used": 116195
+    },
+    {
+      "hash": "0xf2877c4f24682f4c064ab35236ff82cd7203cba716b4a28eb3b8554e6a1ad243",
+      "block": 31486697,
+      "effective_gas_price_wei": 1000000000,
+      "gas_used": 116171
+    }
+  ],
+  "avg_effective_gas_price_wei": 3571428571,
+  "gap_wei_per_gas": 6428571429,
+  "method": "latest-block-backwalk, full receipts, status==0x1 only",
+  "note": "The chain quotes eth_gasPrice but settles transactions at the base fee (~1 gwei) when priority fees are 0. The optimizer's honest savings math uses SETTLED numbers, not quoted ones."
+}
