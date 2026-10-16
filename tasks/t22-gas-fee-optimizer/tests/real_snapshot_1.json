@@ -1,0 +1,30 @@
+{
+  "label": "REAL-SNAPSHOT",
+  "source": "Atlantic testnet chain 688689; eth_gasPrice agent-side polls at build time 2026-10-16",
+  "samples": [
+    {
+      "block": 31481340,
+      "gas_price_wei": 10000000000
+    },
+    {
+      "block": 31481348,
+      "gas_price_wei": 10000000000
+    },
+    {
+      "block": 31481359,
+      "gas_price_wei": 10000000000
+    },
+    {
+      "block": 31481368,
+      "gas_price_wei": 10000000000
+    },
+    {
+      "block": 31481375,
+      "gas_price_wei": 10000000000
+    },
+    {
+      "block": 31481381,
+      "gas_price_wei": 10000000000
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+[1] sampling eth_gasPrice 12x ...
+    sample  1: block 31481423 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  2: block 31481431 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  3: block 31481440 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  4: block 31481449 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  5: block 31481459 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  6: block 31481467 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  7: block 31481475 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  8: block 31481486 gasPrice 10000000000 wei (10.0000 gwei)
+    sample  9: block 31481497 gasPrice 10000000000 wei (10.0000 gwei)
+    sample 10: block 31481508 gasPrice 10000000000 wei (10.0000 gwei)
+    sample 11: block 31481518 gasPrice 10000000000 wei (10.0000 gwei)
+    sample 12: block 31481529 gasPrice 10000000000 wei (10.0000 gwei)
+[2] tiers: {'slow': '10.0000 gwei', 'standard': '10.0000 gwei', 'fast': '10.0000 gwei'}
+[2] recommended (standard) price: 10000000000 wei
+[A-favorable-window] favorable at t+2.2s (10000000000 wei <= threshold 10000000000) -> broadcasting at 10000000000 wei
+[B-deadline-forced] deadline margin at t+22.1s (gas 10000000000 wei never <= 1) -> forced submit at 10000000000 wei. Deadline NEVER missed.
+{
+  "chain_id": 688689,
+  "total_elapsed_s": 199.9,
+  "tiers_wei": {
+    "slow": 10000000000,
+    "standard": 10000000000,
+    "fast": 10000000000
+  },
+  "jobs": [
+    {
+      "job": "A-favorable-window",
+      "deadline_s": 45,
+      "threshold_wei": 10000000000,
+      "submit_reason": "favorable_window",
+      "submit_elapsed_s": 3.9,
+      "price_at_request_wei": 10000000000,
+      "submitted_gas_price_wei": 10000000000,
+      "tx_hash": "0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050",
+      "effective_gas_price_wei": 1000000001,
+      "gas_used": 21000,
+      "cost_wei": 21000000021000,
+      "block_number": 31481582
+    },
+    {
+      "job": "B-deadline-forced",
+      "deadline_s": 30,
+      "threshold_wei": 1,
+      "submit_reason": "deadline_reached_forced_submit",
+      "submit_elapsed_s": 24.9,
+      "price_at_request_wei": 10000000000,
+      "submitted_gas_price_wei": 10000000000,
+      "tx_hash": "0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366",
+      "effective_gas_price_wei": 1000000001,
+      "gas_used": 21000,
+      "cost_wei": 21000000021000,
+      "block_number": 31481636
+    }
+  ],
+  "savings_vs_fast_tier": [
+    {
+      "job": "A-favorable-window",
+      "fast_tier_wei": 10000000000,
+      "paid_effective_wei": 1000000001,
+      "saved_per_gas_wei": 8999999999,
+      "saved_total_wei": 188999999979000
+    },
+    {
+      "job": "B-deadline-forced",
+      "fast_tier_wei": 10000000000,
+      "paid_effective_wei": 1000000001,
+      "saved_per_gas_wei": 8999999999,
+      "saved_total_wei": 188999999979000
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+name: Gas Fee Optimizer
+task_id: T22
+difficulty: Medium
+points: 100
+toolkit: Trading / Monitoring
+description: >-
+  A gas-fee optimizer for Pharos Atlantic testnet that polls real fee data,
+  computes explicit speed tiers (slow/standard/fast), recommends a gas price
+  for a given urgency, and executes a real dust transaction at the recommended
+  "standard" price — then reports actual gas paid (receipt effectiveGasPrice)
+  versus the price at request time, with honest savings math on real numbers.
+deliverables:
+  - runnable source (src/gas_optimizer.py, scripts/run_demo.py)
+  - unit tests on a recorded real snapshot (tests/test_tiers.py, tests/real_snapshot_1.json)
+  - fee snapshot, tier table, job reports (evidence/)
+  - README.md, REQUIREMENTS.md, evidence.md, evidence.json, REVIEWER_NOTES.md, LINKS.md, SUBMISSION.md, VIDEO-GUIDE.md
+budget_phrs: 0.15
+spent_phrs: 0.000062000000042
+real_txs:
+  - hash: 0x1c9d62c6496e626ff10ffab8157b587908b0faca92dd71517095de61ba1d3050
+    job: A-favorable-window
+    block: 31481582
+  - hash: 0x1c8c65374bc2210b221604a64c6190f6145da30a9416e9181f7f85b267ce2366
+    job: B-deadline-forced
+    block: 31481636
+status: built

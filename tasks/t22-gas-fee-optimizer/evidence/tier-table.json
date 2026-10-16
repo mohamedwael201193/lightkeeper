@@ -1,0 +1,13 @@
+{
+  "tiers": {
+    "slow": 10000000000,
+    "standard": 10000000000,
+    "fast": 10000000000
+  },
+  "method": "nearest-rank percentiles over the observation window: slow=p25, standard=p50(median), fast=p75",
+  "sample_count": 12,
+  "min_block": 31481423,
+  "max_block": 31481529,
+  "min_wei": 10000000000,
+  "max_wei": 10000000000
+}
