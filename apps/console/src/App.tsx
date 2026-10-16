@@ -1,24 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import Hero from "./components/Hero";
-import StatsStrip from "./components/StatsStrip";
+import StatusStrip from "./components/StatusStrip";
+import StackSection from "./components/StackSection";
 import LampsSection from "./components/LampsSection";
 import ActivityFeed from "./components/ActivityFeed";
-import TaskDetail from "./components/TaskDetail";
-import NavChrome from "./components/NavChrome";
-import { CircularMark, MenuPill } from "./components/Chrome";
+import Header from "./components/Header";
+import { WalletProvider } from "./components/WalletContext";
 import lampsRaw from "./data/lamps.json";
 import type { LampsData } from "./types";
 
+// Lazy: react-markdown only lives in the task view, keeping the home bundle light.
+const TaskDetail = lazy(() => import("./components/TaskDetail"));
+
 const data = lampsRaw as LampsData;
+
+const SECTIONS = new Set(["lamps", "stack", "activity"]);
 
 function useRoute() {
   const [hash, setHash] = useState(window.location.hash || "#/");
   useEffect(() => {
     const onChange = () => {
-      setHash(window.location.hash || "#/");
-      window.scrollTo({ top: 0 });
+      const h = window.location.hash || "#/";
+      setHash(h);
+      const m = h.match(/^#\/([\w-]+)$/);
+      if (m && SECTIONS.has(m[1])) {
+        requestAnimationFrame(() => {
+          document.getElementById(m[1])?.scrollIntoView({ behavior: "smooth" });
+        });
+      } else {
+        window.scrollTo({ top: 0 });
+      }
     };
     window.addEventListener("hashchange", onChange);
+    // handle initial load with a section hash
+    onChange();
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
   return hash;
@@ -26,18 +41,27 @@ function useRoute() {
 
 function Footer() {
   return (
-    <footer className="relative border-t border-white/10 bg-abyss-deep/70">
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-5 py-12 text-center">
-        <p className="display-section text-lg">Lightkeeper</p>
-        <p className="max-w-md text-xs leading-relaxed text-white/50">
+    <footer className="border-t border-hairline bg-paper">
+      <div className="royal-frame h-1 w-full" aria-hidden />
+      <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-5 py-12 text-center">
+        <img
+          src="/assets/octopus.png"
+          alt=""
+          aria-hidden
+          className="h-10 w-10 rounded-full object-cover opacity-70"
+          width={40}
+          height={40}
+        />
+        <p className="wordmark text-lg">Lightkeeper</p>
+        <p className="max-w-md text-xs leading-relaxed text-slate">
           One lighthouse. Twenty-eight lamps. One octopus to tend them.
           <br />
           Lamp statuses are generated from{" "}
-          <code className="text-gold-soft/80">tasks/*/evidence.json</code> at{" "}
+          <code className="font-mono text-accentdeep">tasks/*/evidence.json</code> at{" "}
           {new Date(data.generated_at).toLocaleString("en-GB", { timeZone: "Africa/Cairo" })} — a
           missing evidence file means in progress, never shipped, never mocked.
         </p>
-        <p className="text-[11px] tracking-[0.3em] text-white/30">
+        <p className="tabular text-[11px] font-bold tracking-[0.3em] text-slate">
           {data.lamps_lit}/28 LAMPS LIT · {data.points_secured.toLocaleString()}/
           {data.total_points.toLocaleString()} PTS
         </p>
@@ -50,10 +74,10 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const hash = useRoute();
 
-  const taskSlug = useMemo(() => {
+  const taskSlug = (() => {
     const m = hash.match(/^#\/task\/([\w-]+)/);
     return m ? m[1] : null;
-  }, [hash]);
+  })();
 
   const task = taskSlug ? data.tasks.find((t) => t.slug === taskSlug) : undefined;
 
@@ -64,35 +88,34 @@ export default function App() {
   }, [task]);
 
   return (
-    <NavChrome menuOpen={menuOpen} onClose={() => setMenuOpen(false)}>
-      <div className="min-h-screen bg-abyss text-white">
-        {/* top chrome: circular mark left, Menu pill right (above menu overlay) */}
-        <div className="fixed inset-x-0 top-0 z-[60]">
-          <div className="mx-auto flex max-w-[1600px] items-center justify-between px-5 py-4 lg:px-10">
-            <CircularMark />
-            <MenuPill open={menuOpen} onToggle={() => setMenuOpen((v) => !v)} />
-          </div>
-        </div>
-
-        {task ? (
-          <main className="lg:pl-60">
-            <TaskDetail lamp={task} />
-          </main>
-        ) : (
-          <main className="lg:pl-60">
-            <Hero />
-            <div className="relative bg-gradient-to-b from-abyss-deep/90 to-abyss py-6">
-              <StatsStrip data={data} />
-            </div>
-            <LampsSection lamps={data.tasks} />
-            <ActivityFeed lamps={data.tasks} />
-          </main>
-        )}
-
-        <div className="lg:pl-60">
+    <WalletProvider>
+      <div className="min-h-screen bg-paper text-ink">
+        <Header menuOpen={menuOpen} onToggle={() => setMenuOpen((v) => !v)} />
+        <div className="pt-[74px]">
+          <StatusStrip data={data} />
+          {task ? (
+            <main>
+              <Suspense
+                fallback={
+                  <div className="mx-auto max-w-4xl px-5 py-24 text-center text-sm text-slate">
+                    Loading the lamp…
+                  </div>
+                }
+              >
+                <TaskDetail lamp={task} />
+              </Suspense>
+            </main>
+          ) : (
+            <main>
+              <Hero data={data} />
+              <StackSection lamps={data.tasks} />
+              <LampsSection lamps={data.tasks} />
+              <ActivityFeed lamps={data.tasks} />
+            </main>
+          )}
           <Footer />
         </div>
       </div>
-    </NavChrome>
+    </WalletProvider>
   );
 }

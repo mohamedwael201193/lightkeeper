@@ -64,10 +64,46 @@ function firstParagraphs(md, n = 3, maxLen = 900) {
   const paras = md
     .split(/\n{2,}/)
     .map((p) => p.replace(/^#+\s*/gm, "").trim())
-    .filter((p) => p && !p.startsWith("!") && p.length > 20);
+    .filter((p) => p && !p.startsWith("!") && !p.startsWith("<") && p.length > 20);
   let text = paras.slice(0, n).join("\n\n");
   if (text.length > maxLen) text = text.slice(0, maxLen).trimEnd() + "…";
   return text;
+}
+
+// Full README as real markdown for the Builder's-summary panel: the
+// porcelain console renders this with a markdown renderer, so we must NOT
+// hand it the OCTOPUS HTML banner (it would render as raw tags). Drop
+// decoration-only paragraphs (mostly/wholly HTML with no prose text).
+function summaryMarkdown(md, maxLen = 6000) {
+  const stripTags = (p) => p.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+  const paras = md
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => {
+      if (!p) return false;
+      if (p.startsWith("![")) return false; // badge/hero images
+      if (p.includes("<")) {
+        const text = stripTags(p);
+        // banner if it's HTML-wrapped with barely any prose, or an OCTOPUS header block
+        if (text.length < 40) return false;
+        if (/background:#1414c8/i.test(p) && text.length < 160) return false;
+      }
+      return true;
+    });
+  let text = paras.join("\n\n");
+  if (text.length > maxLen) text = text.slice(0, maxLen).trimEnd() + "\n\n…";
+  return text;
+}
+
+function tailFile(path, maxLines = 40, maxChars = 2500) {
+  try {
+    const lines = readFileSync(path, "utf8").split("\n");
+    let tail = lines.slice(-maxLines).join("\n");
+    if (tail.length > maxChars) tail = tail.slice(-maxChars);
+    return tail;
+  } catch {
+    return "";
+  }
 }
 
 function isTxHash(s) {
@@ -146,6 +182,10 @@ const lamps = MATRIX.map(([id, name, tier, points, toolkit]) => {
     has_task_yaml: false,
     has_readme: false,
     readme_summary: "",
+    readme_markdown: "",
+    task_config_text: null,
+    policy_yaml_text: null,
+    run_log_files: [],
     has_evidence_json: false,
     evidence: null,
     txs: [],
@@ -155,6 +195,32 @@ const lamps = MATRIX.map(([id, name, tier, points, toolkit]) => {
     activity: [],
   };
   if (!d) return lamp;
+
+  // 01 · Configuration plumbing: task.yaml (manifest) + policy.yaml (gate
+  // values), captured raw so the flow view can render the real inputs.
+  try {
+    const ty = join(d, "task.yaml");
+    if (existsSync(ty)) lamp.task_config_text = readFileSync(ty, "utf8").slice(0, 3000);
+  } catch {}
+  try {
+    const py = join(d, "policy.yaml");
+    if (existsSync(py)) lamp.policy_yaml_text = readFileSync(py, "utf8").slice(0, 4000);
+  } catch {}
+
+  // 03 · History plumbing: run-log tails (never mocked — only real files).
+  try {
+    const rl = join(d, "run-logs");
+    if (existsSync(rl) && statSync(rl).isDirectory()) {
+      const files = readdirSync(rl)
+        .filter((f) => statSync(join(rl, f)).isFile())
+        .sort()
+        .slice(0, 6);
+      for (const f of files) {
+        const tail = tailFile(join(rl, f));
+        if (tail) lamp.run_log_files.push({ name: `run-logs/${f}`, tail });
+      }
+    }
+  } catch {}
 
   if (existsSync(join(d, "task.yaml"))) {
     lamp.has_task_yaml = true;
@@ -166,7 +232,9 @@ const lamps = MATRIX.map(([id, name, tier, points, toolkit]) => {
   }
   if (existsSync(join(d, "README.md"))) {
     lamp.has_readme = true;
-    lamp.readme_summary = firstParagraphs(readFileSync(join(d, "README.md"), "utf8"));
+    const raw = readFileSync(join(d, "README.md"), "utf8");
+    lamp.readme_summary = firstParagraphs(raw);
+    lamp.readme_markdown = summaryMarkdown(raw);
   }
   if (existsSync(join(d, "SUBMISSION.md"))) {
     lamp.has_submission = true;

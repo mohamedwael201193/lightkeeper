@@ -5,7 +5,7 @@ import LampCard from "./LampCard";
 
 type Filter = "all" | "lit" | "dim";
 
-/** TWENTY-EIGHT LAMPS — the tentacle grid with working filters + search. */
+/** Twenty-eight lamps — filterable, searchable, honestly lit/dim. */
 export default function LampsSection({ lamps }: { lamps: Lamp[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -36,18 +36,17 @@ export default function LampsSection({ lamps }: { lamps: Lamp[] }) {
   ];
 
   return (
-    <section id="lamps" className="relative mx-auto max-w-7xl scroll-mt-20 px-5 py-20">
-      <div className="diag-line left-[-10%] top-8 w-[45%] opacity-60" />
-      <div className="mb-10 text-center">
-        <h2 className="display-section text-[clamp(1.4rem,4.5vw,2.6rem)]">Twenty-eight lamps</h2>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/70">
-          Each lamp is an Arena task. A lamp burns <span className="text-gold-soft">gold</span> only
+    <section id="lamps" className="mx-auto max-w-[1440px] scroll-mt-32 px-5 py-16 lg:px-10">
+      <div className="mb-8 max-w-2xl">
+        <h2 className="smallcaps mb-3">The lamps</h2>
+        <p className="wordmark text-[clamp(1.5rem,3vw,2.2rem)]">Twenty-eight lamps</p>
+        <p className="mt-3 text-[15px] leading-relaxed text-slate">
+          Each lamp is an Arena task. A lamp burns <span className="font-semibold text-golddeep">gold</span> only
           when its task lands real on-chain evidence — anything else stays dim, honestly in progress.
         </p>
       </div>
 
-      {/* working filter controls */}
-      <div className="mb-8 flex flex-col items-center gap-4 md:flex-row md:justify-between">
+      <div className="mb-8 flex flex-col items-stretch gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex gap-2" role="tablist" aria-label="Filter lamps by status">
           {tabs.map((t) => (
             <button
@@ -55,10 +54,10 @@ export default function LampsSection({ lamps }: { lamps: Lamp[] }) {
               role="tab"
               aria-selected={filter === t.id}
               onClick={() => setFilter(t.id)}
-              className={`min-h-[44px] rounded-full px-5 text-sm font-medium transition-colors ${
+              className={`min-h-[44px] rounded-full px-5 text-sm font-semibold transition-colors ${
                 filter === t.id
-                  ? "bg-gold text-abyss-darker shadow-[0_6px_20px_rgba(217,168,33,0.4)]"
-                  : "border border-white/30 text-white/80 hover:border-gold-soft hover:text-gold-soft"
+                  ? "bg-ink text-white"
+                  : "border border-tintdeep bg-paper text-slate hover:border-accent hover:text-ink"
               }`}
             >
               {t.label}
@@ -66,12 +65,15 @@ export default function LampsSection({ lamps }: { lamps: Lamp[] }) {
           ))}
         </div>
         <label className="relative w-full max-w-xs">
-          <Search size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/50" />
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate"
+          />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search lamps…"
-            className="min-h-[44px] w-full rounded-full border border-white/30 bg-white/5 pl-11 pr-4 text-sm text-white placeholder:text-white/40 focus:border-gold focus:outline-none"
+            className="min-h-[44px] w-full rounded-full border border-tintdeep bg-paper pl-11 pr-4 text-sm text-ink placeholder:text-slate/60 focus:border-accent focus:outline-none"
           />
         </label>
       </div>
@@ -84,8 +86,8 @@ export default function LampsSection({ lamps }: { lamps: Lamp[] }) {
         </div>
       ) : (
         <div className="empty-panel flex flex-col items-center gap-3 px-6 py-16 text-center">
-          <p className="font-display text-xl italic text-gold-soft">No lamps match.</p>
-          <p className="text-sm text-white/60">Adjust the search or the filter — every lamp is still here.</p>
+          <p className="font-display text-xl italic text-ink">No lamps match.</p>
+          <p className="text-sm text-slate">Adjust the search or the filter — every lamp is still here.</p>
         </div>
       )}
     </section>

@@ -1,50 +1,37 @@
-/** @type {import('tailwindcss').Config} */
+/** Porcelain Console — light theme only. No blue-on-blue text anywhere. */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        abyss: {
-          DEFAULT: "#1414c8",
-          deep: "#0d0d8f",
-          darker: "#080864",
-          ink: "#b9c2f5",
-        },
-        gold: {
-          DEFAULT: "#d9a821",
-          soft: "#e8c766",
-          deep: "#a37c14",
-        },
-        porcelain: {
-          DEFAULT: "#f4f6ff",
-          blue: "#dfe6ff",
-        },
+        paper: "#FFFFFF",
+        porcelain: "#F8FAFF",
+        tint: "#EAF1FF",
+        tintdeep: "#D9E6FF",
+        ink: "#0B1533",
+        slate: "#5A6B8C",
+        accent: "#2456E6",
+        accentdeep: "#1A3FA8",
+        gold: "#C9A227",
+        golddeep: "#8A6F12",
+        pass: "#16A34A",
+        fail: "#DC2626",
+        hairline: "#E3EAF9",
+        royal: "#1414c8",
       },
       fontFamily: {
         display: ['"Playfair Display"', "Didot", "Georgia", "serif"],
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-      },
-      letterSpacing: {
-        mega: "0.35em",
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
       },
       keyframes: {
         floaty: {
           "0%, 100%": { transform: "translateY(0px)" },
-          "50%": { transform: "translateY(-14px)" },
-        },
-        sheen: {
-          "0%": { transform: "translateX(-150%) skewX(-20deg)" },
-          "100%": { transform: "translateX(250%) skewX(-20deg)" },
-        },
-        glowpulse: {
-          "0%, 100%": { opacity: "0.55" },
-          "50%": { opacity: "0.9" },
+          "50%": { transform: "translateY(-10px)" },
         },
       },
       animation: {
         floaty: "floaty 7s ease-in-out infinite",
-        sheen: "sheen 1.1s ease",
-        glowpulse: "glowpulse 5s ease-in-out infinite",
       },
     },
   },

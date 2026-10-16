@@ -1,85 +1,61 @@
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
-import AsciiGlow from "./AsciiGlow";
+import { Flame, Trophy } from "lucide-react";
+import type { LampsData } from "../types";
 
 /**
- * Hero — giant gold DIDONE `LIGHTKEEPER`, the porcelain octopus floating
- * center, thin diagonal white lines, poetic lede.
+ * Hero — compact. Restrained serif title that never clips at 1440px
+ * (clamp caps at 3rem inside a constrained container — the old 9.5rem bleed is gone).
  */
-export default function Hero() {
+export default function Hero({ data }: { data: LampsData }) {
+  const dim = data.tasks.length - data.lamps_lit;
   return (
-    <header id="top" className="relative overflow-hidden">
-      {/* ambient ASCII gradient, hero only, low opacity */}
-      <div className="absolute inset-0">
-        <AsciiGlow opacity={0.45} />
-      </div>
-      {/* gradient depth */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-abyss-deep/90" />
-
-      {/* thin diagonal white lines */}
-      <div className="diag-line left-[-15%] top-[18%] w-[60%]" />
-      <div className="diag-line right-[-15%] top-[62%] w-[55%] opacity-70" />
-
-      <div className="relative mx-auto flex min-h-[92vh] max-w-7xl flex-col items-center justify-center px-5 pb-24 pt-28 text-center">
+    <section className="border-b border-hairline bg-paper">
+      <div className="mx-auto max-w-3xl px-5 pb-12 pt-10 text-center lg:pt-14">
         <motion.p
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-6 text-[11px] font-medium uppercase tracking-[0.5em] text-white/70"
+          transition={{ duration: 0.5 }}
+          className="mb-5 text-[11px] font-bold uppercase tracking-[0.45em] text-slate"
         >
           Pharos Agent Arena · Atlantic testnet
         </motion.p>
 
         <motion.h1
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.1 }}
-          className="display-hero text-[clamp(2.2rem,10vw,9.5rem)]"
+          transition={{ duration: 0.6, delay: 0.05 }}
+          className="wordmark text-[clamp(1.9rem,4.2vw,3rem)]"
         >
-          Lightkeeper
+          One lighthouse. <span className="italic text-golddeep">Twenty-eight lamps.</span>
         </motion.h1>
 
-        {/* the porcelain octopus, floating */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, delay: 0.35 }}
-          className="relative -my-4 w-[min(78vw,520px)] md:-my-10 md:w-[min(52vw,560px)]"
-        >
-          {/* soft gold glow beneath */}
-          <div className="animate-glowpulse absolute inset-x-[12%] bottom-[6%] top-[55%] rounded-full bg-gold/25 blur-3xl" />
-          <img
-            src="/assets/octopus.png"
-            alt="The porcelain octopus keeper — white ceramic with deep-blue floral patterns and gold-accented suckers"
-            className="animate-floaty relative w-full drop-shadow-[0_30px_60px_rgba(8,8,100,0.55)]"
-            width={1600}
-            height={1600}
-            loading="eager"
-          />
-        </motion.div>
-
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.6 }}
-          className="max-w-xl text-balance text-lg leading-relaxed text-white md:text-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-slate"
         >
-          One lighthouse.{" "}
-          <span className="font-display italic text-gold-soft">Twenty-eight lamps.</span>
-          <br />
-          <span className="text-white/80">One octopus to tend them.</span>
+          One octopus to tend them. Every lamp below is a real Arena task; it burns gold only
+          when the task lands real on-chain evidence. Anything else stays dim — honestly in
+          progress, never mocked.
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.1 }}
-          className="mt-10 flex flex-col items-center gap-2 text-white/60"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+          className="mt-7 flex flex-wrap items-center justify-center gap-3"
         >
-          <span className="text-[11px] uppercase tracking-[0.35em]">The keeper's ledger</span>
-          <ChevronDown size={18} className="animate-bounce" />
+          <span className="chip chip-lit tabular">
+            <Flame size={12} /> {data.lamps_lit}/28 lamps lit
+          </span>
+          <span className="chip chip-info tabular">
+            <Trophy size={12} /> {data.points_secured.toLocaleString()}/
+            {data.total_points.toLocaleString()} pts
+          </span>
+          {dim > 0 && <span className="chip chip-dim tabular">{dim} in progress</span>}
         </motion.div>
       </div>
-    </header>
+    </section>
   );
 }
