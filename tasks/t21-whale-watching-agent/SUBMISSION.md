@@ -40,3 +40,13 @@ See `REVIEWER_NOTES.md` in the task folder: 60-second verification map, reproduc
 commands, and the honesty notes (threshold justification, self-seed disclosure, label
 policy, quiet-window policy). Total on-chain spend for this task: 0.050021 PHRS
 (self-seeded transfer + gas; the agent itself is read-only).
+
+**Interactive console demo (new):** LIGHTKEEPER console "Try it live":
+`apps/console/src/components/try/whale-watching-agent.tsx` (Tier A — live reads only,
+no wallet, costs nothing). "Whale radar": configurable PHRS threshold (default 1)
++ block window (default 20, max 100); polls latest blocks via `eth_getBlockByNumber`
+(full transactions — native transfers emit no logs), filters ≥ threshold, renders
+from → to → value rows ranked largest-first with explorer links; Refresh + labeled
+auto-refresh (30s, off by default, on/off switch — never silent background spam);
+honest empty state on quiet water. No USD conversion (no price feed exists);
+counterparties shown shortened, never invented.

@@ -60,6 +60,19 @@ All green. Real blocks, real transactions, real report. That's T21."
 
 ---
 
+## Shot 6 — The interactive console demo (new, 1:30–1:50)
+
+**Do:** open `lightkeeper-console.vercel.app` → T21 → "Try it live — with your own
+wallet" → "Whale radar": threshold 1 PHRS, 20 blocks → **Scan latest blocks**.
+
+**Say:** "And now the live surface anyone can use — no wallet, no signature, free
+reads. Real Atlantic blocks, real transfers, ranked largest-first, every hash
+linked to the explorer."
+
+**Show:** the scan running, rows appearing (or the honest empty state: "quiet water
+— no native transfers ≥ threshold in this window"). Toggle auto-refresh on, then
+off, showing it never polls silently.
+
 ## Don'ts
 
 - Don't film the `.env` file or any private key — the agent is read-only and needs none.
