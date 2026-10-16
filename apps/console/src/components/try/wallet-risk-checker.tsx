@@ -1,29 +1,40 @@
 /**
  * T23 Wallet Risk Checker — Tier A (live reads, no wallet, costs nothing).
  *
- * "X-ray any wallet": paste an Atlantic address and the console runs all 8
- * wallet-risk-checker checks live against the public RPC — account age via
- * first-activity block (nonce binary search, EIP-161-aware for contracts),
- * tx count / freshly-funded pattern, native balance, EOA vs contract,
- * recent activity burst, interaction diversity from Transfer logs, and
- * approval hygiene from Approval logs with the actual spender/token pairs
- * that can move this wallet's tokens.
+ * FLAGSHIP REBUILD (2026-10-16) — "X-ray any wallet".
+ * The module is an X-ray sweep: 8 checks arrive one by one as a sweep panel
+ * (each check a real RPC phase — the heartbeat with substance), then the
+ * composite gauge SWINGS to LOW/MED/HIGH as the climax, then the eight check
+ * rows, then the finale: the "who can drain this wallet" grant list, named.
  *
- * The differentiator is the report: every check ships a PASS / FLAG /
- * UNKNOWN / N/A chip, the raw values, and a PLAIN-LANGUAGE explanation of
- * what each flag means and what to do about it. Approval flags name the
- * exact token → spender grants (the "who can drain this wallet" list).
- * The composite LOW/MED/HIGH is a disclosed heuristic derived by the
- * printed formula — never an authoritative score.
- *
- * Heuristic thresholds mirror tasks/t23-wallet-risk-checker/signals.yaml.
+ * The 8 checks themselves are byte-identical to the CLI
+ * (tasks/t23-wallet-risk-checker/bin/run.mjs): first-activity block via nonce
+ * binary search (EIP-161-aware for contracts), funding-age fallback for
+ * never-outbound wallets, tip-backwards chunked eth_getLogs (<=1000 blocks
+ * per chunk, RPC-verified), partial-chunk resilience, disclosed heuristic
+ * composite. DO NOT touch the check logic — only this presentation.
  *
  * LIGHTKEEPER never signs here — reads only. Testnet only (chain 688689,
  * asserted before any check).
  */
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ExternalLink, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+} from "framer-motion";
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldQuestion,
+} from "lucide-react";
 import type { Lamp } from "../../types";
 import { weiToPhrs } from "../../types";
 import {
@@ -32,7 +43,7 @@ import {
   isValidAddress,
   rpcCall,
 } from "../../hooks/useAtlantic";
-import { ResultCard, ProgressLoader, ErrorState, StatStrip } from "../ui";
+import { ErrorState, StatStrip } from "../ui";
 import { keccak256Hex } from "./keccak256";
 
 type Verdict = "PASS" | "FLAG" | "UNKNOWN" | "N/A";
@@ -83,19 +94,19 @@ const LOW_DIVERSITY_MAX_PEERS = 2;
 const MAX_APPROVAL_SPENDERS = 5;
 
 /**
- * ProgressLoader steps — one per real RPC phase of the scan. Steps 2–4
- * evaluate from the core reads batch (state-driven completion, never a timer).
+ * The sweep order — the 8 checks as they arrive on screen. Names mirror the
+ * check constructors below exactly; the sweep row lights up when its real
+ * result lands (state-driven, never a timer).
  */
-const STEPS = [
-  "Connecting — chain ID + latest block",
-  "Check 1 of 8 — Account age: first-activity probe",
-  "Check 2 of 8 — Funding pattern: balance + transaction count",
-  "Check 3 of 8 — Native balance",
-  "Check 4 of 8 — Account type: bytecode read",
-  "Check 5 of 8 — Activity window: nonce delta",
-  "Check 6 of 8 — Token counterparties: Transfer log scan",
-  "Check 7 of 8 — Approval hygiene: Approval log scan",
-  "Check 8 of 8 — Watchlist check + composite verdict",
+const CHECK_META: Array<{ id: string; name: string }> = [
+  { id: "S1", name: "Account age (first activity)" },
+  { id: "S2", name: "Transaction count / funding pattern" },
+  { id: "S3", name: "Native balance (PHRS)" },
+  { id: "S4", name: "Account type / code verification" },
+  { id: "S5", name: "Recent activity window" },
+  { id: "S6", name: "Interaction diversity (Transfer counterparties)" },
+  { id: "S7", name: "Token approvals (allowance hygiene)" },
+  { id: "S8", name: "Flagged-address interaction" },
 ];
 
 const blockHex = (n: number): string => "0x" + n.toString(16);
@@ -228,14 +239,282 @@ function ActHeader({ num, title, hint }: { num: string; title: string; hint?: st
 
 const shortAddr = (a: string) => `${a.slice(0, 10)}…${a.slice(-6)}`;
 
+/** Copy-to-clipboard button, same affordance as ResultCard's. */
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={copied ? "Copied" : "Copy full address"}
+      className="btn-outline !min-h-[36px] !px-3 !py-1 !text-sm"
+    >
+      {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+      <span className="ml-1">{copied ? "Copied" : "Copy"}</span>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 02 · THE SWEEP — eight named checks arriving one by one as their real
+// results land. The heartbeat with substance: the active row names the live
+// RPC phase; completed rows seal with their verdict chip. Queued rows stay
+// dim. Nothing here moves except real state.
+// ---------------------------------------------------------------------------
+function SweepScan({
+  completed,
+  activeId,
+  phase,
+  detail,
+  address,
+}: {
+  completed: CheckResult[];
+  activeId: string | null;
+  phase: "connect" | "scan";
+  detail: string | null;
+  address: string;
+}) {
+  const reduce = useReducedMotion();
+  const doneById = new Map(completed.map((c) => [c.id, c]));
+  const done = completed.length;
+  return (
+    <div className="rounded-2xl border border-hairline bg-white p-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-2.5 w-2.5" aria-hidden>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
+          </span>
+          <p className="text-base font-bold text-ink">
+            X-ray sweep <span className="font-mono text-sm font-semibold text-slate">· {shortAddr(address)}</span>
+          </p>
+        </div>
+        <p className="font-mono text-sm font-semibold text-slate" aria-live="polite">
+          {done}/8
+        </p>
+      </div>
+      <div
+        className="mt-3 h-1.5 overflow-hidden rounded-full bg-porcelain"
+        role="progressbar"
+        aria-valuenow={done}
+        aria-valuemin={0}
+        aria-valuemax={8}
+        aria-label="Checks completed"
+      >
+        <motion.div
+          className="h-full rounded-full bg-accent"
+          initial={false}
+          animate={{ width: `${(done / 8) * 100}%` }}
+          transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut" }}
+        />
+      </div>
+
+      <div className="mt-4 space-y-1.5">
+        {phase === "connect" && done === 0 && (
+          <div className="flex items-center gap-3 rounded-xl bg-porcelain px-4 py-3">
+            <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" aria-hidden />
+            <p className="text-sm font-medium text-ink">Connecting — chain ID + latest block</p>
+          </div>
+        )}
+        {CHECK_META.map((m) => {
+          const result = doneById.get(m.id);
+          const active = activeId === m.id && !result;
+          return (
+            <div
+              key={m.id}
+              className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors duration-200 ${
+                result ? "bg-porcelain" : active ? "border border-accent/30 bg-accent/5" : "opacity-45"
+              }`}
+            >
+              <span className="w-7 shrink-0 font-mono text-xs font-bold text-slate">{m.id}</span>
+              {result ? (
+                <>
+                  <VerdictIcon v={result.verdict} />
+                  <span className="min-w-0 flex-1 text-sm font-semibold text-ink">{m.name}</span>
+                  <motion.span
+                    initial={reduce ? false : { opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className={verdictChip(result.verdict)}
+                  >
+                    {result.verdict}
+                  </motion.span>
+                </>
+              ) : active ? (
+                <>
+                  <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-ink">{m.name}</span>
+                    {detail && (
+                      <span className="block truncate font-mono text-xs text-accentdeep" role="status">
+                        {detail}
+                      </span>
+                    )}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-hairline" aria-hidden />
+                  <span className="min-w-0 flex-1 text-sm font-medium text-slate">{m.name}</span>
+                  <span className="text-xs text-slate">queued</span>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-sm text-slate">
+        Each row is a real network phase — the sweep advances only when a check's RPC calls return.
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 03 · THE GAUGE — the composite verdict as a real state-mapped SVG needle.
+// Rest position: far left. When the composite resolves, the needle swings to
+// LOW (150°) / MED (90°) / HIGH (30°) in 0.6s ease-out. Under
+// prefers-reduced-motion it lands instantly.
+// ---------------------------------------------------------------------------
+const GX = 130;
+const GY = 128;
+const GR = 100;
+const NEEDLE_R = 82;
+
+function gaugePoint(deg: number, r: number): [number, number] {
+  const rad = (deg * Math.PI) / 180;
+  return [GX + r * Math.cos(rad), GY - r * Math.sin(rad)];
+}
+
+function gaugeArc(fromDeg: number, toDeg: number): string {
+  const [x0, y0] = gaugePoint(fromDeg, GR);
+  const [x1, y1] = gaugePoint(toDeg, GR);
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${GR} ${GR} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+
+const GAUGE_ZONES = [
+  { from: 120, to: 180, color: "#86efac", name: "LOW" },
+  { from: 60, to: 120, color: "#fde68a", name: "MED" },
+  { from: 0, to: 60, color: "#fca5a5", name: "HIGH" },
+] as const;
+
+const GAUGE_ANGLE: Record<"LOW" | "MED" | "HIGH", number> = {
+  LOW: 150,
+  MED: 90,
+  HIGH: 30,
+};
+
+function RiskGauge({ level }: { level: "LOW" | "MED" | "HIGH" }) {
+  const reduce = useReducedMotion();
+  const targetAngle = GAUGE_ANGLE[level];
+  const angle = useMotionValue(180); // rest: far left, until the verdict resolves
+  useEffect(() => {
+    const controls = animate(angle, targetAngle, {
+      duration: reduce ? 0 : 0.6,
+      ease: "easeOut",
+    });
+    return controls.stop;
+  }, [angle, targetAngle, reduce]);
+  const x2 = useTransform(angle, (a) => gaugePoint(a, NEEDLE_R)[0]);
+  const y2 = useTransform(angle, (a) => gaugePoint(a, NEEDLE_R)[1]);
+
+  return (
+    <svg
+      viewBox="0 0 260 148"
+      role="img"
+      aria-label={`Risk gauge: ${level}`}
+      className="mx-auto w-full max-w-[340px]"
+    >
+      {GAUGE_ZONES.map((z) => (
+        <path
+          key={z.name}
+          d={gaugeArc(z.from, z.to)}
+          fill="none"
+          stroke={z.color}
+          strokeWidth={16}
+          strokeLinecap="round"
+        />
+      ))}
+      {[180, 120, 60, 0].map((t) => {
+        const [ix, iy] = gaugePoint(t, 84);
+        const [ox, oy] = gaugePoint(t, 96);
+        return (
+          <line
+            key={t}
+            x1={ix}
+            y1={iy}
+            x2={ox}
+            y2={oy}
+            stroke="#0B1533"
+            strokeOpacity={0.5}
+            strokeWidth={2}
+          />
+        );
+      })}
+      {GAUGE_ZONES.map((z) => {
+        const [lx, ly] = gaugePoint((z.from + z.to) / 2, 58);
+        return (
+          <text
+            key={z.name}
+            x={lx}
+            y={ly + 4}
+            textAnchor="middle"
+            fontSize={11}
+            fontWeight={700}
+            fill="#0B1533"
+            opacity={0.6}
+          >
+            {z.name}
+          </text>
+        );
+      })}
+      <motion.line
+        x1={GX}
+        y1={GY}
+        x2={x2}
+        y2={y2}
+        stroke="#0B1533"
+        strokeWidth={4}
+        strokeLinecap="round"
+      />
+      <circle cx={GX} cy={GY} r={7} fill="#0B1533" />
+      <circle cx={GX} cy={GY} r={2.5} fill="#ffffff" />
+    </svg>
+  );
+}
+
 export default function TryRisk({ lamp }: { lamp: Lamp }) {
   const [input, setInput] = useState("");
-  const [step, setStep] = useState<number | null>(null);
   const [stepDetail, setStepDetail] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [sweepChecks, setSweepChecks] = useState<CheckResult[]>([]);
+  const [sweepActive, setSweepActive] = useState<string | null>(null);
+  const [sweepPhase, setSweepPhase] = useState<"connect" | "scan" | null>(null);
   const [error, setError] = useState<{ message: string; retry: boolean } | null>(null);
   const [report, setReport] = useState<ScanReport | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const reduceMotion = useReducedMotion();
 
   const runScan = async () => {
     const address = input.trim();
@@ -249,7 +528,9 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
     setScanning(true);
     setError(null);
     setReport(null);
-    setStep(0);
+    setSweepChecks([]);
+    setSweepActive(null);
+    setSweepPhase("connect");
     setStepDetail(null);
 
     try {
@@ -279,11 +560,17 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       const effectiveOutbound = isContract ? (nonce > 0n ? nonce - 1n : 0n) : nonce;
 
       const checks: CheckResult[] = [];
+      /** Push a finished check: into the report AND onto the live sweep. */
+      const addCheck = (c: CheckResult) => {
+        checks.push(c);
+        setSweepChecks((prev) => [...prev, c]);
+      };
 
       // ── S1 · Account age (first activity; funding age for never-outbound wallets) ──
-      setStep(1);
+      setSweepPhase("scan");
+      setSweepActive("S1");
       if (nonce === 0n && balanceWei === 0n) {
-        checks.push({
+        addCheck({
           id: "S1",
           name: "Account age (first activity)",
           verdict: "UNKNOWN",
@@ -303,7 +590,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
         );
         setStepDetail(null);
         if (firstBlock === null) {
-          checks.push({
+          addCheck({
             id: "S1",
             name: "Account age (first activity)",
             verdict: "UNKNOWN",
@@ -330,7 +617,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
             ageLine += `, ≈${days < 1 ? "<1" : Math.round(days).toLocaleString()} day${Math.round(days) === 1 ? "" : "s"}`;
           }
           const young = ageBlocks < YOUNG_ACCOUNT_BLOCKS;
-          checks.push({
+          addCheck({
             id: "S1",
             name: "Account age (first activity)",
             verdict: young ? "FLAG" : "PASS",
@@ -369,7 +656,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
           ageLine += `, ≈${days < 1 ? "<1" : Math.round(days).toLocaleString()} day${Math.round(days) === 1 ? "" : "s"}`;
         }
         const young = ageBlocks < YOUNG_ACCOUNT_BLOCKS;
-        checks.push({
+        addCheck({
           id: "S1",
           name: "Account age (first activity)",
           verdict: young ? "FLAG" : "PASS",
@@ -397,9 +684,9 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       }
 
       // ── S2 · Transaction count / freshly-funded pattern ──
-      setStep(2);
+      setSweepActive("S2");
       const fundedIdle = balanceWei > 0n && effectiveOutbound === 0n;
-      checks.push({
+      addCheck({
         id: "S2",
         name: "Transaction count / funding pattern",
         verdict: fundedIdle ? "FLAG" : "PASS",
@@ -421,8 +708,8 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S3 · Native balance (informational only) ──
-      setStep(3);
-      checks.push({
+      setSweepActive("S3");
+      addCheck({
         id: "S3",
         name: "Native balance (PHRS)",
         verdict: "PASS",
@@ -436,10 +723,10 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S4 · EOA vs contract ──
-      setStep(4);
+      setSweepActive("S4");
       if (isContract) {
         const bytes = (code.length - 2) / 2;
-        checks.push({
+        addCheck({
           id: "S4",
           name: "Account type / code verification",
           verdict: "UNKNOWN",
@@ -457,7 +744,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
             "Ask the project for verified source matching this bytecode. Until then, treat any approval to it as unlimited risk and never send first.",
         });
       } else {
-        checks.push({
+        addCheck({
           id: "S4",
           name: "Account type / code verification",
           verdict: "PASS",
@@ -472,13 +759,13 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       }
 
       // ── S5 · Recent activity window (nonce delta — EIP-161-aware) ──
-      setStep(5);
+      setSweepActive("S5");
       const nonceThenHex = (await rpcCall("eth_getTransactionCount", [address, blockHex(winFrom)])) as string;
       const nonceThen = BigInt(nonceThenHex);
       const effThen = isContract ? (nonceThen > 0n ? nonceThen - 1n : 0n) : nonceThen;
       const outboundInWindow = effectiveOutbound >= effThen ? effectiveOutbound - effThen : 0n;
       const burst = outboundInWindow > BigInt(BURST_OUTBOUND_TXS);
-      checks.push({
+      addCheck({
         id: "S5",
         name: "Recent activity window",
         verdict: burst ? "FLAG" : "PASS",
@@ -502,7 +789,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S6 · Interaction diversity (Transfer logs, topic0-only + client-side filter) ──
-      setStep(6);
+      setSweepActive("S6");
       const transferTopic = keccak256Hex("Transfer(address,address,uint256)");
       const transferScan = await scanWindowLogs(transferTopic, [], latest, setStepDetail, "Mapping token counterparties");
       setStepDetail(null);
@@ -521,7 +808,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       const peerCount = peers.size;
       const lowDiv = peerCount <= LOW_DIVERSITY_MAX_PEERS;
       const partialS6 = transferScan.readableChunks < transferScan.totalChunks;
-      checks.push({
+      addCheck({
         id: "S6",
         name: "Interaction diversity (Transfer counterparties)",
         verdict: lowDiv ? "FLAG" : "PASS",
@@ -548,7 +835,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S7 · Approval hygiene (Approval logs with owner topic) ──
-      setStep(7);
+      setSweepActive("S7");
       const approvalTopic = keccak256Hex("Approval(address,address,uint256)");
       const ownerTopic = addrToTopic(address);
       const approvalScan = await scanWindowLogs(approvalTopic, [ownerTopic], latest, setStepDetail, "Scanning token approvals");
@@ -573,7 +860,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       const manySpenders = spenders.size > MAX_APPROVAL_SPENDERS;
       const flagged = unlimited > 0 || manySpenders;
       const partialS7 = approvalScan.readableChunks < approvalScan.totalChunks;
-      checks.push({
+      addCheck({
         id: "S7",
         name: "Token approvals (allowance hygiene)",
         verdict: flagged ? "FLAG" : "PASS",
@@ -593,14 +880,14 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
           ? "Unlimited approvals are the single most common way wallets get drained: one compromised or malicious spender contract can empty every approved token."
           : undefined,
         whatToDo: flagged
-          ? "Revoke approvals you do not actively use — send approve(spender, 0) for the token contract, or use a revocation tool. Keep only the spenders you need."
+          ? "Revoke approvals you do not actively use — send approve(spender, 0) for the token contract, or use a revocation tool. Every grant is named by token → spender in the finale below."
           : undefined,
         detailRows: grants.length > 0 ? grants : undefined,
       });
 
       // ── S8 · Flagged-address watchlist — N/A on Atlantic testnet ──
-      setStep(8);
-      checks.push({
+      setSweepActive("S8");
+      addCheck({
         id: "S8",
         name: "Flagged-address interaction",
         verdict: "N/A",
@@ -612,6 +899,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
         explanation:
           "There is no published sanctions/flagged-address set for the Atlantic testnet, so this check is not applicable here and is excluded from the composite. Configure a watchlist (signals.yaml) to enable it — e.g. for mainnet use. N/A is never reported as a clean PASS.",
       });
+      setSweepActive(null);
 
       // ── Composite (disclosed heuristic, never an authoritative score) ──
       const flags = checks.filter((c) => c.verdict === "FLAG").length;
@@ -627,7 +915,6 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
               : `${unknowns} check(s) unknown — unknown is not treated as safe`
             : "0 flags, 0 unknowns (N/A checks excluded)";
 
-      setStep(STEPS.length);
       setReport({ address, latestBlock: latest, accountType, checks, composite, compositeBasis });
       // Flags and unknowns demand attention — open those check rows by default.
       setExpanded(Object.fromEntries(checks.map((c) => [c.id, c.verdict === "FLAG" || c.verdict === "UNKNOWN"])));
@@ -638,7 +925,8 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       setError({ message, retry: true });
     } finally {
       setScanning(false);
-      setStep(null);
+      setSweepActive(null);
+      setSweepPhase(null);
       setStepDetail(null);
     }
   };
@@ -655,7 +943,9 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
   const flags = report ? report.checks.filter((c) => c.verdict === "FLAG").length : 0;
   const unknowns = report ? report.checks.filter((c) => c.verdict === "UNKNOWN").length : 0;
   const s7 = report?.checks.find((c) => c.id === "S7");
-  const unlimitedCount = s7?.detailRows?.filter((g) => g.unlimited).length ?? 0;
+  const grants = s7?.detailRows ?? [];
+  const unlimitedGrants = grants.filter((g) => g.unlimited);
+  const unlimitedCount = unlimitedGrants.length;
   const s6 = report?.checks.find((c) => c.id === "S6");
   const peerCount =
     Number((s6?.raw.find(([k]) => k === "distinct_counterparties")?.[1] ?? "0").replace(/[^\d]/g, "")) || 0;
@@ -663,7 +953,8 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
   const ratingWord = report?.composite === "LOW" ? "Low" : report?.composite === "MED" ? "Medium" : "High";
   const ratingColor =
     report?.composite === "LOW" ? "text-pass" : report?.composite === "MED" ? "text-accent" : "text-fail";
-  const resultStatus = report?.composite === "LOW" ? "pass" : report?.composite === "MED" ? "neutral" : "fail";
+  const statusDot =
+    report?.composite === "LOW" ? "bg-pass" : report?.composite === "MED" ? "bg-accent" : "bg-fail";
   const verdictPlain: Record<"LOW" | "MED" | "HIGH", string> = {
     LOW: "Nothing in these checks looks suspicious. Stay alert anyway: these are heuristics, not proof of safety.",
     MED: "Something here deserves a second look before you interact. Read the flagged checks below — the explanations say exactly what to do.",
@@ -679,10 +970,10 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
           <p className="text-sm font-semibold text-slate mb-2">Tier A — live reads · no wallet · no signature · free</p>
           <h3 className="font-display text-2xl font-bold text-ink">X-ray any wallet</h3>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink">
-            Paste an address and <strong>{lamp.name}</strong> scans it live against the Atlantic RPC:
-            all 8 checks — account age, funding pattern, balance, EOA-vs-contract, activity burst,
-            token counterparties, and approval hygiene — then prints a per-check report that{" "}
-            <strong>explains every flag in plain language</strong>, not just a score.
+            Paste an address and <strong>{lamp.name}</strong> sweeps all 8 checks across it live —
+            account age, funding pattern, balance, EOA-vs-contract, activity burst, token
+            counterparties, approval hygiene. The gauge swings to one verdict, and the finale names
+            exactly <strong>who can drain this wallet</strong> — every flag explained in plain language.
           </p>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
             Read-only: this page cannot sign or broadcast anything, and LIGHTKEEPER never sees,
@@ -744,20 +1035,17 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
         </div>
       </section>
 
-      {/* ── 02 Run ── */}
-      {scanning && step !== null && (
+      {/* ── 02 Run — the X-ray sweep ── */}
+      {scanning && sweepPhase && (
         <section aria-label="Run">
           <ActHeader num="02" title="Run" hint="Live progress — every step is a real network call" />
-          <ProgressLoader
-            steps={STEPS}
-            current={step}
-            title={`Scanning ${shortAddr(input.trim())}`}
+          <SweepScan
+            completed={sweepChecks}
+            activeId={sweepActive}
+            phase={sweepPhase}
+            detail={stepDetail}
+            address={input.trim()}
           />
-          {stepDetail && (
-            <p className="mt-2 text-sm font-medium text-accentdeep" role="status">
-              {stepDetail}
-            </p>
-          )}
         </section>
       )}
 
@@ -776,48 +1064,98 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
         />
       )}
 
-      {/* ── 03 Result ── */}
+      {/* ── 03 Result — the gauge swing, then the checks, then the drain-list finale ── */}
       {report && !scanning && (
         <motion.section
           aria-label="Risk verdict"
           className="space-y-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <ActHeader num="03" title="Risk verdict" hint="The composite is a disclosed heuristic, not a score" />
 
-          <ResultCard
-            eyebrow={`Wallet risk report · Atlantic testnet · block ${report.latestBlock.toLocaleString()}`}
-            headline={
-              <>
-                <span className={ratingColor}>{ratingWord}</span> risk
-              </>
-            }
-            subline={verdictPlain[report.composite]}
-            rows={[
-              {
-                label: "Address",
-                value: (
-                  <span title={report.address}>{shortAddr(report.address)}</span>
-                ),
-              },
-              { label: "Account type", value: report.accountType === "EOA" ? "EOA" : "Contract" },
-              { label: "Checks flagged", value: `${flags} flagged · ${unknowns} unknown` },
-              { label: "Composite basis", value: report.compositeBasis },
-            ]}
-            links={[
-              { label: "View this address on the explorer", href: `${EXPLORER_ADDRESS}${report.address}` },
-            ]}
-            copyValue={report.address}
-            status={resultStatus as "pass" | "neutral" | "fail"}
-          >
-            <p className="text-sm leading-relaxed text-slate">
+          {/* The climax: the gauge swings to the verdict */}
+          <div className="relative overflow-hidden rounded-2xl border border-hairline bg-white p-6 sm:p-8">
+            {!reduceMotion && (
+              <motion.span
+                key={`ring-${report.address}-${report.latestBlock}`}
+                aria-hidden
+                className={`pointer-events-none absolute left-1/2 top-[38%] h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                  report.composite === "LOW"
+                    ? "border-pass"
+                    : report.composite === "MED"
+                      ? "border-accent"
+                      : "border-fail"
+                }`}
+                initial={{ opacity: 0.5, scale: 0.6 }}
+                animate={{ opacity: 0, scale: 1.4 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+            )}
+            <div className="flex items-center gap-3">
+              <span className={`h-2.5 w-2.5 rounded-full ${statusDot}`} aria-hidden />
+              <p className="text-sm font-semibold text-slate">
+                Wallet risk report · Atlantic testnet · block {report.latestBlock.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="mt-2">
+              <RiskGauge level={report.composite} />
+            </div>
+
+            <h3 className="mt-2 text-center font-display text-4xl leading-tight tracking-tight text-ink sm:text-5xl">
+              <span className={ratingColor}>{ratingWord}</span> risk
+            </h3>
+            <p className="mx-auto mt-2 max-w-xl text-center text-sm leading-relaxed text-ink">
+              {verdictPlain[report.composite]}
+            </p>
+
+            <dl className="mx-auto mt-6 max-w-xl">
+              <div className="flex items-center justify-between gap-3 border-t border-hairline py-3">
+                <dt className="text-sm font-semibold text-slate">Address</dt>
+                <dd className="flex items-center gap-2">
+                  <span className="font-mono text-sm text-ink" title={report.address}>
+                    {shortAddr(report.address)}
+                  </span>
+                  <CopyButton value={report.address} />
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-hairline py-3">
+                <dt className="text-sm font-semibold text-slate">Account type</dt>
+                <dd className="text-sm font-semibold text-ink">
+                  {report.accountType === "EOA" ? "EOA" : "Contract"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-hairline py-3">
+                <dt className="text-sm font-semibold text-slate">Checks flagged</dt>
+                <dd className="text-sm font-semibold text-ink">
+                  {flags} flagged · {unknowns} unknown
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-b border-hairline py-3">
+                <dt className="text-sm font-semibold text-slate">Composite basis</dt>
+                <dd className="text-right text-sm text-ink">{report.compositeBasis}</dd>
+              </div>
+            </dl>
+
+            <p className="mx-auto mt-4 max-w-xl text-center text-sm leading-relaxed text-slate">
               <strong className="text-ink">Composite formula (HEURISTIC):</strong> {COMPOSITE_FORMULA}.
               This verdict is derived from the 8 checks below by that formula — it is{" "}
               <strong className="text-ink">not</strong> an authoritative risk score.
             </p>
-          </ResultCard>
+            <div className="mt-3 flex justify-center">
+              <a
+                className="btn-outline !min-h-[40px] !text-sm"
+                href={`${EXPLORER_ADDRESS}${report.address}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View this address on the explorer
+                <ExternalLink size={14} className="ml-1 inline" aria-hidden />
+              </a>
+            </div>
+          </div>
 
           <StatStrip
             stats={[
@@ -828,7 +1166,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
             ]}
           />
 
-          {/* The 8 checks as elegant rows */}
+          {/* The 8 checks, sealed one by one during the sweep */}
           <div className="space-y-3" aria-label="The 8 checks">
             {report.checks.map((c) => {
               const open = expanded[c.id] ?? false;
@@ -883,73 +1221,12 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
                             </table>
                           </div>
 
-                          {/* S7: the "who can drain this wallet" grant cards */}
-                          {c.detailRows && c.detailRows.length > 0 && (
-                            <div className="mt-4">
-                              <p className="mb-2 text-sm font-semibold text-ink">
-                                Who can drain this wallet — {c.detailRows.length} grant
-                                {c.detailRows.length === 1 ? "" : "s"} in the window
-                              </p>
-                              <div className="grid gap-2 sm:grid-cols-2">
-                                {c.detailRows.slice(0, 12).map((g, i) => (
-                                  <div
-                                    key={i}
-                                    className={`rounded-xl border p-3 ${
-                                      g.unlimited
-                                        ? "border-[#F3C1C1] bg-[#FEF2F2]"
-                                        : "border-hairline bg-porcelain"
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span
-                                        className={`text-xs font-bold ${
-                                          g.unlimited ? "text-fail" : "text-slate"
-                                        }`}
-                                      >
-                                        {g.unlimited ? "UNLIMITED" : "limited amount"}
-                                      </span>
-                                      {g.unlimited && (
-                                        <ShieldAlert size={14} className="text-fail" aria-hidden />
-                                      )}
-                                    </div>
-                                    <p className="mt-2 text-xs text-slate">Token contract</p>
-                                    <a
-                                      className="break-all font-mono text-xs text-accent hover:underline"
-                                      href={`${EXPLORER_ADDRESS}${g.token}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      title={g.token}
-                                    >
-                                      {shortAddr(g.token)}
-                                      <ExternalLink size={11} className="ml-1 inline" aria-hidden />
-                                    </a>
-                                    <p className="mt-2 text-xs text-slate">Spender — can move the tokens</p>
-                                    <a
-                                      className="break-all font-mono text-xs text-accent hover:underline"
-                                      href={`${EXPLORER_ADDRESS}${g.spender}`}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      title={g.spender}
-                                    >
-                                      {shortAddr(g.spender)}
-                                      <ExternalLink size={11} className="ml-1 inline" aria-hidden />
-                                    </a>
-                                    {g.unlimited && (
-                                      <p className="mt-2 text-xs font-medium text-fail">
-                                        This spender can move ALL of this token from the wallet at
-                                        any time, until the approval is revoked.
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                              {c.detailRows.length > 12 && (
-                                <p className="mt-2 text-xs text-slate">
-                                  + {c.detailRows.length - 12} more grant(s) — the full list is in
-                                  the CLI report.
-                                </p>
-                              )}
-                            </div>
+                          {c.id === "S7" && grants.length > 0 && (
+                            <p className="mt-3 text-sm text-slate">
+                              <ShieldAlert size={13} className="mr-1 inline text-fail" aria-hidden />
+                              Every grant is named by token → spender in the finale below —{" "}
+                              <strong className="text-ink">who can drain this wallet</strong>.
+                            </p>
                           )}
 
                           <p className="mt-3 text-sm leading-relaxed text-ink">{c.explanation}</p>
@@ -985,6 +1262,100 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
               );
             })}
           </div>
+
+          {/* The finale: who can drain this wallet */}
+          <section aria-label="Who can drain this wallet" className="space-y-4">
+            <div>
+              <p className="text-sm font-bold tracking-wide text-fail">THE FINALE</p>
+              <h3 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink">
+                Who can drain this wallet
+              </h3>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+                Every token approval grant found in the last {LOG_WINDOW_BLOCKS.toLocaleString()} blocks —
+                the exact token → spender pairs that can move this wallet's tokens right now.
+                {grants.length === 0 &&
+                  " None were found in the window — that is the honest answer, not a clean bill of health for older approvals."}
+              </p>
+            </div>
+
+            {grants.length > 0 ? (
+              <>
+                {unlimitedCount > 0 && (
+                  <div className="flex items-start gap-3 rounded-2xl border border-[#F3C1C1] bg-[#FEF2F2] p-5">
+                    <ShieldAlert size={20} className="mt-0.5 shrink-0 text-fail" aria-hidden />
+                    <p className="text-sm leading-relaxed text-ink">
+                      <strong className="text-fail">
+                        {unlimitedCount} UNLIMITED grant{unlimitedCount === 1 ? "" : "s"}.
+                      </strong>{" "}
+                      Each unlimited spender below can move <strong>all</strong> of that token out of
+                      this wallet at any time, until the approval is revoked. This is the single most
+                      common way wallets get drained — revoke anything you do not actively use.
+                    </p>
+                  </div>
+                )}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {grants.map((g, i) => (
+                    <motion.div
+                      key={`${g.token}-${g.spender}-${i}`}
+                      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className={`rounded-xl border p-4 ${
+                        g.unlimited
+                          ? "border-[#F3C1C1] bg-[#FEF2F2]"
+                          : "border-hairline bg-porcelain"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-xs font-bold ${g.unlimited ? "text-fail" : "text-slate"}`}>
+                          {g.unlimited ? "UNLIMITED" : "limited amount"}
+                        </span>
+                        {g.unlimited && <ShieldAlert size={14} className="text-fail" aria-hidden />}
+                      </div>
+                      <p className="mt-3 text-xs text-slate">Token contract</p>
+                      <a
+                        className="break-all font-mono text-xs text-accent hover:underline"
+                        href={`${EXPLORER_ADDRESS}${g.token}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={g.token}
+                      >
+                        {shortAddr(g.token)}
+                        <ExternalLink size={11} className="ml-1 inline" aria-hidden />
+                      </a>
+                      <p className="mt-2 text-xs text-slate">Spender — can move the tokens</p>
+                      <a
+                        className="break-all font-mono text-xs text-accent hover:underline"
+                        href={`${EXPLORER_ADDRESS}${g.spender}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={g.spender}
+                      >
+                        {shortAddr(g.spender)}
+                        <ExternalLink size={11} className="ml-1 inline" aria-hidden />
+                      </a>
+                      {g.unlimited && (
+                        <p className="mt-2 text-xs font-medium text-fail">
+                          This spender can move ALL of this token from the wallet at any time, until
+                          the approval is revoked.
+                        </p>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="empty-panel px-5 py-6">
+                <p className="text-sm font-semibold text-ink">
+                  No token approval grants in the last {LOG_WINDOW_BLOCKS.toLocaleString()} blocks.
+                </p>
+                <p className="mt-1 text-sm text-slate">
+                  Nothing in this window lets anyone move this wallet's tokens via an approval.
+                  Approvals older than the window are not covered — the scan says what it sees, nothing more.
+                </p>
+              </div>
+            )}
+          </section>
 
           {/* Coverage honesty footer */}
           <div className="empty-panel px-5 py-4">
