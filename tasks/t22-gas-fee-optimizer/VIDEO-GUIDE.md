@@ -1,4 +1,4 @@
-# VIDEO-GUIDE — T22 Gas Fee Optimizer (45–90 seconds)
+# VIDEO-GUIDE — T22 Gas Fee Optimizer (up to 120 seconds with the console shot)
 
 Film the REAL terminal and REAL explorer pages. No staged fakes, no mock
 dashboards. Keep each shot tight; the script below is spoken over the shots.
@@ -14,6 +14,7 @@ dashboards. Keep each shot tight; the script below is spoken over the shots.
 | 5 | 48–70 | Browser: the two explorer tx pages (scroll to effectiveGasPrice / status / block) | "And here are the real receipts on the Atlantic explorer. Both succeeded. Both settled at an effective price of about one gwei — even though we submitted at the recommended ten-gwei standard. That difference is the optimizer's honest savings: about point-zero-zero-zero-one-eight-nine PHRS per transaction versus the fast tier." |
 | 6 | 70–80 | Terminal: `cat evidence.json` spend log | "Total spend for the whole task: six hundred-thousandths of a PHRS, inside our point-one-five budget." |
 | 7 | 80–90 | README §1 on screen, fade to the OCTOPUS header | "Twenty-two of twenty-eight lamps lit." |
+| 8 (NEW — interactive console shot) | 90–120 | Browser: the LIGHTKEEPER console lamp page → "Try it live" → Gas Fee Optimizer: hit Refresh, show the live gwei reading + latest block + utilization; flip tx type to Contract call and urgency to High, show the tier table re-pricing in PHRS | "And now the lamp is tryable: the console reads Atlantic's gas price live — no wallet, no signature — and recomputes the slow, standard and fast tiers from what the chain says right now, not from a table. Pick a contract call at high urgency and the cost re-prices instantly. That's the same percentile method the agent used for the real jobs — Job A and Job B, whose real receipts are linked right below."
 
 ## Rules
 

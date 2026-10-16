@@ -39,6 +39,16 @@ https://github.com/mohamedwael201193/lightkeeper/tree/d9ef4d7f02542483734fef43cb
 **Reviewer notes:** see `REVIEWER_NOTES.md` in the task folder (5-minute
 re-verification path, flat-gas caveat, deadline guarantee).
 
+**Interactive demo:** the console's "Try it live" surface for this lamp
+(`apps/console/src/components/try/gas-fee-optimizer.tsx`) reads the CURRENT
+Atlantic gas price (`eth_gasPrice` + `eth_maxPriorityFeePerGas`) and the latest
+block's utilization on demand, then recomputes slow/standard/fast tiers from
+those live samples (p25/p50/p75, same method as `evidence/tier-table.json`).
+Visitors pick a tx type (transfer / contract call) and an urgency and see the
+estimated PHRS cost per tier — the recommendation comes from the chain seconds
+ago, not a static table. Tier A: no wallet, no signature, costs nothing. Both
+real job receipts are linked on the page.
+
 **Video:** PENDING-VIDEO (see `VIDEO-GUIDE.md` for the shot plan).
 
 ---
