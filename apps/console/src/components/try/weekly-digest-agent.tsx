@@ -6,9 +6,13 @@
  *    the explorer indexer, then chain-direct eth_getLogs Transfer scans in
  *    <=1000-block chunks (the RPC's own limit), with live "chunk N of M"
  *    progress. Every step maps to real async calls — nothing on a timer.
- * 03 Result — the digest as an editorial document: ResultCard showpiece,
- *    StatStrip of the week's numbers, one section card per T26 section,
- *    highlights feed, scan history.
+ * 03 Result — THE FRONT PAGE: a newspaper front page for the address's
+ *    week. Masthead (nameplate + edition line + the week's numbers as
+ *    masthead stats) → the editor's note (deterministic editorial rules) →
+ *    the lead story (TOP-3) → section columns → the delivered Telegram slip
+ *    (the human moment). Then the highlights feed and scan history, then
+ *    the Tier C CLI config (the console never sends Telegram — delivery
+ *    stays copy-paste CLI config below the result).
  *
  * Tier C honesty is kept: the console never sends Telegram messages and never
  * signs — delivery + scheduling stay copy-paste CLI config below the result.
@@ -19,6 +23,14 @@
  * src/digest.py) — deterministic TOP-3 ranking, whale threshold 0.05 PHRS,
  * token metadata via real eth_call (symbol/decimals) — but nothing here
  * touches the engine itself.
+ *
+ * FLAGSHIP layer (2026-10-16): the 03 act is a newspaper front page —
+ * masthead (nameplate + edition line + the week's numbers as masthead
+ * stats) → the editor's note (the deterministic editorial rules, made
+ * visible) → the lead story (TOP-3) → section columns → the delivered
+ * Telegram slip (the human moment). The engine, the scan, and the honesty
+ * rules are byte-identical; only the typesetting changed. Motion: the Rise
+ * (0.3s, once) on the answer arriving — never on a timer.
  */
 import { useCallback, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -36,10 +48,8 @@ import {
   ErrorState,
   FeedList,
   ProgressLoader,
-  ResultCard,
-  StatStrip,
 } from "../ui";
-import type { FeedItem, Stat } from "../ui";
+import type { FeedItem } from "../ui";
 
 // ---------------------------------------------------------------- constants
 
@@ -493,30 +503,343 @@ function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
   );
 }
 
-/** One digest section, styled like a newsletter chapter. */
-function SectionCard({
-  eyebrow,
-  title,
+// ---------------------------------------------------------------- flagship
+// editorial layer: the front page's typesetting. Every component below is
+// presentational — the numbers all arrive from the live scan above.
+
+/** The classic double rule framing a newspaper nameplate. */
+function PageRule() {
+  return (
+    <div aria-hidden>
+      <div className="border-t-4 border-ink" />
+      <div className="mt-px border-t border-ink" />
+    </div>
+  );
+}
+
+/** Small explorer link, reused across the front page's rows. */
+function ExplorerLink({ href, title }: { href: string; title?: string }) {
+  return (
+    <a
+      className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-porcelain px-3 text-sm font-medium text-accent hover:bg-tint"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={title}
+    >
+      View on explorer
+      <ExternalLink size={14} aria-hidden />
+    </a>
+  );
+}
+
+/** THE MASTHEAD — the nameplate, the edition line, the week's numbers. */
+function Masthead({
+  digest,
+  sections,
+}: {
+  digest: DigestResult;
+  sections: string[];
+}) {
+  const mast: { label: string; display: string; unit?: string; sub?: string }[] = [];
+  if (sections.includes("volume")) {
+    mast.push(
+      {
+        label: "Transactions",
+        display: digest.txTotal.toLocaleString(),
+        sub: `${digest.txSent} sent / ${digest.txReceived} received`,
+      },
+      { label: "Native in", display: fmtPhrs(digest.nativeIn), unit: "PHRS" },
+      { label: "Native out", display: fmtPhrs(digest.nativeOut), unit: "PHRS" }
+    );
+  }
+  if (sections.includes("gas")) {
+    mast.push({ label: "Gas spent", display: fmtPhrs(digest.gasSpent), unit: "PHRS" });
+  }
+  if (sections.includes("failed") && mast.length < 4) {
+    mast.push({ label: "Failed txs", display: digest.failed.toLocaleString() });
+  }
+
+  return (
+    <motion.header
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="overflow-hidden rounded-2xl border border-hairline bg-white"
+    >
+      <PageRule />
+      <div className="px-6 pt-6 sm:px-10">
+        <p className="text-center text-sm font-semibold text-slate">
+          Pharos Atlantic testnet · chain 688689
+        </p>
+        <h2 className="mt-2 text-center font-display text-4xl tracking-tight text-ink sm:text-5xl">
+          The Weekly Digest
+        </h2>
+        <p className="mt-3 text-center text-sm text-slate">
+          Edition for{" "}
+          <span className="font-mono text-xs text-ink" title={digest.address}>
+            {shortenAddress(digest.address)}
+          </span>{" "}
+          · {fmtDate(digest.startIso)} → {fmtDate(digest.endIso)}
+        </p>
+        <p className="mt-1 text-center font-mono text-xs text-slate">
+          blocks {digest.startBlock.toLocaleString()} →{" "}
+          {digest.endBlock.toLocaleString()} · {digest.chunks.toLocaleString()}{" "}
+          Transfer-event chunks · scanned in {digest.secs}s
+        </p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          <a
+            className="inline-flex min-h-[44px] items-center rounded-lg border border-hairline bg-porcelain px-4 text-sm font-medium text-accent hover:bg-tint"
+            href={`${EXPLORER_ADDRESS}${digest.address}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View the address on the explorer
+          </a>
+          <CopyButton text={digest.address} />
+        </div>
+        {mast.length > 0 && (
+          <>
+            <div className="mt-6 border-t border-hairline" />
+            <dl
+              className={`grid grid-cols-2 gap-x-4 ${
+                mast.length > 2 ? "sm:grid-cols-4" : "sm:grid-cols-2"
+              }`}
+            >
+              {mast.map((m) => (
+                <div key={m.label} className="px-2 py-5 text-center">
+                  <dt className="text-sm font-semibold text-slate">{m.label}</dt>
+                  <dd className="mt-1 font-display text-3xl tracking-tight text-ink">
+                    {m.display}
+                    {m.unit && (
+                      <span className="ml-1.5 text-base font-normal text-slate">
+                        {m.unit}
+                      </span>
+                    )}
+                  </dd>
+                  {m.sub && (
+                    <dd className="mt-1 font-mono text-xs text-slate">{m.sub}</dd>
+                  )}
+                </div>
+              ))}
+            </dl>
+          </>
+        )}
+      </div>
+      <div className="px-6 pb-6 sm:px-10">
+        <PageRule />
+      </div>
+    </motion.header>
+  );
+}
+
+/**
+ * THE EDITOR'S NOTE — the deterministic editorial rules, made visible.
+ * This is the thinking layer: why the front page looks the way it does.
+ */
+function EditorsNote() {
+  return (
+    <motion.aside
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.05, ease: "easeOut" }}
+      className="rounded-2xl border border-hairline bg-porcelain p-6 sm:p-8"
+    >
+      <p className="text-sm font-semibold text-slate">A note from the editor</p>
+      <p className="mt-1 font-display text-2xl italic tracking-tight text-ink">
+        Why this week looks the way it does
+      </p>
+      <ul className="mt-4 space-y-2.5 text-sm leading-relaxed text-ink">
+        <li>
+          <span className="font-semibold">Failures lead.</span> Reverted
+          transactions outrank everything — a broken week deserves the
+          headline.
+        </li>
+        <li>
+          <span className="font-semibold">No hand-picking.</span> The TOP-3 is
+          a deterministic rule — score first, then newest block. The same
+          input always prints the same front page.
+        </li>
+        <li>
+          <span className="font-semibold">Whales are defined.</span> Native
+          moves of ≥ 0.05 PHRS, ranked biggest-first — the engine's threshold,
+          stated on the page.
+        </li>
+        <li>
+          <span className="font-semibold">Symbols are read, not assumed.</span>{" "}
+          Every token's symbol and decimals come from its own contract via
+          eth_call.
+        </li>
+        <li>
+          <span className="font-semibold">What the keeper can't see.</span>{" "}
+          Native PHRS transfers emit no events — the token column is built
+          from chain-direct Transfer scans, never from guesses.
+        </li>
+      </ul>
+    </motion.aside>
+  );
+}
+
+/** THE LEAD STORY — the deterministic TOP-3, above the fold. */
+function LeadStory({ digest }: { digest: DigestResult }) {
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.1, ease: "easeOut" }}
+      className="rounded-2xl border border-hairline bg-white p-6 sm:p-8"
+    >
+      <p className="text-sm font-semibold text-slate">The lead story · TOP 3 notable</p>
+      <h3 className="mt-1 font-display text-4xl tracking-tight text-ink sm:text-5xl">
+        {digest.txTotal.toLocaleString()}{" "}
+        transaction{digest.txTotal === 1 ? "" : "s"} — three stood out
+      </h3>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+        Ranked by rule, not by hand: failed tx › contract creation › large
+        native transfer › token transfer › contract interaction › plain
+        transfer. Ties break by newest block.
+      </p>
+      {digest.top3.length > 0 ? (
+        <ol className="mt-6 divide-y divide-hairline border-t border-hairline">
+          {digest.top3.map((e, i) => (
+            <motion.li
+              key={e.hash}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: Math.min(i * 0.08, 0.24) }}
+              className="flex items-start gap-5 py-5"
+            >
+              <span
+                className="w-10 shrink-0 font-display text-5xl leading-none text-ink"
+                aria-label={`Rank ${i + 1}`}
+              >
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p>
+                  <span className={KIND_CHIP[e.kind] ?? "chip chip-dim"}>
+                    {e.kind}
+                  </span>
+                </p>
+                <p className="mt-1.5 text-base font-semibold text-ink">
+                  {e.title}
+                </p>
+                <p className="mt-0.5 font-mono text-xs text-slate">{e.detail}</p>
+              </div>
+              <ExplorerLink href={`${EXPLORER_TX}${e.hash}`} title={e.hash} />
+            </motion.li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-6 text-sm text-slate">
+          No notable events in this window — an honest quiet week.
+        </p>
+      )}
+    </motion.article>
+  );
+}
+
+/** One front-page section column — a newspaper chapter, typeset. */
+function PageSection({
+  kicker,
+  headline,
   note,
   children,
+  delay = 0,
 }: {
-  eyebrow: string;
-  title: string;
+  kicker: string;
+  headline: string;
   note?: string;
   children: React.ReactNode;
+  delay?: number;
 }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ duration: 0.3, delay, ease: "easeOut" }}
       className="rounded-2xl border border-hairline bg-white p-6 sm:p-8"
     >
-      <p className="text-sm font-semibold text-slate">{eyebrow}</p>
-      <h4 className="mt-1 font-display text-2xl tracking-tight text-ink">{title}</h4>
-      {note && <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate">{note}</p>}
-      <div className="mt-5">{children}</div>
+      <p className="text-sm font-semibold text-slate">{kicker}</p>
+      <h4 className="mt-1 font-display text-2xl tracking-tight text-ink sm:text-3xl">
+        {headline}
+      </h4>
+      {note && (
+        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate">{note}</p>
+      )}
+      <div className="mt-5 border-t border-hairline pt-5">{children}</div>
     </motion.section>
+  );
+}
+
+/**
+ * THE HUMAN MOMENT — the real delivered digest, verbatim, as a slip.
+ * The task's actual Telegram delivery (message_id 723, 2026-10-16): proof
+ * that the agent's output reaches a human. The console never sends messages
+ * — the CLI config below is what produces this.
+ */
+function DeliverySlip() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="rounded-2xl border-2 border-dashed border-hairline bg-white p-6 sm:p-8"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate">
+            LIGHTKEEPER T26 → Telegram
+          </p>
+          <h4 className="mt-1 font-display text-2xl tracking-tight text-ink sm:text-3xl">
+            One message, one receipt
+          </h4>
+        </div>
+        <span className="chip chip-pass">
+          Delivered · message_id {DIGEST_MSG_ID}
+        </span>
+      </div>
+      <div className="code-block mb-4 mt-5 whitespace-pre-wrap">{DIGEST_TEXT}</div>
+      <table className="data-table">
+        <tbody>
+          <tr>
+            <td className="font-semibold">Window</td>
+            <td>{DIGEST_WINDOW}</td>
+          </tr>
+          <tr>
+            <td className="font-semibold">Activity</td>
+            <td>
+              110 txs (109 sent / 1 received), 25 creations, 7 failed, 31
+              token-transfer events
+            </td>
+          </tr>
+          <tr>
+            <td className="font-semibold">Delivery</td>
+            <td>
+              one Telegram <span className="font-mono text-xs">sendMessage</span>,
+              message_id <span className="font-mono text-xs">{DIGEST_MSG_ID}</span>,
+              receipt recorded in{" "}
+              <span className="font-mono text-xs">evidence.json</span>
+            </td>
+          </tr>
+          <tr>
+            <td className="font-semibold">Spend</td>
+            <td>
+              0 PHRS — the agent broadcasts nothing; only RPC reads + one
+              Telegram message
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <a
+        className="mt-3 inline-block text-sm font-medium text-accent hover:underline"
+        href={`${EXPLORER_ADDRESS}${WATCH_DEFAULT}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Watch the address on the explorer →
+      </a>
+    </motion.div>
   );
 }
 
@@ -850,21 +1173,8 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
 # The installed line looks like:
 # ${cadence.cron} set -a; . "$ENV_FILE"; set +a; cd <task-dir> && /usr/bin/python3 src/digest.py --run >> cron/digest-cron.log 2>&1 && /usr/bin/python3 src/digest.py --deliver >> cron/digest-cron.log 2>&1`;
 
-  // --- result shaping
-  const stats: Stat[] = [];
-  if (digest && orderedSections.includes("volume")) {
-    stats.push(
-      { label: "Transactions", value: digest.txTotal },
-      { label: "Native in", value: digest.nativeIn, format: fmtPhrs, suffix: "PHRS" },
-      { label: "Native out", value: digest.nativeOut, format: fmtPhrs, suffix: "PHRS" }
-    );
-  }
-  if (digest && orderedSections.includes("gas")) {
-    stats.push({ label: "Gas spent", value: digest.gasSpent, format: fmtPhrs, suffix: "PHRS" });
-  }
-  if (digest && orderedSections.includes("failed") && stats.length < 4) {
-    stats.push({ label: "Failed txs", value: digest.failed });
-  }
+  // --- front-page rows are shaped inside Masthead/LeadStory/PageSection —
+  // every number still comes from the live scan above.
 
   const highlightItems: FeedItem[] = digest
     ? [
@@ -1041,190 +1351,129 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
         </section>
       )}
 
-      {/* 03 · Result — the digest as an editorial document */}
+      {/* 03 · Result — THE FRONT PAGE */}
       {!loading && !error && digest && digest.txTotal > 0 && (
-        <section aria-label="Digest result">
-          <p className="text-sm font-semibold text-slate mb-3">03 · Result — this week's digest</p>
+        <section aria-label="Digest result — this week's front page">
+          <p className="text-sm font-semibold text-slate mb-3">03 · Result — this week's front page</p>
           <div className="space-y-6">
-            <ResultCard
-              eyebrow={`Weekly digest — ${shortenAddress(digest.address)} · ${fmtDate(digest.startIso)} → ${fmtDate(digest.endIso)}`}
-              headline={
-                <>
-                  {digest.txTotal.toLocaleString()}{" "}
-                  transaction{digest.txTotal === 1 ? "" : "s"}
-                </>
-              }
-              subline={
-                <>
-                  Blocks {digest.startBlock.toLocaleString()} → {digest.endBlock.toLocaleString()},{" "}
-                  {digest.chunks.toLocaleString()} Transfer-event chunks scanned in {digest.secs}s.
-                  Every figure below was read live from Atlantic — nothing estimated,
-                  nothing carried over from a previous run.
-                </>
-              }
-              rows={[
-                { label: "Sent / received", value: `${digest.txSent} / ${digest.txReceived}` },
-                { label: "Token transfer events", value: digest.transferEvents.toLocaleString() },
-                { label: "Sections rendered", value: orderedSections.join(", ") },
-                { label: "Scanned at", value: new Date().toLocaleString() },
-              ]}
-              links={[
-                { label: "View the address on the explorer", href: `${EXPLORER_ADDRESS}${digest.address}` },
-              ]}
-              copyValue={digest.address}
-              status="pass"
-            />
+            <Masthead digest={digest} sections={orderedSections} />
+            <EditorsNote />
+            {orderedSections.includes("top3") && <LeadStory digest={digest} />}
 
-            {stats.length > 0 && <StatStrip stats={stats} />}
-
-            {orderedSections.includes("top3") && (
-              <SectionCard
-                eyebrow="Section · TOP 3 notable"
-                title="The three events that mattered"
-                note="Deterministic rule-based ranking: failed tx › contract creation › large native transfer › token transfer › contract interaction › plain transfer. Ties break by newest block."
+            {(orderedSections.includes("whales") || orderedSections.includes("tokens")) && (
+              <div
+                className={`grid gap-6 ${
+                  orderedSections.includes("whales") && orderedSections.includes("tokens")
+                    ? "lg:grid-cols-2"
+                    : ""
+                }`}
               >
-                {digest.top3.length > 0 ? (
-                  <ol className="divide-y divide-hairline">
-                    {digest.top3.map((e, i) => (
-                      <motion.li
-                        key={e.hash}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25, delay: Math.min(i * 0.06, 0.3) }}
-                        className="flex items-start gap-4 py-4 first:pt-0 last:pb-0"
-                      >
-                        <span className="w-8 shrink-0 font-display text-3xl text-slate" aria-label={`Rank ${i + 1}`}>
-                          {i + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p>
-                            <span className={KIND_CHIP[e.kind] ?? "chip chip-dim"}>{e.kind}</span>
-                          </p>
-                          <p className="mt-1.5 text-base font-semibold text-ink">{e.title}</p>
-                          <p className="mt-0.5 font-mono text-xs text-slate">{e.detail}</p>
-                        </div>
-                        <a
-                          className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-porcelain px-3 text-sm font-medium text-accent hover:bg-tint"
-                          href={`${EXPLORER_TX}${e.hash}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={e.hash}
-                        >
-                          View on explorer
-                          <ExternalLink size={14} aria-hidden />
-                        </a>
-                      </motion.li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p className="text-sm text-slate">No notable events in this window — an honest quiet week.</p>
+                {orderedSections.includes("whales") && (
+                  <PageSection
+                    kicker="Section · Whale moves"
+                    headline={`Whale moves — native ≥ ${WHALE_THRESHOLD} PHRS`}
+                    note="Large native transfers touching the watched address, ranked biggest-first."
+                    delay={0.1}
+                  >
+                    {digest.whales.length > 0 ? (
+                      <ul className="divide-y divide-hairline">
+                        {digest.whales.slice(0, 10).map((w) => (
+                          <li
+                            key={w.hash}
+                            className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="font-mono text-lg font-semibold text-ink">
+                                {fmtPhrs(w.value)}{" "}
+                                <span className="text-sm font-normal text-slate">PHRS</span>
+                                <span
+                                  className={`chip ml-2 ${
+                                    w.direction === "IN" ? "chip-pass" : "chip-info"
+                                  }`}
+                                >
+                                  {w.direction}
+                                </span>
+                              </p>
+                              <p className="mt-1 font-mono text-xs text-slate">
+                                {shortenAddress(w.counterparty)} · block{" "}
+                                {w.block.toLocaleString()}
+                              </p>
+                            </div>
+                            <ExplorerLink href={`${EXPLORER_TX}${w.hash}`} title={w.hash} />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate">
+                        No whale-sized moves this week — nothing moved ≥{" "}
+                        {WHALE_THRESHOLD} PHRS.
+                      </p>
+                    )}
+                  </PageSection>
                 )}
-              </SectionCard>
-            )}
 
-            {orderedSections.includes("whales") && (
-              <SectionCard
-                eyebrow="Section · Whale moves"
-                title={`Whale moves — native ≥ ${WHALE_THRESHOLD} PHRS`}
-                note="Large native transfers touching the watched address, ranked biggest-first."
-              >
-                {digest.whales.length > 0 ? (
-                  <ul className="divide-y divide-hairline">
-                    {digest.whales.slice(0, 10).map((w, i) => (
-                      <motion.li
-                        key={w.hash}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25, delay: Math.min(i * 0.04, 0.3) }}
-                        className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="font-mono text-lg font-semibold text-ink">
-                            {fmtPhrs(w.value)} <span className="text-sm font-normal text-slate">PHRS</span>
-                            <span className={`chip ml-2 ${w.direction === "IN" ? "chip-pass" : "chip-info"}`}>
-                              {w.direction}
-                            </span>
-                          </p>
-                          <p className="mt-1 font-mono text-xs text-slate">
-                            {shortenAddress(w.counterparty)} · block {w.block.toLocaleString()}
-                          </p>
-                        </div>
-                        <a
-                          className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border border-hairline bg-porcelain px-3 text-sm font-medium text-accent hover:bg-tint"
-                          href={`${EXPLORER_TX}${w.hash}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={w.hash}
-                        >
-                          View on explorer
-                          <ExternalLink size={14} aria-hidden />
-                        </a>
-                      </motion.li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-slate">
-                    No whale-sized moves this week — nothing moved ≥ {WHALE_THRESHOLD} PHRS.
-                  </p>
+                {orderedSections.includes("tokens") && (
+                  <PageSection
+                    kicker="Section · Token transfers"
+                    headline="ERC20 flows"
+                    note="Transfer events found by chain-direct eth_getLogs; symbols and decimals read from each token contract itself."
+                    delay={0.15}
+                  >
+                    {digest.tokenFlows.length > 0 ? (
+                      <ul className="divide-y divide-hairline">
+                        {digest.tokenFlows.map((f) => (
+                          <li
+                            key={f.token}
+                            className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <p className="text-base font-semibold text-ink">
+                                {f.symbol}
+                                <a
+                                  className="ml-2 font-mono text-xs font-normal text-accent hover:underline"
+                                  href={`${EXPLORER_ADDRESS}${f.token}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={f.token}
+                                >
+                                  {shortHash(f.token)}
+                                </a>
+                              </p>
+                              <p className="mt-1 text-sm text-slate">
+                                {f.inN > 0 && (
+                                  <span className="mr-3">
+                                    <span className="font-semibold text-ink">{f.inN}</span>{" "}
+                                    in · <span className="font-mono">{fmtPhrs(f.inAmt)}</span>
+                                  </span>
+                                )}
+                                {f.outN > 0 && (
+                                  <span>
+                                    <span className="font-semibold text-ink">{f.outN}</span>{" "}
+                                    out · <span className="font-mono">{fmtPhrs(f.outAmt)}</span>
+                                  </span>
+                                )}
+                                {f.inN === 0 && f.outN === 0 && "self-transfers only"}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate">No token transfers in this window.</p>
+                    )}
+                  </PageSection>
                 )}
-              </SectionCard>
-            )}
-
-            {orderedSections.includes("tokens") && (
-              <SectionCard
-                eyebrow="Section · Token transfers"
-                title="ERC20 flows"
-                note="Transfer events found by chain-direct eth_getLogs; symbols and decimals read from each token contract itself."
-              >
-                {digest.tokenFlows.length > 0 ? (
-                  <ul className="divide-y divide-hairline">
-                    {digest.tokenFlows.map((f) => (
-                      <li key={f.token} className="flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-base font-semibold text-ink">
-                            {f.symbol}
-                            <a
-                              className="ml-2 font-mono text-xs font-normal text-accent hover:underline"
-                              href={`${EXPLORER_ADDRESS}${f.token}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              title={f.token}
-                            >
-                              {shortHash(f.token)}
-                            </a>
-                          </p>
-                          <p className="mt-1 text-sm text-slate">
-                            {f.inN > 0 && (
-                              <span className="mr-3">
-                                <span className="font-semibold text-ink">{f.inN}</span> in ·{" "}
-                                <span className="font-mono">{fmtPhrs(f.inAmt)}</span>
-                              </span>
-                            )}
-                            {f.outN > 0 && (
-                              <span>
-                                <span className="font-semibold text-ink">{f.outN}</span> out ·{" "}
-                                <span className="font-mono">{fmtPhrs(f.outAmt)}</span>
-                              </span>
-                            )}
-                            {f.inN === 0 && f.outN === 0 && "self-transfers only"}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-slate">No token transfers in this window.</p>
-                )}
-              </SectionCard>
+              </div>
             )}
 
             {orderedSections.includes("failed") && (
-              <SectionCard
-                eyebrow="Section · Failures & creations"
-                title="What broke, what was built"
+              <PageSection
+                kicker="Section · Failures & creations"
+                headline="What broke, what was built"
                 note="Every reverted transaction and every contract creation in the window — the parts of the week worth a second look."
+                delay={0.1}
               >
-                <div className="space-y-5">
+                <div className="grid gap-6 md:grid-cols-2">
                   <div>
                     <h5 className="text-sm font-semibold text-ink">
                       Failed transactions ({digest.failedList.length})
@@ -1272,8 +1521,15 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
                     )}
                   </div>
                 </div>
-              </SectionCard>
+              </PageSection>
             )}
+
+            {/* The colophon — every figure below was read live from Atlantic. */}
+            <p className="text-center font-mono text-xs text-slate">
+              Set in type by the T26 digest engine · sections:{" "}
+              {orderedSections.join(", ")} · {digest.transferEvents.toLocaleString()}{" "}
+              token-transfer events · scanned {new Date().toLocaleString()}
+            </p>
 
             {highlightItems.length > 0 && (
               <div>
@@ -1343,48 +1599,15 @@ bash cron/install-weekly-cron.sh   # installs a Monday-08:00 crontab entry (inte
         />
       )}
 
-      {/* Proof it delivers — the real delivered digest, verbatim */}
-      <section aria-label="Delivery proof">
-        <p className="text-sm font-semibold text-slate mb-3">Proof it delivers</p>
-        <SectionCard
-          eyebrow="Real delivery · Telegram"
-          title="One message, one receipt"
-          note={`The exact text the T26 agent delivered to a real Telegram channel on 2026-10-16 (message_id ${DIGEST_MSG_ID}, ${DIGEST_WINDOW}). The console never sends messages — this is what the CLI agent below produces.`}
-        >
-          <div className="code-block mb-4 whitespace-pre-wrap">{DIGEST_TEXT}</div>
-          <table className="data-table">
-            <tbody>
-              <tr>
-                <td className="font-semibold">Window</td>
-                <td>{DIGEST_WINDOW}</td>
-              </tr>
-              <tr>
-                <td className="font-semibold">Activity</td>
-                <td>110 txs (109 sent / 1 received), 25 creations, 7 failed, 31 token-transfer events</td>
-              </tr>
-              <tr>
-                <td className="font-semibold">Delivery</td>
-                <td>
-                  one Telegram <span className="font-mono text-xs">sendMessage</span>,
-                  message_id <span className="font-mono text-xs">{DIGEST_MSG_ID}</span>,
-                  receipt recorded in <span className="font-mono text-xs">evidence.json</span>
-                </td>
-              </tr>
-              <tr>
-                <td className="font-semibold">Spend</td>
-                <td>0 PHRS — the agent broadcasts nothing; only RPC reads + one Telegram message</td>
-              </tr>
-            </tbody>
-          </table>
-          <a
-            className="mt-3 inline-block font-mono text-xs text-accent hover:underline"
-            href={`${EXPLORER_ADDRESS}${WATCH_DEFAULT}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Watch the address on the explorer →
-          </a>
-        </SectionCard>
+      {/* The human moment — the real delivered digest, verbatim */}
+      <section aria-label="Delivery proof — the human moment">
+        <p className="text-sm font-semibold text-slate mb-3">The human moment</p>
+        <p className="-mt-2 mb-3 max-w-3xl text-sm leading-relaxed text-slate">
+          The exact text the T26 agent delivered to a real Telegram channel on
+          2026-10-16 (message_id {DIGEST_MSG_ID}, {DIGEST_WINDOW}). The console
+          never sends messages — this is what the CLI agent below produces.
+        </p>
+        <DeliverySlip />
       </section>
 
       {/* Run it on your machine — Tier C config builder, unchanged behavior */}
