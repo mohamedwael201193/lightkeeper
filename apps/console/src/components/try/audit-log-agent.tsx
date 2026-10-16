@@ -36,6 +36,7 @@ import {
   Swords,
   Terminal,
 } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { Lamp } from "../../types";
 import { EXPLORER_TX, rpcCall } from "../../hooks/useAtlantic";
 import {
@@ -350,6 +351,108 @@ const ATTACKS: Attack[] = [
   },
 ];
 
+/* ---------------- presentation pieces (display-only — verify logic above untouched) ---------------- */
+
+/**
+ * The chain strip: all 22 entries as a linked ledger, oldest → newest.
+ * Each node seals the one before it — the whole tamper-evident structure in
+ * one glance. Click a node to inspect it; broken links turn red.
+ */
+function ChainStrip({
+  entries,
+  brokenSet,
+  selected,
+  onSelect,
+}: {
+  entries: ParsedEntry[];
+  brokenSet: Set<number>;
+  selected: number;
+  onSelect: (idx: number) => void;
+}) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="mb-4">
+      <div className="overflow-x-auto pb-1">
+        <div className="flex min-w-max items-center" role="list" aria-label="Chain of entries, oldest to newest">
+          {entries.map((e, i) => {
+            const broken = brokenSet.has(e.index);
+            return (
+              <div key={e.index} className="flex items-center" role="listitem">
+                {i > 0 && (
+                  <span
+                    className={`h-0.5 w-3 ${broken ? "bg-fail/60" : "bg-hairline"}`}
+                    aria-hidden
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => onSelect(e.index)}
+                  title={`Entry #${e.index} — ${e.action}`}
+                  aria-label={`Inspect entry ${e.index}${broken ? ", flagged as broken" : ""}`}
+                  className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border font-mono text-[11px] ${
+                    broken
+                      ? "border-fail/60 bg-[#FEF2F2] text-fail"
+                      : selected === e.index
+                        ? "border-accent bg-accent/10 text-accent"
+                        : "border-hairline bg-white text-ink hover:border-accent/60"
+                  }`}
+                >
+                  <span className="font-semibold">#{e.index}</span>
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${broken ? "bg-fail" : "bg-pass"}`}
+                    aria-hidden
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <p className="mt-1 text-xs text-slate">
+        Oldest → newest — each entry's hash seals the one before it. Click any link to inspect it.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The Draw: the seal's check mark draws itself when the stored hash matches
+ * the live-recomputed one — the verdict sealing, mapped to the real match state.
+ */
+function SealMark({ matched }: { matched: boolean }) {
+  const reduce = useReducedMotion();
+  if (!matched) return <ShieldX size={13} aria-hidden />;
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+      <motion.path
+        d="M2.5 7.5l3.5 3.5 5.5-7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: reduce ? 0 : 0.45, ease: "easeOut" }}
+      />
+    </svg>
+  );
+}
+
+/** Display-only: how many characters differ between two hex strings, and where first. */
+function hashDiff(a: string, b: string): { count: number; first: number; len: number } {
+  const len = Math.max(a.length, b.length);
+  let count = 0;
+  let first = -1;
+  for (let i = 0; i < len; i++) {
+    if (a[i] !== b[i]) {
+      count += 1;
+      if (first === -1) first = i;
+    }
+  }
+  return { count, first, len };
+}
+
 /* ---------------- anchor checks (live, free RPC reads) ---------------- */
 
 interface AnchorResult {
@@ -430,6 +533,7 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
   const [inspectHash, setInspectHash] = useState<{ stored: string; live: string } | null>(null);
 
   const runRef = useRef(0);
+  const reduce = useReducedMotion();
 
   // Live re-verify on every keystroke — 22 SHA-256 digests, fully client-side.
   useEffect(() => {
@@ -560,6 +664,11 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
   }, []);
 
   const inspected = entries.find((e) => e.index === inspectIdx);
+  const inspectMatch = inspectHash !== null && inspectHash.stored === inspectHash.live;
+  const inspectDiff =
+    inspectHash !== null && !inspectMatch
+      ? hashDiff(inspectHash.stored, inspectHash.live)
+      : null;
 
   const feedItems: FeedItem[] = [...entries].reverse().map((e) => ({
     key: String(e.index),
@@ -756,7 +865,15 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
                 onAction={() => setText(REAL_CHAIN_JSONL)}
               />
             ) : (
-              <FeedList items={feedItems} maxHeight="max-h-[28rem]" emptyText="No entries yet." />
+              <>
+                <ChainStrip
+                  entries={entries}
+                  brokenSet={brokenSet}
+                  selected={inspectIdx}
+                  onSelect={onInspect}
+                />
+                <FeedList items={feedItems} maxHeight="max-h-[28rem]" emptyText="No entries yet." />
+              </>
             )}
           </section>
 
@@ -780,10 +897,9 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
                   ))}
                 </select>
                 {inspectHash && (
-                  <span
-                    className={`chip ${inspectHash.stored === inspectHash.live ? "chip-pass" : "chip-fail"}`}
-                  >
-                    {inspectHash.stored === inspectHash.live ? "hash recomputes ✓" : "hash mismatch ✗"}
+                  <span className={`chip ${inspectMatch ? "chip-pass" : "chip-fail"}`}>
+                    <SealMark matched={inspectMatch} />
+                    {inspectMatch ? "hash recomputes — seal intact" : "hash mismatch — seal broken"}
                   </span>
                 )}
               </div>
@@ -827,6 +943,13 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
               )}
               {!inspected && (
                 <p className="mt-2 text-sm text-slate">No parseable entries in the textarea.</p>
+              )}
+              {inspected && inspectDiff && (
+                <p className="mt-3 text-xs text-slate">
+                  <strong className="text-ink">Damage report:</strong> {inspectDiff.count} of{" "}
+                  {inspectDiff.len} characters differ — first difference at position{" "}
+                  {inspectDiff.first}. One character was enough to break the seal.
+                </p>
               )}
             </div>
           </section>
@@ -872,7 +995,13 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
             </div>
 
             {attackResult && !attackRunning && (
-              <div className="mt-4 overflow-hidden rounded-2xl border border-hairline bg-white">
+              <motion.div
+                key={`${attackResult.attack.id}-${attackResult.verdict.failures.length}`}
+                initial={{ y: reduce ? 0 : 14, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="mt-4 overflow-hidden rounded-2xl border border-hairline bg-white"
+              >
                 <div className="flex items-center gap-3 border-b border-hairline bg-[#FEF2F2] px-5 py-4">
                   <Swords size={20} className="shrink-0 text-fail" aria-hidden />
                   <div className="min-w-0">
@@ -905,12 +1034,14 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
                       </li>
                     )}
                   </ul>
-                  <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate">
-                    <strong className="text-ink">Why the chain catches it:</strong>{" "}
-                    {attackResult.attack.why}
-                  </p>
+                  <div className="mt-3 max-w-3xl border-l-2 border-accent/60 pl-4">
+                    <p className="text-sm font-semibold text-slate">The defender's note</p>
+                    <p className="mt-1 text-sm leading-relaxed text-ink">
+                      {attackResult.attack.why}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             )}
           </section>
 
@@ -936,6 +1067,18 @@ export default function TryAudit({ lamp }: { lamp: Lamp }) {
                 {anchorsBusy ? "Reading from Atlantic…" : "Confirm all three on Atlantic"}
               </button>
             </div>
+            {anchors && anchorsConfirmed === ANCHORS.length && !anchorError && (
+              <div className="mb-3 flex items-center gap-2 rounded-xl border border-pass/40 bg-pass/10 px-4 py-3">
+                <ShieldCheck size={16} className="shrink-0 text-pass" aria-hidden />
+                <p className="text-sm text-ink">
+                  <strong>Sealed.</strong> All three anchors confirmed live on Atlantic — the
+                  log head is pinned on-chain.{" "}
+                  <span className="text-slate">
+                    The anchor transaction's calldata is entry #20's entryHash.
+                  </span>
+                </p>
+              </div>
+            )}
             {anchorError && (
               <div className="mb-3">
                 <ErrorState
