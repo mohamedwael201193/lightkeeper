@@ -940,7 +940,7 @@ function ParseShowcase({
   mode: "assembling" | "complete";
   onAssembled?: () => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotion() ?? false;
   const { text, result, beats } = shot;
   const live = mode === "assembling" && !reduce;
   const gap = live ? BEAT_GAP : 0;
@@ -1040,7 +1040,7 @@ function RefusalCard({
   text: string;
   onExample: () => void;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotion() ?? false;
   const meaning = RULE_CATALOG.find((r) => r.tag === result.rule)?.meaning;
   const flagged = refusalSpans(result.rule, result.reason, text)
     .slice(0, 4)
