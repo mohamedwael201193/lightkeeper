@@ -68,13 +68,23 @@ https://github.com/mohamedwael201193/lightkeeper/tree/ec2a9b4d1bd18e7d2dbcb20f3e
 PENDING-VIDEO — filming guide: VIDEO-GUIDE.md (45–90s, real terminal + real explorer,
 no staged fakes)
 
-## Console interactive surface (added 2026-10-16)
+## Console interactive surface (deepened 2026-10-16)
 
 - Module: `apps/console/src/components/try/yield-optimizer.tsx` — Tier A, live reads
   only (no wallet, no signature, costs nothing).
-- **"Vaults, live":** reads both OctopusVault rate cards off Atlantic via `eth_call`
-  (rewardPerBlock, entry/exit fees, min hold, totalStaked, rewardPool, runwayBlocks),
-  shows them side by side with a Refresh button, and re-runs the runway-capped net
-  math live over a selectable 100 / 400 / 1,000-block horizon.
+- **"Vaults, live — net math, not APY theater":** reads both OctopusVault rate cards
+  off Atlantic via `eth_call` (rewardPerBlock, entry/exit fees, min hold, totalStaked,
+  rewardPool, runwayBlocks) **plus live `eth_gasPrice`**, shows the cards side by side,
+  and re-runs the optimizer's ACTUAL decision rule live —
+  `net(H) = runway-capped gross − entryFee − exitFee(H) − gas` — against a stay-put
+  (0%) baseline. Gas per venue = measured live-run tx gas × live gas price; marginal
+  pro-rata share computed in integer wei like the contract.
+- **Stake-size (0.01/0.02/0.05 PHRS) × holding-period (100/400/1000 blocks) selectors.**
+  Live on today's gas price the three horizons give three different honest answers:
+  100 blocks → STAY PUT (friction eats everything), 400 → Kraken (rate wins),
+  1000 → Kelp (runway cap flips the 2.5× APY ranking). The verdict narrative is
+  computed from live chain state — it says "stay put" when everything nets negative
+  and explains the flip only when the cap actually flips the ranking.
+- **On-chain proof strip:** deploy txs + the exact-wei claim tx as explorer links.
 - Differentiator: the winner chip is computed from live chain state at page-load time —
   not a screenshot of a past run. The console video shot is shot 7 in VIDEO-GUIDE.md.
