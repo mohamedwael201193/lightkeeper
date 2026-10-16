@@ -1,0 +1,5 @@
+[t25 support-agent] verdict: not_covered
+
+I don't have a doc-grounded answer for that. My knowledge base is built from the real Pharos docs pages I fetched on 2026-10-16 (llms.txt index, Atlantic Testnet page, FAQs, SkillEngine networks.json), and none of them cover your question. I won't improvise — ask about Atlantic network parameters, the native token, gas failures, or recommended tooling (RPC/oracles/bridges/wallets/dev frameworks), or point me at the doc page to add.
+
+Label: UNVERIFIED — coverage gap, stated honestly instead of improvised.

@@ -1,0 +1,11 @@
+[t25 support-agent] verdict: account_report
+  address: 0xf76e6b0920e9332ff4410f6dd53f01722abc71a3
+  balance_phrs: 5.865678109
+  tx_count_nonce: 138
+  is_contract: False
+
+Account 0xf76e6b0920e9332ff4410f6dd53f01722abc71a3 on Pharos Atlantic testnet is a wallet (EOA). Balance: 5.865678 PHRS. Transaction count (nonce): 138. No ERC-20 Transfer events involving this address in the scanned window. Activity window: last 500 blocks (31482325–31482825). Only ERC-20 Transfer events are scanned — plain PHRS transfers emit no logs, so they cannot appear here. That is an honest coverage limit.
+
+Label: DOC-GROUNDED — balance, nonce, code and logs are direct chain reads.
+Explorer: https://atlantic.pharosscan.xyz/address/0xf76e6b0920e9332ff4410f6dd53f01722abc71a3
+Coverage: Activity window: last 500 blocks (31482325–31482825). Only ERC-20 Transfer events are scanned — plain PHRS transfers emit no logs, so they cannot appear here. That is an honest coverage limit.
