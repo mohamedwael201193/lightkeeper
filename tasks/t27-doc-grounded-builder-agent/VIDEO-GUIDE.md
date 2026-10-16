@@ -13,6 +13,16 @@
 | 5 | 42–55s | Terminal: R4 refusal — the SAY-SO message: *"the docs do not cover this request — no passage mentions: confidential, shielded"* | "And the coverage gate's whole point: ask for something the docs don't cover — confidential transactions — and the agent says so instead of improvising. That's the demo." |
 | 6 | 55–60s | Terminal: `pytest tests/ -q` → `6 passed` | "Six coverage-gate tests, all green. Lamp 27 is lit." |
 
+## Console demo segment (optional B-roll, 20s)
+
+Open the task's console page, "Try it live": type the goal "deploy an ERC20 token on Atlantic
+and verify it" — the generated plan scrolls with every step carrying its doc URL and excerpt
+("Every step cites its source"). Click the R4 preset: the console renders the agent's real
+refusal — "the docs do not cover this request" — and say: "Uncovered steps are refused, never
+improvised." Click "Copy full command sequence" and say: "One paste, and you run the covered
+plan on your own machine." (Console never executes; everything runs in the visitor's own
+terminal.)
+
 ## B-roll (optional, if time allows)
 
 - `corpus/` folder: the 5 retrieved docs + `doc_provenance.json` (URL + fetch date).

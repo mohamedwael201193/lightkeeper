@@ -36,3 +36,16 @@ A builder agent that plans strictly from retrieved Pharos docs — every step ci
 ## Video
 
 PENDING-VIDEO — filming guide in `VIDEO-GUIDE.md` (45–90s: question → cited plan → execution → on-chain verify → verdict; R4: "docs don't cover this").
+
+## Console try-it-live (Tier C — CLI-native)
+
+`apps/console/src/components/try/doc-grounded-builder-agent.tsx` — "Every step cites its source":
+type a build goal and the console renders the agent's real plan (steps D1–D9 for the ERC-20 deploy,
+with DOC-GROUNDED/INFERENCE/UNVERIFIED status) — every step carrying its doc URL and excerpt from
+the agent's own coverage log — plus a copy-paste-ready command sequence. The four real requests are
+preset: R1 deploy+verify (executed for real, Token/MTK 0x25c2…19, tx 0xe54edf…3379), R2 balance read
+(balanceOf(deployer)=1000000), R3 transfer (real unsigned tx, never broadcast), R4 refusal
+("the docs do not cover this request — no passage mentions: confidential, shielded"). Any goal
+outside the planner library hits the say-so gate instead of improvising. The console never executes
+anything — every command runs in the visitor's own terminal; LIGHTKEEPER never sees or asks for
+private keys.
