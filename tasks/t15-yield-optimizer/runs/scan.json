@@ -1,0 +1,90 @@
+{
+  "task": "T15 Yield Optimizer \u2014 live rate scan",
+  "chain_id": 688689,
+  "network": "Pharos Atlantic testnet",
+  "pinned_block": 31482643,
+  "explorer_block": "https://atlantic.pharosscan.xyz/block/31482643",
+  "gas_price_wei": 10000000000,
+  "measured_block_time_s": 1.0,
+  "sources": [
+    {
+      "label": "OctopusVault-Kelp",
+      "kind": "builder-deployed staking vault (testnet fixture, disclosed)",
+      "address": "0xe3212234B17A90cCBC36b0B44845394b62838b08",
+      "block": 31482643,
+      "views": {
+        "name": "OctopusVault-Kelp",
+        "rewardPerBlock": 10000000000000,
+        "entryFeeBps": 0,
+        "exitFeeBps": 50,
+        "minHoldBlocks": 100,
+        "totalStaked": 0,
+        "rewardPool": 10000000000000000,
+        "runwayBlocks": 1000,
+        "startBlock": 31481996
+      },
+      "operator_staked_wei": 0,
+      "operator_pending_wei": 0,
+      "gas_estimates": {
+        "stake": 127572,
+        "claim": 70000,
+        "withdraw": null,
+        "claim_fallback_note": "batch rpc error: {'code': 3, 'data': '0x08c379a00000000000000000000000000000000000000000000000000000"
+      },
+      "gas_price_wei": 10000000000,
+      "measured_block_time_s": 1.0
+    },
+    {
+      "label": "OctopusVault-Kraken",
+      "kind": "builder-deployed staking vault (testnet fixture, disclosed)",
+      "address": "0xDC3D4a3f47BB479692239ECC362a16CE3485B283",
+      "block": 31482643,
+      "views": {
+        "name": "OctopusVault-Kraken",
+        "rewardPerBlock": 25000000000000,
+        "entryFeeBps": 100,
+        "exitFeeBps": 100,
+        "minHoldBlocks": 400,
+        "totalStaked": 0,
+        "rewardPool": 10000000000000000,
+        "runwayBlocks": 400,
+        "startBlock": 31482045
+      },
+      "operator_staked_wei": 0,
+      "operator_pending_wei": 0,
+      "gas_estimates": {
+        "stake": 130985,
+        "claim": 70000,
+        "withdraw": null,
+        "claim_fallback_note": "batch rpc error: {'code': 3, 'data': '0x08c379a00000000000000000000000000000000000000000000000000000"
+      },
+      "gas_price_wei": 10000000000,
+      "measured_block_time_s": 1.0
+    },
+    {
+      "label": "Stay-put baseline",
+      "kind": "wallet holding native PHRS (no venue; 0% nominal, 0 fees, 0 gas)",
+      "address": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+      "block": 31482643,
+      "views": {
+        "rewardPerBlock": 0,
+        "entryFeeBps": 0,
+        "exitFeeBps": 0,
+        "minHoldBlocks": 0,
+        "totalStaked": 0,
+        "rewardPool": 0,
+        "runwayBlocks": 0
+      },
+      "operator_balance_wei": 5865699109313799106,
+      "gas_estimates": {
+        "stake": 0,
+        "claim": 0,
+        "withdraw": 0
+      },
+      "gas_price_wei": 10000000000,
+      "measured_block_time_s": 1.0
+    }
+  ],
+  "honesty_label": "testnet mechanics demonstration \u2014 rewards are valueless testnet PHRS",
+  "source_count": 3
+}
