@@ -39,9 +39,15 @@ export const DUST_LIMIT_PHRS = 0.01;
 // - METHOD ALIASES: known-wrong names are normalized to the real JSON-RPC
 //   method at this single choke point, so any current or future caller works
 //   even if its try module still uses the tool name.
-// - RETRY: HTTP 400/429/5xx and network errors are retried with exponential
-//   backoff (300ms / 900ms / 2700ms + up to 50% jitter). JSON-RPC application
-//   errors (json.error) are real answers from the node and are NEVER retried.
+// - RETRY: HTTP 400/429/5xx, network errors, and TIMEOUTS are retried with
+//   exponential backoff (300ms / 900ms / 2700ms + up to 50% jitter).
+//   JSON-RPC application errors (json.error) are real answers from the node
+//   and are NEVER retried.
+// - TIMEOUT: every request carries a 25s AbortController cap. T18's agent
+//   observed eth_getTransactionReceipt on an unknown hash hanging with no
+//   response at all (~120s, twice) — any method can stall forever without a
+//   cap, so a timeout is treated as a transient "stopped responding" error
+//   and retried like any other transient failure.
 // - DEDUP: identical in-flight requests (same method+params) share one promise,
 //   so N parallel try modules firing eth_blockNumber issue ONE HTTP request.
 // - eth_blockNumber is cached ~5s: most try modules pin one block per run,
@@ -53,6 +59,8 @@ export const DUST_LIMIT_PHRS = 0.01;
 
 const RETRY_DELAYS_MS = [300, 900, 2700];
 const BLOCKNUMBER_CACHE_TTL_MS = 5000;
+/** Per-request ceiling: no RPC call may stall forever (see the hang note below). */
+const RPC_TIMEOUT_MS = 25_000;
 
 /** Wrong-name -> real JSON-RPC method. See the root-cause note above. */
 const METHOD_ALIASES: Record<string, string> = {
@@ -116,12 +124,15 @@ export async function rpcCall(method: string, params: unknown[]): Promise<unknow
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       if (attempt > 0) await rpcSleep(backoffDelayMs(attempt - 1));
       let res: Response;
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), RPC_TIMEOUT_MS);
       try {
         // String id with a sequence suffix — Date.now() alone collides when two
         // calls are issued in the same millisecond.
         res = await fetch(ATLANTIC_RPC_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: ctrl.signal,
           body: JSON.stringify({
             jsonrpc: "2.0",
             id: `${Date.now()}-${++rpcIdSeq}`,
@@ -130,12 +141,17 @@ export async function rpcCall(method: string, params: unknown[]): Promise<unknow
           }),
         });
       } catch {
-        // Network error: the node (or the network) didn't answer — retryable.
-        lastError = new Error(
-          "The Atlantic RPC did not answer after several attempts — check your connection and retry."
-        );
+        // Timeout OR network error: the node stopped responding — retryable.
+        // (AbortController abort surfaces as a rejected fetch here.)
+        lastError = ctrl.signal.aborted
+          ? new Error("The Atlantic RPC stopped responding — retrying.")
+          : new Error(
+              "The Atlantic RPC did not answer after several attempts — check your connection and retry."
+            );
+        clearTimeout(timer);
         continue;
       }
+      clearTimeout(timer);
       if (!res.ok) {
         // HTTP 400/429/5xx: transient node-side failures — retryable.
         lastError = new Error(

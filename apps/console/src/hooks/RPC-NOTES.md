@@ -52,6 +52,23 @@ masked error message is the main suspect (a bare "HTTP 400" invites a retry
 that sometimes "works" when a different code path is hit). The gateway may also
 route browser traffic differently; that path was not testable from here.
 
+## 1b. Second RPC behavior data point — receipt lookups can hang (reported, not reproduced here)
+
+T18's agent reports: `cast receipt` (`eth_getTransactionReceipt`) on a
+**nonexistent tx hash** hangs with **no response at all** — observed twice,
+~120s each, until the subprocess deadline fired. It only surfaces during
+receipt lookups for unknown hashes.
+
+Reproduction attempt from this VM (2026-10-16 ~10:00 EEST): a single
+`eth_getTransactionReceipt` for the zero hash returned **HTTP 200 with
+`result: null` in 1.6s** — no hang. So the hang was **not reproducible from
+here**; it may be environment-specific (their subprocess/cast path), route-
+specific, or intermittent. Regardless, the implication stands: without a cap,
+any RPC call can await forever, so the hardening now includes a per-request
+timeout (25s, AbortController) that classifies a stall as a transient
+"stopped responding" error and retries it with backoff like any other
+transient failure.
+
 ## 2. What the hardening does
 
 All in `apps/console/src/hooks/useAtlantic.ts`, `rpcCall` only. Signatures
@@ -67,7 +84,9 @@ unchanged (`rpcCall`, `useAtlanticRead`, `useProposeAndSign`, `phrsToWeiHex`,
    retried: up to 4 attempts, delays 300ms / 900ms / 2700ms + up to 50% jitter.
    **JSON-RPC application errors (`json.error`) are real answers — never
    retried** (e.g. a reverted `eth_call` must surface immediately, not burn
-   4 attempts).
+   4 attempts). **Timeouts (25s AbortController cap per request) are treated
+   as transient "the RPC stopped responding" errors and retried with the
+   same backoff** — no call may await forever (see §1b).
 3. **Plain-language error classification.** A raw code is never shown alone:
    429 → "too many requests"; 400 → "the node rejected the request";
    5xx → "the node didn't answer properly". Final failure message pairs the
