@@ -64,7 +64,7 @@ still live from Atlantic).
 
 ## Repo link (commit-pinned)
 
-`https://github.com/mohamedwael201193/lightkeeper/tree/044af202580c2764e987de109a7ccd083f08b9c2/tasks/t08-dry-run-executor`
+`https://github.com/mohamedwael201193/lightkeeper/tree/e47ac9a0edaadb3af4d076005001c968138be373/tasks/t08-dry-run-executor`
 
 *(Replace `1c91003e035f7d62cd8bdf8749a331e51c425dcb` with the commit hash after committing; do not paste unpinned `main`.)*
 

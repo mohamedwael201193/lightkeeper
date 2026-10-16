@@ -19,7 +19,7 @@ done
 ```
 
 Repo (commit-pinned after commit):
-`https://github.com/mohamedwael201193/lightkeeper/tree/044af202580c2764e987de109a7ccd083f08b9c2/tasks/t08-dry-run-executor`
+`https://github.com/mohamedwael201193/lightkeeper/tree/e47ac9a0edaadb3af4d076005001c968138be373/tasks/t08-dry-run-executor`
 
 Share/demo links: PENDING (portal surface unverified) — see `SUBMISSION.md`.
 Video: PENDING-VIDEO — see `VIDEO-GUIDE.md`.
