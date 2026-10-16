@@ -1,0 +1,21 @@
+	Response: `Contract successfully verified`
+	GUID: `8e213c49668b33e815c79593ccf46048698bfa3ba34b0fbe7e09423fa6ac3a4f`
+	URL: https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract/address/0x25c2853b5ad74965e9228a64b7805cee3b0ecd19
+8e213c49668b33e815c79593ccf46048698bfa3ba34b0fbe7e09423fa6ac3a4f	https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract/address/0x25c2853b5ad74965e9228a64b7805cee3b0ecd19
+=== D9 on-chain confirmation (corrected address) ===
+--- bytecode length ---
+7110
+--- name / symbol / totalSupply / decimals ---
+"Token"
+"MTK"
+1000000 [1e6]
+18
+--- balanceOf(deployer) ---
+1000000 [1e6]
+--- deploy tx receipt status ---
+blockNumber          31482431
+contractAddress      0x25c2853B5AD74965e9228A64b7805ceE3b0eCd19
+effectiveGasPrice    1000000001
+gasUsed              941730
+logs                 [{"address":"0x25c2853b5ad74965e9228a64b7805cee3b0ecd19","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x0000000000000000000000000000000000000000000000000000000000000000","0x000000000000000000000000f76e6b0920e9332ff4410f6dd53f01722abc71a3"],"data":"0x00000000000000000000000000000000000000000000000000000000000f4240","blockHash":"0x411d97e00c3b8efdca0151aa1040bfcc8fb80a32a7319a0493f39166ed6a7a50","blockNumber":"0x1e0623f","blockTimestamp":"0x6ad1a851","transactionHash":"0xe54edfefd89057d6f54b1d954bbe0ac2b5ba7f73c382d68890b8e3ce235e3379","transactionIndex":"0x0","logIndex":"0x0","removed":false}]
+status               1 (success)

@@ -1,0 +1,50 @@
+{
+  "request": "read the ERC-20 balance of my wallet on Atlantic",
+  "mode": "execute",
+  "classified_as": "read_balance",
+  "ts": "2026-10-16T04:37:07.978482+00:00",
+  "coverage_gate": {
+    "total_steps": 1,
+    "covered": 1,
+    "inference": 0,
+    "policy_blocked": 0,
+    "unverified": 0,
+    "gate": "PASS",
+    "unverified_steps": []
+  },
+  "steps": [
+    {
+      "id": "B1",
+      "description": "Read token.balanceOf(holder) following the doc's InteractToken balance pattern",
+      "citations": [
+        {
+          "discipline": "DOC-GROUNDED",
+          "doc_url": "https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token.md",
+          "retrieved_at": "2026-10-16T07:20:00+03:00",
+          "excerpt": "// Check balance\n        uint256 balance = token.balanceOf(msg.sender);\n        console.log(\"Balance:\", balance);",
+          "score": 12
+        },
+        {
+          "discipline": "DOC-GROUNDED",
+          "doc_url": "https://docs.pharos.xyz/developer-guide/foundry.md",
+          "retrieved_at": "2026-10-16T07:20:00+03:00",
+          "excerpt": "// Send the transaction\nwallet.sendTransaction(tx)\n    .then((transaction) => {\n        console.log(\"Transaction sent:\", transaction.hash);\n    })\n    .catch((error) => {\n        console.error(\"Error sending transaction:\", error);\n    });\n```",
+          "score": 4
+        }
+      ],
+      "status": "COVERED",
+      "artifact": "",
+      "note": "Read-only; executed for real via eth_call. No funds move."
+    }
+  ],
+  "execution": {
+    "steps": [
+      {
+        "step": "B1",
+        "ok": true,
+        "detail": "balanceOf(0xf76e6b0920e9332fF4410f6dD53F01722AbC71a3) = 1000000 [1e6] "
+      }
+    ]
+  },
+  "verdict": "EXECUTED"
+}

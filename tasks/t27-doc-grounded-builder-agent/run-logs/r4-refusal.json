@@ -1,0 +1,12 @@
+{
+  "request": "make my token confidential with private shielded transactions",
+  "mode": "execute",
+  "classified_as": null,
+  "ts": "2026-10-16T04:37:39.920543+00:00",
+  "uncovered_terms": [
+    "confidential",
+    "shielded"
+  ],
+  "verdict": "REFUSED",
+  "reason": "SAY-SO: the retrievable Pharos docs (corpus: https://docs.pharos.xyz/developer-guide/foundry.md, https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token.md, https://docs.pharos.xyz/getting-started/network/atlantic-testnet.md, https://docs.pharos.xyz/tooling-and-infrastructure/block-explorer/hemera-socialscan.md) do not cover this request \u2014 no passage mentions: confidential, shielded. Per the T27 coverage gate, the agent does not improvise \u2014 the request is UNVERIFIED and refused."
+}

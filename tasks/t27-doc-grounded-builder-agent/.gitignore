@@ -1,0 +1,8 @@
+foundry/lib/
+foundry/out/
+foundry/cache/
+foundry/broadcast/
+*.log
+.env
+__pycache__/
+.pytest_cache/
