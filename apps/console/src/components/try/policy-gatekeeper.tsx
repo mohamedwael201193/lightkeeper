@@ -6,15 +6,25 @@
  * Atlantic reads (chain id, gas price, the visitor's balance) and renders the
  * seven gate conditions as a named PASS/BLOCK trace — the gate shows its work.
  *
- * ALLOW path: propose() -> MANDATORY review (to/value, amber dust warning) ->
- * the VISITOR signs in their own wallet with their own testnet PHRS.
- * BLOCK path: the blocking condition is shown with the exact breached number
- * and a plain-language reason; nothing is proposed. A mainnet-preview toggle
- * demonstrates the unconditional REFUSE of chain 1672 (mainnet.enabled=false).
+ * Presentation journey — 01 Configure → 02 Check → 03 Result:
+ *   01 Configure — the proposed action (recipient / value), policy presets,
+ *      the mainnet-refusal preview toggle, wallet connect. Plain form
+ *      controls on porcelain.
+ *   02 Check — ProgressLoader over the REAL live reads: eth_chainId,
+ *      eth_gasPrice, eth_getBalance (only when a wallet is connected). Each
+ *      step is exactly one RPC call; the loader advances when a call starts.
+ *   03 Result — ResultCard showpiece: the ALLOW / BLOCK / REFUSED verdict as
+ *      the headline, the 7-row trace as elegant rows, the verdict JSON
+ *      copyable. ALLOW continues into propose → MANDATORY review (to/value,
+ *      amber dust warning) → the VISITOR signs in their own wallet with their
+ *      own testnet PHRS. DENY and REFUSED_MAINNET are final — nothing is
+ *      proposed, nothing is broadcast; the denial is the product.
  *
- * LIGHTKEEPER never sees, holds, or asks for private keys. Testnet only.
+ * LIGHTKEEPER never sees, holds, or asks for private keys. Testnet only
+ * (chain 688689). Never auto-broadcast; review-before-sign always.
  */
 import { useState } from "react";
+import { AlertTriangle, Ban, ExternalLink, ShieldCheck, ShieldX } from "lucide-react";
 import type { Lamp } from "../../types";
 import { weiToPhrs } from "../../types";
 import {
@@ -27,6 +37,8 @@ import {
   useProposeAndSign,
 } from "../../hooks/useAtlantic";
 import { useWallet } from "../WalletContext";
+import { ErrorState, ProgressLoader, ResultCard } from "../ui";
+import type { ResultRow } from "../ui";
 
 // --- Policy constants (policy t11-policy-v1, tasks/t11-policy-gatekeeper/policy.json) ---
 const POLICY_ID = "t11-policy-v1";
@@ -59,6 +71,7 @@ interface GateResult {
   namedRule: string | null;
   blockReason: string | null;
   rows: TraceRow[];
+  reads: { chainId: number | null; gasGwei: number | null; balancePhrs: string | null };
 }
 
 function phrsToWei(phrs: string): bigint {
@@ -80,7 +93,8 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
   const [asMainnet, setAsMainnet] = useState(false);
   const [gate, setGate] = useState<GateResult | null>(null);
   const [evaluating, setEvaluating] = useState(false);
-  const [readError, setReadError] = useState<string | null>(null);
+  const [checkSteps, setCheckSteps] = useState<string[]>([]);
+  const [checkStep, setCheckStep] = useState(0);
 
   const walletAddress =
     wallet.status === "connected" || wallet.status === "wrong-network"
@@ -90,8 +104,17 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
   async function runGate() {
     cancel();
     setGate(null);
-    setReadError(null);
     setEvaluating(true);
+
+    // 02 Check — one loader step per REAL live read. The balance read only
+    // exists when a wallet is connected (no wallet, no call, no step).
+    const steps = [
+      "Reading live chain id (eth_chainId)",
+      "Reading live gas price (eth_gasPrice)",
+      ...(walletAddress ? ["Reading your balance (eth_getBalance)"] : []),
+    ];
+    setCheckSteps(steps);
+    setCheckStep(0);
 
     const rows: TraceRow[] = [];
     let liveChainId: number | null = null;
@@ -105,6 +128,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
     } catch {
       /* fail-closed below */
     }
+    setCheckStep(1);
     try {
       const gasHex = (await rpcCall("eth_gasPrice", [])) as string;
       gasGwei = Number(BigInt(gasHex)) / 1e9;
@@ -112,6 +136,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
       /* fail-closed below */
     }
     if (walletAddress) {
+      setCheckStep(2);
       try {
         const balHex = (await rpcCall("eth_getBalance", [walletAddress, "latest"])) as string;
         balanceWei = BigInt(balHex);
@@ -119,6 +144,7 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         /* fail-closed below */
       }
     }
+    setCheckStep(steps.length);
 
     const effectiveChain = asMainnet ? MAINNET_CHAIN_ID : liveChainId;
 
@@ -352,45 +378,140 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
       decision = "APPROVE";
     }
 
+    setGate({
+      decision,
+      namedRule,
+      blockReason,
+      rows,
+      reads: {
+        chainId: liveChainId,
+        gasGwei,
+        balancePhrs: balanceWei === null ? null : weiToPhrs("0x" + balanceWei.toString(16)),
+      },
+    });
     setEvaluating(false);
-    setGate({ decision, namedRule, blockReason, rows });
   }
 
   const canPropose = gate?.decision === "APPROVE";
-  const decisionBanner =
-    gate?.decision === "APPROVE" ? (
-      <div className="rounded-xl border border-[#9fd8b4] bg-[#eefaf3] p-4">
-        <p className="text-sm font-bold text-[#0f7a37]">
-          APPROVE — all seven conditions pass. The gate minted a decision: you may propose this transfer.
-        </p>
-      </div>
-    ) : gate?.decision === "DENY" ? (
-      <div className="rounded-xl border border-[#f0b4b4] bg-[#fdeeee] p-4">
-        <p className="text-sm font-bold text-fail">
-          DENY — rule <span className="font-mono">{gate.namedRule}</span>
-        </p>
-        <p className="mt-1 text-sm text-slate">{gate.blockReason}</p>
-        <p className="mt-1 text-xs text-slate">
-          The gate refuses to propose this action. Nothing is broadcast; the denial is the product.
-        </p>
-      </div>
-    ) : gate?.decision === "REFUSED_MAINNET" ? (
-      <div className="rounded-xl border border-[#f0b4b4] bg-[#fdeeee] p-4">
-        <p className="text-sm font-bold text-fail">REFUSED_MAINNET — rule network_firewall</p>
-        <p className="mt-1 text-sm text-slate">{gate.blockReason}</p>
-      </div>
-    ) : null;
+
+  const verdictJson = gate
+    ? JSON.stringify(
+        {
+          policy: POLICY_ID,
+          decision: gate.decision,
+          rule: gate.namedRule,
+          action: { type: "native_transfer", to, value_phrs: value },
+        },
+        null,
+        2
+      )
+    : "";
+
+  // 03 Result — the verdict is the showpiece. Drama for a gate: ALLOW in
+  // green with a shield, BLOCK / REFUSED in red. Rows are only real reads.
+  function renderVerdict() {
+    if (!gate) return null;
+    const verdictRows: ResultRow[] = [
+      { label: "Policy", value: POLICY_ID },
+      ...(gate.namedRule ? [{ label: "Blocking rule", value: gate.namedRule }] : []),
+      { label: "Proposed action", value: `native_transfer · ${value} PHRS → ${short(to)}` },
+      ...(gate.reads.chainId !== null
+        ? [{ label: "Live chain id", value: String(gate.reads.chainId) }]
+        : []),
+      ...(gate.reads.gasGwei !== null
+        ? [{ label: "Live gas price", value: `${gate.reads.gasGwei.toFixed(2)} gwei` }]
+        : []),
+      ...(gate.reads.balancePhrs !== null
+        ? [{ label: "Wallet balance", value: `${gate.reads.balancePhrs} PHRS` }]
+        : []),
+    ];
+    const blockReason = gate.blockReason ?? "The gate denied this action.";
+
+    const head =
+      gate.decision === "APPROVE"
+        ? {
+            status: "pass" as const,
+            eyebrow: `Gate verdict · policy ${POLICY_ID}`,
+            headline: (
+              <span className="inline-flex items-center gap-3">
+                <ShieldCheck size={40} className="text-pass" aria-hidden />
+                ALLOW
+              </span>
+            ),
+            subline:
+              "All seven gate conditions pass against live Atlantic reads. Review the proposal below — nothing broadcasts until you sign in your own wallet.",
+          }
+        : gate.decision === "REFUSED_MAINNET"
+          ? {
+              status: "fail" as const,
+              eyebrow: "Gate verdict · rule network_firewall",
+              headline: (
+                <span className="inline-flex items-center gap-3">
+                  <Ban size={40} className="text-fail" aria-hidden />
+                  REFUSED
+                </span>
+              ),
+              subline: blockReason,
+            }
+          : {
+              status: "fail" as const,
+              eyebrow: `Gate verdict · rule ${gate.namedRule}`,
+              headline: (
+                <span className="inline-flex items-center gap-3">
+                  <ShieldX size={40} className="text-fail" aria-hidden />
+                  BLOCK
+                </span>
+              ),
+              subline: `${blockReason} Nothing is proposed and nothing is broadcast — the denial is the product.`,
+            };
+
+    return (
+      <ResultCard
+        status={head.status}
+        eyebrow={head.eyebrow}
+        headline={head.headline}
+        subline={head.subline}
+        rows={verdictRows}
+        copyValue={verdictJson}
+      >
+        <div className="border-t border-hairline pt-5">
+          <p className="text-sm font-semibold text-slate">
+            The gate's working — seven conditions, each with its numbers
+          </p>
+          <ol className="mt-2">
+            {gate.rows.map((r) => (
+              <li
+                key={r.key}
+                className={`border-t border-hairline py-4 first:border-t-0 first:pt-3 ${
+                  r.status === "block" ? "rounded-xl bg-[#FEF4F4] px-4" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-sm font-semibold text-ink">{r.name}</span>
+                  <span className={r.status === "pass" ? "chip chip-pass" : "chip chip-fail"}>
+                    {r.status === "pass" ? "PASS" : "BLOCK"}
+                  </span>
+                </div>
+                {r.rule && <p className="mt-1 font-mono text-xs text-slate">rule: {r.rule}</p>}
+                <p className="mt-1 break-words font-mono text-sm text-ink">{r.numbers}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink">{r.note}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </ResultCard>
+    );
+  }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <div>
         <h3 className="font-display text-xl font-bold text-ink">Every block, explained</h3>
-        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate">
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink">
           Propose a native transfer and the gatekeeper's policy engine ({POLICY_ID}) evaluates it
-          against <span className="font-semibold text-ink">live Atlantic reads</span> — chain id,
-          gas price, your wallet balance — then shows its work: seven conditions, each PASS or BLOCK
-          with the exact numbers.{" "}
-          <span className="font-semibold text-ink">{lamp.name}</span> says no before anything
+          against <span className="font-semibold">live Atlantic reads</span> — chain id, gas price,
+          your wallet balance — then shows its work: seven conditions, each PASS or BLOCK with the
+          exact numbers. <span className="font-semibold">{lamp.name}</span> says no before anything
           touches the chain.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -401,190 +522,247 @@ export default function TryGatekeeper({ lamp }: { lamp: Lamp }) {
         </div>
       </div>
 
-      {/* Wallet row */}
-      <div className="flex flex-wrap items-center gap-3">
-        {walletAddress ? (
-          <span className="chip chip-pass">wallet connected · {short(walletAddress)}</span>
-        ) : (
-          <>
-            <button className="btn-outline" onClick={connect}>
-              Connect wallet
-            </button>
-            <span className="text-xs text-slate">
-              Needed for the key-present, sender-binding and balance checks. LIGHTKEEPER never sees
-              your keys.
-            </span>
-          </>
-        )}
-      </div>
+      {/* 01 Configure */}
+      <section className="space-y-5">
+        <p className="text-sm font-semibold text-slate">01 · Configure the proposal</p>
 
-      {/* Proposal form */}
-      <div className="grid gap-3 md:grid-cols-2">
-        <div>
-          <label className="smallcaps mb-1 block !text-slate">To (recipient)</label>
-          <input
-            className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            spellCheck={false}
-          />
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button className="btn-outline !px-2 !py-1 !text-xs" onClick={() => setTo(DUST_SINK)}>
-              Dust sink (allowlisted)
-            </button>
-            <button className="btn-outline !px-2 !py-1 !text-xs" onClick={() => setTo(STRANGER)}>
-              Stranger address (BLOCK demo)
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {walletAddress ? (
+            <span className="chip chip-pass">wallet connected · {short(walletAddress)}</span>
+          ) : (
+            <>
+              <button className="btn-outline" onClick={connect}>
+                Connect wallet
+              </button>
+              <span className="text-sm text-slate">
+                Needed for the key-present, sender-binding and balance checks. LIGHTKEEPER never
+                sees your keys.
+              </span>
+            </>
+          )}
         </div>
-        <div>
-          <label className="smallcaps mb-1 block !text-slate">Value (PHRS)</label>
-          <input
-            className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            spellCheck={false}
-          />
-          <p className="mt-2 text-xs text-slate">
-            Dust limit {DUST_LIMIT_PHRS} PHRS — the gate's own cap is {PER_ACTION_CAP_PHRS} PHRS.
-          </p>
-        </div>
-      </div>
 
-      <label className="flex cursor-pointer items-start gap-2 text-sm text-slate">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={asMainnet}
-          onChange={(e) => setAsMainnet(e.target.checked)}
-        />
-        <span>
-          Preview: evaluate as <span className="font-mono">mainnet (chain 1672)</span> — see the
-          unconditional REFUSE. (A policy preview; the live RPC read still targets Atlantic.)
-        </span>
-      </label>
-
-      <div>
-        <button className="btn-primary" onClick={runGate} disabled={evaluating}>
-          {evaluating ? "Reading Atlantic…" : "Run the gate"}
-        </button>
-        {readError && <p className="mt-2 text-sm text-fail">{readError}</p>}
-      </div>
-
-      {/* Trace — horizontally scrollable so the 4-column table stays sane on 390px phones */}
-      {gate && (
-        <div className="space-y-4">
-          <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Condition</th>
-                <th>Result</th>
-                <th>Numbers</th>
-                <th>Why</th>
-              </tr>
-            </thead>
-            <tbody>
-              {gate.rows.map((r) => (
-                <tr key={r.key}>
-                  <td className="font-mono text-xs text-ink">{r.name}</td>
-                  <td>
-                    <span className={r.status === "pass" ? "chip chip-pass" : "chip chip-fail"}>
-                      {r.status === "pass" ? "PASS" : "BLOCK"}
-                    </span>
-                  </td>
-                  <td className="font-mono text-xs text-ink">{r.numbers}</td>
-                  <td className="text-xs text-slate">{r.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-
-          <div className="code-block">
-            {JSON.stringify(
-              {
-                policy: POLICY_ID,
-                decision: gate.decision,
-                rule: gate.namedRule,
-                action: { type: "native_transfer", to, value_phrs: value },
-              },
-              null,
-              2
-            )}
-          </div>
-
-          {decisionBanner}
-
-          {/* ALLOW path — propose, then mandatory review */}
-          {canPropose && state === "idle" && (
-            <button
-              className="btn-primary"
-              onClick={() =>
-                propose({ to, valuePhrs: value, label: `Gatekeeper-approved: send ${value} PHRS` })
-              }
-            >
-              Propose transfer
-            </button>
-          )}
-
-          {state === "review" && proposal && (
-            <div className="space-y-3 rounded-xl border border-hairline bg-porcelain p-4">
-              <p className="text-sm font-semibold text-ink">{proposal.label}</p>
-              <p className="font-mono text-xs text-slate">
-                to {proposal.to} · {proposal.valuePhrs} PHRS
-              </p>
-              {/* Review-step dust warning renders as an AMBER warning, not an error. */}
-              {error && (
-                <p className="rounded-lg border border-[#e3c26a] bg-[#fff8e6] p-3 text-sm font-semibold text-golddeep">
-                  ⚠ {error}
-                </p>
-              )}
-              <p className="text-xs text-slate">
-                Mandatory review: signing happens in YOUR wallet, from YOUR address, with YOUR
-                testnet PHRS. LIGHTKEEPER never moves funds for you.
-              </p>
-              <div className="flex gap-2">
-                <button className="btn-primary" onClick={approve}>
-                  Sign in my wallet
-                </button>
-                <button className="btn-outline" onClick={cancel}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {state === "awaiting-signature" && (
-            <p className="text-sm text-slate">Waiting for your wallet…</p>
-          )}
-          {state === "broadcasting" && (
-            <p className="text-sm text-slate">Sent — waiting for Atlantic to mine it…</p>
-          )}
-          {state === "blocked" && <p className="text-sm text-fail">{error}</p>}
-          {state === "error" && <p className="text-sm text-fail">{error}</p>}
-          {state === "confirmed" && txHash && (
-            <div className="rounded-xl border border-[#9fd8b4] bg-[#eefaf3] p-4">
-              <p className="text-sm font-bold text-[#0f7a37]">
-                Your tx — signed in your wallet. Confirmed on Atlantic.
-              </p>
-              <a
-                className="font-mono text-sm text-accent hover:underline"
-                href={`${EXPLORER_TX}${txHash}`}
-                target="_blank"
-                rel="noreferrer"
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate">
+              To (recipient)
+            </label>
+            <input
+              className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              spellCheck={false}
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                className="btn-outline !px-3 !py-1 !text-sm"
+                onClick={() => setTo(DUST_SINK)}
               >
-                View on the explorer
-              </a>
+                Dust sink (allowlisted)
+              </button>
+              <button
+                className="btn-outline !px-3 !py-1 !text-sm"
+                onClick={() => setTo(STRANGER)}
+              >
+                Stranger address (BLOCK demo)
+              </button>
             </div>
-          )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-slate">Value (PHRS)</label>
+            <input
+              className="w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              spellCheck={false}
+            />
+            <p className="mt-2 text-sm text-slate">
+              Dust limit {DUST_LIMIT_PHRS} PHRS — the gate's own cap is {PER_ACTION_CAP_PHRS} PHRS.
+            </p>
+          </div>
         </div>
+
+        <label className="flex cursor-pointer items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={asMainnet}
+            onChange={(e) => setAsMainnet(e.target.checked)}
+          />
+          <span>
+            Preview: evaluate as <span className="font-mono">mainnet (chain 1672)</span> — see the
+            unconditional REFUSE. (A policy preview; the live RPC read still targets Atlantic.)
+          </span>
+        </label>
+
+        <div>
+          <button className="btn-primary" onClick={runGate} disabled={evaluating}>
+            {evaluating ? "Checking…" : "Run the gate"}
+          </button>
+        </div>
+      </section>
+
+      {/* 02 Check — live reads, one real call per step */}
+      {evaluating && checkSteps.length > 0 && (
+        <section className="space-y-4">
+          <p className="text-sm font-semibold text-slate">02 · Check — live reads from Atlantic</p>
+          <ProgressLoader
+            steps={checkSteps}
+            current={checkStep}
+            title="Evaluating the gate against the live chain"
+          />
+        </section>
       )}
 
-      <p className="max-w-3xl text-xs leading-relaxed text-slate">
+      {/* 03 Result — the verdict showpiece + Tier B sign flow */}
+      {gate && !evaluating && (
+        <section className="space-y-5">
+          <p className="text-sm font-semibold text-slate">03 · Result — the verdict</p>
+
+          {renderVerdict()}
+
+          {/* ALLOW path — propose, mandatory review, then the visitor signs */}
+          {canPropose && (
+            <div className="space-y-5">
+              {state === "idle" && (
+                <div className="space-y-3">
+                  <button
+                    className="btn-primary"
+                    onClick={() =>
+                      propose({
+                        to,
+                        valuePhrs: value,
+                        label: `Gatekeeper-approved: send ${value} PHRS`,
+                      })
+                    }
+                  >
+                    Propose transfer
+                  </button>
+                  <p className="text-sm text-slate">
+                    Proposing only stages the action for your review — the gate never broadcasts
+                    anything on its own.
+                  </p>
+                </div>
+              )}
+
+              {state === "review" && proposal && (
+                <>
+                  <div className="rounded-2xl border border-[#E3C26A] bg-[#FFFDF4] p-6">
+                    <p className="text-sm font-semibold text-slate">
+                      Mandatory review — nothing is broadcast yet
+                    </p>
+                    <h4 className="mt-2 text-lg font-bold text-ink">{proposal.label}</h4>
+                    <dl className="mt-4">
+                      <div className="border-t border-hairline pt-3">
+                        <dt className="text-sm font-semibold text-slate">To</dt>
+                        <dd className="mt-1 break-all font-mono text-sm text-ink">
+                          {proposal.to}
+                        </dd>
+                      </div>
+                      <div className="mt-3 border-t border-hairline pt-3">
+                        <dt className="text-sm font-semibold text-slate">Value</dt>
+                        <dd className="mt-1 font-mono text-sm text-ink">
+                          {proposal.valuePhrs} PHRS
+                        </dd>
+                      </div>
+                      <div className="mt-3 border-t border-hairline pt-3">
+                        <dt className="text-sm font-semibold text-slate">From</dt>
+                        <dd className="mt-1 break-all font-mono text-sm text-ink">
+                          {walletAddress ?? "your connected wallet"}
+                        </dd>
+                      </div>
+                    </dl>
+                    {/* Review-step dust warning renders as an AMBER warning, not an error. */}
+                    {error && (
+                      <p className="mt-4 flex items-start gap-2 rounded-xl border border-[#E3C26A] bg-[#FFF6DE] p-3 text-sm font-semibold text-golddeep">
+                        <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden />
+                        <span>{error}</span>
+                      </p>
+                    )}
+                    <p className="mt-4 text-sm leading-relaxed text-ink">
+                      This is your last look. Signing happens in YOUR wallet, from YOUR address,
+                      with YOUR testnet PHRS — LIGHTKEEPER never moves funds for you.
+                    </p>
+                  </div>
+                  <div className="sticky bottom-4 z-10 flex gap-2 rounded-2xl border border-hairline bg-white/95 p-3 shadow-lg backdrop-blur">
+                    <button className="btn-primary flex-1 justify-center" onClick={approve}>
+                      Sign in my wallet
+                    </button>
+                    <button className="btn-outline" onClick={cancel}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {(state === "awaiting-signature" || state === "broadcasting") && (
+                <ProgressLoader
+                  steps={["Sign the transfer in your wallet", "Wait for Atlantic to confirm it"]}
+                  current={state === "awaiting-signature" ? 0 : 1}
+                  title="Your wallet is in charge — the console only watches"
+                />
+              )}
+
+              {(state === "blocked" || state === "error") && (
+                <div className="space-y-3">
+                  <ErrorState
+                    title={
+                      state === "blocked"
+                        ? "The gate stopped the sign flow"
+                        : "The sign flow failed"
+                    }
+                    message={error ?? "Something went wrong."}
+                    hint={
+                      state === "error" && txHash
+                        ? "The transaction may still be on-chain — check its status below."
+                        : "Adjust the inputs and run the gate again, or check your wallet's network."
+                    }
+                    retryLabel="Run the gate again"
+                    onRetry={runGate}
+                  />
+                  {txHash && (
+                    <a
+                      className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+                      href={`${EXPLORER_TX}${txHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View the transaction on the explorer
+                      <ExternalLink size={14} aria-hidden />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {state === "confirmed" && txHash && (
+                <ResultCard
+                  status="pass"
+                  eyebrow="Receipt — signed in your wallet"
+                  headline="Confirmed on Atlantic"
+                  subline={`The ${proposal?.valuePhrs ?? value} PHRS transfer you signed is mined on chain 688689.`}
+                  rows={[
+                    {
+                      label: "Transaction hash",
+                      value: <span className="break-all">{txHash}</span>,
+                    },
+                    {
+                      label: "To",
+                      value: <span className="break-all">{proposal?.to ?? to}</span>,
+                    },
+                    { label: "Value", value: `${proposal?.valuePhrs ?? value} PHRS` },
+                  ]}
+                  copyValue={txHash}
+                  links={[{ label: "View on the explorer", href: `${EXPLORER_TX}${txHash}` }]}
+                />
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      <p className="max-w-3xl text-sm leading-relaxed text-slate">
         This console surface mirrors the task's policy engine (policy {POLICY_ID}). The task's
-        full record — 8 named rules, the hash-chained audit trail, the mainnet-refusal demo, and
-        the unit tests — is on GitHub at{" "}
+        full record — 8 named rules and the hash-chained audit trail — is on GitHub at{" "}
         <a
           className="font-mono text-accent hover:underline"
           href="https://github.com/mohamedwael201193/lightkeeper/tree/main/tasks/t11-policy-gatekeeper"
