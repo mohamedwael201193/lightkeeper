@@ -56,9 +56,9 @@ tests held on the live event.
 
 Exactly ONE alert was sent per event — no spam, no duplicates.
 
-**Honest footnote:** the restart scan caught four *additional* genuine events —
+**Honest footnote:** the restart scan caught seven *additional* genuine events —
 `0xc9270686…` (block 31481475, 0.001 PHRS, message_id 718) and `0xeec25b53…`
-(block 31481497, 0.0005 PHRS, message_id 719) and `0xcff6be41…` (block 31481530, 0.001 PHRS, message_id 720) and `0x1c9d62c6…` (block 31481582, 0.00001 PHRS, message_id 722). Both are real self-transfers by
+(block 31481497, 0.0005 PHRS, message_id 719) and `0xcff6be41…` (block 31481530, 0.001 PHRS, message_id 720) and `0x1c9d62c6…` (block 31481582, 0.00001 PHRS, message_id 722), `0x1c8c6537…` (block 31481636, 0.00001 PHRS, message_id 724), `0xe6ca0c8e…` (block 31481647, 0.0001 PHRS, message_id 725) and `0x587ed9d3…` (block 31481673, 0.0001 PHRS, message_id 726). Both are real self-transfers by
 *other workers* sharing the deployer key (verified via `cast tx`/`cast receipt`:
 from = to = watched address, status 0x1). The watcher alerted on each exactly
 once, as designed — it does not know or care who fired the transaction. These
@@ -76,7 +76,7 @@ Live proof: the watcher was restarted (fresh process, cursor 31481431) and
 scanned hundreds of newer blocks. Result: **no event was ever alerted twice** —
 `state/alerts.log` shows exactly one SENDING + one SENT per txhash, including
 for the original trigger `0xe6c9f52c…` which was *not* re-emitted. The three extra
-alerts (718, 719, 720, 722) were for genuinely new events, each alerted exactly once.
+alerts (718, 719, 720, 722, 724, 725, 726) were for genuinely new events, each alerted exactly once.
 
 ## 5. Tests
 

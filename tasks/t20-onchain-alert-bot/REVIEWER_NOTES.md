@@ -21,7 +21,7 @@ transaction against three configurable conditions in `config.yaml`
    number, timestamp.
    (Telegram DMs have no public URL — message_id is the delivery receipt.)
    Two further genuine events on the shared key were each alerted exactly once
-   (message_ids 718, 719, 720, 722) — observed, not staged.
+   (message_ids 718, 719, 720, 722, 724, 725, 726) — observed, not staged.
 4. **No-repeat-spam:** the watcher was restarted after delivery and re-scanned
    hundreds of blocks; `state/alerts.log` shows exactly one SENDING + one SENT
    per txhash — no event was ever alerted twice, including the original trigger.

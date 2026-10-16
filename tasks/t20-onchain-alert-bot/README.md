@@ -62,7 +62,7 @@ bash src/trigger.sh              # fire the REAL dust trigger (Atlantic only)
 - **Delivery:** Telegram `sendMessage` → chat `1434154285`, **message_id 717**
   (my trigger) — one alert per event, with condition, amount, tx hash, explorer
   link, block, timestamp. Two further genuine events observed on the shared key
-  were also each alerted exactly once (message_ids 718, 719, 720, 722).
+  were also each alerted exactly once (message_ids 718, 719, 720, 722, 724, 725, 726).
 - **No spam:** restarted watcher never re-emitted any event (one SENDING + one
   SENT per txhash in `state/alerts.log`).
 - **Spend:** 0.000021000000021 PHRS (one tx; budget ≤ 0.15).

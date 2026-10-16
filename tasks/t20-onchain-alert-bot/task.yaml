@@ -12,7 +12,7 @@ evidence:
   trigger_tx: "0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084"
   trigger_block: 31481424
   telegram_message_id: 717
-  telegram_observed_message_ids: [718, 719, 720, 722]
+  telegram_observed_message_ids: [718, 719, 720, 722, 724, 725, 726]
   telegram_note: "717 = my disclosed test trigger; 718/719/720 = genuine observed transfers by other workers on the shared key, each alerted exactly once"
   telegram_chat_id: "1434154285"
   spend_phrs: "0.000021000000021"

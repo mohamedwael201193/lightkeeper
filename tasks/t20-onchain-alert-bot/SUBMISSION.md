@@ -32,7 +32,7 @@ Live proof (all real, 2026-10-16):
   (block 31481424, status 0x1).
 - Detection → Telegram alert, chat 1434154285, message_id 717 (04:19:24Z).
 - Restart re-scan: no event alerted twice. Two further genuine transfers on the
-  shared key were each alerted exactly once (message_ids 718, 719, 720, 722).
+  shared key were each alerted exactly once (message_ids 718, 719, 720, 722, 724, 725, 726).
 - Unit tests: `test/match_test.sh` 16/16 PASS.
 - Total spend: 0.000021000000021 PHRS (one dust tx; budget ≤ 0.15).
 
