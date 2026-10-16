@@ -64,6 +64,18 @@ Aggregation run: block https://atlantic.pharosscan.xyz/block/31482191
 
 PENDING-VIDEO
 
+## Console — try it live (Tier A)
+
+Deployed on the LIGHTKEEPER console: `apps/console/src/components/try/multi-protocol-aggregator.tsx`.
+One view over every venue — reads all three live venue contracts on Atlantic
+via `eth_call` (TVL, APYs, share price, utilization, liquidity depth), pins
+the quote to the current block, normalizes into one table, ranks the venues
+for a deposit or borrow intent the visitor configures, and shows the
+explained router verdicts (per-venue SELECTED / passed-over lines with the
+numbers). A venue whose read fails is marked UNREACHABLE — never zero-filled.
+Quotes only: no wallet, no signature, no execution in the browser; the run
+command stays CLI.
+
 ## Reviewer notes (paste)
 
 All 7 transactions are real Atlantic testnet writes (dust scale, 0.00212 PHRS
