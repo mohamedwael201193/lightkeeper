@@ -20,4 +20,4 @@
 
 ## Repo (commit-pinned after commit)
 
-- `https://github.com/mohamedwael201193/lightkeeper/tree/<commit>/tasks/t25-dapp-support-agent` — filled in SUBMISSION.md at commit time.
+- `https://github.com/mohamedwael201193/lightkeeper/tree/ae37f9a/tasks/t25-dapp-support-agent` — filled in SUBMISSION.md at commit time.
