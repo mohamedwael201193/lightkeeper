@@ -4,7 +4,18 @@ One unique slot for T23. Real terminal output only — no staged fakes, no
 mock runs. Record the terminal (and only the terminal) at 1080p, monospace
 font ≥16pt.
 
-## Shot list
+## New interactive shot (console surface — the demo that sells it)
+
+| # | Time | Shot | Spoken script |
+|---|---|---|---|
+| A | 0–10s | Console at `#/task/wallet-risk-checker`: "X-ray any wallet"; click "Established wallet", "Run live scan"; show MED composite banner + S7 unlimited-approval flag with its plain-language "why / what to do" box | "And it lives in the LIGHTKEEPER console. Paste any Atlantic address — no wallet, no signature, no gas. The established wallet scores MED, and the flag teaches: what an unlimited approval means, and exactly what to do about it." |
+| B | 10–28s | Click "Fresh fixture contract", re-scan; show the young-account FLAG, funded-but-idle FLAG, unverifiable-code UNKNOWN, composite banner | "Now the fresh fixture — a young contract I deployed for this demo. Funded but idle, unverifiable bytecode. Each flag is explained in plain language with a next step — the report teaches, not just scores." |
+
+Record the new shots at 1080p; then append the original 45–90s terminal
+slot (shots 1–5) for the full 8-check CLI proof. Title the upload `T23
+Wallet Risk Checker — lightkeeper`. Use this slot for T23 only.
+
+## Shot list (original terminal slot — keep, append after the new shots)
 
 | # | Time | Shot | Spoken script |
 |---|---|---|---|

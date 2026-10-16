@@ -41,7 +41,26 @@ Read-only: 0 gas spent, no keys, no broadcast. FIRE is an off-chain signal.
 - **Proof — transcripts:** `sample-output/live-observe-cycle1.txt`, `sample-output/live-report.txt`,
   `sample-output/spike-demo-synthetic.txt`, `sample-output/sustained-demo-synthetic.txt`
 - **Demo / share link:** n/a — CLI tool; evidence is the transcript + explorer links above
-- **Video:** PENDING-VIDEO
+- **Video:** PENDING-VIDEO — new interactive shot added: the console "Try it live" trend panel
+  (`apps/console/src/components/try/swell-line.tsx`) samples 30 real blocks of fee history
+  in-browser and shows the verdict — Tier A live reads, no signature.
+
+## Try it live (LIGHTKEEPER console, Tier A)
+
+New interactive surface: `apps/console/src/components/try/swell-line.tsx`
+(default-exports `TrySwellLine`, lazy-loaded by `TryPanel` for lamp slug
+`swell-line` — no registry edits needed).
+
+- One click samples a **30-block `eth_feeHistory` window** from Atlantic (same source as
+  the CLI), and renders: the trailing streak + verdict chip (**▲ TRENDING UP ×n** /
+  **◌ BUILDING** / **○ HOLD** with the honest reason), a sparkline of base fee with
+  above-band readings dotted, and a 16-row table (block, base fee gwei, Δ, fastMA(5),
+  slowMA(15), band marker).
+- The panel applies the real rule: fastMA(5) vs slowMA(15), 0.5% band, dual condition
+  (crossover + raw reading above), 3 consecutive confirmations to FIRE, streak resets on
+  any miss. Flat markets render HOLD with the reason — never a manufactured signal.
+- Read-only: no wallet, no signature, costs nothing. The panel samples one window on
+  demand; the CLI holds the streak across runs in `state/runtime.json`.
 
 ## Reviewer notes (paste)
 

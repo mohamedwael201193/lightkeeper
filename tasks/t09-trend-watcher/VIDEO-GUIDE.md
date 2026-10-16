@@ -54,6 +54,17 @@ stated. Flat markets don't get manufactured signals here."
 one spike never enough. Read-only — zero gas spent."
 **End card:** repo path `tasks/t09-trend-watcher`.
 
+### Shot 6 — New interactive shot: the live console surface (0:00–0:40, standalone video option)
+
+**Do:** open the LIGHTKEEPER console, task T09 → "Try it live". Hit **Sample the fee market**.
+**Say:** "T09 in the browser. Thirty real blocks of Atlantic base-fee history, sampled live —
+same eth_feeHistory source as the CLI. Sparkline, per-block deltas, fast and slow moving
+averages, the half-percent band." Point at the verdict chip: "Hold — flat inside the band.
+The streak is zero because the honest signal here is no signal. One spike could never fire
+this — the rule needs three confirmations in a row, and the panel shows you the count."
+Hit **Refresh sample** (free, no wallet, no signature). This shot is the new interactive
+demo every visitor gets.
+
 ## Don'ts
 
 - Don't fake a live FIRE — the live market was flat; the honest evidence is HOLD

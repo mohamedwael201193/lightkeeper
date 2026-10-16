@@ -36,6 +36,25 @@ assert every raw value matches independent `cast` queries (block-pinned for
 determinism): ALL TESTS PASSED. Read-only — no signer, no broadcasts; total
 spend ~0.00127 PHRS (fixture deployment + funding dust).
 
+## Interactive demo (LIVE surface, no install)
+
+The LIGHTKEEPER console hosts an interactive Tier-A surface for this task —
+paste any Atlantic address and the report renders live in the page:
+
+**https://lightkeeper-console.vercel.app/#/task/wallet-risk-checker**
+
+What it does (all live reads, zero signatures, zero spend): native balance
+(`eth_getBalance`), tx count (`eth_getTransactionCount`), EOA-vs-contract
+(`eth_getCode`), first-activity age via nonce binary search with real block
+timestamps, and approval hygiene from `Approval` logs in the last 10,000
+blocks. Per-check PASS / FLAG / UNKNOWN / N/A chips, raw values, the
+disclosed-heuristic composite formula printed with every report, and — the
+differentiator — a plain-language "why this flag exists / what to do" box on
+every flag. Coverage is printed honestly on the page: the browser surface
+runs 6 of the 8 CLI checks (S5 activity burst and S6 interaction diversity
+need the CLI's heavier log windows). Demo buttons pre-fill the two evidence
+addresses (established wallet → MED; fresh test fixture → flags explained).
+
 ## Proof link
 
 Repo + evidence (evidence.md / evidence.json with tx hashes, block numbers,
