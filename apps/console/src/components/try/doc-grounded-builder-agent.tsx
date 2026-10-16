@@ -242,7 +242,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
       </div>
       <div className="rounded-xl border border-accent bg-porcelain p-4 text-sm">
         <p className="font-semibold text-ink">Executed for real on Atlantic testnet</p>
-        <p className="mt-1 text-xs text-slate">
+        <p className="mt-1 break-all text-xs text-slate">
           Token{" "}
           <a className="font-mono text-accent hover:underline" href={`${EXPLORER_ADDR}${TOKEN}`} target="_blank" rel="noreferrer">
             {TOKEN}
@@ -251,7 +251,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
           <a className="font-mono text-accent hover:underline" href={`${EXPLORER_TX}${DEPLOY_TX}`} target="_blank" rel="noreferrer">
             {DEPLOY_TX.slice(0, 12)}…{DEPLOY_TX.slice(-8)}
           </a>{" "}
-          block 31482431, status 1.
+          block 31482431, status 1. Re-checked on-chain <span className="font-semibold text-ink">today (2026-10-16)</span> — name/symbol/supply/balance all unchanged.
         </p>
       </div>
       <div>
@@ -268,18 +268,30 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="chip !border-accent">Coverage gate: PASS</span>
         <span className="chip !border-accent">EXECUTED</span>
+        <span className="chip">Re-verified live 2026-10-16: name=Token · symbol=MTK · totalSupply=1000000 · bytecode 7110 hex chars</span>
       </div>
       <p className="text-sm text-slate">
         Request: <span className="font-mono text-ink">“read the ERC-20 balance of my wallet on Atlantic”</span>.
         Grounded in the doc's <span className="font-mono text-ink">balanceOf</span> interact pattern
         (“Interact with the Token Contract”) plus the SocialScan explorer docs.
       </p>
-      <div className="code-block">
-        {`cast call ${TOKEN} "balanceOf(address)" ${DEPLOYER} --rpc-url ${RPC}\n# → 1000000 (18 decimals: 1000000000000000000000000 wei)`}
+      <div className="code-block break-all">
+        {`cast call ${TOKEN} "balanceOf(address)(uint256)" ${DEPLOYER} --rpc-url ${RPC}\n# → 1000000 (18 decimals: 1000000000000000000000000 wei)`}
       </div>
       <p className="text-sm text-ink">
         Result: <span className="font-mono font-bold">balanceOf(deployer) = 1000000</span>
       </p>
+      <div className="rounded-xl border border-hairline bg-porcelain p-4 text-xs text-slate">
+        <p className="font-semibold text-ink">Check it yourself — four free reads, zero gas:</p>
+        <div className="code-block mt-2 break-all">
+          {`cast call ${TOKEN} "name()(string)" --rpc-url ${RPC}          # → "Token"\ncast call ${TOKEN} "symbol()(string)" --rpc-url ${RPC}        # → "MTK"\ncast call ${TOKEN} "totalSupply()(uint256)" --rpc-url ${RPC} # → 1000000 [1e6]\ncast call ${TOKEN} "balanceOf(address)(uint256)" ${DEPLOYER} --rpc-url ${RPC}`}
+        </div>
+        <p className="mt-2">
+          These are the same calls the agent's D9 verification step ran — the values above are
+          what the chain returned <span className="font-semibold text-ink">today, 2026-10-16</span>.
+          Reads are free; nothing is signed, nothing is broadcast.
+        </p>
+      </div>
     </div>
   );
 
@@ -331,9 +343,11 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
         <h3 className="mt-1 text-xl font-bold text-ink">Every step cites its source</h3>
         <p className="mt-2 max-w-3xl text-sm text-slate">
           Type a build goal. The builder renders the agent's real plan — each step carrying its doc
-          URL and excerpt — and passes the coverage gate before anything is generated for execution.
-          Uncovered steps are <span className="font-semibold text-ink">refused, never improvised</span>.
-          This lamp is CLI-native: everything executes in{" "}
+          URL and excerpt — and runs the coverage gate before anything is generated for execution.
+          The differentiator: <span className="font-semibold text-ink">the gate is the product</span>.
+          A step the docs don't cover isn't guessed at — it's{" "}
+          <span className="font-semibold text-ink">refused with the uncovered terms named</span> (try
+          the R4 preset). This lamp is CLI-native: everything executes in{" "}
           <span className="font-semibold text-ink">your own terminal</span>. LIGHTKEEPER never sees
           or asks for private keys.
         </p>
@@ -359,7 +373,7 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
         <div className="flex flex-wrap gap-2">
           <input
             className="min-w-0 flex-1 rounded-xl border border-hairline bg-porcelain px-4 py-2.5 text-sm text-ink placeholder:text-slate"
-            placeholder="…or type your own build goal (e.g. “mint me a token”)"
+            placeholder="…or type your own build goal (e.g. “what is my token balance”)"
             value={freeInput}
             onChange={(e) => setFreeInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runFree()}
@@ -370,7 +384,8 @@ export default function TryDocGroundedBuilderAgent({ lamp }: { lamp: Lamp }) {
         </div>
         {freeResult !== null && freeResult !== "unknown" && (
           <p className="text-xs text-slate">
-            The agent's INTAKE classifier routes this to the{" "}
+            The console mirrors the agent's real INTAKE classifier (the same regexes as{" "}
+            <span className="font-mono">src/agent.py</span>) — it routes this to the{" "}
             <button className="font-mono text-accent hover:underline" onClick={() => { setGoal(freeResult); setFreeResult(null); }}>
               {GOALS.find((g) => g.id === freeResult)?.label}
             </button>{" "}

@@ -17,11 +17,13 @@
 
 Open the task's console page, "Try it live": type the goal "deploy an ERC20 token on Atlantic
 and verify it" — the generated plan scrolls with every step carrying its doc URL and excerpt
-("Every step cites its source"). Click the R4 preset: the console renders the agent's real
-refusal — "the docs do not cover this request" — and say: "Uncovered steps are refused, never
-improvised." Click "Copy full command sequence" and say: "One paste, and you run the covered
-plan on your own machine." (Console never executes; everything runs in the visitor's own
-terminal.)
+("Every step cites its source"). Type "send 10 tokens to my friend" — the classifier routes it
+to R3 (transfer planner), proving the mirror of the agent's real INTAKE regexes. Click the R4
+preset: the console renders the agent's real refusal — "the docs do not cover this request" —
+and say: "Uncovered steps are refused, never improvised." Click "Copy full command sequence"
+and say: "One paste, and you run the covered plan on your own machine — the exact commands the
+agent ran, including the forge-script substitution and the nonce guard." (Console never executes;
+everything runs in the visitor's own terminal.)
 
 ## B-roll (optional, if time allows)
 

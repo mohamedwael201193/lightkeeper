@@ -44,8 +44,14 @@ type a build goal and the console renders the agent's real plan (steps D1–D9 f
 with DOC-GROUNDED/INFERENCE/UNVERIFIED status) — every step carrying its doc URL and excerpt from
 the agent's own coverage log — plus a copy-paste-ready command sequence. The four real requests are
 preset: R1 deploy+verify (executed for real, Token/MTK 0x25c2…19, tx 0xe54edf…3379), R2 balance read
-(balanceOf(deployer)=1000000), R3 transfer (real unsigned tx, never broadcast), R4 refusal
-("the docs do not cover this request — no passage mentions: confidential, shielded"). Any goal
-outside the planner library hits the say-so gate instead of improvising. The console never executes
-anything — every command runs in the visitor's own terminal; LIGHTKEEPER never sees or asks for
-private keys.
+(balanceOf(deployer)=1000000, re-verified live 2026-10-16 with 4 free self-check `cast call` commands
+for name/symbol/totalSupply/balanceOf), R3 transfer (real unsigned tx, never broadcast), R4 refusal
+("the docs do not cover this request — no passage mentions: confidential, shielded"). The console's
+goal classifier is a 1:1 port of the agent's real INTAKE regexes (`src/agent.py` REQUEST_PATTERNS) —
+"transfer 10 ERC-20 tokens to 0x…dEaD" routes to R3, not R1 — and anything outside the planner
+library hits the say-so gate instead of improvising. The copied command sequence is exact and
+runnable: the real substitution (`BYTECODE=$(forge inspect Token bytecode)` +
+`cast send --create "${BYTECODE}${CTORARGS:2}"`), the real verify line
+(`ARGS=$(cast abi-encode 'constructor(uint256)' 1000000)`), and the nonce-guard
+`flock /tmp/lk-nonce.lock`. The console never executes anything — every command runs in the
+visitor's own terminal; LIGHTKEEPER never sees or asks for private keys.

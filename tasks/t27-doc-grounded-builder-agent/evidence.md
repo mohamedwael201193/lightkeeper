@@ -20,6 +20,10 @@ The agent retrieved the Pharos docs, rendered a 9-step cited plan (coverage gate
 
 **Total: 0.00094173 / 0.15 PHRS.** Verify is off-chain (no gas); R2 reads are free; R3 never broadcast.
 
+**Re-verified live 2026-10-16 ~09:45 EEST** (free reads only, no tx): `name=Token`, `symbol=MTK`,
+`totalSupply=1000000`, `balanceOf(deployer)=1000000`, bytecode 7110 hex chars — all match the
+07:20 run.
+
 ## The four requests
 
 | ID | Verdict | Proof |
