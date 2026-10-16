@@ -363,6 +363,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
   };
 
   const largest: WhaleTx | null = whales && whales.length > 0 ? whales[0] : null;
+  const reduceMotion = useReducedMotion();
 
   const stats: Stat[] = [
     {
@@ -483,7 +484,9 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate">
             Anything moving ≥{" "}
             <span className="font-mono font-semibold text-ink">{thresholdDisplay}</span>{" "}
-            PHRS counts as a whale. Thresholds are stated in native PHRS — there is
+            PHRS counts as a whale. Blocks are read in batches of 50 per round
+            trip — a full scan takes seconds, not minutes of sequential crawling.
+            Thresholds are stated in native PHRS — there is
             no USD price feed on Atlantic, so nothing is ever converted to fiat.
             Counterparties are shown shortened; LIGHTKEEPER never invents identities.
             Moves touching the agent's watchlist get a{" "}
@@ -527,10 +530,23 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
             <ResultCard
               eyebrow={`Result — largest whale of ${whales?.length ?? 0} found in this scan`}
               headline={
-                <>
+                <span className="relative inline-block">
                   <HeroAmount key={largest.hash} weiHex={largest.valueWei} />
                   <span className="ml-2 text-[0.5em] font-semibold text-slate">PHRS</span>
-                </>
+                  {/* One beat when the whale lands: a single expanding ring,
+                      gone in 0.6s, remounting (and replaying) only when a new
+                      largest whale arrives. Skipped under reduced motion. */}
+                  {!reduceMotion && (
+                    <motion.span
+                      key={largest.hash}
+                      aria-hidden
+                      className="pointer-events-none absolute -inset-3 rounded-2xl border-2 border-accent"
+                      initial={{ opacity: 0.5, scale: 0.9 }}
+                      animate={{ opacity: 0, scale: 1.15 }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                    />
+                  )}
+                </span>
               }
               subline={
                 <>
@@ -592,7 +608,8 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
                     key={w.hash}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, delay: Math.min(i * 0.05, 0.4) }}
+                    transition={{ duration: 0.22, delay: Math.min(i * 0.04, 0.28) }}
+                    // Stagger budget: 0.28 + 0.22 = 0.5s total, per the brief.
                     className="flex items-center gap-4 px-5 py-4"
                   >
                     <span
@@ -655,7 +672,7 @@ export default function TryWhaleWatchingAgent({ lamp }: { lamp: Lamp }) {
           <div className="space-y-6">
             <EmptyState
               title="Quiet waters"
-              message={`No native transfers ≥ ${thresholdDisplay} PHRS in the last ${nBlocks} blocks. That's an honest answer, not an error — the radar inspected every transaction in the window.`}
+              message={`No native transfers ≥ ${thresholdDisplay} PHRS in the last ${nBlocks} blocks — the radar read all ${inspected.toLocaleString()} transactions in this window and found none. That's an honest answer, not an error.`}
               actionLabel="Scan a wider window"
               onAction={() => {
                 setBlockCount(String(MAX_BLOCKS));
