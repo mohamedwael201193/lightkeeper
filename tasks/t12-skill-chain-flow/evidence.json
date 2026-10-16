@@ -1,1 +1,165 @@
-{"budget_phrs":"0.15","contrast_runs":[{"broadcast":true,"label":"allow","live_balance_phrs_at_read":"5.91989842331639842","live_gas_gwei_at_read":10.0,"live_pingCount_at_read":0,"pingCount_after":1,"proposed_amount_phrs":"0.0001","tx_hash":"0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349","verdict":"ALLOW"},{"blocked_by":["RULE-AMOUNT"],"broadcast":false,"label":"block","live_balance_phrs_at_read":"5.868857845315957842","live_gas_gwei_at_read":10.0,"live_pingCount_at_read":1,"pingCount_after":1,"proposed_amount_phrs":"0.1","verdict":"BLOCK"}],"network":{"chain_id":688689,"chain_id_hex":"0xa8231","explorer":"https://atlantic.pharosscan.xyz/","name":"atlantic-testnet","native_token":"PHRS","rpc_url":"https://atlantic.dplabs-internal.com"},"notes":["All txs on Atlantic testnet (chain 688689) only. No mainnet touched.","allow-1 (run_id allow-1-1792124095): skill BLOCKED on RULE-FRESHNESS (10-block window too tight for Atlantic's ~1s blocks); verified pingCount 0->0. This run exposed the window issue and the policy was corrected BEFORE any execution.","allow-1 (run_id allow-1-1792124145): skill ALLOWed but broadcast crashed on a cast --value encoding bug (ether-decimal passed where wei-integer is required); NO tx was broadcast. Both runs are preserved in the transcript as authentic run history.","Balance changes between runs are visible in transcripts; the shared deployer key is used by other T-workers concurrently, so the wallet balance moves independently of T12.","Portal Chain MCP hosted endpoint is mainnet-only (verdict P-patch); T12 reproduces the portal pattern locally with cast against Atlantic (same tool boundaries: read via chain queries -> skill action on that data -> verify via chain queries)."],"runs":[{"block":31481433,"effective_gas_price_wei":1000000001,"explorer_tx":"https://atlantic.pharosscan.xyz/tx/0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3","fee_phrs":"0.0002683053","gas_used":268305,"purpose":"deploy KeeperPing (composition target contract)","run_label":"deploy","status":1,"tx_hash":"0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3","value_phrs":"0"},{"block":31482141,"effective_gas_price_wei":1000000001,"explorer_tx":"https://atlantic.pharosscan.xyz/tx/0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349","fee_phrs":"0.0000678987","gas_used":67898,"purpose":"skill verdict ALLOW -> ping() dust tx (0.0001 PHRS)","run_label":"allow-3","status":1,"tx_hash":"0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349","value_phrs":"0.0001","verify":"pingCount() 0 -> 1, as expected"},{"block":null,"purpose":"skill verdict BLOCK (RULE-AMOUNT: 0.1 > 0.005 PHRS max) -> no broadcast","run_label":"block-1","status":null,"tx_hash":null,"verify":"pingCount() 1 -> 1 (unchanged), as expected"}],"sender":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","slug":"skill-chain-flow","spend_log":[{"entry":"deploy KeeperPing","fee_phrs":"0.0002683053","tx":"0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3","value_phrs":"0"},{"entry":"allow-3 ping() dust execute","fee_phrs":"0.0000678987","tx":"0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349","value_phrs":"0.0001"},{"entry":"block-1","fee_phrs":"0","tx":null,"value_phrs":"0"}],"target_contract":"0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1","task":"T12","total_spent_phrs":"0.0004362040","transcript":"run-logs/flow-transcript.jsonl","under_budget":true,"unit_tests":"tests/test_policy.py (8/8 pass)"}
+{
+  "budget_phrs": "0.15",
+  "contrast_runs": [
+    {
+      "broadcast": true,
+      "label": "allow",
+      "live_balance_phrs_at_read": "5.91989842331639842",
+      "live_gas_gwei_at_read": 10.0,
+      "live_pingCount_at_read": 0,
+      "pingCount_after": 1,
+      "proposed_amount_phrs": "0.0001",
+      "tx_hash": "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+      "verdict": "ALLOW"
+    },
+    {
+      "blocked_by": [
+        "RULE-AMOUNT"
+      ],
+      "broadcast": false,
+      "label": "block",
+      "live_balance_phrs_at_read": "5.868857845315957842",
+      "live_gas_gwei_at_read": 10.0,
+      "live_pingCount_at_read": 1,
+      "pingCount_after": 1,
+      "proposed_amount_phrs": "0.1",
+      "verdict": "BLOCK"
+    },
+    {
+      "label": "block-2",
+      "proposed_amount_phrs": "0.1",
+      "verdict": "BLOCK",
+      "blocked_by": [
+        "RULE-AMOUNT"
+      ],
+      "live_balance_phrs_at_read": "5.870589420313178416",
+      "live_gas_gwei_at_read": 10.0,
+      "live_pingCount_at_read": 1,
+      "pingCount_after": 1,
+      "broadcast": false
+    },
+    {
+      "label": "allow-4",
+      "proposed_amount_phrs": "0.0001",
+      "verdict": "ALLOW",
+      "live_balance_phrs_at_read": "5.870568420313157416",
+      "live_gas_gwei_at_read": 10.0,
+      "live_pingCount_at_read": 1,
+      "pingCount_after": 2,
+      "tx_hash": "0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128",
+      "broadcast": true
+    }
+  ],
+  "network": {
+    "chain_id": 688689,
+    "chain_id_hex": "0xa8231",
+    "explorer": "https://atlantic.pharosscan.xyz/",
+    "name": "atlantic-testnet",
+    "native_token": "PHRS",
+    "rpc_url": "https://atlantic.dplabs-internal.com"
+  },
+  "notes": [
+    "All txs on Atlantic testnet (chain 688689) only. No mainnet touched.",
+    "allow-1 (run_id allow-1-1792124095): skill BLOCKED on RULE-FRESHNESS (10-block window too tight for Atlantic's ~1s blocks); verified pingCount 0->0. This run exposed the window issue and the policy was corrected BEFORE any execution.",
+    "allow-1 (run_id allow-1-1792124145): skill ALLOWed but broadcast crashed on a cast --value encoding bug (ether-decimal passed where wei-integer is required); NO tx was broadcast. Both runs are preserved in the transcript as authentic run history.",
+    "Balance changes between runs are visible in transcripts; the shared deployer key is used by other T-workers concurrently, so the wallet balance moves independently of T12.",
+    "Portal Chain MCP hosted endpoint is mainnet-only (verdict P-patch); T12 reproduces the portal pattern locally with cast against Atlantic (same tool boundaries: read via chain queries -> skill action on that data -> verify via chain queries).",
+    "Post-harden re-runs 2026-10-16 (block-2, allow-4): the full contrast pair was re-executed live after the console/RPC hardening op. allow-4 broadcast a new real ping() tx 0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128 (block 31486412, fee 0.0000336980 PHRS) driving pingCount 1 -> 2; block-2 re-proved RULE-AMOUNT with a fresh live balance (5.870589420313178416 PHRS), no broadcast. Note: these transcript records were reconstructed from the verbatim flow.py run output after a concurrent workspace agent reverted the JSONL/JSON files; all values (timestamps, blocks, balances, tx hash) are the real run values."
+  ],
+  "runs": [
+    {
+      "block": 31481433,
+      "effective_gas_price_wei": 1000000001,
+      "explorer_tx": "https://atlantic.pharosscan.xyz/tx/0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3",
+      "fee_phrs": "0.0002683053",
+      "gas_used": 268305,
+      "purpose": "deploy KeeperPing (composition target contract)",
+      "run_label": "deploy",
+      "status": 1,
+      "tx_hash": "0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3",
+      "value_phrs": "0"
+    },
+    {
+      "block": 31482141,
+      "effective_gas_price_wei": 1000000001,
+      "explorer_tx": "https://atlantic.pharosscan.xyz/tx/0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+      "fee_phrs": "0.0000678987",
+      "gas_used": 67898,
+      "purpose": "skill verdict ALLOW -> ping() dust tx (0.0001 PHRS)",
+      "run_label": "allow-3",
+      "status": 1,
+      "tx_hash": "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+      "value_phrs": "0.0001",
+      "verify": "pingCount() 0 -> 1, as expected"
+    },
+    {
+      "block": null,
+      "purpose": "skill verdict BLOCK (RULE-AMOUNT: 0.1 > 0.005 PHRS max) -> no broadcast",
+      "run_label": "block-1",
+      "status": null,
+      "tx_hash": null,
+      "verify": "pingCount() 1 -> 1 (unchanged), as expected"
+    },
+    {
+      "run_label": "allow-4",
+      "tx_hash": "0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128",
+      "explorer_tx": "https://atlantic.pharosscan.xyz/tx/0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128",
+      "block": 31486412,
+      "status": 1,
+      "gas_used": 33698,
+      "effective_gas_price_wei": 1000000001,
+      "fee_phrs": "0.0000336980",
+      "value_phrs": "0.0001",
+      "purpose": "post-harden re-run: skill verdict ALLOW -> ping() dust tx (0.0001 PHRS)",
+      "verify": "pingCount() 1 -> 2, as expected"
+    },
+    {
+      "run_label": "block-2",
+      "tx_hash": null,
+      "block": null,
+      "status": null,
+      "purpose": "post-harden re-run: skill verdict BLOCK (RULE-AMOUNT: 0.1 > 0.005 PHRS max) -> no broadcast",
+      "verify": "pingCount() 1 -> 1 (unchanged), as expected"
+    }
+  ],
+  "sender": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "slug": "skill-chain-flow",
+  "spend_log": [
+    {
+      "entry": "deploy KeeperPing",
+      "fee_phrs": "0.0002683053",
+      "tx": "0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3",
+      "value_phrs": "0"
+    },
+    {
+      "entry": "allow-3 ping() dust execute",
+      "fee_phrs": "0.0000678987",
+      "tx": "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349",
+      "value_phrs": "0.0001"
+    },
+    {
+      "entry": "block-1",
+      "fee_phrs": "0",
+      "tx": null,
+      "value_phrs": "0"
+    },
+    {
+      "entry": "allow-4 ping() dust execute (post-harden re-run)",
+      "tx": "0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128",
+      "fee_phrs": "0.0000336980",
+      "value_phrs": "0.0001"
+    },
+    {
+      "entry": "block-2",
+      "tx": null,
+      "fee_phrs": "0",
+      "value_phrs": "0"
+    }
+  ],
+  "target_contract": "0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1",
+  "task": "T12",
+  "total_spent_phrs": "0.0005699020",
+  "transcript": "run-logs/flow-transcript.jsonl",
+  "under_budget": true,
+  "unit_tests": "tests/test_policy.py (8/8 pass)"
+}
