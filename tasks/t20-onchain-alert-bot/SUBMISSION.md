@@ -48,6 +48,21 @@ https://atlantic.pharosscan.xyz/tx/0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4
 
 PENDING-VIDEO
 
+## Console try surface (Tier C builder)
+
+The LIGHTKEEPER console ships an interactive rule builder for this task:
+`apps/console/src/components/try/onchain-alert-bot.tsx`, live at
+`https://lightkeeper-console.vercel.app/#/task/onchain-alert-bot`.
+
+"Alerts in 60 seconds": toggle the three alert conditions, set the
+large-transfer threshold, point at a watched address — the page generates the
+exact `config.yaml` + the `test/match_test.sh` → `watch.sh --once` →
+`watch.sh --daemon` run commands, copy-paste ready. The same panel shows the
+task's real live proof (trigger tx `0xe6c9f52c…` block 31481424, Telegram
+message_id 717). Differentiator: from rule to running watcher in one
+copy-paste. Tier C honest: the console never signs and never sends Telegram
+messages — config only, run in your own terminal with your own bot token.
+
 ## Notes for the reviewer
 
 Paste `REVIEWER_NOTES.md` verbatim:

@@ -17,6 +17,8 @@ this video replays the flow honestly with fresh terminal output where noted.
 | 6 | 60–75s | Terminal: restart `bash src/watch.sh --once` → scan completes, no `ALERT SENT` for the same tx | "Restart the watcher — the same event is never alerted twice. Dedupe by condition and transaction hash, with a write-ahead marker so even a crash can't cause a duplicate." |
 | 7 | 75–90s | Terminal: `bash test/match_test.sh` → `PASS=16 FAIL=0` | "Sixteen unit tests green. Total on-chain spend for the whole demo: about two hundred-thousandths of a PHRS. Done." |
 
+| 1a | 0–8s (alt) | Console: `lightkeeper-console.vercel.app/#/task/onchain-alert-bot` — rule builder generating `config.yaml` + copy | "Or build the rule in the LIGHTKEEPER console: toggle the conditions, set the threshold, copy the exact config the watcher reads." |
+
 ## Recording notes
 
 - Keep the wallet address as-is (`0xf76e…71a3`) — it is a public testnet address.
