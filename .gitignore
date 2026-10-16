@@ -5,3 +5,6 @@ node_modules/
 dist/
 .taste-skill/
 *.log
+__pycache__/
+*.pyc
+*.pyo
