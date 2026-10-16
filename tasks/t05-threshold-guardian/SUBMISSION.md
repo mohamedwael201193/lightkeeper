@@ -46,6 +46,27 @@ boundary at threshold, rolling window, gas spike, insufficient balance,
 stale-data fail-closed, wrong-chain refuse, mainnet refuse ± re-confirmation,
 missing key.
 
+## Console try-it-live surface (interactive, Tier B)
+
+`apps/console/src/components/try/threshold-guardian.tsx` — "The guardian you
+can trigger." The visitor configures the same policy (inputs prefilled from
+`policy.yaml`: max_per_tx 0.005, rolling window 0.02/60m, max gas 50 gwei),
+then RUNs the gate: the console evaluates six conditions client-side against
+**live Atlantic reads** (`eth_chainId`, `eth_gasPrice`, `eth_getBalance` of the
+visitor's address) and renders a condition-by-condition trace with the exact
+numbers compared (each condition PASS/BLOCK, e.g.
+`0.0001 PHRS ≤ 0.005 PHRS (max_per_tx)`).
+
+- **ALLOW path:** the visitor proposes a dust self-transfer (0.0001 PHRS to
+  their own address) → mandatory review step (to / value / estimated cost, dust
+  warning as amber) → they sign in THEIR wallet → receipt + explorer link.
+  "Your tx — signed in your wallet, from your address." The rolling-window
+  check counts the visitor's own confirmed session txs.
+- **HOLD path:** a one-click "propose 0.05 PHRS" negative shows the trace go
+  BLOCKED — nothing proposed, nothing signed, nothing broadcast, nothing spent.
+- **History:** the task's real audit trail from `evidence.json` (HOLD, FIRE
+  with tx hash, two REFUSEs) plus spend ledger 0.00031/0.15 PHRS.
+
 **Spend:** 0.00031 PHRS total (0.0001 value + 21000 gas @ 10 gwei), of a
 0.15 PHRS budget. Honest disclosure: thresholds were fixed up front to
 exercise both branches symmetrically — never post-hoc rigging.

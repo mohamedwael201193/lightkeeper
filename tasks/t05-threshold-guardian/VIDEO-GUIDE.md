@@ -44,6 +44,33 @@ Spoken: *"Six independent conditions, one commented policy, both outcomes on
 Atlantic — plus a mainnet refusal. Total spend: three ten-thousandths of a PHRS.
 This is lamp five of the LIGHTKEEPER."*
 
+## New interactive demo — console try-it-live (extra shots)
+
+The console now carries "The guardian you can trigger"
+(`apps/console/src/components/try/threshold-guardian.tsx`). Film these as
+additional shots, screen-recording the console with a wallet connected to
+Atlantic testnet:
+
+**Shot A (0–15s) — configure.** Show the policy inputs prefilled from
+`policy.yaml`. Spoken: *"The same policy file, editable in the browser. Nothing
+is hard-coded."*
+
+**Shot B (15–40s) — RUN and trace.** Click RUN the gate. Spoken: *"Six
+conditions, evaluated against live Atlantic reads — chain ID, gas price, your
+balance — every one with the exact numbers compared. One failing condition is
+enough to hold."* Scroll the trace row by row.
+
+**Shot C (40–70s) — fire and sign.** Decision ALLOW → propose the dust
+self-transfer. Spoken: *"The gate allowed it, so I can fire — but nothing
+moves until I sign."* Show the mandatory review (to, value, estimated cost),
+then sign in the wallet on camera. Spoken: *"My tx — signed in my wallet, from
+my address."* Land on the confirmed receipt and click through to the explorer.
+
+**Shot D (70–85s) — the honest negative.** Click "Show the honest negative:
+propose 0.05 PHRS". Spoken: *"Above the threshold — blocked. Nothing proposed,
+nothing signed, nothing broadcast, nothing spent."* End on the audit history
+table from the task's real `evidence.json`.
+
 ## Rules
 
 - Never retype hashes by hand — paste from the log.
