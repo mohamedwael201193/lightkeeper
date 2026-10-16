@@ -62,3 +62,16 @@ ran twelve recipients, and the ERC20 path is tested but not yet live."*
 - `evidence.md` gas table on screen during Shot 4.
 - The `Distributed` event list in the explorer during Shot 3 (pause on the
   `success=false` line).
+
+## Shot 6 (optional, 80–95s) — The console builder (Tier C)
+
+Open the Flotilla task page in the LIGHTKEEPER console ("Try it live" section).
+Add two recipient rows — type one address with a typo to show the red "bad
+address" chip live, fix it, watch the total and mode update, then click
+"Copy commands" and show the generated script.
+*Say: "And in the LIGHTKEEPER console, the batch builder validates every
+address live, refuses duplicates, picks the mode, and generates the exact cast
+commands with a dry-run first. It never signs or broadcasts anything itself —
+your terminal, your keys."*
+If the cut runs over 90s, drop Shot 5's test output or this shot — the
+on-chain evidence is the priority.

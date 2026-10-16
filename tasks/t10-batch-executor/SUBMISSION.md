@@ -66,3 +66,22 @@ https://github.com/mohamedwael201193/lightkeeper/tree/57fa81d9d11e30a6d3e590a198
 ## Video
 
 PENDING-VIDEO
+
+## Try it live (LIGHTKEEPER console, Tier C)
+
+The console ships a copy-paste-safe batch builder
+(`apps/console/src/components/try/t10-batch-executor.tsx`, auto-wired by
+TryPanel via the lamp slug — no registry edits):
+
+- recipient rows with live 0x-address validation + amount parsing + **duplicate
+  detection** (the Distributor reverts on duplicates — flagged before gas is spent)
+- running total, automatic mode selection (≤10 simple · 11–200 single-batch ·
+  >200 multi-batch), and gas estimated from the live receipts in this pack
+- safety checklist chips: address validity, duplicates, dust limit, dry-run-first
+- generates the exact `cast` preflight + `flock`-guarded broadcast commands,
+  with the Atlantic RPC, chain 688689, and the live Distributor address filled
+
+The builder refuses to generate a command while any row is invalid — the
+mistakes (bad address, bad amount, bad total) are prevented in the browser.
+Tier C, honestly: it never signs or broadcasts anything; the visitor runs the
+commands in their own terminal with their own keys.
