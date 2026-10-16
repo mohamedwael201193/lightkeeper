@@ -18,7 +18,7 @@ evidence:
   large_transfer_block: 31486611
   large_transfer_message_ids: [727, 728]
   large_transfer_note: "disclosed 0.5 PHRS self-transfer; first live trip of the large-transfer condition (incoming-transfer msg 727 + large-transfer msg 728)"
-  ledger_audit: "src/audit.sh replayed every alert against the live chain: 168 PASS, 0 FAIL (2026-10-16T07:14:34Z)"
+  ledger_audit: "src/audit.sh replayed every alert against the live chain: 210 PASS, 0 FAIL (2026-10-16T07:27:32Z)"
   telegram_chat_id: "1434154285"
   spend_phrs: "0.000042000000042"
 chain:
@@ -30,5 +30,5 @@ tests:
   unit: test/match_test.sh
   unit_result: 16 passed, 0 failed
   live: trigger -> watcher detection -> Telegram alert (message_id 717); large-transfer trigger -> 2 alerts (message_ids 727, 728)
-  ledger_audit: src/audit.sh — 168 PASS, 0 FAIL (2026-10-16T07:14:34Z)
+  ledger_audit: src/audit.sh — 210 PASS, 0 FAIL (2026-10-16T07:27:32Z)
   restart_dedup: zero re-emission on restart

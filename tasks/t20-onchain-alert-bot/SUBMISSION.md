@@ -42,7 +42,7 @@ Live proof (all real, 2026-10-16):
   722, 724, 725, 726).
 - Self-verifying ledger: `src/audit.sh` replays every SENT alert against the
   live chain (recipient, value, block, matcher re-verdict) — latest run
-  **168 PASS, 0 FAIL** (2026-10-16T07:14:34Z). Every alert carries its own receipt.
+  **210 PASS, 0 FAIL** (2026-10-16T07:27:32Z). Every alert carries its own receipt.
 - Unit tests: `test/match_test.sh` 16/16 PASS.
 - Total spend: 0.000042000000042 PHRS (two txs, gas only; budget ≤ 0.15).
 
@@ -71,7 +71,7 @@ exact `config.yaml` + the `test/match_test.sh` → `watch.sh --once` →
 panel explains the delivery guarantee (write-ahead SENDING ledger, crash-safe
 never-duplicate, per-`condition:txhash` dedupe), shows the real threshold-trip
 alert verbatim (message_ids 727/728, tx `0x157dc990…` block 31486611), and the
-ledger audit result (168 PASS, 0 FAIL). Differentiator: from rule to running
+ledger audit result (210 PASS, 0 FAIL). Differentiator: from rule to running
 watcher in one copy-paste — and every alert carries its own on-chain receipt.
 Tier C honest: the console never signs and never sends Telegram messages —
 config only, run in your own terminal with your own bot token.
@@ -95,7 +95,7 @@ https://atlantic.pharosscan.xyz/tx/0x157dc99087d62346971261e795f5d5ac417319c8ab5
 message_ids 717 (dust trigger), 727 + 728 (threshold trigger, one per condition),
 2026-10-16, alerts carry condition + amount + tx hash + explorer link + block +
 timestamp (DMs have no public URL; message_id is the receipt); (4) `bash src/audit.sh`
-— latest run 168 PASS, 0 FAIL across all 28 alerts (recipient, value, block,
+— latest run 210 PASS, 0 FAIL across all 35 alerts (recipient, value, block,
 matcher re-verified on the live chain); (5) `state/alerts.log`: one SENDING +
 one SENT per txhash, no event alerted twice.
 

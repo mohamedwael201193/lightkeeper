@@ -9,5 +9,5 @@
 | Telegram delivery | bot `OctaneShift_Bot` → chat `1434154285`, message_id **717** | `sendMessage` ok=true (DMs have no public URL; message_id is the receipt) |
 | Threshold trigger tx | https://atlantic.pharosscan.xyz/tx/0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a | curl-verified on run (block 31486611, status 0x1) |
 | Threshold alerts | bot `OctaneShift_Bot` → chat `1434154285`, message_ids **727** (incoming-transfer) + **728** (large-transfer) | `sendMessage` ok=true, 2026-10-16T06:51:49Z/50Z |
-| Ledger audit | `bash src/audit.sh` — replayed against live RPC 2026-10-16T07:14:34Z | 168 PASS, 0 FAIL (see `state/audit.log`) |
+| Ledger audit | `bash src/audit.sh` — replayed against live RPC 2026-10-16T07:27:32Z | 210 PASS, 0 FAIL (see `state/audit.log`) |
 | Video | PENDING-VIDEO | see VIDEO-GUIDE.md |

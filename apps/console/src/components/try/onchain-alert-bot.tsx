@@ -30,8 +30,8 @@ const LARGE_BLOCK = "31486611";
 const LARGE_MSG_IDS = "727, 728";
 const LARGE_ALERT_TIME = "2026-10-16T06:51:49Z";
 // Latest ledger audit: src/audit.sh replayed every alert against the live chain.
-const AUDIT_RESULT = "168 PASS · 0 FAIL";
-const AUDIT_RUN = "2026-10-16T07:14:34Z";
+const AUDIT_RESULT = "210 PASS · 0 FAIL";
+const AUDIT_RUN = "2026-10-16T07:27:32Z";
 const DEFAULT_ADDRESS = "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3";
 
 const inputCls =

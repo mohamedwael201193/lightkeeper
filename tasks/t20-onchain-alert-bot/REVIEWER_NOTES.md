@@ -30,7 +30,7 @@ transaction against three configurable conditions in `config.yaml`
    per `<condition>:<txhash>`; two conditions on one tx is by design, not spam.
 5. **Self-verifying ledger:** `bash src/audit.sh` replays every SENT alert
    against the live chain (recipient, value, block, matcher re-verdict) —
-   latest run **168 PASS, 0 FAIL** (2026-10-16T07:14:34Z) across all 28 alerts.
+   latest run **210 PASS, 0 FAIL** (2026-10-16T07:27:32Z) across all 35 alerts.
 6. **No-repeat-spam:** the watcher was restarted after delivery and re-scanned
    hundreds of blocks; `state/alerts.log` shows exactly one SENDING + one SENT
    per txhash — no event was ever alerted twice, including the original trigger.

@@ -36,7 +36,7 @@ config.yaml ──► src/watch.sh ──► match_tx() ──► write-ahead SE
   block fetches (`src/batchscan.py`) — same matching, dedupe and alerting.
 - **Self-verifying ledger:** `src/audit.sh` replays every SENT alert against
   the live chain (recipient, value, block, matcher re-verdict); latest run
-  168 PASS, 0 FAIL. Every alert carries its own receipt.
+  210 PASS, 0 FAIL. Every alert carries its own receipt.
 
 ## 3. Configuration
 
@@ -82,7 +82,7 @@ bash src/trigger.sh --amount-phrs 0.5   # larger disclosed self-test (trips larg
   dedupe is per `<condition>:<txhash>`.
 - **Self-verifying ledger:** `src/audit.sh` replays every SENT alert against
   the live chain — recipient, value, block, matcher re-verdict — and fails
-  loudly on any mismatch. Latest run: **168 PASS, 0 FAIL** across all 28 alerts.
+  loudly on any mismatch. Latest run: **210 PASS, 0 FAIL** across all 35 alerts.
   Every alert carries its own receipt.
 - **No spam:** restarted watcher never re-emitted any event (one SENDING + one
   SENT per txhash in `state/alerts.log`).

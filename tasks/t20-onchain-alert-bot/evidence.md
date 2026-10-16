@@ -157,8 +157,8 @@ recipient and block match the claim; (5) the value satisfies the condition's
 semantics; (6) the live matcher (`src/match.sh`) re-confirms the condition from
 the on-chain fields.
 
-Latest run: **168 PASS, 0 FAIL** (2026-10-16T07:14:34Z) across all 28 alerts
-(717–728 plus 18 gap-backfill alerts, message_ids up to 746). Any mismatch
+Latest run: **210 PASS, 0 FAIL** (2026-10-16T07:27:32Z) across all 35 alerts
+(717–728 plus 25 gap/live-scan alerts, message_ids up to 753). Any mismatch
 fails loudly and exits non-zero — the alert ledger is an append-only receipt
 book, not a log.
 
@@ -178,5 +178,7 @@ instead of one `cast block` per block (~2s each). Same matching, same dedupe,
 same write-ahead alerting — only the fetch is batched. Used to backfill the
 31482005..31486610 gap after the ~7h watcher outage: 4,606 blocks in ~8
 minutes, 18 genuine gap events found and each alerted exactly once
-(message_ids 729–746), zero duplicate keys. Cursor advances per block and only
+(message_ids 729–746), zero duplicate keys. A second catchup covered
+31486939..31488130 in ~80 seconds (the per-block `--once` path would have
+needed ~40 minutes for the same range). Cursor advances per block and only
 a final `done` sentinel marks the pass complete.
