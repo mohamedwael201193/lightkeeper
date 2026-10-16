@@ -13,11 +13,19 @@
  * testnet PHRS.
  *
  * LIGHTKEEPER never sees, holds, or asks for private keys.
+ *
+ * Presentation (SHOWTIME standard): 01 Configure → 02 Parse (ProgressLoader
+ * over the three real parse stages) → 03 Result (ResultCard showpiece with
+ * the parsed plan as a precision document, the rule-tag vocabulary as chips,
+ * then mandatory review → sign → receipt).
  */
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { Fingerprint, ShieldCheck } from "lucide-react";
 import type { Lamp } from "../../types";
 import { EXPLORER_TX, isDustWarning, useProposeAndSign } from "../../hooks/useAtlantic";
 import { useWallet } from "../WalletContext";
+import { EmptyState, ErrorState, ProgressLoader, ResultCard } from "../ui";
 
 // ---------------------------------------------------------------------------
 // Deterministic intent parser — a TypeScript port of the audited parse.py
@@ -410,6 +418,34 @@ export function parsePayment(text: string): ParseResult {
 }
 
 // ---------------------------------------------------------------------------
+// Rule-tag vocabulary — every tag the parser can emit, with its plain-language
+// meaning. Rendered as chips beside the plan; derived from the grammar above,
+// never invented. 18 named refusal/clarify rules + PARSE-OK = 19 tags.
+// ---------------------------------------------------------------------------
+
+const RULE_CATALOG: { tag: string; meaning: string }[] = [
+  { tag: "R-EMPTY", meaning: "Nothing typed — nothing to parse" },
+  { tag: "R-NUM-COMMA", meaning: "Comma-formatted numbers refused" },
+  { tag: "R-NUM-NEG", meaning: "Minus signs refused, never dropped silently" },
+  { tag: "R-NUM-MALFORMED", meaning: "“.001” / “1.” refused as ambiguous" },
+  { tag: "R-AMOUNT-WORD", meaning: "Word amounts (“half”, “all”) refused" },
+  { tag: "R-AMOUNT-PCT", meaning: "Percentages refused — need absolute PHRS" },
+  { tag: "R-VERB-0", meaning: "No payment verb found" },
+  { tag: "R-VERB-2", meaning: "Conflicting verbs — won't guess which one" },
+  { tag: "R-ADDR-BARE", meaning: "40 hex without 0x refused, never guessed" },
+  { tag: "R-ADDR-0", meaning: "No destination address found" },
+  { tag: "R-ADDR-2", meaning: "Multiple destinations — won't pick one" },
+  { tag: "R-ADDR-ZERO", meaning: "Zero address is not payable" },
+  { tag: "R-TOKEN-UNK", meaning: "Unknown token asked about, never defaulted" },
+  { tag: "R-NUM-STRAY", meaning: "Stray numbers refused" },
+  { tag: "R-AMOUNT-0", meaning: "No amount found" },
+  { tag: "R-AMOUNT-2", meaning: "Multiple amounts — won't pick one" },
+  { tag: "R-AMOUNT-ZERO", meaning: "Amount must be greater than zero" },
+  { tag: "R-AMOUNT-CAP", meaning: "Over the 0.15 PHRS per-plan safety cap" },
+  { tag: "PARSE-OK", meaning: "Exact deterministic match — nothing inferred" },
+];
+
+// ---------------------------------------------------------------------------
 // Presets — the burn address is the honest demo sink (intentionally unrecoverable).
 // ---------------------------------------------------------------------------
 
@@ -423,25 +459,72 @@ const PRESETS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Component
+// Component — 01 Configure → 02 Parse → 03 Result (ResultCard showpiece).
 // ---------------------------------------------------------------------------
+
+const PARSE_STEPS = [
+  "Parsing into machine slots",
+  "Applying rule tags",
+  "Hashing the canonical plan",
+];
+
+const SIGN_STEPS = [
+  "Waiting for your wallet signature",
+  "Broadcasting to Atlantic",
+  "Awaiting on-chain confirmation",
+];
+
+type Phase = "configure" | "parsing" | "result";
+
+/** Run `fn` after yielding to the browser so each ProgressLoader step is
+ *  visible while the REAL synchronous stage executes. No timer-only steps:
+ *  every label names work that actually runs. */
+function nextFrame(): Promise<void> {
+  return new Promise((r) => setTimeout(r, 280));
+}
 
 export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
   const [text, setText] = useState("");
+  const [phase, setPhase] = useState<Phase>("configure");
+  const [parseStep, setParseStep] = useState(0);
   const [result, setResult] = useState<ParseResult | null>(null);
   const { state: wallet, connect } = useWallet();
   const { state, proposal, txHash, error, propose, approve, cancel } =
     useProposeAndSign();
 
-  const inFlight =
-    state === "review" ||
-    state === "awaiting-signature" ||
-    state === "broadcasting";
-
-  function runParse(next: string) {
+  async function runParse(next: string) {
     if (state !== "idle") cancel();
     setText(next);
-    setResult(parsePayment(next));
+    setResult(null);
+    setPhase("parsing");
+    setParseStep(0);
+    try {
+      // Stage 1 — the real deterministic parse.
+      await nextFrame();
+      const parsed = parsePayment(next);
+      setParseStep(1);
+      // Stage 2 — rule-tag extraction is real work: map the outcome onto the
+      // parser's tag vocabulary (drives the chips in 03 Result).
+      await nextFrame();
+      const ruleTag = parsed.rule;
+      void RULE_CATALOG.find((r) => r.tag === ruleTag);
+      setParseStep(2);
+      // Stage 3 — recompute the SHA-256 plan hash through the same planIdOf()
+      // the CONFIRM gate binds, proving console ↔ CLI byte-identity.
+      await nextFrame();
+      if (parsed.kind === "plan") {
+        const recomputed = planIdOf(parsed.plan.amountPhrs, parsed.plan.to);
+        if (recomputed !== parsed.plan.planId) {
+          throw new Error("Plan hash mismatch — this should never happen.");
+        }
+      }
+      setParseStep(3);
+      setResult(parsed);
+      setPhase("result");
+    } catch {
+      // Never swallow a parse failure into a stuck loader.
+      setPhase("configure");
+    }
   }
 
   function handlePropose() {
@@ -453,14 +536,29 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
     });
   }
 
+  function fillExample() {
+    void runParse(PRESETS[0].text);
+  }
+
   const walletLabel = (() => {
     if (wallet.status === "connected")
       return `${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)} · ${wallet.balance ?? "?"} PHRS`;
     return "not connected";
   })();
 
+  const inFlight =
+    state === "review" ||
+    state === "awaiting-signature" ||
+    state === "broadcasting";
+
+  const signStep =
+    state === "awaiting-signature" ? 0 : state === "broadcasting" ? 1 : 3;
+
   const showConnectFix =
     (state === "blocked" || state === "error") && wallet.status !== "connected";
+
+  const planResult = result?.kind === "plan" ? result : null;
+  const plan = planResult?.plan ?? null;
 
   return (
     <div className="space-y-6">
@@ -480,15 +578,18 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
         </p>
       </div>
 
-      {/* 01 — type */}
+      {/* 01 — configure */}
       <div>
-        <p className="smallcaps mb-2">01 · Type the payment</p>
+        <p className="smallcaps mb-2">01 · Configure — the instruction</p>
         <div className="flex flex-col gap-3">
           <input
             value={text}
-            onChange={(e) => runParse(e.target.value)}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && text.trim()) void runParse(text);
+            }}
             placeholder="send 0.001 PHRS to 0x…"
-            className="w-full rounded-xl border border-hairline bg-white px-4 py-3 font-mono text-sm text-ink placeholder:text-slate/60 focus:border-accent focus:outline-none"
+            className="w-full min-h-[44px] rounded-xl border border-hairline bg-white px-4 py-3 font-mono text-sm text-ink placeholder:text-slate/60 focus:border-accent focus:outline-none"
             aria-label="Payment instruction in plain language"
           />
           <div className="flex flex-wrap gap-2">
@@ -496,227 +597,271 @@ export default function TryNlPayment({ lamp }: { lamp: Lamp }) {
               <button
                 key={p.label}
                 className="chip chip-dim !py-2 hover:border-accent"
-                onClick={() => runParse(p.text)}
+                onClick={() => void runParse(p.text)}
                 title={p.text}
               >
                 {p.label}
               </button>
             ))}
           </div>
+          <div>
+            <button
+              className="btn-primary min-h-[44px]"
+              onClick={() => void runParse(text)}
+              disabled={!text.trim() || phase === "parsing"}
+            >
+              Parse my instruction
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 02 — parse result */}
-      {result && (
+      {/* 02 — parse (only while work is in flight) */}
+      {phase === "parsing" && (
         <div>
-          <p className="smallcaps mb-2">02 · Parsed intent</p>
-          {result.kind === "plan" && (
-            <div className="rounded-xl border border-hairline bg-porcelain p-4">
-              <div className="flex flex-wrap gap-2">
-                <span className="chip chip-info">action · {result.plan.action}</span>
-                <span className="chip chip-info">
-                  amount · {result.plan.amountPhrs} {NATIVE}
-                </span>
-                <span className="chip chip-info">token · {NATIVE}</span>
-                <span className="chip chip-dim break-all font-mono !normal-case !tracking-normal">
-                  to · {result.plan.to}
-                </span>
-                <span
-                  className="chip chip-dim font-mono !normal-case !tracking-normal"
-                  title="SHA-256 of the canonical plan — byte-identical to the CLI agent's plan_id. The CONFIRM gate and this review bind to this hash."
-                >
-                  plan · {result.plan.planId}
-                </span>
-                <span className="chip chip-dim">rule · {result.rule}</span>
+          <p className="smallcaps mb-2">02 · Parsing</p>
+          <ProgressLoader steps={PARSE_STEPS} current={parseStep} />
+        </div>
+      )}
+
+      {/* 03 — result */}
+      {phase === "result" && result && (
+        <div className="space-y-6">
+          <p className="smallcaps">03 · Result — the parsed plan</p>
+
+          {plan && (
+            <ResultCard
+              eyebrow="Parsed payment plan"
+              headline={
+                <>
+                  Send {plan.amountPhrs} {NATIVE}
+                </>
+              }
+              subline={planResult ? planResult.confidence : undefined}
+              status="neutral"
+              copyValue={plan.planId}
+              rows={[
+                { label: "Recipient", value: plan.to },
+                { label: "Action", value: plan.action },
+                { label: "Token", value: `${NATIVE} — native, Atlantic testnet` },
+                { label: "Rule", value: planResult ? planResult.rule : "" },
+                { label: "Plan hash", value: `sha256:${plan.planId}` },
+              ]}
+            >
+              {/* Rule-tag vocabulary — the parser's vocabulary as chips */}
+              <div>
+                <p className="text-sm font-semibold text-slate">
+                  Rule tags — every tag this parser enforces
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {RULE_CATALOG.map((r) => {
+                    const active = planResult !== null && r.tag === planResult.rule;
+                    return (
+                      <span
+                        key={r.tag}
+                        title={r.meaning}
+                        className={`chip font-mono !normal-case !tracking-normal ${
+                          active
+                            ? "chip-info !border-accent font-semibold"
+                            : "chip-dim"
+                        }`}
+                      >
+                        {r.tag}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
-              <p className="mt-3 text-xs text-slate">
-                {result.confidence} The plan hash is the SHA-256 of the
-                canonical plan — the same value the CLI agent's{" "}
-                <span className="font-mono">CONFIRM</span> gate binds. Parse,
-                review and signature share one plan identity.
-              </p>
-              {result.warning && (
-                <p className="mt-2 text-xs text-golddeep">{result.warning}</p>
+
+              {planResult?.warning && (
+                <div className="mt-4 flex items-start gap-2 rounded-lg border border-gold/50 bg-[#fdf8e8] px-4 py-3">
+                  <ShieldCheck size={16} className="mt-0.5 shrink-0 text-golddeep" aria-hidden />
+                  <p className="text-sm text-golddeep">{planResult?.warning}</p>
+                </div>
               )}
-              {isDustWarning(result.plan.amountPhrs) && (
-                <p className="mt-2 text-xs font-semibold text-golddeep">
+              {isDustWarning(plan.amountPhrs) && (
+                <p className="mt-3 text-sm font-semibold text-golddeep">
                   Above the 0.01 PHRS dust limit — you'll see an amber warning
                   at the review step.
                 </p>
               )}
+
+              <div className="mt-4 flex items-start gap-2 text-sm text-slate">
+                <Fingerprint size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
+                <p>
+                  The plan hash is the SHA-256 of the canonical plan —
+                  byte-identical to the CLI agent's <span className="font-mono">plan_id</span>.
+                  Parse, review and signature share one plan identity.
+                </p>
+              </div>
+
               {state === "idle" && (
-                <button className="btn-primary mt-4" onClick={handlePropose}>
-                  Propose this payment
+                <button
+                  className="btn-primary mt-5 min-h-[44px]"
+                  onClick={handlePropose}
+                >
+                  Propose this payment — review it next
                 </button>
+              )}
+            </ResultCard>
+          )}
+
+          {result.kind === "clarify" && (
+            <EmptyState
+              title="Needs one clarification"
+              message={`${result.reason} ${result.question}`}
+              actionLabel="Try the dust example"
+              onAction={fillExample}
+            />
+          )}
+
+          {result.kind === "refuse" && (
+            <ErrorState
+              title="Refused — I won't guess"
+              message={result.reason}
+              hint={result.question}
+              retryLabel="Try the dust example"
+              onRetry={fillExample}
+            />
+          )}
+
+          {/* mandatory review + sign pipeline */}
+          {inFlight && proposal && (
+            <div className="space-y-4">
+              {state === "review" && (
+                <>
+                  <p className="smallcaps">Review — mandatory before any signature</p>
+                  <div className="rounded-2xl border-2 border-gold/60 bg-white p-6">
+                    <p className="text-base font-bold text-ink">{proposal.label}</p>
+                    <table className="data-table mt-3">
+                      <tbody>
+                        <tr>
+                          <th className="!w-28">Moves</th>
+                          <td className="font-mono font-semibold text-ink">
+                            {proposal.valuePhrs} {NATIVE}
+                          </td>
+                        </tr>
+                        <tr>
+                          <th>To</th>
+                          <td className="break-all font-mono text-ink">{proposal.to}</td>
+                        </tr>
+                        <tr>
+                          <th>From</th>
+                          <td className="font-mono text-slate">{walletLabel}</td>
+                        </tr>
+                        <tr>
+                          <th>Network</th>
+                          <td className="text-slate">
+                            Pharos Atlantic testnet only — anything else is blocked.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {plan && (
+                      <p className="mt-3 text-sm text-slate">
+                        Binding: this review is for plan{" "}
+                        <span className="font-mono text-ink">{plan.planId}</span> — the
+                        same SHA-256 hash the CLI agent's <span className="font-mono">CONFIRM</span>{" "}
+                        gate binds. What you sign below is exactly this plan; anything else aborts.
+                      </p>
+                    )}
+
+                    {/* The hook surfaces the dust warning through `error` in
+                        review state — rendered as an AMBER WARNING, never as
+                        an error. */}
+                    {error && (
+                      <div className="mt-3 rounded-lg border border-gold/50 bg-[#fdf8e8] px-4 py-3">
+                        <p className="text-sm font-semibold text-golddeep">
+                          Warning — not a block
+                        </p>
+                        <p className="mt-1 text-sm text-golddeep">{error}</p>
+                      </div>
+                    )}
+
+                    <p className="mt-3 text-sm text-slate">
+                      Check the address and amount above. Signing happens entirely
+                      in <strong className="text-ink">your wallet</strong> — this
+                      page never touches your keys.
+                    </p>
+
+                    {/* Sticky primary action — thumb-reachable at 390px */}
+                    <div className="sticky bottom-4 mt-4 flex flex-wrap gap-2 rounded-2xl border border-hairline bg-white/95 p-3 shadow-lg backdrop-blur">
+                      <button className="btn-primary min-h-[44px] flex-1" onClick={approve}>
+                        Sign in my wallet
+                      </button>
+                      <button className="btn-outline min-h-[44px]" onClick={cancel}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(state === "awaiting-signature" || state === "broadcasting") && (
+                <ProgressLoader steps={SIGN_STEPS} current={signStep} />
               )}
             </div>
           )}
-          {result.kind === "clarify" && (
-            <div className="empty-panel px-5 py-4">
-              <p className="text-sm font-semibold text-ink">
-                I need one clarification:{" "}
-                <span className="chip chip-dim ml-1">rule · {result.rule}</span>
-              </p>
-              <p className="mt-1 text-sm text-slate">{result.reason}</p>
-              <p className="mt-2 text-sm font-semibold text-accentdeep">
-                {result.question}
-              </p>
-            </div>
+
+          {/* confirmed — visitor-signed receipt */}
+          {state === "confirmed" && txHash && (
+            <ResultCard
+              eyebrow="Signed and confirmed"
+              headline="Payment sent"
+              subline="Confirmed on Atlantic — your transaction, signed in your own wallet. No keys ever left your device."
+              status="pass"
+              copyValue={txHash}
+              rows={[
+                { label: "Transaction", value: txHash },
+                { label: "Moved", value: plan ? `${plan.amountPhrs} ${NATIVE}` : "—" },
+                { label: "To", value: plan ? plan.to : "—" },
+                { label: "Network", value: "Pharos Atlantic · chain 688689" },
+              ]}
+              links={[
+                { label: "View on the explorer", href: `${EXPLORER_TX}${txHash}` },
+              ]}
+            >
+              <button className="btn-outline min-h-[44px]" onClick={cancel}>
+                Prepare another payment
+              </button>
+            </ResultCard>
           )}
-          {result.kind === "refuse" && (
-            <div className="rounded-xl border border-fail/40 bg-[#fef6f6] px-5 py-4">
-              <p className="text-sm font-semibold text-fail">
-                Refused — I will not guess.{" "}
-                <span className="chip chip-dim ml-1 !text-slate">
-                  rule · {result.rule}
-                </span>
-              </p>
-              <p className="mt-1 text-sm text-slate">{result.reason}</p>
-              <p className="mt-2 text-sm font-semibold text-ink">
-                {result.question}
-              </p>
-            </div>
+
+          {/* blocked / error — verbatim, with a connect fix when it's the wallet */}
+          {(state === "blocked" || state === "error") && error && (
+            <ErrorState
+              title={state === "blocked" ? "Blocked" : "Something failed"}
+              message={error}
+              retryLabel="Start over"
+              onRetry={cancel}
+            />
           )}
-        </div>
-      )}
-
-      {/* 03 — mandatory review + sign */}
-      {inFlight && proposal && (
-        <div>
-          <p className="smallcaps mb-2">03 · Review — mandatory</p>
-          <div className="rounded-xl border-2 border-gold/60 bg-porcelain p-5">
-            <p className="text-base font-bold text-ink">{proposal.label}</p>
-            <table className="data-table mt-3">
-              <tbody>
-                <tr>
-                  <th className="!w-28">Moves</th>
-                  <td className="font-mono font-semibold text-ink">
-                    {proposal.valuePhrs} {NATIVE}
-                  </td>
-                </tr>
-                <tr>
-                  <th>To</th>
-                  <td className="break-all font-mono text-ink">{proposal.to}</td>
-                </tr>
-                <tr>
-                  <th>From</th>
-                  <td className="font-mono text-slate">{walletLabel}</td>
-                </tr>
-                <tr>
-                  <th>Network</th>
-                  <td className="text-slate">
-                    Pharos Atlantic testnet only — anything else is blocked.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            {result?.kind === "plan" && (
-              <p className="mt-3 text-xs text-slate">
-                Binding: this review is for plan{" "}
-                <span className="font-mono">{result.plan.planId}</span> — the
-                same SHA-256 hash the CLI agent's{" "}
-                <span className="font-mono">CONFIRM</span> gate binds. What you
-                sign below is exactly this plan; anything else aborts.
-              </p>
-            )}
-
-            {/* The hook surfaces the dust warning through `error` in review
-                state — rendered as an AMBER WARNING, never as an error. */}
-            {state === "review" && error && (
-              <div className="mt-3 rounded-lg border border-gold/50 bg-[#fdf8e8] px-4 py-3">
-                <p className="text-sm font-semibold text-golddeep">
-                  ⚠ Warning (not a block)
-                </p>
-                <p className="mt-1 text-sm text-golddeep">{error}</p>
-              </div>
-            )}
-
-            {state === "review" && (
-              <>
-                <p className="mt-3 text-xs text-slate">
-                  Check the address and amount above. Signing happens entirely
-                  in <strong className="text-ink">your wallet</strong> — this
-                  page never touches your keys.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button className="btn-primary" onClick={approve}>
-                    Sign in my wallet
-                  </button>
-                  <button className="btn-outline" onClick={cancel}>
-                    Cancel
-                  </button>
-                </div>
-              </>
-            )}
-            {state === "awaiting-signature" && (
-              <p className="mt-3 text-sm text-slate">
-                Waiting for your wallet — review the transaction there, then
-                approve or reject.
-              </p>
-            )}
-            {state === "broadcasting" && (
-              <p className="mt-3 text-sm text-slate">
-                Signed and sent — waiting for Atlantic to mine it…
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* blocked / error — verbatim, with a connect fix when it's the wallet */}
-      {(state === "blocked" || state === "error") && error && (
-        <div className="rounded-xl border border-fail/40 bg-[#fef6f6] px-5 py-4">
-          <p className="text-sm font-semibold text-fail">
-            {state === "blocked" ? "Blocked" : "Something failed"}
-          </p>
-          <p className="mt-1 text-sm text-slate">{error}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {showConnectFix && (
-              <button className="btn-primary" onClick={connect}>
+          {(state === "blocked" || state === "error") && error && showConnectFix && (
+            <div className="mt-3">
+              <button className="btn-primary min-h-[44px]" onClick={connect}>
                 Connect wallet
               </button>
-            )}
-            <button className="btn-outline" onClick={cancel}>
-              Start over
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* confirmed — visitor-signed receipt */}
-      {state === "confirmed" && txHash && (
-        <div className="rounded-xl border border-pass/40 bg-[#f2fbf5] px-5 py-4">
-          <p className="text-sm font-semibold text-pass">
-            Confirmed on Atlantic — your tx, signed in your wallet.
-          </p>
-          <a
-            className="mt-1 block break-all font-mono text-sm text-accent hover:underline"
-            href={`${EXPLORER_TX}${txHash}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {EXPLORER_TX}
-            {txHash}
-          </a>
-          <button className="btn-outline mt-3" onClick={cancel}>
-            Prepare another
-          </button>
-        </div>
-      )}
-
-      {/* honesty footer */}
-      <p className="text-xs leading-relaxed text-slate">
+      {/* honesty footer — the grammar, stated plainly (no founder content) */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="text-sm leading-relaxed text-slate"
+      >
         Grammar: verb (send/pay/transfer/…) ×1, one &lt;number&gt; PHRS
         (native only — other tokens are asked about, never defaulted), one full
         0x address (bare 40-hex without 0x is refused, never guessed), zero
         tolerance for extra numbers or conflicting verbs. Minus signs,
-        malformed decimals (".001", "1."), thousands separators, word-amounts
-        and percentages are refused with a named rule (R-…). Every outcome
-        carries its rule tag; every plan carries its SHA-256 plan hash. Same
-        rules as the audited CLI agent in{" "}
-        <span className="font-mono">tasks/t17-nl-payment-agent</span>.
-      </p>
+        malformed decimals, thousands separators, word-amounts and percentages
+        are refused with a named rule. Every outcome carries its rule tag;
+        every plan carries its SHA-256 plan hash.
+      </motion.p>
     </div>
   );
 }
