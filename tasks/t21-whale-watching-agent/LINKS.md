@@ -18,7 +18,7 @@ JS SPA; HTTP 200 with content = the route resolves).
 
 | Link | Verified | Notes |
 |---|---|---|
-| https://github.com/mohamedwael201193/lightkeeper/tree/<COMMIT>/tasks/t21-whale-watching-agent | formed, not yet resolvable | Commit-pinned per Arena pack convention. **NOT pushed** (per task orders: commit only, no push) — resolves once the founder pushes. Repo root `mohamedwael201193/lightkeeper` verified live at build kickoff (PAT auth as `devmo`). |
+| https://github.com/mohamedwael201193/lightkeeper/tree/050bfbf/tasks/t21-whale-watching-agent | formed, not yet resolvable | Commit-pinned per Arena pack convention. **NOT pushed** (per task orders: commit only, no push) — resolves once the founder pushes. Repo root `mohamedwael201193/lightkeeper` verified live at build kickoff (PAT auth as `devmo`). |
 
 ## Video
 
