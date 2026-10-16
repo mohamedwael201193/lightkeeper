@@ -1,3 +1,6 @@
 [submodule "tasks/t08-dry-run-executor/lib/forge-std"]
 	path = tasks/t08-dry-run-executor/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "tasks/t10-batch-executor/lib/forge-std"]
+	path = tasks/t10-batch-executor/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
