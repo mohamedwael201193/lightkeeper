@@ -120,8 +120,9 @@ export default function TryT10(_props: { lamp: Lamp }) {
   const gas = estGas(mode, n);
   const dustHit = validRows.some((r) => isDustWarning(r.amount));
 
-  const addrsArg = `[${validRows.map((r) => r.addrTrim).join(" ")}]`;
-  const weisArg = `[${validRows.map((r) => r.amt.wei.toString()).join(" ")}]`;
+  // cast parses arrays as comma-separated: "[0xaaa,0xbbb]" (space-separated fails).
+  const addrsArg = `[${validRows.map((r) => r.addrTrim).join(",")}]`;
+  const weisArg = `[${validRows.map((r) => r.amt.wei.toString()).join(",")}]`;
 
   const script = useMemo(() => {
     const head = [
@@ -180,8 +181,8 @@ export default function TryT10(_props: { lamp: Lamp }) {
       "",
     ];
     chunks.forEach((c, ci) => {
-      const a = `[${c.map((r) => r.address).join(" ")}]`;
-      const w = `[${c.map((r) => parseAmount(r.amount).wei.toString()).join(" ")}]`;
+      const a = `[${c.map((r) => r.address).join(",")}]`;
+      const w = `[${c.map((r) => parseAmount(r.amount).wei.toString()).join(",")}]`;
       const v = c.reduce((s, r) => s + parseAmount(r.amount).wei, 0n).toString();
       lines.push(`# ── chunk ${ci + 1}/${chunks.length} (${c.length} recipients) ──`, ...pre(a, w, v));
     });
@@ -221,6 +222,17 @@ export default function TryT10(_props: { lamp: Lamp }) {
 
   const update = (id: number, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
+  const addRefuser = () =>
+    setRows((rs) => [...rs, { id: nextId(), address: REFUSER, amount: "0.001" }]);
+
+  // Gas comparison: measured individual-send baseline (21,000) vs the
+  // receipt-fitted batch estimate. Only meaningful once the contract path kicks in.
+  const individualGas = n * 21_000;
+  const savesPct =
+    mode === "simple" || n < 2
+      ? null
+      : Math.round((1 - gas / individualGas) * 100);
 
   return (
     <div className="space-y-6">
@@ -263,9 +275,18 @@ export default function TryT10(_props: { lamp: Lamp }) {
             </div>
           ))}
         </div>
-        <button className="btn-outline mt-3" onClick={() => setRows((rs) => [...rs, { id: nextId(), address: "", amount: "" }])}>
-          + Add recipient
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button className="btn-outline" onClick={() => setRows((rs) => [...rs, { id: nextId(), address: "", amount: "" }])}>
+            + Add recipient
+          </button>
+          <button
+            className="btn-outline"
+            onClick={addRefuser}
+            title="Adds the live RevertingReceiver fixture (0x49b26d46…b94). It refuses every native transfer on-chain, so its action is recorded as success=false while the rest of the batch completes — partial-failure isolation you can verify yourself on the explorer."
+          >
+            + Add the refuser fixture
+          </button>
+        </div>
       </div>
 
       {/* 02 — totals + checks */}
@@ -296,9 +317,23 @@ export default function TryT10(_props: { lamp: Lamp }) {
         <p className="mb-2 text-xs text-slate">
           Mode auto-selects per the Flotilla reference (≤10 simple · 11–200 single-batch ·
           &gt;200 multi-batch). Gas is an <span className="font-semibold">estimate from live
-          Atlantic receipts</span> (baseline n=12: 230,405 gas; marginal ≈13,866/recipient;
-          measured breakeven ≈ n=11) — your receipt will differ slightly.
+          Atlantic receipts</span> (fitted over 3 runs: n=8/10/11 → 149,170/185,573/202,173
+          gas; ≈7.5k fixed + ≈17.7k/recipient; measured breakeven ≈ n=3 for pre-existing
+          EOA recipients) — your receipt will differ slightly.
         </p>
+        {savesPct !== null && (
+          <p className="mb-2 rounded-xl border border-hairline bg-porcelain px-4 py-3 font-mono text-xs text-ink">
+            {individualGas.toLocaleString()} gas ({n} individual sends) vs ≈
+            {gas.toLocaleString()} in the batch →{" "}
+            <span className={savesPct > 0 ? "font-bold text-accent" : "font-bold text-fail"}>
+              {savesPct > 0 ? `saves ≈${savesPct}%` : `costs ≈${-savesPct}% more`}
+            </span>
+            <span className="font-sans text-slate">
+              {" "}— measured: the batch already beats individual sends from ≈3 recipients
+              (pre-existing EOAs), well before the 11-recipient mode boundary.
+            </span>
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           {checks.map((c) => (
             <span

@@ -9,7 +9,9 @@ official modes — simple (≤10, sequential), single-batch (11–200, one
 Distributor contract call), multi-batch (>200, chunked calls) — with automatic
 mode selection and a hardened distributor contract.
 
-**Live on Atlantic testnet (chain 688689), 9 real transactions:**
+**Live on Atlantic testnet (chain 688689), 12 real transactions:**
+12 real transactions (deploy ×2, simple ×3, single-batch headline + repeat,
+multi-batch ×2, builder round-trip ×3 at n=8/10/11).
 
 - `BatchDistributor` (hardened): 0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4
   — deploy: https://atlantic.pharosscan.xyz/tx/0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30
@@ -24,26 +26,33 @@ recipient), `BatchExecuted(total=12, succeeded=11, failed=1)`, tx status 0x1.
 The failed action's funds were refunded inside the same tx — the other 11
 recipients were paid. Partial failure is proven on-chain, not described.
 
-**Gas saving (real receipts, not estimates-as-facts):** 12 individual sends =
-252,000 gas (21,000 each, measured live); the single batch = 230,405 gas
-(repeat run with all recipients existing) → saves 8.6% at n=12. Marginal
-per-recipient cost ≈13.9k < 21k → breakeven at n≈11, exactly the SkillEngine
-mode boundary; ≈32% projected saving at n=200. A first/second-run pair
-(430,405 vs 230,405) isolates the one-time 200,000 new-account cost.
+**Gas saving (real receipts, not estimates-as-facts):** 11 individual sends =
+231,000 gas (21,000 each, measured live); the single batch at n=11 = 202,173
+gas (repeat run with all recipients existing) → saves 12.5%. A 3-point receipt
+curve (n=8/10/11: 149,170/185,573/202,173) puts the marginal per-recipient
+cost at ≈17.7k gas — this supersedes the earlier ≈13.9k cast-estimate figure,
+which underestimated — → measured breakeven ≈ n=3 for pre-existing EOA
+recipients. A first/second-run pair (430,405 vs 230,405) isolates the one-time
+200,000 new-account cost. The n=12 headline batch (230,405) included the
+reverting-contract fixture, which costs more than an EOA recipient.
 
 **Also live:** simple mode (3 sequential sends:
 https://atlantic.pharosscan.xyz/tx/0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea
 https://atlantic.pharosscan.xyz/tx/0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965
-https://atlantic.pharosscan.xyz/tx/0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee)
-and multi-batch chunking (2 chunks × 6:
+https://atlantic.pharosscan.xyz/tx/0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee),
+multi-batch chunking (2 chunks × 6:
 https://atlantic.pharosscan.xyz/tx/0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913
-https://atlantic.pharosscan.xyz/tx/0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8).
+https://atlantic.pharosscan.xyz/tx/0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8),
+and 3 builder round-trip runs proving the exact console-generated commands
+(n=8: https://atlantic.pharosscan.xyz/tx/0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5 ·
+n=10: https://atlantic.pharosscan.xyz/tx/0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c ·
+n=11: https://atlantic.pharosscan.xyz/tx/0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35).
 
 **Hardening beyond the reference:** zero-address + duplicate rejection,
 on-chain 200-recipient chunk cap, reentrancy guard, same-tx refunds (no
 escrow), ERC20 path with per-recipient try/catch.
 
-**Tests:** forge 12/12, node mode-selection 9/9. Total spend ≈0.032 PHRS.
+**Tests:** forge 12/12, node mode-selection 9/9. Total spend ≈0.062 PHRS.
 
 **Honest limits:** single-batch demo at n=12 (band minimum); multi-batch demo
 uses chunk size 6 (labeled); ERC20 path unit-tested but not executed live;

@@ -2,7 +2,7 @@
 
 *Atlantic testnet, chain ID 688689. Every transaction below was broadcast from
 `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3` under the shared nonce lock
-(`flock /tmp/lk-nonce.lock`). All 9 tx links + 2 contract links curl-verified
+(`flock /tmp/lk-nonce.lock`). All 12 tx links + 2 contract links curl-verified
 (HTTP 200) on 2026-10-16.*
 
 ## What was built
@@ -57,35 +57,56 @@ chunk 1/2 [0x2feffc…](https://atlantic.pharosscan.xyz/tx/0x2feffc088533f1a55e4
 (121,208 gas; chunk 2/2 also carries the refuser: 5 succeeded, 1 isolated
 failure). The 200+ path with full chunk size is exercised in unit tests.
 
+**Builder round-trip (3 txs, 2026-10-16).** The exact commands the console's
+Tier-C builder generates (preflight `cast call`, then broadcast) were run for
+real at n=8, 10, 11 — all pre-existing EOA recipients:
+[0xbfd1d1…](https://atlantic.pharosscan.xyz/tx/0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5)
+(149,170 gas, BatchExecuted 8/8/0),
+[0x067109…](https://atlantic.pharosscan.xyz/tx/0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c)
+(185,573 gas, BatchExecuted 10/10/0),
+[0x0d5a9c…](https://atlantic.pharosscan.xyz/tx/0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35)
+(202,173 gas, BatchExecuted 11/11/0). This round-trip caught and fixed a real
+bug: the builder generated space-separated arrays (`[0xaaa 0xbbb]`), which
+cast's parser rejects; the builder now emits comma-separated arrays, and
+these three txs prove the generated format verbatim.
+
 ## Gas-saving report (official req #3)
 
 | Measurement | Gas | Source |
 |---|---|---|
 | 1 individual send | 21,000 | 3 live receipts + `cast estimate` |
+| 11 individual sends (baseline) | 231,000 | 11 × 21,000 |
 | 12 individual sends (baseline) | 252,000 | 12 × 21,000 |
-| Single batch, recipients existing | **230,405** | live receipt |
+| Single batch n=11, recipients existing | **202,173** | live receipt (round-trip #3) |
+| **Saving at n=11** | **28,827 (12.5%)** | measured |
+| Single batch n=12, recipients existing (incl. refuser fixture) | **230,405** | live receipt |
 | **Saving at n=12** | **21,595 (8.6%)** | measured |
-| Marginal per-recipient in batch | ≈13,866 | live estimates n=1/2/3 |
-| Breakeven recipients | ≈11 | 73,616 ÷ (21,000 − 13,866) |
-| Projected saving at n=200 | ≈32% | 2.83M vs 4.2M |
+| Marginal per-recipient in batch | ≈17,743 | least-squares over 3 live receipts (n=8/10/11: 149,170/185,573/202,173) — supersedes the earlier ≈13,866, which came from `cast estimate` and underestimated |
+| Breakeven recipients | ≈3 | fitted fixed ≈7,450 ÷ (21,000 − 17,743); pre-existing EOA recipients |
+| Projected saving at n=200 | ≈16% | (7,450 + 200×17,743 = 3.56M) vs 4.2M |
 
-The breakeven (≈11) is exactly the SkillEngine reference's single-batch
-threshold — the mode boundary is economically grounded on Atlantic, not
-arbitrary.
+The batch wins well before the SkillEngine reference's 11-recipient mode
+boundary — the boundary is a design choice, not the economic breakeven. The
+earlier "breakeven ≈ 11" claim is corrected here: it rested on the
+underestimated cast-estimate marginal. New-account first-touch (+25,000
+gas/recipient) and reverting-contract recipients cost more; the numbers above
+are for pre-existing EOAs.
 
 ## Per-recipient final balances (wei, queried live post-run)
 
-- `0x174C…48cA`, `0x107D…24BE`: 3,500,000,000,000,000 (0.0035 PHRS —
-  simple 0.001 + batch 0.001 ×2 + chunk 0.0005)
-- `0x8735…c155`, `0x25b3…55b`, `0x74B8…6b8a`, `0x857E…48dA`, `0xd5c0…12A`,
-  `0xb106…bb5A`, `0xe053…83a7`, `0x5dc7…5981`: 2,500,000,000,000,000 (0.0025)
-- Deployer `0xf76e…71a3`: 5,919,898,423,316,398,420
+- `0x174C…48cA`, `0x107D…24BE`: 6,500,000,000,000,000 (0.0065 PHRS)
+- `0x8735…c155`, `0x25b3…55b`, `0x74B8…6b8a`, `0x857E…48dA`,
+  `0xb106…bb5A`: 5,500,000,000,000,000 (0.0055 PHRS)
+- `0xd5c0…12A`, `0xe053…83a7`: 4,500,000,000,000,000 (0.0045 PHRS)
+- Deployer `0xf76e…71a3`: 5,841,548,365,312,237,361 (live on-chain value;
+  the delta since the last record includes other agents' concurrent
+  broadcasts from the shared key, not only this task's spend)
 
 ## Spend log
 
 Receipt-accounted (gasUsed × effectiveGasPrice per tx + net dust):
-gas **0.001668 PHRS**, dust **0.0305 PHRS** net,
-**grand total ≈ 0.0322 PHRS — within the 0.15 budget.**
+gas **0.002205 PHRS**, dust **0.0595 PHRS** net,
+**grand total ≈ 0.0617 PHRS — within the 0.15 budget.**
 Per-tx breakdown in `evidence.json`.
 
 ## Tests

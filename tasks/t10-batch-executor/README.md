@@ -9,15 +9,17 @@
 ## 1. Verdict (the 30-second test)
 
 ✅ **All 4 official requirements proven on Atlantic testnet (chain 688689) with
-9 real transactions.** A hardened `BatchDistributor` contract
+12 real transactions.** A hardened `BatchDistributor` contract
 (`0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4`) executes 12 independent dust
 transfers in **one transaction**, emits a per-recipient `Distributed` event
 with a `success` flag, and isolates a deliberately reverting recipient
 (`success=false`) while the other 11 get paid — the batch completes with
-status `0x1`. Gas report from live receipts: the single-batch path is cheaper
-than 12 individual sends once recipients exist (230,405 vs 252,000 gas), and
-marginal-cost analysis shows the batch wins for **n ≥ 11 — exactly the
-SkillEngine mode boundary**. Total spend: **≈0.032 PHRS** (budget ≤ 0.15).
+status `0x1`. Gas report from live receipts: at n=11 the single-batch run
+cost 202,173 gas vs 231,000 for 11 individual sends (12.5% saved), and a
+3-point receipt curve (n=8/10/11) puts the marginal cost at ≈17.7k
+gas/recipient → breakeven at **n≈3** for pre-existing EOA recipients — well
+before the SkillEngine mode boundary at 11. Total spend: **≈0.062 PHRS**
+(budget ≤ 0.15).
 
 ## 2. What it is
 
@@ -59,6 +61,7 @@ adversarial eye:
 | 6 | **Single-batch: 12 recipients, 1 tx** (incl. the refuser) | [`0x3daa4e…9a274b`](https://atlantic.pharosscan.xyz/tx/0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b) | 430,405 |
 | 7 | Single-batch repeat (all recipients existing) | [`0x06482f…3832bb94`](https://atlantic.pharosscan.xyz/tx/0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94) | 230,405 |
 | 8–9 | Multi-batch: 2 chunks × 6 | [`0x2feffc…b9a6913`](https://atlantic.pharosscan.xyz/tx/0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913) · [`0xce333b…a81054d1c8`](https://atlantic.pharosscan.xyz/tx/0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8) | 115,163 / 121,208 |
+| 10–12 | **Builder round-trip: the exact commands the console generates** (preflight `cast call` then broadcast) at n=8/10/11 | [`0xbfd1d1…eeec3c`](https://atlantic.pharosscan.xyz/tx/0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5) · [`0x067109…df0ae0c`](https://atlantic.pharosscan.xyz/tx/0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c) · [`0x0d5a9c…780ef35`](https://atlantic.pharosscan.xyz/tx/0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35) | 149,170 / 185,573 / 202,173 |
 
 Partial-failure proof (tx 6, decoded from receipt logs): **11×
 `Distributed(…, success=true)`**, **1× `Distributed(0x49b26d46…, success=false)`**,
@@ -70,15 +73,20 @@ The refuser's 0.001 PHRS was refunded to the caller inside the same tx.
 - **Individual baseline (measured, not assumed):** 3 live sequential sends on
   Atlantic each cost exactly **21,000 gas**. `cast estimate` confirmed 21,000
   for further EOAs. → 12 individual sends = **252,000 gas**.
-- **Single-batch, all recipients pre-existing:** **230,405 gas** (live receipt)
-  → **saves 21,595 gas (8.6%)** at n=12.
+- **Single-batch, all recipients pre-existing:** **202,173 gas at n=11**
+  (live receipt) → **saves 28,827 gas (12.5%)**; n=12 headline run = 230,405
+  gas — that batch included the reverting contract fixture, which costs more
+  than an EOA recipient.
+- **Three-point receipt curve (new):** n=8 → 149,170 · n=10 → 185,573 ·
+  n=11 → 202,173 (all existing EOAs). Least-squares: marginal ≈ **17,743
+  gas/recipient** — this **supersedes** the earlier ≈13,866 figure, which came
+  from `cast estimate` and underestimated. Measured breakeven ≈ **n=3** for
+  pre-existing EOA recipients.
 - **First-touch cost (measured):** the first 12-recipient batch cost 430,405
   because 8 recipients were brand-new addresses (8 × 25,000 `G_newaccount` =
   200,000 — exactly the 430,405 − 230,405 delta, verified by the repeat run).
-- **Marginal analysis (measured estimates, n=1/2/3: 87,416 / 100,979 /
-  115,148):** per-recipient marginal ≈ **13.9k gas** < 21k per individual tx →
-  **breakeven at n ≈ 11**, which is precisely why the SkillEngine reference
-  switches to distributor mode at 11. At n=200 the batch saves ≈32%.
+- The console's gas estimate is now fitted from these 3 receipts (≈7.5k fixed
+  + ≈17.7k/recipient) and shows an individual-vs-batch comparison live.
 
 ## 6. How to run
 
@@ -97,6 +105,7 @@ set -a; source ~/workspace/lightkeeper/.env; set +a
 flock /tmp/lk-nonce.lock cast send --rpc-url "$ATLANTIC_RPC_URL" \
   --private-key "$DEPLOYER_PRIVATE_KEY" <distributor> \
   "distributeNative(address[],uint256[])" "[<addrs>]" "[<amounts>]" --value <total>
+# arrays are comma-separated: "[0xaaa,0xbbb]" (cast rejects space-separated)
 ```
 
 ## 7. Recipients (all controlled by this build)
@@ -115,7 +124,8 @@ Final on-chain balances recorded in `evidence.json`.
 - ERC20 distribution is implemented + unit-tested but **not executed live**
   (no suitable testnet ERC20 dust available within budget; native path is the
   submitted evidence).
-- Gas "savings" are real but modest at n=12 (8.6%); the batch's real wins are
+- Gas "savings" are real and now larger than first measured: at n=11 the batch
+  saves 12.5% vs individual sends (28,827 gas); the batch's real wins remain
   **atomicity, one signature, and per-action success events** — the report
   states this plainly instead of inflating.
 - Video slot is `PENDING-VIDEO`; portal share link is `PENDING-PORTAL`

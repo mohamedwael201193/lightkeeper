@@ -32,10 +32,13 @@ same transaction. That's isolated partial failure, on-chain."*
 
 **Shot 4 (45–65s) — Gas saving, terminal.**
 In the terminal, show `evidence.json`'s `gas_report` section (or `cat` the
-receipt comparison): 12 × 21,000 = 252,000 vs batch 230,405.
-*Say: "Measured, not estimated: twelve individual sends cost 252 thousand gas;
-the batch cost 230 thousand. And the breakeven sits at eleven recipients —
-exactly where the mode boundary is."*
+receipt comparison): 11 × 21,000 = 231,000 vs batch 202,173; and the 3-point
+curve (n=8/10/11 → 149,170/185,573/202,173 gas) behind the console's estimate.
+*Say: "Measured, not estimated: eleven individual sends cost 231 thousand gas;
+the batch cost 202 thousand — twelve and a half percent saved. Three live
+runs pin the per-recipient cost at about seventeen thousand gas, so the batch
+already wins from around three recipients — well before the eleven-recipient
+mode boundary."*
 
 **Shot 5 (65–80s) — Tests + honest close.**
 Run `forge test` (12/12) and `node --test test/mode.test.mjs` (9/9) in the
@@ -52,10 +55,11 @@ ran twelve recipients, and the ERC20 path is tested but not yet live."*
 > on-chain. The headline run: twelve dust transfers in one Atlantic
 > transaction. Eleven paid. The twelfth was a fixture built to refuse — its
 > failure is right there in the event log, the batch still succeeded, its funds
-> refunded in the same transaction. Gas: 252 thousand for twelve individual
-> sends, 230 thousand for the batch — measured from real receipts, breakeven
-> at eleven. Twenty-one tests green, three hundredths of a PHRS spent, every
-> limit stated in the README."
+> refunded in the same transaction. Gas: 231 thousand for eleven individual
+> sends, 202 thousand for the batch — measured from real receipts, twelve and
+> a half percent saved, breakeven around three recipients. Three more live
+> runs proved the exact commands the console builder generates. Twenty-one
+> tests green, six hundredths of a PHRS spent, every limit stated in the README."
 
 ## B-roll / cutaways
 
@@ -67,11 +71,13 @@ ran twelve recipients, and the ERC20 path is tested but not yet live."*
 
 Open the Flotilla task page in the LIGHTKEEPER console ("Try it live" section).
 Add two recipient rows — type one address with a typo to show the red "bad
-address" chip live, fix it, watch the total and mode update, then click
+address" chip live, fix it, watch the total and mode update, click "+ Add the
+refuser fixture" to drop the live RevertingReceiver into the batch, then click
 "Copy commands" and show the generated script.
 *Say: "And in the LIGHTKEEPER console, the batch builder validates every
-address live, refuses duplicates, picks the mode, and generates the exact cast
-commands with a dry-run first. It never signs or broadcasts anything itself —
-your terminal, your keys."*
+address live, refuses duplicates, picks the mode, compares gas against
+individual sends, and generates the exact cast commands with a dry-run first —
+the exact format was round-trip tested on-chain. It never signs or broadcasts
+anything itself — your terminal, your keys."*
 If the cut runs over 90s, drop Shot 5's test output or this shot — the
 on-chain evidence is the priority.

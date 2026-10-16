@@ -6,9 +6,9 @@ Flotilla — Batch Executor (T10)
 
 ## One-liner
 
-One signature, twelve dust transfers, one isolated failure: a hardened
+One signature, eleven dust transfers, one isolated failure: a hardened
 Distributor executes 3 official batch modes on Atlantic, with per-action
-success events and a measured 8.6% gas saving at n=12 (breakeven n≈11).
+success events and a measured 12.5% gas saving at n=11 (breakeven ≈ n=3).
 
 ## Description
 
@@ -17,7 +17,7 @@ with automatic selection: simple (≤10 recipients, sequential sends),
 single-batch (11–200, one hardened Distributor contract call), multi-batch
 (>200, chunked calls, ≤200 enforced on-chain).
 
-**Live on Atlantic testnet (chain 688689) — 9 real transactions, ≈0.032 PHRS
+**Live on Atlantic testnet (chain 688689) — 12 real transactions, ≈0.062 PHRS
 total spend:**
 
 - `BatchDistributor` deployed: `0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4`
@@ -28,11 +28,14 @@ total spend:**
   `Distributed(0x49b26d46…b94, success=false)` (deliberately reverting
   fixture) + `BatchExecuted(12, 11, 1)`; tx status 0x1; the failed action's
   funds refunded in the same tx. Partial failure isolated on-chain.
-- Gas saving from real receipts: 12 individual sends = 252,000 gas (21,000
-  each, measured); single batch = 230,405 gas → saves 8.6%. Marginal analysis
-  (live estimates) puts breakeven at n≈11 — the SkillEngine boundary.
-- Simple mode (3 sends) + multi-batch chunking (2×6) also executed live; see
-  evidence.md for all 9 tx hashes.
+- Gas saving from real receipts: 11 individual sends = 231,000 gas (21,000
+  each, measured); single batch = 202,173 gas → saves 12.5%. A 3-point receipt
+  curve (n=8/10/11: 149,170/185,573/202,173) puts the marginal per-recipient
+  cost at ≈17.7k gas → measured breakeven ≈ n=3 for pre-existing EOA
+  recipients — the batch wins well before the SkillEngine 11 boundary.
+- Simple mode (3 sends) + multi-batch chunking (2×6) also executed live, plus
+  3 builder round-trip runs at n=8/10/11 proving the exact commands the
+  console generates; see evidence.md for all 12 tx hashes.
 
 Hardening beyond the reference: zero-address/duplicate rejection, reentrancy
 guard, same-tx refunds (no escrow), ERC20 path with per-recipient try/catch
@@ -62,6 +65,9 @@ https://github.com/mohamedwael201193/lightkeeper/tree/57fa81d9d11e30a6d3e590a198
 - 0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94
 - 0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913
 - 0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8
+- 0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5 (builder round-trip n=8)
+- 0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c (builder round-trip n=10)
+- 0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35 (builder round-trip n=11)
 
 ## Video
 
@@ -76,10 +82,15 @@ TryPanel via the lamp slug — no registry edits):
 - recipient rows with live 0x-address validation + amount parsing + **duplicate
   detection** (the Distributor reverts on duplicates — flagged before gas is spent)
 - running total, automatic mode selection (≤10 simple · 11–200 single-batch ·
-  >200 multi-batch), and gas estimated from the live receipts in this pack
+  >200 multi-batch), and gas estimated from the live receipts in this pack —
+  with an individual-sends-vs-batch comparison shown live
+- one-click "Add the refuser fixture" row: drops the live RevertingReceiver
+  into the batch so visitors can prove partial-failure isolation themselves
 - safety checklist chips: address validity, duplicates, dust limit, dry-run-first
-- generates the exact `cast` preflight + `flock`-guarded broadcast commands,
-  with the Atlantic RPC, chain 688689, and the live Distributor address filled
+- generates the exact `cast` preflight + `flock`-guarded broadcast commands
+  (comma-separated arrays, as cast requires — fixed after a real failed parse),
+  with the Atlantic RPC, chain 688689, and the live Distributor address filled;
+  the exact generated format was round-trip tested on-chain (3 live batches)
 
 The builder refuses to generate a command while any row is invalid — the
 mistakes (bad address, bad amount, bad total) are prevented in the browser.
