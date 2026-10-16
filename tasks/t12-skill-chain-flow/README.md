@@ -67,6 +67,12 @@ Same flow, same contract, different proposed amounts → different verdicts:
 Full transcripts with every real value: `run-logs/flow-transcript.jsonl`.
 Deploy tx: [`0x84202229…6b4aa3`](https://atlantic.pharosscan.xyz/tx/0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3) (block 31481433, contract `0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1`).
 
+Post-harden re-runs (2026-10-16) — the full contrast pair re-executed live on the current
+chain state to prove the flow is healthy after the console/RPC hardening op:
+
+- **allow-4** — 0.0001 PHRS → all 6 rules PASS → **ALLOW** → tx [`0x022bc47b…fd7128`](https://atlantic.pharosscan.xyz/tx/0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128) (status 1, block 31486412, fee 0.0000336980 PHRS) → `pingCount()` **1 → 2** → VERIFY OK
+- **block-2** — 0.1 PHRS → RULE-AMOUNT FAIL quoting the fresh live balance (5.870589420313178416 PHRS) → **BLOCK** → no broadcast → `pingCount()` **1 → 1** (unchanged) → VERIFY OK
+
 # §5 — Reproduce it
 
 ```bash
@@ -80,7 +86,7 @@ python3 flow.py --amount-phrs 0.1    --run-label block   # → BLOCK, no tx, ver
 ```
 
 Nonces: every broadcast goes through `flock /tmp/lk-nonce.lock` (shared-key safety across the 28 T-workers).
-Budget: 0.0004362040 PHRS spent of the 0.15 PHRS cap (`evidence.json`).
+Budget: 0.0005699020 PHRS spent of the 0.15 PHRS cap (`evidence.json`).
 
 # §6 — Chain & precision notes
 

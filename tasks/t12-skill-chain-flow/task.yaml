@@ -34,7 +34,7 @@ deliverables:
 
 budget:
   max_phrs: 0.15
-  spent_phrs: 0.0004362040   # 2 broadcasts; see evidence.json spend_log
+  spent_phrs: 0.0005699020   # 3 broadcasts; see evidence.json spend_log
 
 evidence:
   atlantic_explorer: https://atlantic.pharosscan.xyz/

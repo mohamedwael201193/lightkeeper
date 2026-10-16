@@ -39,7 +39,7 @@ Show `run-logs/flow-transcript.jsonl` (append-only run records) and say:
 broadcast that never sent a tx. Nothing edited out."
 
 **75–90s — Outro.**
-Show `evidence.md`: two txs, 0.0004362 PHRS of a 0.15 budget. End on the
+Show `evidence.md`: three broadcast txs, 0.0005699 PHRS of a 0.15 budget. End on the
 contract page in the explorer.
 
 ## Console demo segment (optional B-roll, 20s)
@@ -50,7 +50,10 @@ visible before anything executes." Flip the scenario toggle from ALLOW to BLOCK 
 the skill table shows RULE-AMOUNT FAIL quoting the live balance, and the EXECUTE
 phase collapses to "no broadcast." Click "Copy full runbook" and say: "One paste,
 and you can replay the exact run on your own machine." (Console never executes;
-everything runs in the visitor's own terminal.)
+everything runs in the visitor's own terminal.) Optional extra 5s: in the SKILL
+phase, open "Probe the boundary yourself", type 0.0051 — the rule table flips to
+BLOCK live — then 0.0049 and it flips back. Say: "The verdict is a function of
+the numbers, not of who clicks."
 
 ## Spoken script (condensed, natural delivery)
 

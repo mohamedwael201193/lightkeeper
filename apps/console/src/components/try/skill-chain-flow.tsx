@@ -16,7 +16,35 @@ const SENDER = "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3";
 const EXPLORER_TX = "https://atlantic.pharosscan.xyz/tx/";
 const EXPLORER_ADDR = "https://atlantic.pharosscan.xyz/address/";
 const ALLOW_TX = "0xbdc80ff038803c1571e66e4aed36f4700cea5f077102f29cdf12a4b84d6d4349";
+const ALLOW4_TX = "0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128";
 const DEPLOY_TX = "0x8420222999ecd41fa7256a69b5980d9515336e6a762df16918b9a96e3e6b4aa3";
+const MAX_TX_WEI = 5000000000000000n; // 0.005 PHRS — policy.yaml limits.max_per_tx_phrs
+const MAX_GAS_WEI = 50000000000n; // 50 gwei — policy.yaml limits.max_gas_price_gwei
+
+/** Exact PHRS → wei (18 decimals), same math as flow.py's Decimal conversion. */
+function phrsToWei(s: string): bigint | null {
+  const t = s.trim();
+  if (!/^\d+(\.\d{1,18})?$/.test(t)) return null;
+  const [i, f = ""] = t.split(".");
+  return BigInt(i) * 10n ** 18n + BigInt((f + "0".repeat(18)).slice(0, 18));
+}
+
+/** Replays flow.py's evaluate() rule math on recorded live values. Simulation only. */
+function simulateVerdict(
+  amountStr: string,
+  liveBalance: string,
+): { ok: boolean; valueWei: bigint | null; amountRule: string } {
+  const valueWei = phrsToWei(amountStr);
+  if (valueWei === null) return { ok: false, valueWei: null, amountRule: "" };
+  const pass = valueWei <= MAX_TX_WEI;
+  return {
+    ok: pass,
+    valueWei,
+    amountRule: pass
+      ? `proposed ${valueWei} wei <= max 5000000000000000 wei (0.005 PHRS)`
+      : `proposed ${valueWei} wei > max 5000000000000000 wei (0.005 PHRS) — quoting the live balance ${liveBalance} PHRS`,
+  };
+}
 
 type Scenario = "allow" | "block";
 
@@ -131,12 +159,85 @@ function runbook(scenario: Scenario): string {
   ].join("\n");
 }
 
+function VerdictProbe({
+  probe,
+  setProbe,
+  liveBalance,
+}: {
+  probe: string;
+  setProbe: (s: string) => void;
+  liveBalance: string;
+}) {
+  const sim = probe === "" ? null : simulateVerdict(probe, liveBalance);
+  const quick = ["0.0001", "0.004", "0.005", "0.0051", "0.1"];
+  return (
+    <div className="rounded-xl border border-hairline bg-porcelain p-4">
+      <p className="smallcaps">Probe the boundary yourself</p>
+      <p className="mt-1 text-xs text-slate">
+        Type any proposed amount in PHRS. The skill's exact rule math runs on the recorded live
+        values — discover for yourself where ALLOW flips to BLOCK.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          value={probe}
+          onChange={(e) => setProbe(e.target.value)}
+          placeholder="e.g. 0.004"
+          inputMode="decimal"
+          className="w-40 rounded-lg border border-hairline bg-paper px-3 py-2 font-mono text-sm text-ink placeholder:text-slate/50 focus:border-accent focus:outline-none"
+        />
+        {quick.map((q) => (
+          <button
+            key={q}
+            className="btn-outline !py-1 font-mono text-xs"
+            onClick={() => setProbe(q)}
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+      {sim !== null && sim.valueWei === null && (
+        <p className="mt-3 text-xs text-slate">
+          That isn't a valid PHRS amount — type a decimal like{" "}
+          <span className="font-mono">0.004</span> (up to 18 decimals, no units or negatives).
+          Nothing runs here; the input just can't be converted to wei.
+        </p>
+      )}
+      {sim !== null && sim.valueWei !== null && (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`chip ${sim.ok ? "!border-accent" : "!border-fail"}`}>
+              {sim.ok ? "ALLOW" : "BLOCK"}
+            </span>
+            <span className="font-mono text-[11px] text-slate">{sim.amountRule}</span>
+          </div>
+          <div className="text-[11px] text-slate">
+            <span className="font-mono text-ink">RULE-NETWORK</span> PASS ·{" "}
+            <span className="font-mono text-ink">RULE-DEST</span> PASS ·{" "}
+            <span className="font-mono text-ink">RULE-KEEPER-CONSISTENCY</span> PASS ·{" "}
+            <span className="font-mono text-ink">RULE-GAS</span> PASS — live gas 10000000000 wei
+            {" <= "}max {MAX_GAS_WEI.toString()} wei (50 gwei) ·{" "}
+            <span className="font-mono text-ink">RULE-FRESHNESS</span> PASS — pinned reads; the
+            broadcast-time gate re-checks
+          </div>
+        </div>
+      )}
+      <p className="mt-3 border-t border-hairline pt-2 text-[11px] text-slate">
+        Simulation, not execution: this replays the skill's exact rule math on the recorded live
+        values above. The real verdict always comes from{" "}
+        <span className="font-mono">flow.py</span> against live chain state — nothing here
+        broadcasts.
+      </p>
+    </div>
+  );
+}
+
 const PHASES = ["READ", "SKILL", "EXECUTE", "VERIFY"] as const;
 
 export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
   const [scenario, setScenario] = useState<Scenario>("allow");
   const [phase, setPhase] = useState<number>(0);
   const [copied, setCopied] = useState(false);
+  const [probe, setProbe] = useState<string>("");
 
   const rules = useMemo(() => RULES, []);
   const verdict = scenario === "allow" ? "ALLOW" : "BLOCK";
@@ -182,6 +283,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
             <span className="font-mono text-ink">policy.yaml</span> — six named rules, fail-closed,
             nothing else. The verdict depends on nothing but the reads above.
           </p>
+          <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
@@ -210,6 +312,7 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
               })}
             </tbody>
           </table>
+          </div>
           <div
             className={`rounded-xl border p-4 text-sm font-semibold ${
               verdict === "ALLOW"
@@ -228,6 +331,11 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
               </span>
             )}
           </div>
+          <VerdictProbe
+            probe={probe}
+            setProbe={setProbe}
+            liveBalance={scenario === "allow" ? "5.91989842331639842" : "5.868857845315957842"}
+          />
         </div>
       );
     }
@@ -382,7 +490,16 @@ export default function TrySkillChainFlow({ lamp }: { lamp: Lamp }) {
             that never sent a tx. Nothing edited out.
           </li>
           <li>
-            Spend: 0.0004362040 of 0.15 PHRS. {lamp.name} — tested on Atlantic testnet (688689) only.
+            Post-harden re-run (2026-10-16): the full contrast pair re-executed live — ALLOW →
+            broadcast{" "}
+            <a className="font-mono text-accent hover:underline" href={`${EXPLORER_TX}${ALLOW4_TX}`} target="_blank" rel="noreferrer">
+              {ALLOW4_TX.slice(0, 12)}…{ALLOW4_TX.slice(-8)}
+            </a>{" "}
+            (block 31486412, fee 0.0000336980 PHRS) driving <span className="font-mono">pingCount()</span>{" "}
+            1 → 2; BLOCK re-confirmed RULE-AMOUNT against a fresh live balance, no broadcast.
+          </li>
+          <li>
+            Spend: 0.0005699020 of 0.15 PHRS. {lamp.name} — tested on Atlantic testnet (688689) only.
           </li>
         </ul>
       </div>
