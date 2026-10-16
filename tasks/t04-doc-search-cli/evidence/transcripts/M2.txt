@@ -1,0 +1,14 @@
+$ ./pharos-docs 'how do I run a Pharos node on a Raspberry Pi'
+QUESTION
+  how do I run a Pharos node on a Raspberry Pi
+
+LABEL: UNVERIFIED
+
+No good answer found. The indexed Pharos docs (438 passages, retrieved 2026-10-16) contain no passage covering this question above the confidence threshold, so this tool will not improvise an answer.
+
+What you can do:
+  - Rephrase with Pharos-specific terms (e.g. 'Atlantic', 'PHRS', 'CCIP', 'validator').
+  - Browse the full doc index: https://docs.pharos.xyz/sitemap.md
+  - Refresh the corpus: pharos-docs --rebuild-index
+
+[exit code: 2]

@@ -1,0 +1,27 @@
+$ ./pharos-docs 'which oracle should I use for price feeds on Pharos'
+QUESTION
+  which oracle should I use for price feeds on Pharos
+
+LABEL: DOC-GROUNDED
+
+ANSWER (quoted verbatim from the indexed docs; nothing added)
+> - For price/market data, prefer Chainlink as the default oracle provider — use Chainlink Push Engine Feeds when your contract should react automatically to on-chain updates without polling, or Chainlink Data Feeds for low-latency, on-demand/pull consumption.
+> - For cross-chain needs, prefer Chainlink CCIP first, including for arbitrary messaging — it has a documented, live Pharos↔Ethereum lane.
+-- Pharos Documentation Index — Defaults
+   Source: https://www.pharos.xyz/llms.txt (retrieved 2026-10-16)
+
+> - Chainlink Data Feeds: Using Chainlink Data Feeds for low-latency, pull-based price data on Pharos.
+> - Supra: Using Supra's pull-based oracle on Pharos.
+-- Pharos Documentation Index — Tooling & Infrastructure
+   Source: https://www.pharos.xyz/llms.txt (retrieved 2026-10-16)
+
+> Supra provides high-performance oracle services that deliver real-time price feeds and external data to decentralized applications.
+> On Pharos, Supra’s DORA Pull Oracle is deployed on Pacific Mainnet and Atlantic Testnet, enabling smart contracts to securely fetch off-chain data directly from the oracle network.
+-- Supra — Overview
+   Source: https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra (retrieved 2026-10-16)
+
+[INFERENCE] Reading of the above (not a doc quote): the quoted passages are the complete basis for this answer; anything beyond the quotes is this tool's synthesis, labeled as such.
+
+Sources checked: local index of 438 passages across 74 doc pages (corpus retrieved 2026-10-16).
+
+[exit code: 0]

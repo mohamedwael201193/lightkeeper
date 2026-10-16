@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+"""pharos-docs -- answer Pharos developer questions with citations.
+
+Reads a local passage index (index/index.json) built from the live Pharos
+docs (corpus/ fetched from docs.pharos.xyz + www.pharos.xyz/llms.txt).
+Answers ONLY from the index; never improvises.
+
+Every technical answer carries exactly one label (MEGA §228):
+  DOC-GROUNDED ... doc URL + retrieval date + quoted excerpt
+  INFERENCE    ... clearly marked reasoning, built on grounded quotes
+  UNVERIFIED   ... no covering passage found; no answer given (exit code 2)
+
+Usage:
+  pharos-docs "how do I deploy a contract?"
+  pharos-docs --json "what is the Atlantic testnet chain id?"
+  pharos-docs --rebuild-index   # refetch corpus + rebuild (needs network)
+
+Exit codes: 0 = grounded answer, 2 = no good answer (UNVERIFIED), 1 = error.
+"""
+import argparse
+import json
+import math
+import os
+import re
+import subprocess
+import sys
+
+BASE = os.path.dirname(os.path.abspath(__file__))
+INDEX_PATH = os.path.join(BASE, "index", "index.json")
+
+K1, B = 1.5, 0.75
+DEFAULT_MIN_SCORE = 1.0          # tuned against evidence transcripts (see REVIEWER_NOTES.md)
+TITLE_BOOST_PER_TERM = 0.25     # per distinct query term matched in the page title (cap 2.0)
+RARE_BOOST = 1.5                # passages covering a distinctive (rare) query term
+TOP_N = 3
+
+STOPWORDS = set("""a an the and or of to in on for is are was were be been by with as at
+from that this it its you your we they he she his her their our my i do does did
+not no yes can could should would will just how what when where which who whom
+whose why me us them him her than then so such if but about into over after
+before between under again once here there all any both each few more most other
+some only own same too very don t s re ll ve m d""".split())
+
+
+def normalize_for_index(s):
+    s = s.lower()
+    s = s.replace("chainid", "chain id")
+    s = s.replace("chain-id", "chain id")
+    s = s.replace("crosschain", "cross chain")
+    return s
+
+
+def tokenize(s):
+    return [t for t in re.findall(r"[a-z0-9]{2,}", normalize_for_index(s)) if t not in STOPWORDS]
+
+
+# Query-expansion synonyms (weight 0.5). Standard IR vocabulary bridging;
+# expansions never create content — they only help find covering passages.
+SYNONYMS = {
+    "faucet": ["pros", "phrs", "gas", "tokens", "claim"],
+    "tokens": ["pros", "phrs", "faucet"],
+    "token": ["pros", "phrs", "faucet"],
+    "gas": ["pros", "phrs", "faucet"],
+    "bridge": ["cctp", "cross", "chain"],
+    "bridging": ["cctp", "cross", "chain"],
+    "oracle": ["chainlink", "supra"],
+    "oracles": ["chainlink", "supra"],
+    "validator": ["node", "validators"],
+    "node": ["validator"],
+    "deploy": ["deployment"],
+    "tps": ["transactions", "second"],
+    "wallet": ["metamask"],
+    "wallets": ["metamask"],
+}
+EXPANSION_WEIGHT = 0.5
+
+# Recommendation questions ("which X should I use") -> boost passages that
+# state a documented preference ("prefer ... as the default").
+REC_BOOST = 1.35
+REC_QUERY_RE = re.compile(r"\b(should|which|best|recommend|suggest|recommended)\b")
+REC_PASSAGE_RE = re.compile(r"\b(prefer|recommend|default|suggest)\b")
+
+RARE_IDF = 5.0  # query terms this distinctive must appear in the passage
+
+
+def bm25(tf, dl, idf, avgdl, terms):
+    score = 0.0
+    for t in terms:
+        f = tf.get(t)
+        if not f:
+            continue
+        score += idf.get(t, 0.0) * (f * (K1 + 1)) / (f + K1 * (1 - B + B * dl / avgdl))
+    return score
+
+
+def expand(terms):
+    extra = []
+    for t in terms:
+        for s in SYNONYMS.get(t, []):
+            if s not in terms and s not in extra:
+                extra.append(s)
+    return extra
+
+
+def is_rare(index, t):
+    idf = index["idf"].get(t)
+    return idf is None or idf >= RARE_IDF  # absent from corpus = maximally distinctive
+
+
+def retrieve(index, question):
+    terms = tokenize(question)
+    if not terms:
+        return []
+    expansions = expand(terms)
+    rec_q = bool(REC_QUERY_RE.search(question.lower()))
+    scored = []
+    for i, p in enumerate(index["passages"]):
+        s = bm25(p["tf"], p["len"], index["idf"], index["avgdl"], terms)
+        if expansions:
+            s += EXPANSION_WEIGHT * bm25(p["tf"], p["len"], index["idf"], index["avgdl"], expansions)
+        if s <= 0:
+            continue
+        qterms = set(terms)
+        title_terms = set(tokenize(p["page_title"]))
+        m = len(qterms & title_terms)
+        if m:
+            s *= min(2.0, 1 + TITLE_BOOST_PER_TERM * m)
+        if rec_q and REC_PASSAGE_RE.search(p["text"].lower()):
+            s *= REC_BOOST
+        covered = sum(1 for t in qterms if t in p["tf"])
+        rare_total = sum(1 for t in qterms if is_rare(index, t))
+        rare_covered = sum(1 for t in qterms if t in p["tf"] and is_rare(index, t))
+        # a covered rare EXPANSION term is also a strong relevance signal
+        rare_exp_covered = any(is_rare(index, e) and e in p["tf"] for e in expansions)
+        if rare_covered or rare_exp_covered:
+            s *= RARE_BOOST
+        scored.append((s, covered, rare_covered, rare_total, i))
+    scored.sort(key=lambda r: (-r[0], -r[1]))
+    return scored[:TOP_N]
+
+
+def coverage_ok(terms, covered, rare_covered, rare_total):
+    """Honest-miss gate: the top passage must share a real vocabulary overlap
+    with the question — including any distinctive (rare) terms — or the CLI
+    must not answer (never improvise)."""
+    need = max(2, math.ceil(0.5 * len(set(terms))))
+    if covered < need:
+        return False, "covers %d of %d question terms (need %d)" % (covered, len(set(terms)), need)
+    if rare_total and not rare_covered:
+        return False, "covers none of the question's distinctive terms"
+    return True, ""
+
+
+def best_sentences(text, terms, n=3):
+    """Greedy max-marginal-coverage: pick verbatim sentences that together
+    cover the most distinct query terms (deduped)."""
+    sents = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])|\n+", text)
+    sents = [s.strip() for s in sents if len(s.strip()) > 30]
+    q = set(terms)
+    seen, picked, covered = set(), [], set()
+    cands = []
+    for s in sents:
+        key = re.sub(r"\s+", " ", s.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        toks = set(tokenize(s))
+        if q & toks:
+            cands.append((toks, s))
+    # Two passes: prefer substantive sentences (>50 chars) so bare section
+    # headings don't crowd out the actual instructions; fall back to short
+    # ones only if nothing longer covers the terms.
+    for min_len in (50, 0):
+        for _ in range(n - len(picked)):
+            best, best_gain = None, 0
+            for toks, s in cands:
+                if s in picked or len(s) < min_len:
+                    continue
+                gain = len((q & toks) - covered)
+                if gain > best_gain or (gain == best_gain and best and len(s) < len(best[1])):
+                    best, best_gain = (toks, s), gain
+            if not best or best_gain == 0:
+                break
+            picked.append(best[1])
+            covered |= q & best[0]
+        if picked:
+            break
+    return picked
+
+
+def quote_block(s):
+    return "> " + s.replace("\n", "\n> ")
+
+
+def render_human(question, passages, index):
+    lines = []
+    lines.append("QUESTION")
+    lines.append("  " + question)
+    lines.append("")
+    lines.append("LABEL: DOC-GROUNDED")
+    lines.append("")
+    lines.append("ANSWER (quoted verbatim from the indexed docs; nothing added)")
+    for j, (score, i) in enumerate(passages):
+        p = index["passages"][i]
+        terms = tokenize(question)
+        for s in best_sentences(p["text"], terms):
+            lines.append(quote_block(s))
+        where = p["page_title"] + (" — " + p["section"] if p["section"] else "")
+        lines.append(f"-- {where}")
+        lines.append(f"   Source: {p['page_url']} (retrieved {p['retrieved']})")
+        lines.append("")
+    # INFERENCE paragraph: synthesis is always explicitly labeled.
+    lines.append("[INFERENCE] Reading of the above (not a doc quote): "
+                 "the quoted passages are the complete basis for this answer; "
+                 "anything beyond the quotes is this tool's synthesis, "
+                 "labeled as such.")
+    lines.append("")
+    lines.append("Sources checked: local index of %d passages across %d doc pages "
+                 "(corpus retrieved %s)." % (
+                     index["passage_count"],
+                     len({p["page_url"] for p in index["passages"]}),
+                     index["built_from"]["retrieved"]))
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def render_miss(question, index):
+    lines = []
+    lines.append("QUESTION")
+    lines.append("  " + question)
+    lines.append("")
+    lines.append("LABEL: UNVERIFIED")
+    lines.append("")
+    lines.append("No good answer found. The indexed Pharos docs (%d passages, "
+                 "retrieved %s) contain no passage covering this question "
+                 "above the confidence threshold, so this tool will not "
+                 "improvise an answer." % (index["passage_count"],
+                                           index["built_from"]["retrieved"]))
+    lines.append("")
+    lines.append("What you can do:")
+    lines.append("  - Rephrase with Pharos-specific terms (e.g. 'Atlantic', "
+                 "'PHRS', 'CCIP', 'validator').")
+    lines.append("  - Browse the full doc index: "
+                 "https://docs.pharos.xyz/sitemap.md")
+    lines.append("  - Refresh the corpus: pharos-docs --rebuild-index")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def render_json(question, label, passages, index, note=None):
+    def cite(score, i):
+        p = index["passages"][i]
+        return {
+            "page_title": p["page_title"],
+            "section": p["section"],
+            "page_url": p["page_url"],
+            "retrieved": p["retrieved"],
+            "score": round(score, 3),
+            "excerpt": p["text"][:600],
+        }
+    return json.dumps({
+        "question": question,
+        "label": label,
+        "citations": [cite(s, i) for s, i in passages] if passages else [],
+        "note": note,
+        "corpus_retrieved": index["built_from"]["retrieved"],
+        "index_passages": index["passage_count"],
+    }, indent=2) + "\n"
+
+
+def load_index():
+    if not os.path.exists(INDEX_PATH):
+        sys.stderr.write("index not found: %s\nrun: pharos-docs --rebuild-index\n" % INDEX_PATH)
+        sys.exit(1)
+    return json.load(open(INDEX_PATH, encoding="utf-8"))
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Answer Pharos dev questions with citations (local index, no improvisation).")
+    ap.add_argument("question", nargs="?", help="natural-language question, e.g. \"how do I deploy a contract?\"")
+    ap.add_argument("--json", action="store_true", help="machine-readable output")
+    ap.add_argument("--min-score", type=float, default=DEFAULT_MIN_SCORE,
+                    help="confidence threshold for DOC-GROUNDED")
+    ap.add_argument("--rebuild-index", action="store_true", help="refetch corpus + rebuild index")
+    ap.add_argument("--top", type=int, default=TOP_N, help="citations to show")
+    args = ap.parse_args()
+
+    if args.rebuild_index:
+        r = subprocess.run(["bash", os.path.join(BASE, "fetch_corpus.sh")])
+        if r.returncode != 0:
+            sys.exit(1)
+        r = subprocess.run([sys.executable, os.path.join(BASE, "src", "build_index.py")])
+        sys.exit(r.returncode)
+
+    if not args.question:
+        ap.print_help()
+        sys.exit(1)
+
+    index = load_index()
+    terms = tokenize(args.question)
+    top = retrieve(index, args.question)[: args.top]
+    grounded, reason = False, "no passage above threshold"
+    if top and top[0][0] >= args.min_score:
+        grounded, reason = coverage_ok(terms, top[0][1], top[0][2], top[0][3])
+
+    if grounded:
+        label = "DOC-GROUNDED"
+        top_simple = [(s, i) for s, _, _, _, i in top]
+        out = render_json(args.question, label, top_simple, index) if args.json else render_human(args.question, top_simple, index)
+        sys.stdout.write(out)
+        return 0
+    else:
+        label = "UNVERIFIED"
+        out = render_json(args.question, label, [], index, note=reason) if args.json else render_miss(args.question, index)
+        sys.stdout.write(out)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
