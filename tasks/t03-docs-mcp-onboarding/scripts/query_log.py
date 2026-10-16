@@ -190,4 +190,12 @@ def cmd_links():
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "run"
-    {"run": cmd_run, "check": cmd_check, "links": cmd_links}[cmd]()
+    cmds = {"run": cmd_run, "check": cmd_check, "links": cmd_links}
+    if cmd in ("-h", "--help", "help"):
+        print(__doc__.strip().split("\n\nUsage:")[0] if "\n\nUsage:" in __doc__ else __doc__.strip())
+        print("Usage:\n  python3 query_log.py run        # replay all queries in queries.json -> evidence/runs/<ts>.json\n  python3 query_log.py check      # verify evidence.json exists and print stats\n  python3 query_log.py links      # curl-test every link in LINKS.md -> evidence/link_check.json")
+        sys.exit(0)
+    if cmd not in cmds:
+        print(f"Unknown command {cmd!r}. Choose one of: run, check, links (or --help).", file=sys.stderr)
+        sys.exit(2)
+    cmds[cmd]()

@@ -57,15 +57,19 @@ visitor's OWN live portfolio.
 
 `apps/console/src/components/try/t14-portfolio-assistant.tsx` — Tier A, pure
 reads, no signature anywhere. If the visitor connects their wallet, the first
-thing they see is THEIR OWN Atlantic portfolio, read live: native PHRS
-(`eth_getBalance`) plus `eth_call balanceOf` across the verified 7-source
-registry (USDC/USDT/WBTC/WETH/WPHRS + LPK), block-pinned to one
-`eth_blockNumber`, with `eth_getTransactionCount` and explorer links per token.
-No wallet: a validated address input reads any portfolio. Below, the "keeper's
+thing they see is THEIR OWN Atlantic portfolio, read live across three views:
+**Balances** (native PHRS via `eth_getBalance` plus `eth_call balanceOf` across
+the verified 7-source registry, block-pinned to one `eth_blockNumber`, with
+`eth_getTransactionCount`), **Activity** (real ERC20 Transfer events scanned
+from `eth_getLogs` over the last 5,000 blocks, 10 block-paged calls with the
+window printed; native PHRS transfers emit no events, so it says so instead of
+claiming to see them), and **Gas headroom** (`eth_gasPrice` × balance → rough
+simple-transfer count, token units only — no USD anywhere). A chain-ID check
+runs before any read; unreadable tokens report "unknown", never zero. No
+wallet: a validated address input reads any portfolio. Below, the "keeper's
 reference" shows the LIGHTKEEPER operator wallet's evidence snapshot
 (block 31483013: 5.865657109313757106 PHRS, 18.5 USDC, 0.0025 WPHRS, 1,000,000
 LPK, 139 txs) — clearly labeled historical, never confused with the live read.
-Unreadable tokens report "unknown", never zero; no USD anywhere.
 
 ## Reviewer notes
 

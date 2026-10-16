@@ -22,7 +22,7 @@ node --test test/portfolio.test.mjs
 ```
 
 - **Shipped:** 6 NL question types, block-pinned reads across 7 verified on-chain sources, citation validator, 4 negative probes, live test suite that asserts the assistant's numbers equal direct `cast` queries at the same pinned block.
-- **Live evidence:** portfolio snapshot of the LIGHTKEEPER wallet at block **31482351** (chain 688689) — 5.867063470315163467 PHRS, 18.5 USDC, 0.0025 WPHRS, 1,000,000 LPK, 126 outgoing txs (see `evidence.json`).
+- **Live evidence:** portfolio snapshot of the LIGHTKEEPER wallet at block **31483013** (chain 688689) — 5.865657109313757106 PHRS, 18.5 USDC, 0.0025 WPHRS, 1,000,000 LPK, 139 outgoing txs (see `evidence.json`).
 - **Honest gaps:** no USD valuations (no price feed exists); activity scan covers the latest 10,000 blocks only; native PHRS transfers aren't visible in event logs — all stated, none papered over.
 
 ## 2. What it does
@@ -88,7 +88,7 @@ Ask "what is my portfolio worth in USD?" and you get a refusal, not a price.
 
 ## 6. Evidence & citations
 
-- `evidence.json` — full portfolio snapshot at block 31482351: balances with raw values, sources, blocks; tx count; 9 Transfer events in blocks 31472351–31482351; gas headroom; spend log.
+- `evidence.json` — full portfolio snapshot at block 31483013: balances with raw values, sources, blocks; tx count; 9 Transfer events in blocks 31473013–31483013; gas headroom; spend log.
 - `evidence.md` — the narrative: what was built, what the chain said, what was refused.
 - Every number in every answer cites source contract AND block, enforced by code
   (`assertCited`), not by convention.

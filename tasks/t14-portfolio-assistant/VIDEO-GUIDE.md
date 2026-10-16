@@ -85,11 +85,13 @@ Film lightkeeper-console.vercel.app → T14 lamp → "Try it live" section:
 1. **Connect wallet** — click the console's wallet connect (MetaMask, Atlantic
    testnet). **Say:** "Now the wallet-interactive surface. I connect my own wallet —
    the console proposes nothing, signs nothing, reads only."
-2. **Your own portfolio appears** — point at the live table: PHRS balance plus
-   every registry token, each row linking to its contract on the explorer, the
-   read pinned to the current block with the outgoing tx count. **Say:** "The first
-   thing I see is my own portfolio, read live from Atlantic — block-pinned, every
-   number citable, and still no dollar values invented."
+2. **Your own portfolio appears** — three tabs: **Balances** (live table — PHRS
+   balance plus every registry token, each row linking to its contract on the
+   explorer, the read pinned to the current block with the outgoing tx count),
+   **Activity** (real Transfer events scanned live from the chain, window
+   printed), and **Gas headroom** (gas price × balance, token units only).
+   **Say:** "The first thing I see is my own portfolio, read live from Atlantic —
+   block-pinned, every number citable, and still no dollar values invented."
 3. **Paste an address** — disconnect, paste the keeper's wallet
    `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3`, read it. **Say:** "No wallet
    needed either — any valid address reads the same way. The keeper's reference

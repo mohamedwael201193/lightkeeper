@@ -58,6 +58,15 @@ query — including a SkillEngine query that failed 3 times (`IncompleteRead`).
   Docs-MCP answers (`evidence.json`: 688689/PHRS chain identity, the 100-block `eth_getLogs` paging
   answer, the 1672-vs-688689 chain-identity trap). Nothing executes in the browser; the visitor runs
   the command in their own terminal. LIGHTKEEPER never sees, holds, or asks for private keys.
+- **2026-10-16 hardening:** every generated command was re-verified against the live Atlantic RPC —
+  which caught and fixed a real bug: the builder generated `cast logs --topic …`, a flag cast does
+  not accept (verified live; fixed to the positional event-signature form). The watch panel now has
+  two modes: single query, plus a **paged-range scanner** that turns any block range into an auto-
+  paged bash loop (≤100 blocks/page, per the Q5 docs answer) — tested live on a 150-block Atlantic
+  range (2 pages, both returned). Contract calls gained an arguments input (cast ABI-encodes them);
+  sends are hard-capped at the 0.01 PHRS dust limit with plain-language refusal above it; deploy and
+  send panels include a copyable pre-flight sanity check (`cast chain-id …` must print 688689) so a
+  visitor can never land on mainnet by accident.
 
 ## Video
 
