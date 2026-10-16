@@ -1,5 +1,5 @@
 /**
- * T25 dApp Support Agent — Tier A (live reads).
+ * T25 dApp Support Agent — Tier A (live reads). THE AUTOPSY REPORT.
  *
  * "Every failed tx, explained": paste ANY Pharos Atlantic tx hash (0x + 64 hex)
  * and the panel fetches the live transaction + receipt and runs a diagnosis
@@ -10,15 +10,25 @@
  * ERC-20 transferFrom allowance / token-balance shortfalls (read at block−1),
  * plus honest success / pending / not-found paths.
  *
- * The three preset hashes are the task's REAL mined Atlantic evidence txs,
- * copied character-for-character from tasks/t25-dapp-support-agent/evidence.json.
- * Unknown cases are reported as unknown with the raw receipt — never invented.
+ * The seven preset hashes are the task's REAL mined Atlantic evidence txs
+ * (6 failures + 1 success contrast), copied character-for-character from
+ * tasks/t25-dapp-support-agent/evidence.json. Unknown cases are reported as
+ * unknown with the raw receipt — never invented.
+ *
+ * Presentation: the autopsy. A failed transaction comes in; the cause of
+ * death lands first as the 48px verdict headline, then the evidence trail
+ * (every check the engine ran, in order, each carrying its provenance tag —
+ * READ FROM CHAIN / INFERENCE / STATED / UNVERIFIED), then "what to change
+ * next time" as the fix callout, then the raw receipt for the skeptical.
+ * The diagnosis engine below this header is byte-identical to the verified
+ * version — only the presentation was rebuilt.
  *
  * Tier A only: plain JSON-RPC reads, no wallet, no signature, costs nothing.
  * LIGHTKEEPER never sees, holds, or asks for private keys.
  */
 import { useState } from "react";
-import { Wrench } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { FileText, Microscope, Wrench } from "lucide-react";
 import type { Lamp } from "../../types";
 import { ATLANTIC_RPC_URL, EXPLORER_TX, rpcCall } from "../../hooks/useAtlantic";
 import { ErrorState, ProgressLoader, ResultCard } from "../ui";
@@ -30,6 +40,8 @@ import { ErrorState, ProgressLoader, ResultCard } from "../ui";
 interface Preset {
   id: string;
   label: string;
+  /** The named cause — what the autopsy concluded for this case. */
+  cause: string;
   note: string;
   hash: string;
 }
@@ -38,42 +50,49 @@ const PRESETS: Preset[] = [
   {
     id: "revert-reason",
     label: "Revert with reason",
+    cause: "Contract reverted — with a reason",
     note: "block 31482154 · gas 21,510 / 100,000 · Error(string) decoded from replay",
     hash: "0x405295cd89ef7469ded00bf6fe1ba99ab42739bc9154b10b9ed9641185c0ca23",
   },
   {
     id: "out-of-gas",
     label: "Out of gas",
+    cause: "Out of gas",
     note: "block 31482265 · gasUsed == gasLimit == 120,000",
     hash: "0x31993dc871fea0f0788d2f8647f9f45749b0f4a5793053ddfcd9ae12d1f3f5cf",
   },
   {
     id: "panic",
     label: "Solidity panic",
-    note: "block 31482171 · Panic(0x11) arithmetic overflow · gas 23,108 / 100,000",
+    cause: "Panic 0x11 — arithmetic overflow",
+    note: "block 31482171 · Panic(0x11) · gas 23,108 / 100,000",
     hash: "0x2c78309c41ce0bd53f611ac5a1ad5e2bfa0e29b7f5e3514b9f0a429c2dcab048",
   },
   {
     id: "allowance",
     label: "transferFrom — allowance too small",
+    cause: "Allowance too small",
     note: "block 31486989 · transferFrom of 1 SDT, 0 approved · allowance read at block−1",
     hash: "0x8e655c344f8d30ca23d8369eb2c6594d86acf3b07616ff7cfbe0cb6f51dadd01",
   },
   {
     id: "token-balance",
     label: "transferFrom — owner held too few tokens",
+    cause: "Owner held too few tokens",
     note: "block 31487003 · transferFrom of 2,000 SDT, 10,000 approved, 1,000 held",
     hash: "0x9e1561f8ba0e8d3482707bd336a8d1d96f62a19a0cd08e7645b89f25ce9e0613",
   },
   {
     id: "constructor",
     label: "Constructor reverted",
+    cause: "Deployment reverted — with a reason",
     note: "block 31487042 · constructor reverted with reason · init code replayed",
     hash: "0x1e70dc673ec96753bf6c45962186a4586db0b663c0ff81912707d53958f4e167",
   },
   {
     id: "success",
     label: "Success (contrast)",
+    cause: "Executed successfully",
     note: "fixture deploy v2 · status 0x1 — what a healthy receipt looks like",
     hash: "0x48adea8bae24bcc9fa94f175e7a86c424c483f804599ada1dfd72a6ad5aec9e7",
   },
@@ -711,18 +730,31 @@ export async function diagnose(
   };
 }
 
+
 /* ------------------------------------------------------------------ */
-/* Component — presentation rebuilt on the LIGHTKEEPER standard.       */
-/* 01 Configure (hash + real mined presets) → 02 Run (ProgressLoader,  */
-/* one step per real RPC phase) → 03 Result (ResultCard showpiece:     */
-/* the named root cause as the headline, the evidence as elegant rows, */
-/* the fix as a callout). The diagnosis engine above is untouched.     */
+/* Presentation — THE AUTOPSY REPORT.                                  */
+/*                                                                     */
+/* 01 Open a case file (hash input + the 7 real case-file presets) →   */
+/* 02 Run (ProgressLoader, one step per real RPC phase) → 03 Result:   */
+/* the autopsy — the cause of death as the 48px headline, the evidence  */
+/* trail as numbered rows (every check in order, each with a           */
+/* provenance tag), "what to change next time" as the fix callout,     */
+/* and the raw receipt for the skeptical.                              */
+/*                                                                     */
+/* buildTrail() is presentation only: it re-reads the Diagnosis the   */
+/* engine returned and lays out the investigation path — which checks  */
+/* were ruled out, which one fired. It performs no RPC calls and       */
+/* changes no verdict.                                                 */
 /* ------------------------------------------------------------------ */
 
 const HASH_RE = /^0x[0-9a-fA-F]{64}$/;
 
 /** ProgressLoader phases — one entry per real async phase in diagnose(). */
-const STEPS = ["Reading the transaction", "Reading the receipt", "Diagnosing the failure"];
+const STEPS = [
+  "Recovering the transaction",
+  "Reading the mined receipt",
+  "Replaying at block−1 — gathering evidence",
+];
 
 /** The named root cause, short enough to fit two lines at 390px. */
 const HEADLINES: Record<string, string> = {
@@ -752,6 +784,27 @@ function statusOf(kind: VerdictKind): "pass" | "fail" | "neutral" {
   return "neutral";
 }
 
+/**
+ * The named root cause for the 48px headline. Panic/custom-error verdicts
+ * carry their decoded specifics (code / selector) — trimmed to the naming
+ * part so the headline fits two lines at 390px; the full meaning stays in
+ * the coroner's verdict one line below.
+ */
+function headlineFor(diag: Diagnosis): string {
+  const v = diag.verdictId;
+  if (v === "revert_panic" || v === "revert_constructor_panic") {
+    const m = diag.title.match(/0x[0-9a-fA-F]+/);
+    const code = m ? ` ${m[0]}` : "";
+    return v === "revert_panic" ? `Solidity panic${code}` : `Deployment panic${code}`;
+  }
+  if (v === "revert_custom" || v === "revert_constructor_custom") {
+    const sel = (diag.revertData || "").slice(0, 10);
+    const suffix = /^0x[0-9a-fA-F]{8}$/.test(sel) ? ` ${sel}` : "";
+    return v === "revert_custom" ? `Custom error${suffix}` : `Deployment custom error${suffix}`;
+  }
+  return HEADLINES[v] ?? diag.title;
+}
+
 function shortAddr(v: string): string {
   return /^0x[0-9a-fA-F]{40}$/.test(v) ? `${v.slice(0, 10)}…${v.slice(-6)}` : v;
 }
@@ -766,6 +819,484 @@ function translateError(e: unknown): string {
     return "Your connection couldn't reach the Atlantic RPC — check you're online and retry.";
   return m || "The Atlantic RPC did not answer — retry in a moment.";
 }
+
+/* ------------------------------------------------------------------ */
+/* The evidence trail — the investigation path, in order.               */
+/* ------------------------------------------------------------------ */
+
+type ProvenanceTag = "READ FROM CHAIN" | "INFERENCE" | "STATED" | "UNVERIFIED";
+
+interface TrailStep {
+  /** What was examined. */
+  check: string;
+  /** The RPC method or technique, named honestly. */
+  method: string;
+  /** What it showed. */
+  finding: string;
+  provenance: ProvenanceTag;
+  /** The check that named the cause. */
+  smokingGun?: boolean;
+}
+
+function statOf(diag: Diagnosis, label: string): string | null {
+  const s = diag.stats.find((x) => x.label === label);
+  return s ? s.value : null;
+}
+
+function gasParts(diag: Diagnosis): [string | null, string | null] {
+  const g = statOf(diag, "Gas used / limit");
+  if (!g) return [null, null];
+  const [u, l] = g.split(" / ");
+  return [u ?? null, l ?? null];
+}
+
+function firstSentence(s: string): string {
+  const i = s.indexOf(". ");
+  return i === -1 ? s : s.slice(0, i + 1);
+}
+
+/** The contract's own words, from e.g. `explained itself: "reason".` */
+function quotedReason(explanation: string): string | null {
+  const m = explanation.match(/explained itself: "([\s\S]*?)"\./);
+  return m ? m[1] : null;
+}
+
+function buildTrail(diag: Diagnosis): TrailStep[] {
+  const v = diag.verdictId;
+  const [gasUsed, gasLimit] = gasParts(diag);
+
+  /* Checks the engine ran and ruled out — only stated when the engine's
+     own control flow proves they were cleared (branch order is fixed). */
+  const receiptFailed: TrailStep = {
+    check: "The mined receipt",
+    method: "eth_getTransactionReceipt",
+    finding: "status 0x0 — the transaction failed on-chain.",
+    provenance: "READ FROM CHAIN",
+  };
+  const intrinsicCleared: TrailStep | null =
+    gasLimit !== null
+      ? {
+          check: "Intrinsic-gas check",
+          method: "transaction gasLimit",
+          finding: `Limit ${gasLimit} — above the 21,000 every transaction costs before a single instruction runs, so execution started.`,
+          provenance: "READ FROM CHAIN",
+        }
+      : null;
+  const oogCleared: TrailStep | null =
+    gasUsed !== null && gasLimit !== null
+      ? {
+          check: "Out-of-gas signature",
+          method: "receipt gasUsed vs transaction gasLimit",
+          finding: `${gasUsed} of ${gasLimit} burned — used ≠ limit, so this was not an out-of-gas halt.`,
+          provenance: "READ FROM CHAIN",
+        }
+      : null;
+  /** For call verdicts past the no-code branch: the destination held code. */
+  const codePresent: TrailStep = {
+    check: "Destination code",
+    method: "eth_getCode at block−1",
+    finding:
+      "Contract code present — the call reached live logic. (The no-code branch would have fired otherwise.)",
+    provenance: "INFERENCE",
+  };
+
+  switch (v) {
+    case "not_found":
+      return [
+        {
+          check: "Transaction lookup",
+          method: "eth_getTransactionByHash",
+          finding: "Null — Atlantic has never seen this hash.",
+          provenance: "READ FROM CHAIN",
+          smokingGun: true,
+        },
+        {
+          check: "Receipt lookup",
+          method: "eth_getTransactionReceipt",
+          finding: "Null — nothing was ever mined under it.",
+          provenance: "READ FROM CHAIN",
+        },
+      ];
+
+    case "pending_or_dropped":
+      return [
+        {
+          check: "Transaction lookup",
+          method: "eth_getTransactionByHash",
+          finding: "Found — the transaction was broadcast to the network.",
+          provenance: "READ FROM CHAIN",
+        },
+        {
+          check: "Receipt lookup",
+          method: "eth_getTransactionReceipt",
+          finding:
+            "Null. Either still waiting in the mempool or dropped — public RPC cannot tell the two apart, so this panel reports the uncertainty instead of guessing.",
+          provenance: "STATED",
+          smokingGun: true,
+        },
+      ];
+
+    case "success": {
+      const fee = statOf(diag, "Fee paid");
+      const steps: TrailStep[] = [
+        {
+          check: "The mined receipt",
+          method: "eth_getTransactionReceipt",
+          finding: "status 0x1 — every state change in this transaction went through.",
+          provenance: "READ FROM CHAIN",
+          smokingGun: true,
+        },
+      ];
+      if (gasUsed && gasLimit)
+        steps.push({
+          check: "Gas audit",
+          method: "receipt gasUsed × effectiveGasPrice",
+          finding: `${gasUsed} of ${gasLimit} gas burned${fee ? ` · fee ${fee}` : ""}.`,
+          provenance: "READ FROM CHAIN",
+        });
+      if (diag.explanation.includes("≥95%"))
+        steps.push({
+          check: "Headroom warning",
+          method: "gasUsed ÷ gasLimit",
+          finding:
+            "≥95% of the gas limit burned — it succeeded, but an identical call with slightly more work could run out of gas.",
+          provenance: "INFERENCE",
+        });
+      const created = statOf(diag, "Contract created");
+      if (created)
+        steps.push({
+          check: "Deployment",
+          method: "receipt contractAddress",
+          finding: `A new contract was created at ${created}.`,
+          provenance: "READ FROM CHAIN",
+        });
+      return steps;
+    }
+
+    case "intrinsic_gas_too_low":
+      return [
+        receiptFailed,
+        {
+          check: "Intrinsic-gas check",
+          method: "transaction gasLimit",
+          finding: `Limit ${gasLimit ?? "?"} — below the 21,000 every transaction costs before a single instruction runs. Execution never started; the whole limit was consumed as the fee.`,
+          provenance: "READ FROM CHAIN",
+          smokingGun: true,
+        },
+      ];
+
+    case "out_of_gas": {
+      const steps: TrailStep[] = [receiptFailed];
+      if (intrinsicCleared) steps.push(intrinsicCleared);
+      steps.push({
+        check: "gasUsed vs gasLimit",
+        method: "receipt + transaction",
+        finding: `${gasUsed} == ${gasLimit} — the classic signature. The call was halted mid-execution; every state change rolled back; the fee was still paid.`,
+        provenance: "READ FROM CHAIN",
+        smokingGun: true,
+      });
+      if (diag.fixes[0]?.startsWith("A live estimate"))
+        steps.push({
+          check: "Live re-estimate",
+          method: "eth_estimateGas on the exact call",
+          finding: diag.fixes[0],
+          provenance: "READ FROM CHAIN",
+        });
+      return steps;
+    }
+
+    case "insufficient_balance":
+      return [
+        receiptFailed,
+        ...(intrinsicCleared ? [intrinsicCleared] : []),
+        ...(oogCleared ? [oogCleared] : []),
+        {
+          check: "Sender balance at block−1",
+          method: "eth_getBalance",
+          finding: firstSentence(diag.explanation),
+          provenance: "READ FROM CHAIN",
+          smokingGun: true,
+        },
+      ];
+
+    case "insufficient_allowance":
+      return [
+        receiptFailed,
+        ...(intrinsicCleared ? [intrinsicCleared] : []),
+        ...(oogCleared ? [oogCleared] : []),
+        {
+          check: "Calldata decode",
+          method: "transferFrom selector 0x23b872dd",
+          finding:
+            "A transferFrom call — owner, spender and amount decoded word by word from the calldata.",
+          provenance: "INFERENCE",
+        },
+        {
+          check: "Allowance at block−1",
+          method: "eth_call allowance(owner, spender)",
+          finding: firstSentence(diag.explanation),
+          provenance: "READ FROM CHAIN",
+          smokingGun: true,
+        },
+      ];
+
+    case "insufficient_token_balance":
+      return [
+        receiptFailed,
+        ...(intrinsicCleared ? [intrinsicCleared] : []),
+        ...(oogCleared ? [oogCleared] : []),
+        {
+          check: "Allowance at block−1",
+          method: "eth_call allowance(owner, spender)",
+          finding: "The approval covered the amount — allowance was not the problem.",
+          provenance: "INFERENCE",
+        },
+        {
+          check: "Owner token balance at block−1",
+          method: "eth_call balanceOf(owner)",
+          finding: firstSentence(diag.explanation),
+          provenance: "READ FROM CHAIN",
+          smokingGun: true,
+        },
+      ];
+
+    case "no_code_at_destination": {
+      const to = statOf(diag, "To");
+      return [
+        receiptFailed,
+        ...(intrinsicCleared ? [intrinsicCleared] : []),
+        ...(oogCleared ? [oogCleared] : []),
+        {
+          check: "Destination code at block−1",
+          method: "eth_getCode",
+          finding: `0x — ${to ?? "the destination"} held no contract code, yet the transaction carried calldata meant for a contract. Nothing could execute.`,
+          provenance: "READ FROM CHAIN",
+          smokingGun: true,
+        },
+      ];
+    }
+
+    case "revert_with_reason":
+    case "revert_panic":
+    case "revert_custom": {
+      const decodeStep: TrailStep =
+        v === "revert_with_reason"
+          ? {
+              check: "Revert-data decode",
+              method: "Error(string) · selector 0x08c379a0",
+              finding:
+                quotedReason(diag.explanation) !== null
+                  ? `The contract explained itself: "${quotedReason(diag.explanation)}" — the logic rejected the call on purpose.`
+                  : firstSentence(diag.explanation),
+              provenance: "READ FROM CHAIN",
+              smokingGun: true,
+            }
+          : v === "revert_panic"
+            ? {
+                check: "Revert-data decode",
+                method: "Panic(uint256) · selector 0x4e487b71",
+                finding: firstSentence(diag.explanation),
+                provenance: "INFERENCE",
+                smokingGun: true,
+              }
+            : {
+                check: "Revert-data decode",
+                method: "4-byte custom-error selector",
+                finding: `${firstSentence(diag.explanation)} The name lives in the contract's ABI — reported as the selector, never invented.`,
+                provenance: "READ FROM CHAIN",
+                smokingGun: true,
+              };
+      return [
+        receiptFailed,
+        ...(intrinsicCleared ? [intrinsicCleared] : []),
+        ...(oogCleared ? [oogCleared] : []),
+        codePresent,
+        {
+          check: "Replay at block−1",
+          method: "eth_call with the exact pre-state calldata",
+          finding:
+            "Reproduced the revert against the pre-transaction state — the failure is deterministic, not a fluke of block conditions.",
+          provenance: "READ FROM CHAIN",
+        },
+        decodeStep,
+      ];
+    }
+
+    case "revert_constructor_reason":
+    case "revert_constructor_panic":
+    case "revert_constructor_custom":
+    case "revert_constructor": {
+      const decodeStep: TrailStep | null =
+        v === "revert_constructor_reason"
+          ? {
+              check: "Revert-data decode",
+              method: "Error(string) from the init-code replay",
+              finding:
+                quotedReason(diag.explanation) !== null
+                  ? `The constructor explained itself: "${quotedReason(diag.explanation)}".`
+                  : firstSentence(diag.explanation),
+              provenance: "READ FROM CHAIN",
+              smokingGun: true,
+            }
+          : v === "revert_constructor_panic"
+            ? {
+                check: "Revert-data decode",
+                method: "Panic(uint256) from the init-code replay",
+                finding: firstSentence(diag.explanation),
+                provenance: "INFERENCE",
+                smokingGun: true,
+              }
+            : v === "revert_constructor_custom"
+              ? {
+                  check: "Revert-data decode",
+                  method: "4-byte custom-error selector from the init-code replay",
+                  finding: `${firstSentence(diag.explanation)} Reported as the selector, never invented.`,
+                  provenance: "READ FROM CHAIN",
+                  smokingGun: true,
+                }
+              : null;
+      return [
+        receiptFailed,
+        {
+          check: "Transaction shape",
+          method: "eth_getTransactionByHash",
+          finding: "No `to` address — this transaction was a contract creation.",
+          provenance: "READ FROM CHAIN",
+        },
+        {
+          check: "Init-code replay at block−1",
+          method: "eth_call with the init code, no destination",
+          finding:
+            v === "revert_constructor"
+              ? "The constructor reverted with no decodable payload — the deployment was rolled back and no contract exists."
+              : "Reproduced the constructor revert — the deployment never happened.",
+          provenance: "READ FROM CHAIN",
+          smokingGun: decodeStep === null,
+        },
+        ...(decodeStep ? [decodeStep] : []),
+      ];
+    }
+
+    case "revert_silent":
+      return [
+        receiptFailed,
+        ...(intrinsicCleared ? [intrinsicCleared] : []),
+        ...(oogCleared ? [oogCleared] : []),
+        {
+          check: "Destination code",
+          method: "eth_call replay at block−1",
+          finding:
+            "The replay reverted — only contract code can revert, so the call reached live logic.",
+          provenance: "INFERENCE",
+        },
+        {
+          check: "Replay at block−1",
+          method: "eth_call with the exact pre-state calldata",
+          finding:
+            "Reproduced the revert with an empty payload — no reason string, no error data. The contract gave no explanation.",
+          provenance: "READ FROM CHAIN",
+        },
+        {
+          check: "Gas-burn read",
+          method: "receipt gasUsed ÷ gasLimit",
+          finding: firstSentence(diag.explanation),
+          provenance: "INFERENCE",
+          smokingGun: true,
+        },
+      ];
+
+    default:
+      // unknown — and any future verdict the trail doesn't name yet.
+      return [
+        receiptFailed,
+        ...(intrinsicCleared ? [intrinsicCleared] : []),
+        ...(oogCleared ? [oogCleared] : []),
+        codePresent,
+        {
+          check: "Replay at block−1",
+          method: "eth_call with the exact pre-state calldata",
+          finding:
+            "No decodable revert data — none of the known failure signatures matched.",
+          provenance: "READ FROM CHAIN",
+        },
+        {
+          check: "The honest answer",
+          method: "—",
+          finding:
+            "Unknown. Rather than invent a cause, this report shows the raw receipt below.",
+          provenance: "UNVERIFIED",
+          smokingGun: true,
+        },
+      ];
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Small presentational pieces                                         */
+/* ------------------------------------------------------------------ */
+
+const PROV_DOT: Record<ProvenanceTag, string> = {
+  "READ FROM CHAIN": "bg-pass",
+  INFERENCE: "bg-accent",
+  STATED: "bg-slate",
+  UNVERIFIED: "border border-slate bg-transparent",
+};
+
+function ProvenanceChip({ tag }: { tag: ProvenanceTag }) {
+  return (
+    <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white px-2.5 py-0.5 text-xs font-bold text-slate">
+      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${PROV_DOT[tag]}`} />
+      {tag}
+    </span>
+  );
+}
+
+function VerdictStamp({ diag }: { diag: Diagnosis }) {
+  const reduce = useReducedMotion();
+  const { text, tone } =
+    diag.verdictId === "success"
+      ? { text: "Executed", tone: "pass" as const }
+      : diag.verdictId === "not_found"
+        ? { text: "No record", tone: "neutral" as const }
+        : diag.verdictId === "pending_or_dropped"
+          ? { text: "Unmined", tone: "neutral" as const }
+          : diag.verdictId === "unknown"
+            ? { text: "Undetermined", tone: "neutral" as const }
+            : { text: "Cause of death", tone: "fail" as const };
+  const toneClass =
+    tone === "fail"
+      ? "border-fail text-fail"
+      : tone === "pass"
+        ? "border-pass text-pass"
+        : "border-slate text-slate";
+  return (
+    <motion.span
+      initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.15 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: reduce ? 0 : 0.3, ease: "easeOut" }}
+      className={`inline-flex items-center rounded-lg border-2 bg-white px-3 py-1.5 text-sm font-extrabold uppercase tracking-wide ${toneClass}`}
+      style={{ boxShadow: "0 2px 8px rgba(11,21,51,0.12)" }}
+    >
+      {text}
+    </motion.span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Component                                                           */
+/* ------------------------------------------------------------------ */
+
+const ROW_ORDER = [
+  "Block",
+  "Gas used / limit",
+  "Fee paid",
+  "Value",
+  "From",
+  "To",
+  "Logs emitted",
+  "Contract created",
+  "Gas limit",
+];
 
 export default function TrySupport({ lamp }: { lamp: Lamp }) {
   const [input, setInput] = useState("");
@@ -800,10 +1331,13 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
     }
   };
 
-  const copySummary = async () => {
+  const copyAutopsy = async () => {
     if (!diag || !activeHash) return;
+    const trail = buildTrail(diag);
     const text =
-      `${diag.title}\n\n${diag.explanation}\n\nWhat to do next:\n` +
+      `AUTOPSY REPORT — ${activeHash}\n${diag.title}\n\n${diag.explanation}\n\nEvidence trail:\n` +
+      trail.map((t, i) => `${i + 1}. ${t.check} [${t.method}] — ${t.finding} (${t.provenance})`).join("\n") +
+      `\n\nWhat to change next time:\n` +
       diag.fixes.map((f) => `- ${f}`).join("\n") +
       `\n\nProvenance: ${diag.provenance}\nExplorer: ${EXPLORER_TX}${activeHash}`;
     try {
@@ -815,29 +1349,36 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
     }
   };
 
+  const trail = diag ? buildTrail(diag) : [];
   const rows =
-    diag?.stats.map((s) => ({
-      label: s.label,
-      value: <span title={s.value}>{shortAddr(s.value)}</span>,
-    })) ?? [];
+    diag?.stats
+      .filter((s) => ROW_ORDER.includes(s.label))
+      .sort((a, b) => ROW_ORDER.indexOf(a.label) - ROW_ORDER.indexOf(b.label))
+      .map((s) => ({
+        label: s.label,
+        value: <span title={s.value}>{shortAddr(s.value)}</span>,
+      })) ?? [];
+
+  const headline = diag ? headlineFor(diag) : "";
 
   return (
     <div className="space-y-6">
-      {/* 01 — Configure */}
-      <section aria-label="Configure the diagnosis">
-        <p className="text-sm font-semibold text-slate mb-3">01 · Configure — the transaction to diagnose</p>
+      {/* 01 — Open a case file */}
+      <section aria-label="Open a case file">
+        <p className="text-sm font-semibold text-slate mb-3">01 · Open a case file</p>
 
         <div className="rounded-2xl border border-hairline bg-porcelain p-4 sm:p-5">
           <p className="text-sm leading-relaxed text-ink">
             <strong>{lamp.name}</strong>: every failed tx, explained. Paste{" "}
-            <strong>any</strong> Pharos Atlantic transaction hash — a preset
-            below or <strong>your own failed transaction</strong> — and get a
-            plain-language diagnosis with the receipt to prove it.
+            <strong>any</strong> Pharos Atlantic transaction hash — a case file
+            below, or <strong>your own failed transaction</strong> — and get the
+            cause of death, the evidence, and the fix.
           </p>
           <p className="mt-2 text-sm leading-relaxed text-slate">
             Live JSON-RPC reads against Atlantic (chain 688689). No wallet, no
-            signature, costs nothing. Unknown cases say "unknown" and show the
-            raw receipt — nothing is invented.
+            signature, costs nothing. When the cause can't be determined, the
+            report says "unknown" and shows the raw receipt — nothing is
+            invented.
           </p>
         </div>
 
@@ -879,10 +1420,10 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
 
         <div className="mt-4">
           <p className="mb-2 text-sm font-semibold text-slate">
-            Try a real failure — mined on Atlantic
+            Open a real case — mined on Atlantic
           </p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {PRESETS.map((p) => (
+            {PRESETS.map((p, i) => (
               <button
                 key={p.id}
                 type="button"
@@ -895,8 +1436,23 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
                 }}
                 disabled={loading}
               >
-                <span className="block text-sm font-bold text-ink">{p.label}</span>
-                <span className="mt-0.5 block font-mono text-xs text-slate">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate">
+                    CASE {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {activeHash === p.hash && (
+                    <span className="text-xs font-bold text-accent">Open</span>
+                  )}
+                </span>
+                <span className="mt-1 block text-sm font-bold text-ink">{p.label}</span>
+                <span
+                  className={`mt-0.5 block text-xs font-bold ${
+                    p.id === "success" ? "text-pass" : "text-fail"
+                  }`}
+                >
+                  {p.cause}
+                </span>
+                <span className="mt-1 block font-mono text-xs text-slate">
                   {p.hash.slice(0, 12)}…{p.hash.slice(-8)}
                 </span>
                 <span className="mt-1 block text-xs leading-relaxed text-slate">{p.note}</span>
@@ -931,14 +1487,24 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
         </section>
       )}
 
-      {/* 03 — Result */}
+      {/* 03 — Result: the autopsy report */}
       {diag && !loading && !error && activeHash && (
-        <section aria-label="Diagnosis result">
-          <p className="text-sm font-semibold text-slate mb-3">03 · Result</p>
+        <section aria-label="Autopsy report">
+          <p className="text-sm font-semibold text-slate mb-3">03 · Result — the autopsy report</p>
+
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate">Case file</p>
+              <p className="truncate font-mono text-sm text-ink" title={activeHash}>
+                {activeHash.slice(0, 18)}…{activeHash.slice(-10)}
+              </p>
+            </div>
+            <VerdictStamp diag={diag} />
+          </div>
 
           <ResultCard
-            eyebrow="Diagnosis — Pharos Atlantic"
-            headline={HEADLINES[diag.verdictId] ?? diag.title}
+            eyebrow="Autopsy report — Atlantic chain 688689"
+            headline={headline}
             subline={diag.explanation}
             rows={rows}
             links={[
@@ -947,11 +1513,57 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
             copyValue={activeHash}
             status={statusOf(diag.kind)}
           >
-            {/* The fix, as a callout */}
-            <div className="rounded-xl border-l-4 border-accent bg-tint p-4 sm:p-5">
+            {/* The evidence trail */}
+            <div className="rounded-2xl border border-hairline bg-porcelain p-4 sm:p-6">
+              <p className="flex items-center gap-2 text-sm font-bold text-ink">
+                <Microscope size={16} className="shrink-0 text-accent" aria-hidden />
+                The evidence trail
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate">
+                Every check the diagnosis ran, in order — including the ones it
+                ruled out. Each claim carries its provenance.
+              </p>
+              <ol className="mt-2">
+                {trail.map((t, i) => (
+                  <li
+                    key={i}
+                    className={`flex gap-3 border-hairline py-4 sm:gap-4 ${
+                      i === 0 ? "" : "border-t"
+                    }`}
+                  >
+                    <span
+                      aria-hidden
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
+                        t.smokingGun
+                          ? "border-2 border-fail bg-white text-fail"
+                          : "border border-hairline bg-white text-slate"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-ink">
+                        {t.check}
+                        {t.smokingGun && (
+                          <span className="ml-2 inline-block rounded-full border border-fail bg-white px-2 py-0.5 align-middle text-xs font-bold text-fail">
+                            the smoking gun
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-0.5 font-mono text-xs text-slate">{t.method}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-ink">{t.finding}</p>
+                      <ProvenanceChip tag={t.provenance} />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {/* What to change next time */}
+            <div className="mt-5 rounded-xl border-l-4 border-accent bg-tint p-4 sm:p-5">
               <p className="flex items-center gap-2 text-sm font-bold text-ink">
                 <Wrench size={16} className="shrink-0 text-accent" aria-hidden />
-                What to do next
+                What to change next time
               </p>
               <ol className="mt-2 space-y-1.5">
                 {diag.fixes.map((f, i) => (
@@ -965,46 +1577,51 @@ export default function TrySupport({ lamp }: { lamp: Lamp }) {
               </ol>
             </div>
 
-            {diag.revertData && (
-              <div className="mt-5">
-                <p className="mb-1.5 text-sm font-semibold text-slate">
-                  Revert payload (from replay)
-                </p>
-                <div className="break-all rounded-xl border border-hairline bg-porcelain p-3 font-mono text-xs leading-relaxed text-ink">
-                  {diag.revertData}
+            {/* For the skeptical */}
+            <div className="mt-5 rounded-2xl border border-hairline bg-porcelain p-4 sm:p-5">
+              <p className="flex items-center gap-2 text-sm font-bold text-ink">
+                <FileText size={16} className="shrink-0 text-accent" aria-hidden />
+                For the skeptical
+              </p>
+              {diag.revertData && (
+                <div className="mt-3">
+                  <p className="mb-1.5 text-sm font-semibold text-slate">
+                    Revert payload (from replay)
+                  </p>
+                  <div className="break-all rounded-xl border border-hairline bg-white p-3 font-mono text-xs leading-relaxed text-ink">
+                    {diag.revertData}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            <p className="mt-5 text-xs leading-relaxed text-slate">
-              <span className="font-bold text-ink">Provenance: </span>
-              {diag.provenance}
-            </p>
-
-            {diag.rawReceipt != null && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  className="btn-outline !min-h-0 !px-3 !py-1.5 text-xs"
-                  onClick={() => setShowRaw((v) => !v)}
-                >
-                  {showRaw ? "Hide raw receipt" : "Show raw receipt"}
-                </button>
-                {showRaw && (
-                  <pre className="mt-2 max-h-72 overflow-auto whitespace-pre rounded-xl border border-hairline bg-porcelain p-3 font-mono text-xs leading-relaxed text-ink">
-                    {JSON.stringify(diag.rawReceipt, null, 2)}
-                  </pre>
-                )}
-              </div>
-            )}
+              )}
+              <p className="mt-3 text-sm leading-relaxed text-slate">
+                <span className="font-bold text-ink">Provenance: </span>
+                {diag.provenance}
+              </p>
+              {diag.rawReceipt != null && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    className="btn-outline !min-h-0 !px-3 !py-1.5 text-xs"
+                    onClick={() => setShowRaw((v) => !v)}
+                  >
+                    {showRaw ? "Hide raw receipt" : "Show raw receipt"}
+                  </button>
+                  {showRaw && (
+                    <pre className="mt-2 max-h-72 overflow-auto whitespace-pre rounded-xl border border-hairline bg-white p-3 font-mono text-xs leading-relaxed text-ink">
+                      {JSON.stringify(diag.rawReceipt, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+            </div>
           </ResultCard>
 
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" className="btn-outline" onClick={() => run(activeHash)}>
               Re-run diagnosis
             </button>
-            <button type="button" className="btn-outline" onClick={copySummary}>
-              {copied ? "Copied to clipboard" : "Copy plain-language summary"}
+            <button type="button" className="btn-outline" onClick={copyAutopsy}>
+              {copied ? "Copied to clipboard" : "Copy the autopsy summary"}
             </button>
           </div>
         </section>
