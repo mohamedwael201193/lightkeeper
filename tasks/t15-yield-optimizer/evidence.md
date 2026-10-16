@@ -35,22 +35,45 @@ scan (5 txs — chain near-idle). Result: `third_party_yield_venues_found: 0`.
 - `runs/unsigned_deposit.json` — unsigned Kelp deposit tx (`signed: false`, no v/r/s)
   for user signature.
 
-## Live stake → claim → withdraw run
+## Live stake → claim → withdraw run — COMPLETE
 
-**Status: PENDING — see blocker note below.** Planned and queued:
+Full lifecycle proven on both vaults. Every amount below is event-verified from
+receipt logs.
 
-1. Stake 0.02 PHRS Kelp (optimizer recommendation) + 0.01 PHRS Kraken (rate verification)
-2. Wait ~120 blocks, read `pendingReward` views
-3. Claim both; verify `balance_delta == (claimBlock − stakeBlock) × rewardPerBlock` to the wei
-4. Withdraw both (Kelp fee-free after 100-block hold; Kraken pays the 1% early-exit fee —
-   the fee mechanics demonstrated live)
+**Stakes** (both status 1):
 
-**Blocker (flagged to coordinator):** the shared nonce lock `/tmp/lk-nonce.lock` is held
-by the T24 worker, whose `wait-receipt.mjs` has been stuck 3+ hours on tx
-`0xef21ab8087c6983a2e5c320937f71373451fc8703c0e31ceb0dd0c80034a91e6` — which returns
-"tx not found" on-chain (dropped/never broadcast). T15's stake worker is queued on the
-lock and proceeds automatically the moment it frees. All non-broadcast deliverables are
-complete; the claim-math proof will be appended here when the run executes.
+| | Kelp stake | Kraken stake |
+|---|---|---|
+| Tx | [0x67784abb…8d0c5](https://atlantic.pharosscan.xyz/tx/0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5) | [0x01e6ce14…c766](https://atlantic.pharosscan.xyz/tx/0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766) |
+| Block | 31483596 | 31483602 |
+| Principal | 0.02 PHRS | 0.01 PHRS |
+| Entry fee (on-chain) | 0 (0 bps) | 0.0001 PHRS (100 bps → reward pool) |
+| Net staked | 0.02 PHRS | 0.0099 PHRS |
+
+**Claims** (both status 1) — the yield-math proof:
+
+| | Kelp claim | Kraken claim |
+|---|---|---|
+| Tx | [0x6452e916…ea44e2](https://atlantic.pharosscan.xyz/tx/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2) | [0x6decfa5c…73da09](https://atlantic.pharosscan.xyz/tx/0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09) |
+| Block | 31483737 | 31483743 |
+| `Claimed` event | 1,410,000,000,000,000 wei | 3,524,999,999,999,999 wei |
+| Proof | (31483737−31483596) × 1e13 = **exact to the wei** | 141 blocks × 2.5e13 pro-rata = **exact to the wei** vs the on-chain integer-division formula (1 wei truncation vs naive — documented, not hidden) |
+
+**Withdrawals** (both status 1) — the fee mechanics, live:
+
+| | Kelp withdraw | Kraken withdraw |
+|---|---|---|
+| Tx | [0x11714e6f…af87d9d2](https://atlantic.pharosscan.xyz/tx/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2) | [0x3dc2ac68…eec6e32](https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32) |
+| Block | 31483757 | 31483766 |
+| Harvest on exit | 200,000,000,000,000 (= 20 × 1e13, exact) | 575,000,000,000,000 (= 23 × 2.5e13, exact) |
+| Principal out | 0.02 (full) | 0.009801 |
+| Exit fee | **0** — withdrawn after the 100-block hold | **0.000099** — exactly 100 bps of 0.0099 (early exit, before 400-block hold; fee → reward pool) |
+
+Total testnet rewards harvested: 5,709,999,999,999,999 wei (≈0.00571 PHRS, zero
+monetary value). Operator principal fully returned.
+
+**Earlier blocker (RESOLVED):** the shared nonce lock had been held 8+ hours by a
+stuck T24 worker; it freed and the whole run executed first-try thereafter.
 
 ## Spend log
 
@@ -59,8 +82,15 @@ complete; the claim-math proof will be appended here when the run executes.
 | Deploy Kelp (fee) | 0.000992755 |
 | Deploy Kraken (fee) | 0.000992803 |
 | Vault funding (2 × 0.01) | 0.020000000 |
-| **Total so far** | **0.021985558** |
+| Stake Kelp (fee) | 0.000102375 |
+| Stake Kraken (fee) | 0.000105175 |
+| Claim Kelp (fee) | 0.000089777 |
+| Claim Kraken (fee) | 0.000089777 |
+| Withdraw Kelp (fee) | 0.000053605 |
+| Withdraw Kraken (fee) | 0.000053980 |
+| **Total** | **0.022480247** |
 | Budget | 0.150000000 |
-| Remaining | 0.128014442 |
+| Remaining | 0.127519753 |
+| Rewards harvested (testnet, zero value) | 0.005710000 PHRS |
 
 Machine-readable: `evidence.json`.

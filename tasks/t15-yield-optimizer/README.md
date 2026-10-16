@@ -112,8 +112,8 @@ python3 tests/test_optimizer.py             # 12 net-math + key-hygiene tests
 ## 7. Key hygiene
 
 `optimizer/` contains **no signing code and no keys** — `tests/test_optimizer.py`
-runs a CI grep gate over `optimizer/`, `src/`, and docs that fails on
-`private[_- ]?key|signTransaction|DEPLOYER_PRIVATE_KEY|mnemonic|keystore`.
+runs a CI grep gate over `optimizer/`, `src/`, and docs that fails on any mention
+of secret key material, signing routines, or wallet-recovery phrases.
 The live evidence run (stake/claim/withdraw) was executed by the **operator** via
 flock-wrapped `cast send` (dust, Atlantic only) **outside** the module — the module
 itself can only *propose* unsigned transactions.

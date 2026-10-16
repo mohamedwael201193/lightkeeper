@@ -5,7 +5,7 @@ points: 200
 toolkit: DeFi / Portfolio
 network: Pharos Atlantic testnet (chain id 688689) ONLY. Never mainnet.
 budget_phrs: 0.15
-status: built — live evidence on Atlantic
+status: COMPLETE — full lifecycle proven live (stake -> claim -> withdraw, exact wei-level math)
 
 official_requirements:
   - Compares >=3 yield sources on LIVE on-chain data.

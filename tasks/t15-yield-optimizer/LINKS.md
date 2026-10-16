@@ -4,7 +4,12 @@
 
 - Deploy OctopusVault-Kelp: https://atlantic.pharosscan.xyz/tx/0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9
 - Deploy OctopusVault-Kraken: https://atlantic.pharosscan.xyz/tx/0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd
-- Stake / claim / withdraw txs: PENDING (queued on nonce lock — see evidence.md)
+- Stake Kelp: https://atlantic.pharosscan.xyz/tx/0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5
+- Stake Kraken: https://atlantic.pharosscan.xyz/tx/0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766
+- Claim Kelp: https://atlantic.pharosscan.xyz/tx/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2
+- Claim Kraken: https://atlantic.pharosscan.xyz/tx/0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09
+- Withdraw Kelp: https://atlantic.pharosscan.xyz/tx/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2
+- Withdraw Kraken: https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32
 
 ## Contracts
 
