@@ -23,6 +23,16 @@ limit 48,080; real dust deposit + transfer → eth_getLogs matched 1/1 to the
 tx hash), plus a fail-closed probe. 10/10 tests pass, including live read-only
 re-verification of every procedure. Total spend: 0.0000559 PHRS.
 
+**Console try-it-live (2026-10-16):** the T13 lamp page on the LIGHTKEEPER
+console ships an interactive "Explain then prove" panel
+(`apps/console/src/components/try/t13-docs-chain-agent.tsx`) — the
+differentiator: docs-grounded explanation (DOC-GROUNDED / INFERENCE citations
+with doc URLs, retrieval dates, verbatim excerpts) and the LIVE on-chain
+execution of that exact function, decoded and interpreted, side by side.
+Covers totalSupply(), decimals(), name(), symbol(), balanceOf(address) — and
+fails closed with [UNVERIFIED] (executing nothing) for anything the docs
+don't cover. Free reads, no wallet.
+
 ## Links
 
 - Code (commit-pinned):
