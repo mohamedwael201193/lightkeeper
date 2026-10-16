@@ -22,6 +22,8 @@
  * asserted before any check).
  */
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, ExternalLink, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 import type { Lamp } from "../../types";
 import { weiToPhrs } from "../../types";
 import {
@@ -30,6 +32,7 @@ import {
   isValidAddress,
   rpcCall,
 } from "../../hooks/useAtlantic";
+import { ResultCard, ProgressLoader, ErrorState, StatStrip } from "../ui";
 import { keccak256Hex } from "./keccak256";
 
 type Verdict = "PASS" | "FLAG" | "UNKNOWN" | "N/A";
@@ -78,6 +81,22 @@ const LOG_CHUNK_BLOCKS = 1000;
 const BURST_OUTBOUND_TXS = 500;
 const LOW_DIVERSITY_MAX_PEERS = 2;
 const MAX_APPROVAL_SPENDERS = 5;
+
+/**
+ * ProgressLoader steps — one per real RPC phase of the scan. Steps 2–4
+ * evaluate from the core reads batch (state-driven completion, never a timer).
+ */
+const STEPS = [
+  "Connecting — chain ID + latest block",
+  "Check 1 of 8 — Account age: first-activity probe",
+  "Check 2 of 8 — Funding pattern: balance + transaction count",
+  "Check 3 of 8 — Native balance",
+  "Check 4 of 8 — Account type: bytecode read",
+  "Check 5 of 8 — Activity window: nonce delta",
+  "Check 6 of 8 — Token counterparties: Transfer log scan",
+  "Check 7 of 8 — Approval hygiene: Approval log scan",
+  "Check 8 of 8 — Watchlist check + composite verdict",
+];
 
 const blockHex = (n: number): string => "0x" + n.toString(16);
 const addrToTopic = (a: string): string => "0x" + "0".repeat(24) + a.slice(2).toLowerCase();
@@ -185,26 +204,52 @@ function verdictChip(v: Verdict): string {
   return "chip chip-dim";
 }
 
+function VerdictIcon({ v }: { v: Verdict }) {
+  if (v === "FLAG") return <ShieldAlert size={16} className="shrink-0 text-fail" aria-hidden />;
+  if (v === "UNKNOWN") return <ShieldQuestion size={16} className="shrink-0 text-accent" aria-hidden />;
+  if (v === "PASS") return <ShieldCheck size={16} className="shrink-0 text-pass" aria-hidden />;
+  return null;
+}
+
+/** Numbered act header for the 01 → 02 → 03 journey. */
+function ActHeader({ num, title, hint }: { num: string; title: string; hint?: string }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span className="font-display text-lg font-bold text-accent">{num}</span>
+      <h2 className="text-xl font-bold text-ink">{title}</h2>
+      {hint && <p className="text-sm text-slate">{hint}</p>}
+    </div>
+  );
+}
+
+const shortAddr = (a: string) => `${a.slice(0, 10)}…${a.slice(-6)}`;
+
 export default function TryRisk({ lamp }: { lamp: Lamp }) {
   const [input, setInput] = useState("");
-  const [phase, setPhase] = useState<string | null>(null);
+  const [step, setStep] = useState<number | null>(null);
+  const [stepDetail, setStepDetail] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retry: boolean } | null>(null);
   const [report, setReport] = useState<ScanReport | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const runScan = async () => {
     const address = input.trim();
     if (!isValidAddress(address)) {
-      setError("That is not a valid address — paste a 0x address with 40 hex characters.");
+      setError({
+        message: "That is not a valid address — paste a 0x address with 40 hex characters.",
+        retry: false,
+      });
       return;
     }
     setScanning(true);
     setError(null);
     setReport(null);
+    setStep(0);
+    setStepDetail(null);
 
     try {
       // Chain assertion first — refuse any network but Atlantic.
-      setPhase("Asserting chain ID 688689…");
       const chainId = (await rpcCall("eth_chainId", [])) as string;
       if (chainId.toLowerCase() !== ATLANTIC_CHAIN_ID_HEX.toLowerCase()) {
         throw new Error(
@@ -217,7 +262,6 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       const winFrom = Math.max(0, latest - LOG_WINDOW_BLOCKS);
 
       // S3 / S2 / S4 core reads, pinned to the same latest block.
-      setPhase("Reading balance, transaction count and bytecode…");
       const [balanceWeiHex, nonceHex, code] = (await Promise.all([
         rpcCall("eth_getBalance", [address, blockHex(latest)]),
         rpcCall("eth_getTransactionCount", [address, blockHex(latest)]),
@@ -233,6 +277,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       const checks: CheckResult[] = [];
 
       // ── S1 · Account age (first activity; funding age for never-outbound wallets) ──
+      setStep(1);
       if (nonce === 0n && balanceWei === 0n) {
         checks.push({
           id: "S1",
@@ -249,10 +294,10 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
         });
       } else if (nonce === 0n) {
         // Funded but never outbound: the CLI measures funding age, and so do we.
-        setPhase("Pinpointing first funding (balance binary search)…");
         const firstBlock = await firstFundedBlock(address, latest, (done, total) =>
-          setPhase(`Pinpointing first funding… ${done}/${total} probes`)
+          setStepDetail(`Pinpointing first funding… ${done}/${total} probes`)
         );
+        setStepDetail(null);
         if (firstBlock === null) {
           checks.push({
             id: "S1",
@@ -303,10 +348,10 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
           });
         }
       } else {
-        setPhase("Pinpointing first activity (nonce binary search)…");
         const firstBlock = await firstOutboundBlock(address, latest, (done, total) =>
-          setPhase(`Pinpointing first activity… ${done}/${total} probes`)
+          setStepDetail(`Pinpointing first activity… ${done}/${total} probes`)
         );
+        setStepDetail(null);
         const latestBlockObj = (await rpcCall("eth_getBlockByNumber", [blockHex(latest), false])) as {
           timestamp?: string;
         } | null;
@@ -348,6 +393,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       }
 
       // ── S2 · Transaction count / freshly-funded pattern ──
+      setStep(2);
       const fundedIdle = balanceWei > 0n && effectiveOutbound === 0n;
       checks.push({
         id: "S2",
@@ -371,6 +417,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S3 · Native balance (informational only) ──
+      setStep(3);
       checks.push({
         id: "S3",
         name: "Native balance (PHRS)",
@@ -385,6 +432,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S4 · EOA vs contract ──
+      setStep(4);
       if (isContract) {
         const bytes = (code.length - 2) / 2;
         checks.push({
@@ -420,7 +468,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       }
 
       // ── S5 · Recent activity window (nonce delta — EIP-161-aware) ──
-      setPhase("Checking recent activity (10,000-block window)…");
+      setStep(5);
       const nonceThenHex = (await rpcCall("eth_getTransactionCount", [address, blockHex(winFrom)])) as string;
       const nonceThen = BigInt(nonceThenHex);
       const effThen = isContract ? (nonceThen > 0n ? nonceThen - 1n : 0n) : nonceThen;
@@ -450,8 +498,10 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S6 · Interaction diversity (Transfer logs, topic0-only + client-side filter) ──
+      setStep(6);
       const transferTopic = keccak256Hex("Transfer(address,address,uint256)");
-      const transferScan = await scanWindowLogs(transferTopic, [], latest, setPhase, "Mapping token counterparties");
+      const transferScan = await scanWindowLogs(transferTopic, [], latest, setStepDetail, "Mapping token counterparties");
+      setStepDetail(null);
       const peers = new Set<string>();
       let myTransfers = 0;
       const me = address.toLowerCase();
@@ -494,9 +544,11 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S7 · Approval hygiene (Approval logs with owner topic) ──
+      setStep(7);
       const approvalTopic = keccak256Hex("Approval(address,address,uint256)");
       const ownerTopic = addrToTopic(address);
-      const approvalScan = await scanWindowLogs(approvalTopic, [ownerTopic], latest, setPhase, "Scanning token approvals");
+      const approvalScan = await scanWindowLogs(approvalTopic, [ownerTopic], latest, setStepDetail, "Scanning token approvals");
+      setStepDetail(null);
       const unlimitedCap = (1n << 256n) - 1n;
       const spenders = new Set<string>();
       const grants: ApprovalGrant[] = [];
@@ -543,6 +595,7 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
       });
 
       // ── S8 · Flagged-address watchlist — N/A on Atlantic testnet ──
+      setStep(8);
       checks.push({
         id: "S8",
         name: "Flagged-address interaction",
@@ -570,17 +623,43 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
               : `${unknowns} check(s) unknown — unknown is not treated as safe`
             : "0 flags, 0 unknowns (N/A checks excluded)";
 
+      setStep(STEPS.length);
       setReport({ address, latestBlock: latest, accountType, checks, composite, compositeBasis });
+      // Flags and unknowns demand attention — open those check rows by default.
+      setExpanded(Object.fromEntries(checks.map((c) => [c.id, c.verdict === "FLAG" || c.verdict === "UNKNOWN"])));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The scan failed — retry in a moment.");
+      // rpcCall already translates node failures into plain language; never raw RPC.
+      const message =
+        e instanceof Error ? e.message : "The scan failed — the Atlantic RPC did not answer. Retry in a moment.";
+      setError({ message, retry: true });
     } finally {
       setScanning(false);
-      setPhase(null);
+      setStep(null);
+      setStepDetail(null);
     }
   };
 
-  const compositeTone =
-    report?.composite === "HIGH" ? "chip chip-fail" : report?.composite === "MED" ? "chip chip-info" : "chip chip-pass";
+  const toggleCheck = (id: string) =>
+    setExpanded((prev) => ({ ...prev, [id]: !(prev[id] ?? false) }));
+
+  const retryScan = () => {
+    setError(null);
+    runScan();
+  };
+
+  // ── 03 Result derivations (all from the real scan report) ──
+  const flags = report ? report.checks.filter((c) => c.verdict === "FLAG").length : 0;
+  const unknowns = report ? report.checks.filter((c) => c.verdict === "UNKNOWN").length : 0;
+  const s7 = report?.checks.find((c) => c.id === "S7");
+  const unlimitedCount = s7?.detailRows?.filter((g) => g.unlimited).length ?? 0;
+  const s6 = report?.checks.find((c) => c.id === "S6");
+  const peerCount =
+    Number((s6?.raw.find(([k]) => k === "distinct_counterparties")?.[1] ?? "0").replace(/[^\d]/g, "")) || 0;
+
+  const ratingWord = report?.composite === "LOW" ? "Low" : report?.composite === "MED" ? "Medium" : "High";
+  const ratingColor =
+    report?.composite === "LOW" ? "text-pass" : report?.composite === "MED" ? "text-accent" : "text-fail";
+  const resultStatus = report?.composite === "LOW" ? "pass" : report?.composite === "MED" ? "neutral" : "fail";
   const verdictPlain: Record<"LOW" | "MED" | "HIGH", string> = {
     LOW: "Nothing in these checks looks suspicious. Stay alert anyway: these are heuristics, not proof of safety.",
     MED: "Something here deserves a second look before you interact. Read the flagged checks below — the explanations say exactly what to do.",
@@ -589,216 +668,324 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
 
   return (
     <div className="space-y-6">
-      {/* Tier A honesty header */}
-      <div className="rounded-xl border border-hairline bg-porcelain p-4">
-        <p className="smallcaps mb-2">Tier A — live reads · no wallet · no signature · free</p>
-        <h3 className="text-lg font-semibold text-ink">X-ray any wallet</h3>
-        <p className="mt-1 text-sm text-ink">
-          Paste an address and <strong>{lamp.name}</strong> scans it live against the Atlantic RPC:
-          all 8 checks — account age, funding pattern, balance, EOA-vs-contract, activity burst,
-          token counterparties, and approval hygiene — then prints a per-check report that{" "}
-          <strong>explains every flag in plain language</strong>, not just a score.
-        </p>
-        <p className="mt-2 text-xs text-slate">
-          Read-only: this page cannot sign or broadcast anything, and LIGHTKEEPER never sees,
-          holds, or asks for private keys. Every heuristic is labeled HEURISTIC; the composite
-          LOW/MED/HIGH is derived by the printed formula and is not an authoritative risk score.
-        </p>
-      </div>
-
-      {/* Scanner */}
-      <div className="rounded-xl border border-hairline bg-white p-4">
-        <label htmlFor="t23-address" className="smallcaps mb-2 block">
-          Atlantic address to scan
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            id="t23-address"
-            className="min-w-0 flex-1 rounded-lg border border-hairline bg-porcelain px-3 py-2 font-mono text-sm text-ink"
-            placeholder="0x…"
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              if (error) setError(null);
-            }}
-            spellCheck={false}
-            autoComplete="off"
-          />
-          <button className="btn-primary" onClick={runScan} disabled={scanning}>
-            {scanning ? "Scanning…" : "Run live scan"}
-          </button>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate">Try a demo address:</span>
-          <button
-            className="btn-outline !min-h-0 !py-1.5 !px-3 text-xs"
-            onClick={() => setInput(DEMO_ESTABLISHED)}
-            disabled={scanning}
-          >
-            Established wallet
-          </button>
-          <button
-            className="btn-outline !min-h-0 !py-1.5 !px-3 text-xs"
-            onClick={() => setInput(DEMO_FIXTURE)}
-            disabled={scanning}
-          >
-            Fresh fixture contract
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-slate">
-          The fixture is a self-deployed, known-benign test contract — its flags demonstrate the
-          mechanics, never an accusation.{" "}
-          <a
-            className="text-accent hover:underline"
-            href={`${EXPLORER_ADDRESS}${DEMO_FIXTURE}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Fixture on the explorer ↗
-          </a>
-        </p>
-        {scanning && phase && (
-          <p className="mt-3 text-sm font-semibold text-accentdeep" role="status">
-            {phase}
+      {/* ── 01 Configure ── */}
+      <section aria-label="Configure">
+        <ActHeader num="01" title="Configure" hint="Pick an Atlantic address to X-ray" />
+        <div className="rounded-2xl border border-hairline bg-porcelain p-6">
+          <p className="smallcaps mb-2">Tier A — live reads · no wallet · no signature · free</p>
+          <h3 className="font-display text-2xl font-bold text-ink">X-ray any wallet</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink">
+            Paste an address and <strong>{lamp.name}</strong> scans it live against the Atlantic RPC:
+            all 8 checks — account age, funding pattern, balance, EOA-vs-contract, activity burst,
+            token counterparties, and approval hygiene — then prints a per-check report that{" "}
+            <strong>explains every flag in plain language</strong>, not just a score.
           </p>
-        )}
-        {error && (
-          <div className="mt-3 rounded-lg bg-failbg px-3 py-2" role="alert">
-            <p className="text-sm text-fail">{error}</p>
-            <button className="btn-outline !min-h-0 !py-1.5 !px-3 text-xs mt-2" onClick={runScan} disabled={scanning}>
-              Retry the scan
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate">
+            Read-only: this page cannot sign or broadcast anything, and LIGHTKEEPER never sees,
+            holds, or asks for private keys. Every heuristic is labeled HEURISTIC; the composite
+            LOW/MED/HIGH is derived by the printed formula and is not an authoritative risk score.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-hairline bg-white p-6">
+          <label htmlFor="t23-address" className="mb-2 block text-sm font-semibold text-slate">
+            Atlantic address to scan
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              id="t23-address"
+              className="min-h-[44px] min-w-0 flex-1 rounded-lg border border-hairline bg-porcelain px-3 py-2 font-mono text-sm text-ink"
+              placeholder="0x…"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                if (error) setError(null);
+              }}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            <button className="btn-primary min-h-[44px]" onClick={runScan} disabled={scanning}>
+              {scanning ? "Scanning…" : "Run live scan"}
             </button>
           </div>
-        )}
-      </div>
-
-      {/* Report */}
-      {report && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-hairline bg-white p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className={compositeTone + " !text-sm"}>{report.composite}</span>
-              <span className="chip">{report.accountType.toUpperCase()}</span>
-              <a
-                className="font-mono text-xs text-accent hover:underline break-all"
-                href={`${EXPLORER_ADDRESS}${report.address}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {report.address} ↗
-              </a>
-              <span className="text-xs text-slate">scanned at block {report.latestBlock.toLocaleString()}</span>
-              <button className="btn-outline !min-h-0 !py-1.5 !px-3 text-xs" onClick={runScan} disabled={scanning}>
-                Re-scan (free)
-              </button>
-            </div>
-            <p className="mt-2 text-sm font-semibold text-ink">{verdictPlain[report.composite]}</p>
-            <p className="mt-1 text-xs text-slate">
-              <strong>Composite formula (HEURISTIC):</strong> {COMPOSITE_FORMULA} — this scan:{" "}
-              <strong>{report.compositeBasis}</strong>. This composite is derived from the checks
-              below by that formula; it is <strong>not</strong> an authoritative risk score.
-            </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-slate">Try a demo address:</span>
+            <button
+              className="btn-outline !min-h-[40px] !px-3 !text-sm"
+              onClick={() => setInput(DEMO_ESTABLISHED)}
+              disabled={scanning}
+            >
+              Established wallet
+            </button>
+            <button
+              className="btn-outline !min-h-[40px] !px-3 !text-sm"
+              onClick={() => setInput(DEMO_FIXTURE)}
+              disabled={scanning}
+            >
+              Fresh fixture contract
+            </button>
           </div>
+          <p className="mt-3 text-sm text-slate">
+            The fixture is a self-deployed, known-benign test contract — its flags demonstrate the
+            mechanics, never an accusation.{" "}
+            <a
+              className="text-accent hover:underline"
+              href={`${EXPLORER_ADDRESS}${DEMO_FIXTURE}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Fixture on the explorer ↗
+            </a>
+          </p>
+        </div>
+      </section>
 
-          {report.checks.map((c) => (
-            <div key={c.id} className="rounded-xl border border-hairline bg-white p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs font-bold text-slate">{c.id}</span>
-                <h4 className="text-sm font-bold text-ink">{c.name}</h4>
-                <span className={verdictChip(c.verdict)}>{c.verdict}</span>
-                {c.heuristic && <span className="chip chip-info">HEURISTIC</span>}
-              </div>
-              <div className="mt-3 overflow-x-auto rounded-lg border border-hairline bg-porcelain">
-                <table className="data-table">
-                  <tbody>
-                    {c.raw.map(([k, v]) => (
-                      <tr key={k}>
-                        <td className="w-1/3 font-mono text-xs text-slate">{k}</td>
-                        <td className="font-mono text-xs text-ink break-all">{v}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {c.detailRows && c.detailRows.length > 0 && (
-                <div className="mt-3 overflow-x-auto rounded-lg border border-hairline bg-porcelain">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th className="text-left">Token contract</th>
-                        <th className="text-left">Spender (can move the tokens)</th>
-                        <th className="text-left">Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {c.detailRows.slice(0, 12).map((g, i) => (
-                        <tr key={i}>
-                          <td>
-                            <a
-                              className="font-mono text-xs text-accent hover:underline break-all"
-                              href={`${EXPLORER_ADDRESS}${g.token}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {g.token.slice(0, 10)}…{g.token.slice(-6)} ↗
-                            </a>
-                          </td>
-                          <td>
-                            <a
-                              className="font-mono text-xs text-accent hover:underline break-all"
-                              href={`${EXPLORER_ADDRESS}${g.spender}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {g.spender.slice(0, 10)}…{g.spender.slice(-6)} ↗
-                            </a>
-                          </td>
-                          <td className={"font-mono text-xs " + (g.unlimited ? "text-fail font-bold" : "text-ink")}>
-                            {g.unlimited ? "UNLIMITED" : "limited"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {c.detailRows.length > 12 && (
-                    <p className="px-3 py-2 text-xs text-slate">
-                      + {c.detailRows.length - 12} more grant(s) — full list in the CLI report.
-                    </p>
-                  )}
+      {/* ── 02 Run ── */}
+      {scanning && step !== null && (
+        <section aria-label="Run">
+          <ActHeader num="02" title="Run" hint="Live progress — every step is a real network call" />
+          <ProgressLoader
+            steps={STEPS}
+            current={step}
+            title={`Scanning ${shortAddr(input.trim())}`}
+          />
+          {stepDetail && (
+            <p className="mt-2 text-sm font-medium text-accentdeep" role="status">
+              {stepDetail}
+            </p>
+          )}
+        </section>
+      )}
+
+      {/* ── Error ── */}
+      {error && !scanning && (
+        <ErrorState
+          title={error.retry ? "The scan failed" : "Cannot start the scan"}
+          message={error.message}
+          hint={
+            error.retry
+              ? "The address is fine — the network read is what failed. Waiting a moment and retrying usually works."
+              : undefined
+          }
+          retryLabel="Retry the scan"
+          onRetry={error.retry ? retryScan : undefined}
+        />
+      )}
+
+      {/* ── 03 Result ── */}
+      {report && !scanning && (
+        <motion.section
+          aria-label="Risk verdict"
+          className="space-y-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ActHeader num="03" title="Risk verdict" hint="The composite is a disclosed heuristic, not a score" />
+
+          <ResultCard
+            eyebrow={`Wallet risk report · Atlantic testnet · block ${report.latestBlock.toLocaleString()}`}
+            headline={
+              <>
+                <span className={ratingColor}>{ratingWord}</span> risk
+              </>
+            }
+            subline={verdictPlain[report.composite]}
+            rows={[
+              {
+                label: "Address",
+                value: (
+                  <span title={report.address}>{shortAddr(report.address)}</span>
+                ),
+              },
+              { label: "Account type", value: report.accountType === "EOA" ? "EOA" : "Contract" },
+              { label: "Checks flagged", value: `${flags} flagged · ${unknowns} unknown` },
+              { label: "Composite basis", value: report.compositeBasis },
+            ]}
+            links={[
+              { label: "View this address on the explorer", href: `${EXPLORER_ADDRESS}${report.address}` },
+            ]}
+            copyValue={report.address}
+            status={resultStatus as "pass" | "neutral" | "fail"}
+          >
+            <p className="text-sm leading-relaxed text-slate">
+              <strong className="text-ink">Composite formula (HEURISTIC):</strong> {COMPOSITE_FORMULA}.
+              This verdict is derived from the 8 checks below by that formula — it is{" "}
+              <strong className="text-ink">not</strong> an authoritative risk score.
+            </p>
+          </ResultCard>
+
+          <StatStrip
+            stats={[
+              { label: "Checks flagged", value: flags },
+              { label: "Checks unknown", value: unknowns },
+              { label: "Unlimited approvals", value: unlimitedCount },
+              { label: "Distinct counterparties", value: peerCount },
+            ]}
+          />
+
+          {/* The 8 checks as elegant rows */}
+          <div className="space-y-3" aria-label="The 8 checks">
+            {report.checks.map((c) => {
+              const open = expanded[c.id] ?? false;
+              return (
+                <div
+                  key={c.id}
+                  className="overflow-hidden rounded-2xl border border-hairline bg-white"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleCheck(c.id)}
+                    aria-expanded={open}
+                    aria-controls={`t23-check-${c.id}`}
+                    className="flex min-h-[56px] w-full items-center gap-3 px-5 py-4 text-left"
+                  >
+                    <span className="w-8 shrink-0 font-mono text-xs font-bold text-slate">{c.id}</span>
+                    <VerdictIcon v={c.verdict} />
+                    <span className="min-w-0 flex-1 text-sm font-semibold text-ink sm:text-base">
+                      {c.name}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {c.heuristic && <span className="chip chip-info">HEURISTIC</span>}
+                    </span>
+                    <span className={verdictChip(c.verdict)}>{c.verdict}</span>
+                    <ChevronDown
+                      size={18}
+                      aria-hidden
+                      className={`shrink-0 text-slate transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {open && (
+                      <motion.div
+                        id={`t23-check-${c.id}`}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="border-t border-hairline px-5 pb-5 pt-4">
+                          <div className="overflow-x-auto rounded-xl border border-hairline bg-porcelain">
+                            <table className="data-table">
+                              <tbody>
+                                {c.raw.map(([k, v]) => (
+                                  <tr key={k}>
+                                    <td className="w-1/3 font-mono text-xs text-slate">{k}</td>
+                                    <td className="break-all font-mono text-xs text-ink">{v}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* S7: the "who can drain this wallet" grant cards */}
+                          {c.detailRows && c.detailRows.length > 0 && (
+                            <div className="mt-4">
+                              <p className="mb-2 text-sm font-semibold text-ink">
+                                Who can drain this wallet — {c.detailRows.length} grant
+                                {c.detailRows.length === 1 ? "" : "s"} in the window
+                              </p>
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {c.detailRows.slice(0, 12).map((g, i) => (
+                                  <div
+                                    key={i}
+                                    className={`rounded-xl border p-3 ${
+                                      g.unlimited
+                                        ? "border-[#F3C1C1] bg-[#FEF2F2]"
+                                        : "border-hairline bg-porcelain"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span
+                                        className={`text-xs font-bold ${
+                                          g.unlimited ? "text-fail" : "text-slate"
+                                        }`}
+                                      >
+                                        {g.unlimited ? "UNLIMITED" : "limited amount"}
+                                      </span>
+                                      {g.unlimited && (
+                                        <ShieldAlert size={14} className="text-fail" aria-hidden />
+                                      )}
+                                    </div>
+                                    <p className="mt-2 text-xs text-slate">Token contract</p>
+                                    <a
+                                      className="break-all font-mono text-xs text-accent hover:underline"
+                                      href={`${EXPLORER_ADDRESS}${g.token}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      title={g.token}
+                                    >
+                                      {shortAddr(g.token)}
+                                      <ExternalLink size={11} className="ml-1 inline" aria-hidden />
+                                    </a>
+                                    <p className="mt-2 text-xs text-slate">Spender — can move the tokens</p>
+                                    <a
+                                      className="break-all font-mono text-xs text-accent hover:underline"
+                                      href={`${EXPLORER_ADDRESS}${g.spender}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      title={g.spender}
+                                    >
+                                      {shortAddr(g.spender)}
+                                      <ExternalLink size={11} className="ml-1 inline" aria-hidden />
+                                    </a>
+                                    {g.unlimited && (
+                                      <p className="mt-2 text-xs font-medium text-fail">
+                                        This spender can move ALL of this token from the wallet at
+                                        any time, until the approval is revoked.
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              {c.detailRows.length > 12 && (
+                                <p className="mt-2 text-xs text-slate">
+                                  + {c.detailRows.length - 12} more grant(s) — the full list is in
+                                  the CLI report.
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          <p className="mt-3 text-sm leading-relaxed text-ink">{c.explanation}</p>
+                          {(c.verdict === "FLAG" || c.verdict === "UNKNOWN") &&
+                            (c.whyMatters || c.whatToDo) && (
+                              <div
+                                className={`mt-3 rounded-xl px-4 py-3 ${
+                                  c.verdict === "FLAG"
+                                    ? "border border-[#F3C1C1] bg-[#FEF2F2]"
+                                    : "bg-porcelain"
+                                }`}
+                              >
+                                {c.whyMatters && (
+                                  <p className="text-sm leading-relaxed text-ink">
+                                    <strong className={c.verdict === "FLAG" ? "text-fail" : "text-ink"}>
+                                      {c.verdict === "FLAG" ? "Why this flag exists:" : "Why this matters:"}
+                                    </strong>{" "}
+                                    {c.whyMatters}
+                                  </p>
+                                )}
+                                {c.whatToDo && (
+                                  <p className="mt-1 text-sm leading-relaxed text-ink">
+                                    <strong>What to do:</strong> {c.whatToDo}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              )}
-              <p className="mt-2 text-sm text-slate">{c.explanation}</p>
-              {c.verdict === "FLAG" && c.whyMatters && (
-                <div className="mt-2 rounded-lg bg-failbg px-3 py-2">
-                  <p className="text-xs text-slate">
-                    <strong className="text-fail">Why this flag exists:</strong> {c.whyMatters}
-                  </p>
-                  {c.whatToDo && (
-                    <p className="mt-1 text-xs text-slate">
-                      <strong className="text-ink">What to do:</strong> {c.whatToDo}
-                    </p>
-                  )}
-                </div>
-              )}
-              {c.verdict === "UNKNOWN" && c.whyMatters && (
-                <div className="mt-2 rounded-lg bg-porcelain px-3 py-2">
-                  <p className="text-xs text-slate">
-                    <strong className="text-ink">Why this matters:</strong> {c.whyMatters}
-                  </p>
-                  {c.whatToDo && (
-                    <p className="mt-1 text-xs text-slate">
-                      <strong className="text-ink">What to do:</strong> {c.whatToDo}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+              );
+            })}
+          </div>
 
           {/* Coverage honesty footer */}
           <div className="empty-panel px-5 py-4">
             <p className="smallcaps mb-2">Coverage boundaries — read before quoting this report</p>
-            <ul className="list-disc pl-5 text-xs text-slate">
+            <ul className="list-disc pl-5 text-sm text-slate">
               <li>
                 This page runs all 8 checks (S1–S8) live against the public RPC, mirroring the
                 CLI at <span className="font-mono">tasks/t23-wallet-risk-checker/bin/run.mjs</span>.
@@ -808,14 +995,20 @@ export default function TryRisk({ lamp }: { lamp: Lamp }) {
               <li>Contract source verification depends on an explorer API that is currently unreachable — contracts report UNKNOWN here.</li>
               <li>A FLAG means "this on-chain pattern is worth a second look" — never "this wallet is malicious".</li>
             </ul>
-            <p className="mt-2 text-xs text-slate">
+            <p className="mt-2 text-sm text-slate">
               Evidence for the 8-check runs (both demo addresses, block numbers, tx hashes, spend
               log) lives in the task repo:{" "}
               <span className="font-mono">tasks/t23-wallet-risk-checker/evidence.json</span>.
               This page is read-only — no broadcasts, no spend, nothing to add to the spend log.
             </p>
           </div>
-        </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-outline min-h-[44px]" onClick={retryScan} disabled={scanning}>
+              Re-scan (free)
+            </button>
+          </div>
+        </motion.section>
       )}
     </div>
   );
