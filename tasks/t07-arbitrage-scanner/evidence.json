@@ -1,0 +1,396 @@
+{
+ "task": "T07-arbitrage-scanner",
+ "chain": "pharos-atlantic-testnet",
+ "chain_id": 688689,
+ "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+ "contracts": {
+  "WPHRS": {
+   "address": "0x8a81455a477deeA986ca48cE83ca89C5331Da793",
+   "deploy_tx": "0x3e20e826fd4f9453fad588364ecb6749384e04b44411a5406501ee6a0a6e1e80",
+   "block": 31481297
+  },
+  "TKB": {
+   "address": "0x8BAa4fD0329dbf77c9fBFC44448B5669D356bfe1",
+   "deploy_tx": "0x7d554b83d9e93d70dc3f94f5e496f96764128512dc125977598b9978daeaf391",
+   "block": 31481315
+  },
+  "poolA": {
+   "address": "0x8683C6D6EeAA57B03688f43Ad0cbCA0af26Cf464",
+   "deploy_tx": "0x8280c398e7eeea1c5e1cac2530bd108f1376dee1cfc82d1527e594183cb81841",
+   "block": 31481344,
+   "reserves": "1000 WPHRS / 1000 TKB"
+  },
+  "poolB": {
+   "address": "0x432BCd7bc6944Def44015bF00C82Eb50aA18A3F6",
+   "deploy_tx": "0x0592a0075a8a48848c3b32240f4ee05bda954d0f5c59ef1407813859a7f695e0",
+   "reserves": "1000 WPHRS / 980 TKB"
+  },
+  "poolC": {
+   "address": "0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D",
+   "deploy_tx": "0x3a0bc2631f958f13a016f3608eb98157a9e9b50efab994a26efc87106041e1fc",
+   "reserves": "1000 WPHRS / 1020 TKB"
+  }
+ },
+ "transactions": [
+  {
+   "label": "deploy_WPHRS",
+   "tx_hash": "0x3e20e826fd4f9453fad588364ecb6749384e04b44411a5406501ee6a0a6e1e80",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x3e20e826fd4f9453fad588364ecb6749384e04b44411a5406501ee6a0a6e1e80",
+   "gas_used": 514408,
+   "cost_phrs": 0.000514408
+  },
+  {
+   "label": "deploy_TKB",
+   "tx_hash": "0x7d554b83d9e93d70dc3f94f5e496f96764128512dc125977598b9978daeaf391",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x7d554b83d9e93d70dc3f94f5e496f96764128512dc125977598b9978daeaf391",
+   "gas_used": 514336,
+   "cost_phrs": 0.000514336
+  },
+  {
+   "label": "deploy_poolA",
+   "tx_hash": "0x8280c398e7eeea1c5e1cac2530bd108f1376dee1cfc82d1527e594183cb81841",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x8280c398e7eeea1c5e1cac2530bd108f1376dee1cfc82d1527e594183cb81841",
+   "gas_used": 727854,
+   "cost_phrs": 0.000727854
+  },
+  {
+   "label": "deploy_poolB",
+   "tx_hash": "0x0592a0075a8a48848c3b32240f4ee05bda954d0f5c59ef1407813859a7f695e0",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x0592a0075a8a48848c3b32240f4ee05bda954d0f5c59ef1407813859a7f695e0",
+   "gas_used": 727854,
+   "cost_phrs": 0.000727854
+  },
+  {
+   "label": "deploy_poolC",
+   "tx_hash": "0x3a0bc2631f958f13a016f3608eb98157a9e9b50efab994a26efc87106041e1fc",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x3a0bc2631f958f13a016f3608eb98157a9e9b50efab994a26efc87106041e1fc",
+   "gas_used": 727854,
+   "cost_phrs": 0.000727854
+  },
+  {
+   "label": "mint_WPHRS",
+   "tx_hash": "0xf44fa64b569bc10061e8b61ca44a194672527d5c72e33c03ec349b3e72090dd0",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0xf44fa64b569bc10061e8b61ca44a194672527d5c72e33c03ec349b3e72090dd0",
+   "gas_used": 70450,
+   "cost_phrs": 7.045e-05
+  },
+  {
+   "label": "mint_TKB",
+   "tx_hash": "0x469add8fb736291d0df875b65b13503d28beea69aaa9c401eba316a90add40ed",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x469add8fb736291d0df875b65b13503d28beea69aaa9c401eba316a90add40ed",
+   "gas_used": 70450,
+   "cost_phrs": 7.045e-05
+  },
+  {
+   "label": "approve_WPHRS_poolA",
+   "tx_hash": "0x20184ab3b8b3db6cb54e0e05c0541656e9e760a491703bc8b9e49313f766f224",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x20184ab3b8b3db6cb54e0e05c0541656e9e760a491703bc8b9e49313f766f224",
+   "gas_used": 46464,
+   "cost_phrs": 4.6464e-05
+  },
+  {
+   "label": "approve_TKB_poolA",
+   "tx_hash": "0xb852b827d6fecc9a2dd582299320e586e64192c91d3902bef5c5dd593599aea6",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0xb852b827d6fecc9a2dd582299320e586e64192c91d3902bef5c5dd593599aea6",
+   "gas_used": 46464,
+   "cost_phrs": 4.6464e-05
+  },
+  {
+   "label": "approve_WPHRS_poolB",
+   "tx_hash": "0x4edf8f0be6fe7405a9d22896526cd72d9612dc85040851115968debccc75975d",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x4edf8f0be6fe7405a9d22896526cd72d9612dc85040851115968debccc75975d",
+   "gas_used": 46464,
+   "cost_phrs": 4.6464e-05
+  },
+  {
+   "label": "approve_TKB_poolB",
+   "tx_hash": "0x79402e4332d572f2ba0fc5602c1d38468850b2221b0db1728cb165594e500fd5",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x79402e4332d572f2ba0fc5602c1d38468850b2221b0db1728cb165594e500fd5",
+   "gas_used": 46464,
+   "cost_phrs": 4.6464e-05
+  },
+  {
+   "label": "approve_WPHRS_poolC",
+   "tx_hash": "0x67d69373b45e4fcf048808db660547041418b5149d585d38ce9bdaf0cc687fdc",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x67d69373b45e4fcf048808db660547041418b5149d585d38ce9bdaf0cc687fdc",
+   "gas_used": 46464,
+   "cost_phrs": 4.6464e-05
+  },
+  {
+   "label": "approve_TKB_poolC",
+   "tx_hash": "0x64e8003e145469e8538fd62e21543fe6e553d8c5f116d2ccf8d7a8161b0944c8",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x64e8003e145469e8538fd62e21543fe6e553d8c5f116d2ccf8d7a8161b0944c8",
+   "gas_used": 46464,
+   "cost_phrs": 4.6464e-05
+  },
+  {
+   "label": "seed_poolA",
+   "tx_hash": "0x0358cd6c96a7b09446bf1615c986ce3168177b215622c4c4e1cfbc4c9853c347",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x0358cd6c96a7b09446bf1615c986ce3168177b215622c4c4e1cfbc4c9853c347",
+   "gas_used": 121966,
+   "cost_phrs": 0.000121966
+  },
+  {
+   "label": "seed_poolB",
+   "tx_hash": "0x8930f5f9afc801ce405a09b4851fc4969c23245ba6c043f6c7915f7f46cdd8a8",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x8930f5f9afc801ce405a09b4851fc4969c23245ba6c043f6c7915f7f46cdd8a8",
+   "gas_used": 121966,
+   "cost_phrs": 0.000121966
+  },
+  {
+   "label": "seed_poolC",
+   "tx_hash": "0x9f7fd60ccbdcb5dac69e9352bbfe952c48592c0de4c36088f7f3bfad282d2c2f",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x9f7fd60ccbdcb5dac69e9352bbfe952c48592c0de4c36088f7f3bfad282d2c2f",
+   "gas_used": 121966,
+   "cost_phrs": 0.000121966
+  },
+  {
+   "label": "arb_leg1",
+   "tx_hash": "0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30",
+   "gas_used": 68728,
+   "cost_phrs": 6.8728e-05
+  },
+  {
+   "label": "arb_leg2",
+   "tx_hash": "0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad",
+   "gas_used": 68760,
+   "cost_phrs": 6.876e-05
+  },
+  {
+   "label": "reseed_poolA",
+   "tx_hash": "0x6b9b8d9ec3b57793b5e7a284b9bd7cf356639ace1bc24fd109c891be49624489",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0x6b9b8d9ec3b57793b5e7a284b9bd7cf356639ace1bc24fd109c891be49624489",
+   "gas_used": 67866,
+   "cost_phrs": 6.7866e-05
+  },
+  {
+   "label": "reseed_poolB",
+   "tx_hash": "0xa5affcde830d7a44fd74d7a3dd9f902534dfce20801ad3d7a7a475ecb70cfd19",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0xa5affcde830d7a44fd74d7a3dd9f902534dfce20801ad3d7a7a475ecb70cfd19",
+   "gas_used": 70666,
+   "cost_phrs": 7.0666e-05
+  },
+  {
+   "label": "reseed_poolC",
+   "tx_hash": "0xfb2ab4a0b3ad3055c6a77a929a329d32add7594c57c5279dd5ef33bd02b833a9",
+   "explorer": "https://atlantic.pharosscan.xyz/tx/0xfb2ab4a0b3ad3055c6a77a929a329d32add7594c57c5279dd5ef33bd02b833a9",
+   "gas_used": 70666,
+   "cost_phrs": 7.0666e-05
+  }
+ ],
+ "scans": [
+  {
+   "scan_id": "t07-1792124498",
+   "pinned_block": 31482069,
+   "decision": "SKIP",
+   "skip_reason": "EXECUTION_FAILED",
+   "net_wei": 138051195909437998,
+   "threshold_wei": 50000000000000000,
+   "execution_tx_hashes": []
+  },
+  {
+   "scan_id": "t07-1792124602",
+   "pinned_block": 31482138,
+   "decision": "ACT",
+   "skip_reason": null,
+   "net_wei": 138051195909437998,
+   "threshold_wei": 50000000000000000,
+   "execution_tx_hashes": [
+    "0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30",
+    "0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad"
+   ]
+  },
+  {
+   "scan_id": "t07-1792124910",
+   "pinned_block": 31482387,
+   "decision": "SKIP",
+   "skip_reason": "BELOW_THRESHOLD",
+   "net_wei": 138051195909437998,
+   "threshold_wei": 500000000000000000,
+   "execution_tx_hashes": []
+  },
+  {
+   "scan_id": "t07-1792124784",
+   "pinned_block": 31482299,
+   "decision": "SKIP",
+   "skip_reason": "NEGATIVE_NET",
+   "net_wei": -253033563746112688,
+   "threshold_wei": 100000000000000000000,
+   "execution_tx_hashes": []
+  }
+ ],
+ "arb_execution": {
+  "leg1_tx": "0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30",
+  "leg1_explorer": "https://atlantic.pharosscan.xyz/tx/0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30",
+  "leg2_tx": "0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad",
+  "leg2_explorer": "https://atlantic.pharosscan.xyz/tx/0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad",
+  "receipts_status": [
+   1,
+   1
+  ],
+  "wphrs_balance_before": "7000000000000000000000",
+  "wphrs_balance_after": "7000139809535909437998",
+  "profit_wphrs": "0.139809535909437998"
+ },
+ "spend": {
+  "tx_count": 21,
+  "total_phrs": 0.004345,
+  "budget_phrs": 0.15,
+  "within_budget": true,
+  "detail": [
+   {
+    "label": "deploy_WPHRS",
+    "tx_hash": "0x3e20e826fd4f9453fad588364ecb6749384e04b44411a5406501ee6a0a6e1e80",
+    "gas_used": 514408,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000514408
+   },
+   {
+    "label": "deploy_TKB",
+    "tx_hash": "0x7d554b83d9e93d70dc3f94f5e496f96764128512dc125977598b9978daeaf391",
+    "gas_used": 514336,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000514336
+   },
+   {
+    "label": "deploy_poolA",
+    "tx_hash": "0x8280c398e7eeea1c5e1cac2530bd108f1376dee1cfc82d1527e594183cb81841",
+    "gas_used": 727854,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000727854
+   },
+   {
+    "label": "deploy_poolB",
+    "tx_hash": "0x0592a0075a8a48848c3b32240f4ee05bda954d0f5c59ef1407813859a7f695e0",
+    "gas_used": 727854,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000727854
+   },
+   {
+    "label": "deploy_poolC",
+    "tx_hash": "0x3a0bc2631f958f13a016f3608eb98157a9e9b50efab994a26efc87106041e1fc",
+    "gas_used": 727854,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000727854
+   },
+   {
+    "label": "mint_WPHRS",
+    "tx_hash": "0xf44fa64b569bc10061e8b61ca44a194672527d5c72e33c03ec349b3e72090dd0",
+    "gas_used": 70450,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 7.045e-05
+   },
+   {
+    "label": "mint_TKB",
+    "tx_hash": "0x469add8fb736291d0df875b65b13503d28beea69aaa9c401eba316a90add40ed",
+    "gas_used": 70450,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 7.045e-05
+   },
+   {
+    "label": "approve_WPHRS_poolA",
+    "tx_hash": "0x20184ab3b8b3db6cb54e0e05c0541656e9e760a491703bc8b9e49313f766f224",
+    "gas_used": 46464,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 4.6464e-05
+   },
+   {
+    "label": "approve_TKB_poolA",
+    "tx_hash": "0xb852b827d6fecc9a2dd582299320e586e64192c91d3902bef5c5dd593599aea6",
+    "gas_used": 46464,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 4.6464e-05
+   },
+   {
+    "label": "approve_WPHRS_poolB",
+    "tx_hash": "0x4edf8f0be6fe7405a9d22896526cd72d9612dc85040851115968debccc75975d",
+    "gas_used": 46464,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 4.6464e-05
+   },
+   {
+    "label": "approve_TKB_poolB",
+    "tx_hash": "0x79402e4332d572f2ba0fc5602c1d38468850b2221b0db1728cb165594e500fd5",
+    "gas_used": 46464,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 4.6464e-05
+   },
+   {
+    "label": "approve_WPHRS_poolC",
+    "tx_hash": "0x67d69373b45e4fcf048808db660547041418b5149d585d38ce9bdaf0cc687fdc",
+    "gas_used": 46464,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 4.6464e-05
+   },
+   {
+    "label": "approve_TKB_poolC",
+    "tx_hash": "0x64e8003e145469e8538fd62e21543fe6e553d8c5f116d2ccf8d7a8161b0944c8",
+    "gas_used": 46464,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 4.6464e-05
+   },
+   {
+    "label": "seed_poolA",
+    "tx_hash": "0x0358cd6c96a7b09446bf1615c986ce3168177b215622c4c4e1cfbc4c9853c347",
+    "gas_used": 121966,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000121966
+   },
+   {
+    "label": "seed_poolB",
+    "tx_hash": "0x8930f5f9afc801ce405a09b4851fc4969c23245ba6c043f6c7915f7f46cdd8a8",
+    "gas_used": 121966,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000121966
+   },
+   {
+    "label": "seed_poolC",
+    "tx_hash": "0x9f7fd60ccbdcb5dac69e9352bbfe952c48592c0de4c36088f7f3bfad282d2c2f",
+    "gas_used": 121966,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 0.000121966
+   },
+   {
+    "label": "arb_leg1",
+    "tx_hash": "0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30",
+    "gas_used": 68728,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 6.8728e-05
+   },
+   {
+    "label": "arb_leg2",
+    "tx_hash": "0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad",
+    "gas_used": 68760,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 6.876e-05
+   },
+   {
+    "label": "reseed_poolA",
+    "tx_hash": "0x6b9b8d9ec3b57793b5e7a284b9bd7cf356639ace1bc24fd109c891be49624489",
+    "gas_used": 67866,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 6.7866e-05
+   },
+   {
+    "label": "reseed_poolB",
+    "tx_hash": "0xa5affcde830d7a44fd74d7a3dd9f902534dfce20801ad3d7a7a475ecb70cfd19",
+    "gas_used": 70666,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 7.0666e-05
+   },
+   {
+    "label": "reseed_poolC",
+    "tx_hash": "0xfb2ab4a0b3ad3055c6a77a929a329d32add7594c57c5279dd5ef33bd02b833a9",
+    "gas_used": 70666,
+    "gas_price_wei": 1000000001,
+    "cost_phrs": 7.0666e-05
+   }
+  ]
+ },
+ "tests": {
+  "command": "python3 test_math.py",
+  "result": "10/10 pass (pure math + live on-chain cross-check)"
+ }
+}

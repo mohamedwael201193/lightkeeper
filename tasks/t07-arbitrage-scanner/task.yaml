@@ -1,0 +1,37 @@
+task: T07
+title: Arbitrage Scanner
+difficulty: Hard
+points: 200
+toolkit: SkillEngine
+chain: pharos-atlantic-testnet
+chain_id: 688689
+status: built
+entrypoint: scanner.py
+config: config.json
+tests: test_math.py
+evidence_log: scans.jsonl
+contracts:
+  WPHRS: "0x8a81455a477deeA986ca48cE83ca89C5331Da793"
+  TKB: "0x8BAa4fD0329dbf77c9fBFC44448B5669D356bfe1"
+  poolA: "0x8683C6D6EeAA57B03688f43Ad0cbCA0af26Cf464"
+  poolB: "0x432BCd7bc6944Def44015bF00C82Eb50aA18A3F6"
+  poolC: "0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D"
+deliverables:
+  - task.yaml
+  - REQUIREMENTS.md
+  - README.md
+  - evidence.md
+  - evidence.json
+  - REVIEWER_NOTES.md
+  - LINKS.md
+  - SUBMISSION.md
+  - VIDEO-GUIDE.md
+  - scanner.py
+  - test_math.py
+  - config.json
+  - src/MockToken.sol
+  - src/ArbPool.sol
+  - script/DeployT07.s.sol
+  - deploy.sh
+  - scans.jsonl
+budget_phrs_max: 0.15
