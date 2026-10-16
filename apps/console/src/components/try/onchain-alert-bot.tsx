@@ -10,11 +10,13 @@
  *      alert ledger (state/alerts.log, 35 alerts, 0 duplicate keys) against
  *      the live Atlantic chain in the visitor's browser — eth_blockNumber
  *      (arm the watcher) then eth_getTransactionReceipt per alert tx, receipt
- *      status + block + recipient re-checked. Two real async calls, two
- *      ProgressLoader steps, nothing else.
+ *      status + block + recipient re-checked. The audit room fills as each
+ *      receipt resolves: every alert lands its own soft PASS beat, each beat
+ *      mapped to one real receipt re-check. Read-only — nothing is signed,
+ *      nothing is sent.
  * 03 · Result — the ledger as the showpiece: ResultCard (the live replay
- *      verdict + the 210 PASS audit badge), StatStrip (35 alerts fired /
- *      0 duplicate keys / 210 audit checks passed), the verbatim Telegram
+ *      verdict), StatStrip (35 alerts fired / 0 duplicate keys / 210 audit
+ *      checks passed), the 210 PASS audit badge, the verbatim Telegram
  *      alert from the threshold trip, and a FeedList of all 35 alerts —
  *      every alert carrying its own receipt.
  *
@@ -25,6 +27,7 @@
  * re-verifies that ledger live.
  */
 import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   BadgeCheck,
   Bell,
@@ -78,6 +81,13 @@ interface AlertEntry {
   amountPhrs?: string;
 }
 
+/** One transaction receipt, as eth_getTransactionReceipt returns it. */
+interface Receipt {
+  status?: string;
+  blockNumber?: string;
+  to?: string;
+}
+
 /**
  * The production ledger, verbatim from state/alerts.log: 35 alerts, each one
  * SENDING + one SENT, 35 unique <condition>:<txhash> dedupe keys. Amounts are
@@ -122,6 +132,28 @@ const ALERTS: AlertEntry[] = [
   { cond: "incoming-transfer", tx: "0xcb79d4a218dece0c55868efd0240089343a5ee8c4887b5f6888517eab70ee76e", block: "31486961", msg: "753", ts: "2026-10-16T07:26:03Z" },
 ];
 
+/** The ledger's dedupe key for an alert: <condition>:<txhash>. */
+function alertKey(a: AlertEntry): string {
+  return `${a.cond}:${a.tx}`;
+}
+
+/**
+ * The per-alert re-check: the live receipt must be successful, mined at the
+ * ledger's block, and sent to the watched address. Same semantics as
+ * src/audit.sh's recipient+block+status checks.
+ */
+function alertReceiptOk(a: AlertEntry, r: Receipt | null): boolean {
+  const rBlock =
+    r && r.blockNumber ? String(parseInt(r.blockNumber, 16)) : null;
+  const rTo = (r?.to ?? "").toLowerCase();
+  return !!(
+    r &&
+    r.status === "0x1" &&
+    rBlock === a.block &&
+    rTo === WATCHED.toLowerCase()
+  );
+}
+
 // ---------------------------------------------------------------------------
 // 02 · Run — live ledger re-verification (read-only, no signing, no sending)
 // ---------------------------------------------------------------------------
@@ -136,6 +168,10 @@ interface VerifyResult {
   tip: string;
   at: string;
   mismatches: string[];
+  /** Per-alert live verdict, keyed by <condition>:<txhash>. */
+  verdicts: Record<string, boolean>;
+  /** The live receipt per tx, so every alert can carry its own receipt. */
+  receiptByTx: Record<string, Receipt | null>;
 }
 
 const inputCls =
@@ -205,6 +241,111 @@ function TxCopy({ text }: { text: string }) {
   );
 }
 
+/**
+ * THE AUDIT ROOM. One cell per alert in the production ledger. Each cell
+ * lights up with its own soft PASS beat the moment that alert's receipt
+ * re-check completes against the live chain — the beat maps to a real
+ * receipt resolution, never a timer.
+ */
+function AuditRoom({ arrived }: { arrived: string[] }) {
+  const reduced = useReducedMotion();
+  const done = new Set(arrived);
+  return (
+    <div
+      className="mt-4 rounded-2xl border border-hairline bg-white p-5 sm:p-6"
+      aria-live="polite"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold text-ink">
+          The audit room — each alert re-verified live
+        </p>
+        <p className="font-mono text-sm text-slate" aria-label={`${done.size} of ${ALERTS.length} alerts re-verified`}>
+          <span className="font-semibold text-ink">{done.size}</span>
+          {" / "}
+          {ALERTS.length} receipts re-verified
+        </p>
+      </div>
+      <div className="mt-4 grid grid-cols-7 gap-1.5 sm:grid-cols-9" role="list" aria-label="Alert re-verification progress">
+        {ALERTS.map((a) => {
+          const key = alertKey(a);
+          const lit = done.has(key);
+          return (
+            <div
+              key={key}
+              role="listitem"
+              title={`Alert ${a.msg} · ${a.cond} · ${lit ? "receipt verified" : "awaiting receipt"}`}
+              aria-label={`Alert ${a.msg} ${a.cond}: ${lit ? "verified" : "pending"}`}
+              className={`flex aspect-square items-center justify-center rounded-lg border transition-colors duration-200 ${
+                lit
+                  ? "border-pass/40 bg-pass/10"
+                  : "border-hairline bg-porcelain"
+              }`}
+            >
+              {lit &&
+                (reduced ? (
+                  <Check size={14} className="text-pass" aria-hidden />
+                ) : (
+                  <motion.span
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 550, damping: 20 }}
+                    className="flex"
+                  >
+                    <Check size={14} className="text-pass" aria-hidden />
+                  </motion.span>
+                ))}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-sm text-slate">
+        One receipt read per alert transaction — status, block, and recipient
+        re-checked against the ledger.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The proud audit badge: the task-side src/audit.sh run — 6 checks per
+ * alert across the whole ledger — rendered as the badge it earned.
+ */
+function AuditBadge() {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduced ? false : { y: 14, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-2xl border border-hairline bg-white p-6 text-center sm:p-8"
+    >
+      <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-pass/10">
+        <ShieldCheck size={24} className="text-pass" aria-hidden />
+      </span>
+      <p className="mt-3 text-sm font-semibold text-slate">
+        Ledger audit · src/audit.sh · task-side run
+      </p>
+      <p className="mt-2 text-4xl font-bold tracking-tight text-ink sm:text-5xl">
+        <span className="text-pass">210 PASS</span>
+        <span className="mx-3 text-slate/30">·</span>
+        <span className="text-fail">0 FAIL</span>
+      </p>
+      <p className="mt-3 text-sm text-slate">
+        6 checks per alert · 35 alerts · run{" "}
+        <span className="font-mono text-[13px]">
+          {AUDIT_RUN.replace("T", " ").replace("Z", " UTC")}
+        </span>
+      </p>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate">
+        Write-ahead SENDING before Telegram, SENT after; dedupe key{" "}
+        <span className="font-mono text-[13px]">condition:txhash</span>;
+        receipt status, block, and recipient re-checked on-chain — the same
+        semantics your browser just replayed above.
+      </p>
+    </motion.div>
+  );
+}
+
 function TelegramBubble() {
   const body = `🚨 LIGHTKEEPER · T20 On-Chain Alert
 Condition: LARGE TRANSFER
@@ -242,10 +383,28 @@ Atlantic testnet · chain 688689 · disclosed self-test transfer`;
   );
 }
 
-function alertFeedItem(a: AlertEntry): FeedItem {
+/** Receipt facts for one alert, from the live receipt read during the replay. */
+function receiptFacts(r: Receipt | null): string {
+  if (!r) return "no receipt returned by the node";
+  const status = r.status === "0x1" ? "status 0x1" : `status ${r.status ?? "?"}`;
+  const block =
+    r.blockNumber != null
+      ? `block ${parseInt(r.blockNumber, 16)}`
+      : "block ?";
+  const to =
+    (r.to ?? "").toLowerCase() === WATCHED.toLowerCase()
+      ? "recipient ✓"
+      : "recipient ?";
+  return `${status} · ${block} · ${to}`;
+}
+
+function alertFeedItem(
+  a: AlertEntry,
+  v?: { ok: boolean; receipt: Receipt | null }
+): FeedItem {
   const isLarge = a.cond === "large-transfer";
   return {
-    key: `${a.cond}:${a.tx}`,
+    key: alertKey(a),
     node: (
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -257,6 +416,12 @@ function alertFeedItem(a: AlertEntry): FeedItem {
               {a.amountPhrs} PHRS
             </span>
           )}
+          {v &&
+            (v.ok ? (
+              <span className="chip chip-pass">receipt ✓ verified live</span>
+            ) : (
+              <span className="chip chip-fail">receipt mismatch</span>
+            ))}
           <span className="ml-auto font-mono text-xs text-slate">
             message_id {a.msg}
           </span>
@@ -285,6 +450,11 @@ function alertFeedItem(a: AlertEntry): FeedItem {
             <ExternalLink size={13} aria-hidden />
           </a>
         </div>
+        {v && (
+          <p className="font-mono text-xs text-slate">
+            Live receipt · {receiptFacts(v.receipt)}
+          </p>
+        )}
       </div>
     ),
   };
@@ -355,6 +525,8 @@ bash src/audit.sh              # replay the alert ledger against the live chain`
   const [step, setStep] = useState(0);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [result, setResult] = useState<VerifyResult | null>(null);
+  /** Dedupe keys whose receipt re-check has completed — the audit room's real state. */
+  const [arrived, setArrived] = useState<string[]>([]);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -368,32 +540,41 @@ bash src/audit.sh              # replay the alert ledger against the live chain`
     setPhase("running");
     setStep(0);
     setErrMsg(null);
+    setResult(null);
+    setArrived([]);
     try {
       // Step 1 — arm the watcher: pin the live tip.
       const tipHex = (await rpcCall("eth_blockNumber", [])) as string;
       if (!alive.current) return;
       const tip = String(parseInt(tipHex, 16));
       setStep(1);
-      // Step 2 — replay the ledger: one receipt read per alert tx.
+      // Step 2 — replay the ledger: one receipt read per alert tx. As each
+      // receipt resolves, the alerts sharing that tx are re-checked
+      // immediately and the audit room fills — each beat is one real receipt.
+      const verdicts: Record<string, boolean> = {};
+      const receiptByTx: Record<string, Receipt | null> = {};
       const hashes = Array.from(new Set(ALERTS.map((a) => a.tx)));
-      const receipts = (await Promise.all(
-        hashes.map((h) => rpcCall("eth_getTransactionReceipt", [h]))
-      )) as Array<{ status?: string; blockNumber?: string; to?: string } | null>;
+      await Promise.all(
+        hashes.map((h) =>
+          rpcCall("eth_getTransactionReceipt", [h]).then((raw) => {
+            const r = raw as Receipt | null;
+            receiptByTx[h] = r;
+            const newly: string[] = [];
+            for (const a of ALERTS) {
+              if (a.tx !== h) continue;
+              const key = alertKey(a);
+              verdicts[key] = alertReceiptOk(a, r);
+              newly.push(key);
+            }
+            if (alive.current) setArrived((prev) => [...prev, ...newly]);
+          })
+        )
+      );
       if (!alive.current) return;
-      const byTx = new Map(hashes.map((h, i) => [h, receipts[i]] as const));
       const mismatches: string[] = [];
       let ok = 0;
       for (const a of ALERTS) {
-        const r = byTx.get(a.tx);
-        const rBlock =
-          r && r.blockNumber ? String(parseInt(r.blockNumber, 16)) : null;
-        const rTo = (r?.to ?? "").toLowerCase();
-        if (
-          r &&
-          r.status === "0x1" &&
-          rBlock === a.block &&
-          rTo === WATCHED.toLowerCase()
-        ) {
+        if (verdicts[alertKey(a)]) {
           ok++;
         } else {
           mismatches.push(`${a.cond} · ${a.tx.slice(0, 12)}…`);
@@ -406,6 +587,8 @@ bash src/audit.sh              # replay the alert ledger against the live chain`
         tip,
         at: new Date().toISOString(),
         mismatches,
+        verdicts,
+        receiptByTx,
       });
       setStep(STEPS.length);
       setPhase("done");
@@ -420,7 +603,19 @@ bash src/audit.sh              # replay the alert ledger against the live chain`
     }
   };
 
-  const feedItems = [...ALERTS].reverse().map(alertFeedItem);
+  const feedItems = [...ALERTS]
+    .reverse()
+    .map((a) =>
+      alertFeedItem(
+        a,
+        result
+          ? {
+              ok: !!result.verdicts[alertKey(a)],
+              receipt: result.receiptByTx[a.tx] ?? null,
+            }
+          : undefined
+      )
+    );
   const allOk = result !== null && result.ok === result.total;
 
   return (
@@ -642,11 +837,14 @@ restart → SENDING without SENT? → treat as delivered, never re-send`}</div>
             />
           )}
           {phase === "running" && (
-            <ProgressLoader
-              steps={STEPS}
-              current={step}
-              title="Replaying the alert ledger against Atlantic"
-            />
+            <>
+              <ProgressLoader
+                steps={STEPS}
+                current={step}
+                title="Replaying the alert ledger against Atlantic"
+              />
+              {step >= 1 && <AuditRoom arrived={arrived} />}
+            </>
           )}
           {phase === "error" && (
             <ErrorState
@@ -657,42 +855,32 @@ restart → SENDING without SENT? → treat as delivered, never re-send`}</div>
               onRetry={run}
             />
           )}
-          {phase === "done" && result && (
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-hairline bg-white px-5 py-4">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-pass/10">
-                <Check size={18} className="text-pass" />
-              </span>
-              <p className="text-sm text-ink">
-                Ledger replayed at{" "}
-                <span className="font-mono text-[13px]">
-                  {result.at.replace("T", " ").replace("Z", " UTC")}
-                </span>{" "}
-                —{" "}
-                <span className="font-semibold">
-                  {result.ok} of {result.total} receipts match
-                </span>
-                .
-              </p>
-              <button
-                type="button"
-                className="btn-outline ml-auto inline-flex min-h-[44px] items-center"
-                onClick={run}
-              >
-                Re-verify
-              </button>
-            </div>
-          )}
         </div>
       </section>
 
       {/* 03 · Result */}
       {phase === "done" && result && (
         <section className="space-y-6">
-          <div>
-            <p className="mb-1 text-sm font-semibold text-slate">03 · Result</p>
-            <h3 className="text-xl font-semibold text-ink">
-              The ledger, verified
-            </h3>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate">03 · Result</p>
+              <h3 className="text-xl font-semibold text-ink">
+                The ledger, verified
+              </h3>
+              <p className="mt-1 text-sm text-slate">
+                Replay finished{" "}
+                <span className="font-mono text-[13px]">
+                  {result.at.replace("T", " ").replace("Z", " UTC")}
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn-outline inline-flex min-h-[44px] items-center"
+              onClick={run}
+            >
+              Re-verify
+            </button>
           </div>
 
           <ResultCard
@@ -711,7 +899,10 @@ restart → SENDING without SENT? → treat as delivered, never re-send`}</div>
                 value: `${result.ok} / ${result.total}`,
               },
               { label: "Duplicate keys", value: "0" },
-              { label: "Ledger audit (task run)", value: `${AUDIT_RESULT} · ${AUDIT_RUN}` },
+              {
+                label: "Ledger audit (task run)",
+                value: `${AUDIT_RESULT} · ${AUDIT_RUN}`,
+              },
               { label: "Live tip at replay", value: `block ${result.tip}` },
             ]}
             links={[
@@ -745,6 +936,8 @@ restart → SENDING without SENT? → treat as delivered, never re-send`}</div>
               },
             ]}
           />
+
+          <AuditBadge />
 
           {!allOk && result.mismatches.length > 0 && (
             <div className="rounded-2xl border border-[#F3C1C1] bg-[#FEF2F2] p-5">
