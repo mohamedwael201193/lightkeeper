@@ -32,7 +32,8 @@
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ShieldX } from "lucide-react";
-import { ResultCard } from "../ui";
+import { ErrorState, ResultCard } from "../ui";
+import { docsMcp, McpProxyUnavailableError } from "../../hooks/useMcp";
 import type { Lamp } from "../../types";
 
 const GH = "https://github.com/mohamedwael201193/lightkeeper/tree/main/tasks/t04-doc-search-cli";
@@ -288,6 +289,223 @@ function StepHeading({ n, title, sub }: { n: string; title: string; sub: string 
   );
 }
 
+/** The top hit of a live searchDocumentation round-trip (the proxy surfaces
+ *  the MCP's top-ranked text block only), parsed for its citation parts. */
+interface LiveHit {
+  title: string;
+  url: string;
+  content: string;
+  /** The raw block, kept so a parse failure can show it instead of fabricating. */
+  raw: string;
+}
+
+function parseTopHit(raw: unknown): LiveHit | null {
+  if (typeof raw !== "string") return null;
+  const title = raw.match(/^Title:\s*(.+)$/m)?.[1]?.trim() ?? "";
+  const url = raw.match(/^Link:\s*(https?:\/\/[^\s)]+)/m)?.[1]?.trim() ?? "";
+  const content = raw.match(/^Content:\s*([\s\S]*)$/m)?.[1]?.trim() ?? "";
+  if (!title && !url && !content) return null;
+  return { title, url, content, raw };
+}
+
+type LivePhase = "idle" | "loading" | "done" | "error";
+
+/**
+ * "Ask live" — a REAL Docs MCP round-trip inside the page, parallel to the
+ * static battery above. Two genuine MCP tool calls through the console's
+ * same-origin /api/mcp proxy: searchDocumentation for the question, then
+ * getPage for the top hit. There is no local index and no cache for this
+ * mode — nothing renders until the MCP answers, and failures are loud: no
+ * silent fallback to the static battery, no fabricated answers. In local
+ * `vite dev` the proxy does not exist, so the visitor gets the honest
+ * "proxy unavailable" verdict instead of a fake answer.
+ */
+function AskLive() {
+  const [input, setInput] = useState("");
+  const [phase, setPhase] = useState<LivePhase>("idle");
+  const [hit, setHit] = useState<LiveHit | null>(null);
+  const [page, setPage] = useState("");
+  const [error, setError] = useState("");
+  const [proxyDown, setProxyDown] = useState(false);
+  const [at, setAt] = useState("");
+  const [ms, setMs] = useState(0);
+  const [question, setQuestion] = useState("");
+
+  const ask = async (q: string) => {
+    const query = q.trim();
+    if (!query) return;
+    setPhase("loading");
+    setError("");
+    setHit(null);
+    setPage("");
+    setQuestion(query);
+    const t0 = performance.now();
+    try {
+      // Round-trip 1 — the live Developer Docs MCP (top-ranked hit).
+      const raw = await docsMcp.searchDocumentation(query);
+      const h = parseTopHit(raw);
+      if (!h || !h.url) {
+        throw new Error(
+          `The live MCP answered, but its top hit carried no parseable doc URL — refusing to fabricate one. Raw text (first 600 chars): ${JSON.stringify(
+            (h?.raw ?? String(raw)).slice(0, 600)
+          )}`
+        );
+      }
+      // Round-trip 2 — the full page for the top hit.
+      const pageMd = await docsMcp.getPage(h.url);
+      setHit(h);
+      setPage(typeof pageMd === "string" ? pageMd : JSON.stringify(pageMd, null, 2));
+      setAt(new Date().toISOString());
+      setPhase("done");
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err.message);
+      setProxyDown(e instanceof McpProxyUnavailableError);
+      setPhase("error");
+    } finally {
+      setMs(Math.round(performance.now() - t0));
+    }
+  };
+
+  return (
+    <section aria-label="Ask the live Docs MCP" className="space-y-4">
+      <div>
+        <h3 className="text-lg font-bold text-ink">
+          Ask live — the real Docs MCP, in this page
+        </h3>
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate">
+          This mode makes <strong>real network calls</strong>: your question goes to the
+          live Developer Docs MCP (<code className="font-mono">searchDocumentation</code>)
+          through this console's <code className="font-mono">/api/mcp</code> proxy, and the
+          top hit's full page is then fetched (<code className="font-mono">getPage</code>).
+          Nothing here comes from the static battery above — there is no cache to serve
+          you. If the MCP is unreachable, the failure is shown, loudly, and nothing is
+          generated.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          className="flex-1 rounded-lg border border-[#c3cfe8] bg-white px-4 py-3 text-sm text-ink placeholder:text-slate/60 focus:outline-none focus:border-[var(--accent)]"
+          placeholder="e.g. how do I deploy a contract on Pharos?"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void ask(input);
+          }}
+          aria-label="Question to ask the live Docs MCP"
+          disabled={phase === "loading"}
+        />
+        <button
+          type="button"
+          className="btn-primary min-h-[44px]"
+          onClick={() => void ask(input)}
+          disabled={phase === "loading"}
+        >
+          {phase === "loading" ? "Asking the live MCP…" : "Ask live"}
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {SUGGESTIONS.slice(0, 2).map((s) => (
+          <button
+            key={s}
+            type="button"
+            className="chip chip-dim min-h-[40px] hover:border-[var(--accent)] transition text-sm"
+            onClick={() => {
+              setInput(s);
+              void ask(s);
+            }}
+            disabled={phase === "loading"}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+
+      {phase === "loading" && (
+        <div
+          className="rounded-2xl border border-hairline bg-white p-6"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="animate-pulse text-sm font-semibold text-ink">
+            Querying the live Docs MCP…
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-slate">
+            Round-trip 1 of 2: <code className="font-mono">searchDocumentation</code> via{" "}
+            <code className="font-mono">/api/mcp</code>, then{" "}
+            <code className="font-mono">getPage</code> for the top hit. No timer theater —
+            this renders when the MCP answers.
+          </p>
+        </div>
+      )}
+
+      {phase === "done" && hit && (
+        <ResultCard
+          eyebrow="LIVE · Docs MCP round-trip"
+          headline={hit.title || "Top hit"}
+          subline={
+            <>
+              The live Developer Docs MCP's top-ranked hit for “{question}” — verbatim,
+              fetched moments ago. The full page below came from the MCP's{" "}
+              <code className="font-mono">getPage</code> tool in the same session.
+            </>
+          }
+          status="pass"
+          rows={[
+            { label: "Doc page", value: hit.title || "—" },
+            { label: "Answered", value: `${at} · ${ms} ms for 2 MCP round-trips` },
+            {
+              label: "Source",
+              value: "Developer Docs MCP · searchDocumentation + getPage via /api/mcp",
+            },
+          ]}
+          links={[{ label: "Open the doc page", href: hit.url }]}
+          copyValue={hit.url}
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 text-sm font-semibold text-slate">
+                Top hit — the MCP's own excerpt, verbatim
+              </p>
+              <blockquote className="rounded-lg border-l-4 border-[var(--gold)] bg-porcelain px-4 py-3 font-mono text-sm leading-relaxed text-ink whitespace-pre-line">
+                {hit.content}
+              </blockquote>
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-slate">
+                The full page, fetched live via getPage ({page.length.toLocaleString()} chars)
+              </p>
+              <pre
+                className="code-block overflow-x-auto text-xs"
+                style={{ padding: "0.9rem 1rem", whiteSpace: "pre-wrap" }}
+              >
+                {page.length > 4000
+                  ? `${page.slice(0, 4000)}\n… (truncated at 4,000 chars — open the doc page for the rest)`
+                  : page}
+              </pre>
+            </div>
+          </div>
+        </ResultCard>
+      )}
+
+      {phase === "error" && (
+        <ErrorState
+          title="The live MCP call failed — loudly, on purpose"
+          message={error}
+          hint={
+            proxyDown
+              ? "You are on a local dev build without the /api/mcp proxy — the demo runs on the deployed console, where the proxy makes real MCP tool calls. Nothing was fabricated; there is simply no live answer to show here."
+              : "The MCP round-trip genuinely failed. Nothing was generated and nothing was served from a cache — there is no cache. Retry, or ask the static battery above."
+          }
+          retryLabel="Retry the live call"
+          onRetry={() => void ask(question || input)}
+        />
+      )}
+    </section>
+  );
+}
+
 export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -324,7 +542,8 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-base font-bold text-ink">Search the docs, get the command</h3>
           <span className="chip chip-info">Tier C — CLI lookup</span>
-          <span className="chip chip-pass">live Docs MCP · searchDocumentation</span>
+          <span className="chip chip-info">Docs MCP transcripts · evidence battery</span>
+          <span className="chip chip-pass">live Docs MCP · “Ask live” below</span>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-ink">
           Type a Pharos developer question. This panel matches it against the real doc-grounded
@@ -333,7 +552,12 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
           <code className="font-mono">pharos-docs</code> command that produces it via the live
           Developer Docs MCP, copy-paste ready. The sharp edge:{" "}
           <span className="font-semibold text-ink">it would rather refuse than invent</span> — tap
-          a refusal demo below and watch it say no.
+          a refusal demo below and watch it say no. Or skip the battery entirely: the{" "}
+          <span className="font-semibold text-ink">“Ask live”</span> section below runs a real{" "}
+          <code className="font-mono">searchDocumentation</code> +{" "}
+          <code className="font-mono">getPage</code> round-trip against the live Developer
+          Docs MCP through this console's MCP proxy — no local index, no cache, failures
+          shown loudly.
         </p>
       </div>
 
@@ -508,6 +732,12 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
           <RefusalVerdict question={miss} onTryPattern={tryAnother} />
         </section>
       )}
+
+      {/* ── 04 · Ask live ─────────────────────────────────────────────
+          A real Docs MCP round-trip in the page, parallel to the static
+          evidence battery above: searchDocumentation + getPage through the
+          console's /api/mcp proxy. Failures are loud; nothing is generated. */}
+      <AskLive />
 
       {/* run the real thing */}
       <section aria-label="Run the real CLI" className="space-y-3">
