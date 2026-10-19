@@ -57,10 +57,10 @@ non-evidence appendix. Where the docs couldn't answer, the log says so with the 
 
 ## Links
 
-- Code + evidence (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/REPLACE_WITH_COMMIT_SHA/tasks/t03-docs-mcp-onboarding
-- README: https://github.com/mohamedwael201193/lightkeeper/tree/REPLACE_WITH_COMMIT_SHA/tasks/t03-docs-mcp-onboarding#readme
-- Raw query log: https://github.com/mohamedwael201193/lightkeeper/blob/REPLACE_WITH_COMMIT_SHA/tasks/t03-docs-mcp-onboarding/evidence/runs/run-mcp-20261019T200816Z.json
-- Gap table: https://github.com/mohamedwael201193/lightkeeper/blob/REPLACE_WITH_COMMIT_SHA/tasks/t03-docs-mcp-onboarding/evidence.md
+- Code + evidence (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/c09f5a0/tasks/t03-docs-mcp-onboarding
+- README: https://github.com/mohamedwael201193/lightkeeper/tree/c09f5a0/tasks/t03-docs-mcp-onboarding#readme
+- Raw query log: https://github.com/mohamedwael201193/lightkeeper/blob/c09f5a0/tasks/t03-docs-mcp-onboarding/evidence/runs/run-mcp-20261019T200816Z.json
+- Gap table: https://github.com/mohamedwael201193/lightkeeper/blob/c09f5a0/tasks/t03-docs-mcp-onboarding/evidence.md
 
 ## Share / demo links
 

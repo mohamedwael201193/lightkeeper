@@ -57,7 +57,7 @@ confirmation-lag reorg tolerance (no reorg detector); alerts go to local
 
 ## Commit-pinned code
 
-https://github.com/mohamedwael201193/lightkeeper/tree/<NEW-COMMIT>/tasks/t02-event-log-monitor
+https://github.com/mohamedwael201193/lightkeeper/tree/c09f5a0/tasks/t02-event-log-monitor
 
 ## Share / demo links
 

@@ -49,7 +49,7 @@ issues genuine MCP `tools/call` requests server-side. The submitted task code
 calls the MCP directly. Same chain, same values, no fabricated data.)
 
 ## Repo link (commit-pinned subfolder)
-https://github.com/mohamedwael201193/lightkeeper/tree/REPLACE_WITH_COMMIT_SHA/tasks/t01-read-contract-state
+https://github.com/mohamedwael201193/lightkeeper/tree/c09f5a0/tasks/t01-read-contract-state
 
 ## Proof links
 - Contract (Pharos mainnet): https://pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815

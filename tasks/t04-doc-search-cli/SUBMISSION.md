@@ -45,7 +45,7 @@ misses) with raw responses saved verbatim, a machine-readable
 `evidence/evidence.json`, and passing stdlib tests. README includes install,
 usage, and real MCP outputs. Zero chain interaction, 0 PHRS spent (read-only).
 
-**Code (commit-pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/<COMMIT>/tasks/t04-doc-search-cli
+**Code (commit-pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/c09f5a0/tasks/t04-doc-search-cli
 
 **Share/demo links:**
 - README (install, usage, real MCP examples): `tasks/t04-doc-search-cli/README.md`
