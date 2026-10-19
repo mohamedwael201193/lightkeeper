@@ -1,0 +1,11 @@
+t09-trend-watcher :: observe — chain 688689 (Atlantic), metric baseFeePerGas
+
+--- SIGNAL REPORT ---
+window:      blocks 31481567..31481596 (30 real baseFeePerGas samples)
+last sample: block 31481596 value 1.000 gwei
+fastMA(5):   1.000 gwei | slowMA(15): 1.000 gwei | trend FLAT
+streak:      0/3 confirmations | decision HOLD (FLAT_INSIDE_BAND_STREAK_RESET)
+gas spot:    10 gwei@31481599, 10 gwei@31481612, 10 gwei@31481623, 10 gwei@31481636, 10 gwei@31481650 (context only)
+signal:      NO SIGNAL — market flat inside the 0.5% band
+
+Persisted 30 observations -> state/observations.jsonl | priors -> state/runtime.json

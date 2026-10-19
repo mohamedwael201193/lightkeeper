@@ -1,0 +1,61 @@
+{
+  "task": "t12-skill-chain-flow",
+  "version": "v2-2026-10-20",
+  "network": {
+    "chain_id": 1672,
+    "name": "pharos-mainnet"
+  },
+  "mcp": {
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "server": "pharos-mcp-server",
+    "tools_called": [
+      "get_chain_info",
+      "get_block_number",
+      "get_balance",
+      "eth_call",
+      "get_gas_price",
+      "estimate_gas"
+    ],
+    "raw_rpc_calls": 0
+  },
+  "watch": {
+    "address": "0x936564245b69f5a293b42cbd752e0ee3bb68b470",
+    "asset": "USDC",
+    "token": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+    "selection": "real holder found via live Chain MCP get_logs (USDC Transfer events, 2026-10-20); read-only, never transacted with"
+  },
+  "contrast_runs": [
+    {
+      "label": "allow-1",
+      "run_id": "allow-1-1792448486",
+      "proposed_amount_usdc": "100",
+      "verdict": "ALLOW",
+      "live_usdc_balance": "16712.740923",
+      "live_gas_gwei": 10.0,
+      "read_block": 20695075,
+      "estimate_gas": "52679",
+      "verify_block": 20695077,
+      "verify": "STABLE"
+    },
+    {
+      "label": "block-1",
+      "run_id": "block-1-1792448505",
+      "proposed_amount_usdc": "1000000",
+      "verdict": "BLOCK",
+      "blocked_by": [
+        "RULE-BALANCE"
+      ],
+      "live_usdc_balance": "16712.740923",
+      "live_gas_gwei": 10.0,
+      "read_block": 20695080,
+      "verify_block": 20695083,
+      "verify": "STABLE"
+    }
+  ],
+  "unit_tests": "tests/test_policy.py \u2014 8/8 pass",
+  "broadcasts": 0,
+  "no_broadcast_note": "mainnet = real funds; the skill never signs or broadcasts by design (policy.yaml behavior.no_broadcast)",
+  "v1_history": "v1 (2026-10-16) used cast against Atlantic testnet \u2014 superseded 2026-10-20; artifacts retained as labeled history, not current claims",
+  "shipped": true,
+  "status": "shipped"
+}

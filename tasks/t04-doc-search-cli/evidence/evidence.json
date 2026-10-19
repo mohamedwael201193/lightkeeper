@@ -194,5 +194,7 @@
       "raw_log": "evidence/raw/M2.txt",
       "stdout": "{\n  \"label\": \"UNVERIFIED\",\n  \"exit_code\": 2,\n  \"question\": \"how do I run a Pharos node on a Raspberry Pi\",\n  \"mcp_endpoint\": \"https://docs.pharos.xyz/~gitbook/mcp\",\n  \"mcp_tool\": \"searchDocumentation\",\n  \"retrieved\": \"2026-10-19\",\n  \"citations\": [],\n  \"closest_pages\": [\n    {\n      \"page_title\": \"Validator Node Deployment\",\n      \"page_url\": \"https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment\"\n    },\n    {\n      \"page_title\": \"Pharos Testnet: Rebuild Node with Preserved Node Info\",\n      \"page_url\": \"https://docs.pharos.xyz/pharos-testnet-rebuild-node-with-preserved-node-info\"\n    },\n    {\n      \"page_title\": \"Enable AutoPruning in Pharos Node\",\n      \"page_url\": \"https://docs.pharos.xyz/enable-pruning-in-pharos-node\"\n    }\n  ],\n  \"note\": \"No good answer found. The Developer Docs MCP returned 10 result(s) but none covers this question above the relevance gate, so this tool will not improvise an answer.\"\n}"
     }
-  ]
+  ],
+  "shipped": true,
+  "status": "shipped"
 }

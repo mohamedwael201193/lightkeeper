@@ -1,0 +1,50 @@
+# task.yaml — T14 Portfolio Assistant (machine manifest)
+
+slug: t14-portfolio-assistant
+task: T14
+title: Portfolio Assistant
+difficulty: Hard
+points: 200
+toolkit: DeFi / Portfolio
+
+status: ready-for-review
+proofKind: live-chain-reads
+videoSlot: PENDING-VIDEO
+
+chain:
+  name: Pharos Atlantic testnet
+  chainId: 688689
+  rpc: https://atlantic.dplabs-internal.com
+
+noMockAttestation: >
+  All balances, transaction counts, activity events, and gas figures in
+  evidence were read live from Pharos Atlantic testnet at pinned blocks.
+  No mock, demo, placeholder, or fabricated data exists in this task.
+  Testnet assets are explicitly labeled "testnet — no market value"; no USD
+  price or yield was invented. The LPK test token was really deployed
+  (tx 0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23,
+  block 31481364).
+
+readOnlyAttestation: >
+  The assistant holds no private key and cannot sign or broadcast. The only
+  on-chain write in this task's history is the operator-deployed LPK test
+  token; the assistant itself performs reads only.
+
+entrypoint: bin/run.mjs
+tests: node --test test/portfolio.test.mjs
+
+deliverables:
+  - task.yaml
+  - REQUIREMENTS.md
+  - README.md
+  - evidence.md
+  - evidence.json
+  - LINKS.md
+  - SUBMISSION.md
+  - package.json
+  - src/index.mjs
+  - bin/run.mjs
+  - sources.yaml
+  - config.example.yaml
+  - test/portfolio.test.mjs
+  - contracts/KeeperToken.sol

@@ -1,0 +1,174 @@
+{
+  "task": "T15 Yield Optimizer \u2014 recommendation",
+  "scan_block": 31482643,
+  "principal_phrs": 0.02,
+  "horizons": {
+    "1000_blocks": {
+      "analyses": [
+        {
+          "label": "OctopusVault-Kelp",
+          "kind": "builder-deployed staking vault (testnet fixture, disclosed)",
+          "address": "0xe3212234B17A90cCBC36b0B44845394b62838b08",
+          "block": 31482643,
+          "inputs": {
+            "principal_wei": 20000000000000000,
+            "horizon_blocks": 1000,
+            "gas_price_wei": 10000000000,
+            "measured_block_time_s": 1.0
+          },
+          "marginal_share": 1.0,
+          "paid_blocks": 1000,
+          "gross_wei": 10000000000000000,
+          "entry_fee_wei": 0,
+          "exit_fee_wei": 0,
+          "gas_units": 307572,
+          "gas_cost_wei": 3075720000000000,
+          "net_wei": 6924280000000000,
+          "apy_pct": 1576800.0,
+          "runway_blocks": 1000,
+          "solvent_for_horizon": true,
+          "notes": [
+            "marginal share 1.000000 at totalStaked=0 (large deposits dilute)",
+            "runway 1000 blocks; gross capped at min(horizon, runway)=1000 blocks",
+            "exit fee waived (horizon >= min hold)"
+          ]
+        },
+        {
+          "label": "OctopusVault-Kraken",
+          "kind": "builder-deployed staking vault (testnet fixture, disclosed)",
+          "address": "0xDC3D4a3f47BB479692239ECC362a16CE3485B283",
+          "block": 31482643,
+          "inputs": {
+            "principal_wei": 20000000000000000,
+            "horizon_blocks": 1000,
+            "gas_price_wei": 10000000000,
+            "measured_block_time_s": 1.0
+          },
+          "marginal_share": 1.0,
+          "paid_blocks": 400,
+          "gross_wei": 10000000000000000,
+          "entry_fee_wei": 200000000000000,
+          "exit_fee_wei": 0,
+          "gas_units": 310985,
+          "gas_cost_wei": 3109850000000000,
+          "net_wei": 6690150000000000,
+          "apy_pct": 3942000.0,
+          "runway_blocks": 400,
+          "solvent_for_horizon": true,
+          "notes": [
+            "marginal share 1.000000 at totalStaked=0 (large deposits dilute)",
+            "runway 400 blocks; gross capped at min(horizon, runway)=400 blocks",
+            "exit fee waived (horizon >= min hold)",
+            "WARNING: reward pool funds fewer blocks than the horizon \u2014 rewards stop when the pool empties (on-chain cap, not a model choice)"
+          ]
+        },
+        {
+          "label": "Stay-put baseline",
+          "kind": "wallet holding native PHRS (no venue; 0% nominal, 0 fees, 0 gas)",
+          "address": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "block": 31482643,
+          "gross_wei": 0,
+          "entry_fee_wei": 0,
+          "exit_fee_wei": 0,
+          "gas_cost_wei": 0,
+          "net_wei": 0,
+          "apy_pct": 0.0,
+          "runway_blocks": 0,
+          "notes": [
+            "baseline: hold native PHRS in wallet; zero nominal yield, zero friction"
+          ]
+        }
+      ],
+      "recommendation": {
+        "decision": "ALLOCATE",
+        "reason": "OctopusVault-Kelp has the highest net gain over 1000 blocks",
+        "winner": "OctopusVault-Kelp",
+        "expected_net_wei": 6924280000000000,
+        "expected_net_phrs": 0.00692428
+      }
+    },
+    "50_blocks": {
+      "analyses": [
+        {
+          "label": "OctopusVault-Kelp",
+          "kind": "builder-deployed staking vault (testnet fixture, disclosed)",
+          "address": "0xe3212234B17A90cCBC36b0B44845394b62838b08",
+          "block": 31482643,
+          "inputs": {
+            "principal_wei": 20000000000000000,
+            "horizon_blocks": 50,
+            "gas_price_wei": 10000000000,
+            "measured_block_time_s": 1.0
+          },
+          "marginal_share": 1.0,
+          "paid_blocks": 50,
+          "gross_wei": 500000000000000,
+          "entry_fee_wei": 0,
+          "exit_fee_wei": 100000000000000,
+          "gas_units": 307572,
+          "gas_cost_wei": 3075720000000000,
+          "net_wei": -2675720000000000,
+          "apy_pct": 1576800.0,
+          "runway_blocks": 1000,
+          "solvent_for_horizon": true,
+          "notes": [
+            "marginal share 1.000000 at totalStaked=0 (large deposits dilute)",
+            "runway 1000 blocks; gross capped at min(horizon, runway)=50 blocks",
+            "exit fee applies (early)"
+          ]
+        },
+        {
+          "label": "OctopusVault-Kraken",
+          "kind": "builder-deployed staking vault (testnet fixture, disclosed)",
+          "address": "0xDC3D4a3f47BB479692239ECC362a16CE3485B283",
+          "block": 31482643,
+          "inputs": {
+            "principal_wei": 20000000000000000,
+            "horizon_blocks": 50,
+            "gas_price_wei": 10000000000,
+            "measured_block_time_s": 1.0
+          },
+          "marginal_share": 1.0,
+          "paid_blocks": 50,
+          "gross_wei": 1250000000000000,
+          "entry_fee_wei": 200000000000000,
+          "exit_fee_wei": 198000000000000,
+          "gas_units": 310985,
+          "gas_cost_wei": 3109850000000000,
+          "net_wei": -2257850000000000,
+          "apy_pct": 3942000.0,
+          "runway_blocks": 400,
+          "solvent_for_horizon": true,
+          "notes": [
+            "marginal share 1.000000 at totalStaked=0 (large deposits dilute)",
+            "runway 400 blocks; gross capped at min(horizon, runway)=50 blocks",
+            "exit fee applies (early)"
+          ]
+        },
+        {
+          "label": "Stay-put baseline",
+          "kind": "wallet holding native PHRS (no venue; 0% nominal, 0 fees, 0 gas)",
+          "address": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "block": 31482643,
+          "gross_wei": 0,
+          "entry_fee_wei": 0,
+          "exit_fee_wei": 0,
+          "gas_cost_wei": 0,
+          "net_wei": 0,
+          "apy_pct": 0.0,
+          "runway_blocks": 0,
+          "notes": [
+            "baseline: hold native PHRS in wallet; zero nominal yield, zero friction"
+          ]
+        }
+      ],
+      "recommendation": {
+        "decision": "STAY PUT",
+        "reason": "every venue nets <= 0 over 50 blocks after entry/exit fees and gas; holding PHRS costs nothing",
+        "winner": null
+      }
+    }
+  },
+  "fee_sensitivity_note": "At the short horizon gas+fees dominate and STAY PUT wins; at the long horizon the rate differential wins. Both sides tested, as required.",
+  "honesty_label": "testnet mechanics demonstration \u2014 expected gains are valueless testnet PHRS, not real yield"
+}

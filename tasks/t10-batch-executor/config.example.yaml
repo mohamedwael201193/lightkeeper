@@ -1,0 +1,7 @@
+# Example config — copy to config.yaml and fill in. NEVER commit a real config.
+# Format: address,amountWei (integer wei, one per line)
+network: atlantic-testnet
+chain_id: 688689
+distributor: 0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4
+# recipients_file: recipients.csv
+# demo_chunk_size: 6   # only to exercise multi-batch chunking with a small list

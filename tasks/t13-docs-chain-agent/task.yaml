@@ -1,0 +1,32 @@
+id: T13
+slug: t13-docs-chain-agent
+title: Docs MCP + Chain MCP Agent
+difficulty: Medium
+points: 100
+toolkit: Composition
+network: Pharos mainnet
+chain_id: 1672
+status: shipped
+deliverables:
+  - REQUIREMENTS.md
+  - README.md
+  - evidence.md
+  - evidence/run-manifest.json
+  - evidence/transcripts/totalsupply.json
+  - evidence/transcripts/decimals.json
+  - evidence/transcripts/balanceof.json
+  - evidence/transcripts/price.json
+  - LINKS.md
+  - SUBMISSION.md
+  - src/doc_agent.py
+  - src/mcp.py
+  - tests/test_agent.py
+evidence_summary:
+  rounds: 4/4 ok (totalsupply, decimals, balanceof, price)
+  chain_mcp: https://mcp.pharos.xyz/mcp (eth_call, get_logs, get_code, get_block_number, get_chain_info)
+  docs_mcp: https://docs.pharos.xyz/~gitbook/mcp (askQuestion)
+  raw_rpc_calls: 0
+  broadcasts: 0
+  gas_spent: 0
+  tests: all pass
+video: REPLACE_WITH_NEW_VIDEO_LINK

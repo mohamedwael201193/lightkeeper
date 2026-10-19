@@ -1,0 +1,27 @@
+{
+  "task": "t13-docs-chain-agent",
+  "chain_mcp": {
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "tools": [
+      "get_chain_info",
+      "get_block_number",
+      "get_code",
+      "eth_call",
+      "get_logs"
+    ]
+  },
+  "docs_mcp": {
+    "endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+    "tools": [
+      "askQuestion",
+      "getPage"
+    ]
+  },
+  "pinned_block": 20695304,
+  "chain_id": 1672,
+  "git_commit": "735a0bd",
+  "git_dirty": true,
+  "rawRpcCalls": 0,
+  "localDocIndex": false,
+  "ran_at_utc": "2026-10-19T22:26:32.747973+00:00"
+}

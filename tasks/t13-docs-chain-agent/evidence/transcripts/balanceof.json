@@ -1,0 +1,140 @@
+{
+  "id": "balanceof",
+  "question": "How do I read an ERC-20 token balance with balanceOf using eth_call?",
+  "goal": "Call balanceOf(address) on an ERC-20 contract via eth_call",
+  "function": "balanceOf(address)",
+  "contract": "USDC",
+  "address": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "docs": {
+    "endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+    "tool": "askQuestion",
+    "asked_at_utc": "2026-10-19T22:25:57.868775+00:00",
+    "answer_chars": 1969,
+    "answer": "Use `cast call` to encode `balanceOf(address)` and perform the read-only call:\n\n```bash\ncast call <TOKEN_CONTRACT> \"balanceOf(address)(uint256)\" <WALLET_ADDRESS> \\\n  --rpc-url <RPC_URL>\n```\n\nThis returns the token balance as an integer. For a direct JSON-RPC request, `eth_call` takes a call object and a block tag; its `data` field must contain ABI-encoded `balanceOf(address)` calldata:\n\n```json\n{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"eth_call\",\n  \"params\": [\n    {\n      \"to\": \"<TOKEN_CONTRACT>\",\n      \"data\": \"<ABI-encoded balanceOf(WALLET_ADDRESS)>\"\n    },\n    \"latest\"\n  ],\n  \"id\": 1\n}\n```\n\nThe result is hexadecimal return data. See [JSON-RPC API Methods](/api-and-sdk/json-rpc-methods) for `eth_call` parameters, and the [Pharos Skill Engine](/tooling-and-infrastructure/pharos-skill-engine-guide) for the `cast call` example.\n\n# Sources\n\n- [JSON-RPC API Methods](https://docs.pharos.xyz/api-and-sdk/json-rpc-methods)\n- [Call EVM From WASM](https://docs.pharos.xyz/developer-guide/interoperability/call-evm-from-wasm)\n- [eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)](https://docs.pharos.xyz/api-and-sdk/eth-getproof)\n- [Canonical Contracts](https://docs.pharos.xyz/getting-started/canonical-contracts)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [Get PROS Gas](https://docs.pharos.xyz/getting-started/get-pros-gas)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af)\n- [FAQs](https://docs.pharos.xyz/getting-started/faqs)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-nft)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token)"
+  },
+  "citations": [
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods",
+      "retrieval_date": "2026-10-19",
+      "section": "JSON-RPC API Methods",
+      "excerpt": "Linked from the Docs MCP answer as [JSON-RPC API Methods]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide",
+      "retrieval_date": "2026-10-19",
+      "section": "Pharos Skill Engine",
+      "excerpt": "Linked from the Docs MCP answer as [Pharos Skill Engine]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/interoperability/call-evm-from-wasm",
+      "retrieval_date": "2026-10-19",
+      "section": "Call EVM From WASM",
+      "excerpt": "Linked from the Docs MCP answer as [Call EVM From WASM]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/eth-getproof",
+      "retrieval_date": "2026-10-19",
+      "section": "eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)",
+      "excerpt": "Linked from the Docs MCP answer as [eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/canonical-contracts",
+      "retrieval_date": "2026-10-19",
+      "section": "Canonical Contracts",
+      "excerpt": "Linked from the Docs MCP answer as [Canonical Contracts]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/token-registry",
+      "retrieval_date": "2026-10-19",
+      "section": "Token Registry",
+      "excerpt": "Linked from the Docs MCP answer as [Token Registry]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/get-pros-gas",
+      "retrieval_date": "2026-10-19",
+      "section": "Get PROS Gas",
+      "excerpt": "Linked from the Docs MCP answer as [Get PROS Gas]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+      "retrieval_date": "2026-10-19",
+      "section": "Pharos MCP",
+      "excerpt": "Linked from the Docs MCP answer as [Pharos MCP]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af",
+      "retrieval_date": "2026-10-19",
+      "section": "Publish Service Agent",
+      "excerpt": "Linked from the Docs MCP answer as [Publish Service Agent]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/faqs",
+      "retrieval_date": "2026-10-19",
+      "section": "FAQs",
+      "excerpt": "Linked from the Docs MCP answer as [FAQs]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/node-and-validator-guide/node-management",
+      "retrieval_date": "2026-10-19",
+      "section": "Node Management",
+      "excerpt": "Linked from the Docs MCP answer as [Node Management]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/foundry/write-your-first-nft",
+      "retrieval_date": "2026-10-19",
+      "section": "Write Your First NFT",
+      "excerpt": "Linked from the Docs MCP answer as [Write Your First NFT]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token",
+      "retrieval_date": "2026-10-19",
+      "section": "Write Your First Token",
+      "excerpt": "Linked from the Docs MCP answer as [Write Your First Token]"
+    }
+  ],
+  "docs_names_function": true,
+  "docs_source_count": 13,
+  "holder_from_logs": "0x1f3546a29eec2102c8d52e21a45114124014c85c",
+  "holder_tx": "0x0da0ef66b6a03f92b290b5ad55d6ca1da4a1843ce05fd7e30dc36bb58b250be9",
+  "chain": {
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "tools_called": [
+      "eth_call",
+      "get_logs"
+    ],
+    "calls": [
+      {
+        "tool": "get_logs",
+        "fromBlock": 20694868,
+        "toBlock": 20695368,
+        "logs_found": 37
+      },
+      {
+        "tool": "eth_call",
+        "to": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+        "data": "0x70a08231\u2026",
+        "block": 20695304,
+        "result": "0x000000000000000000000000000000000000000000000000000000006ee80e82"
+      }
+    ]
+  },
+  "interpretation": "[INFERENCE] The Docs MCP explained balanceOf(address) with ABI-encoded calldata (selector 0x70a08231). Holder 0x1f3546a29eec2102c8d52e21a45114124014c85c was taken from a REAL Transfer log (tx 0x0da0ef66b6a03f92\u2026). Live at block 20695304: 1860701826 base units = 1,860.701826 USDC.",
+  "ok": true,
+  "docs_tools_used": [
+    "askQuestion"
+  ],
+  "ran_at_utc": "2026-10-19T22:26:21.027785+00:00"
+}

@@ -1,0 +1,7 @@
+# T14 Portfolio Assistant — example config
+# Copy to config.yaml and adjust. NEVER put real keys here (none are needed:
+# this assistant is read-only and takes no private key).
+wallet: "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+rpc: "https://atlantic.dplabs-internal.com"
+chainId: 688689
+activityWindowBlocks: 10000

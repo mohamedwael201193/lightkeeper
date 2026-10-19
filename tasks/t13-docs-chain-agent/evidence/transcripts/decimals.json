@@ -1,0 +1,152 @@
+{
+  "id": "decimals",
+  "question": "How do I read an ERC-20 token's decimals using eth_call?",
+  "goal": "Call decimals() on an ERC-20 contract via eth_call",
+  "function": "decimals()",
+  "contract": "USDC",
+  "address": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "docs": {
+    "endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+    "tool": "askQuestion",
+    "asked_at_utc": "2026-10-19T22:25:35.838531+00:00",
+    "answer_chars": 2031,
+    "answer": "Call `eth_call` with the token contract as `to` and the `decimals()` selector as `data`:\n\n```bash\ncurl <RPC_URL> \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"eth_call\",\n    \"params\": [\n      {\n        \"to\": \"<ERC20_CONTRACT_ADDRESS>\",\n        \"data\": \"0x313ce567\"\n      },\n      \"latest\"\n    ],\n    \"id\": 1\n  }'\n```\n\n`0x313ce567` is the function selector for `decimals()`. The result is a 32-byte hex-encoded integer. For example, `0x...0012` means `18` decimals.\n\n`eth_call` performs a read-only contract call and returns hex data. See [JSON-RPC API Methods](/api-and-sdk/json-rpc-methods) for the request format. The ERC-20 ABI example includes `decimals()` returning `uint8` in the [Rust](/developer-guide/rust).\n\n# Sources\n\n- [JSON-RPC API Methods](https://docs.pharos.xyz/api-and-sdk/json-rpc-methods)\n- [Call EVM From WASM](https://docs.pharos.xyz/developer-guide/interoperability/call-evm-from-wasm)\n- [Rust](https://docs.pharos.xyz/developer-guide/rust)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [FAQs](https://docs.pharos.xyz/getting-started/faqs)\n- [eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)](https://docs.pharos.xyz/api-and-sdk/eth-getproof)\n- [Interoperability](https://docs.pharos.xyz/developer-guide/interoperability)\n- [Canonical Contracts](https://docs.pharos.xyz/getting-started/canonical-contracts)\n- [Gas Model](https://docs.pharos.xyz/getting-started/gas-model)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)\n- [Chainlink Push Engine Feeds](https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe)\n- [Chainlink CCIP](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/chainlink-ccip)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)\n- [EVM](https://docs.pharos.xyz/resources/evm)\n- [Get PROS Gas](https://docs.pharos.xyz/getting-started/get-pros-gas)"
+  },
+  "citations": [
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods",
+      "retrieval_date": "2026-10-19",
+      "section": "JSON-RPC API Methods",
+      "excerpt": "Linked from the Docs MCP answer as [JSON-RPC API Methods]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/rust",
+      "retrieval_date": "2026-10-19",
+      "section": "Rust",
+      "excerpt": "Linked from the Docs MCP answer as [Rust]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/interoperability/call-evm-from-wasm",
+      "retrieval_date": "2026-10-19",
+      "section": "Call EVM From WASM",
+      "excerpt": "Linked from the Docs MCP answer as [Call EVM From WASM]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/token-registry",
+      "retrieval_date": "2026-10-19",
+      "section": "Token Registry",
+      "excerpt": "Linked from the Docs MCP answer as [Token Registry]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/faqs",
+      "retrieval_date": "2026-10-19",
+      "section": "FAQs",
+      "excerpt": "Linked from the Docs MCP answer as [FAQs]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/eth-getproof",
+      "retrieval_date": "2026-10-19",
+      "section": "eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)",
+      "excerpt": "Linked from the Docs MCP answer as [eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/interoperability",
+      "retrieval_date": "2026-10-19",
+      "section": "Interoperability",
+      "excerpt": "Linked from the Docs MCP answer as [Interoperability]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/canonical-contracts",
+      "retrieval_date": "2026-10-19",
+      "section": "Canonical Contracts",
+      "excerpt": "Linked from the Docs MCP answer as [Canonical Contracts]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/gas-model",
+      "retrieval_date": "2026-10-19",
+      "section": "Gas Model",
+      "excerpt": "Linked from the Docs MCP answer as [Gas Model]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+      "retrieval_date": "2026-10-19",
+      "section": "Pharos MCP",
+      "excerpt": "Linked from the Docs MCP answer as [Pharos MCP]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+      "retrieval_date": "2026-10-19",
+      "section": "Chainlink Push Engine Feeds",
+      "excerpt": "Linked from the Docs MCP answer as [Chainlink Push Engine Feeds]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/chainlink-ccip",
+      "retrieval_date": "2026-10-19",
+      "section": "Chainlink CCIP",
+      "excerpt": "Linked from the Docs MCP answer as [Chainlink CCIP]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/node-and-validator-guide/node-management",
+      "retrieval_date": "2026-10-19",
+      "section": "Node Management",
+      "excerpt": "Linked from the Docs MCP answer as [Node Management]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+      "retrieval_date": "2026-10-19",
+      "section": "Atlantic Testnet",
+      "excerpt": "Linked from the Docs MCP answer as [Atlantic Testnet]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/resources/evm",
+      "retrieval_date": "2026-10-19",
+      "section": "EVM",
+      "excerpt": "Linked from the Docs MCP answer as [EVM]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/get-pros-gas",
+      "retrieval_date": "2026-10-19",
+      "section": "Get PROS Gas",
+      "excerpt": "Linked from the Docs MCP answer as [Get PROS Gas]"
+    }
+  ],
+  "docs_names_function": true,
+  "docs_source_count": 16,
+  "chain": {
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "tools_called": [
+      "eth_call"
+    ],
+    "calls": [
+      {
+        "tool": "eth_call",
+        "to": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+        "data": "0x313ce567\u2026",
+        "block": 20695304,
+        "result": "0x0000000000000000000000000000000000000000000000000000000000000006"
+      }
+    ]
+  },
+  "interpretation": "[INFERENCE] The Docs MCP explained decimals() as an eth_call returning uint8. Live at block 20695304: 6. All USDC human formatting divides by 10^6.",
+  "ok": true,
+  "docs_tools_used": [
+    "askQuestion"
+  ],
+  "ran_at_utc": "2026-10-19T22:25:57.864201+00:00"
+}

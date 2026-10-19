@@ -226,10 +226,13 @@ async function readActivity(address: string): Promise<ActivityResult> {
   const events: ActivityEvent[] = [];
   for (const page of pages) {
     for (const l of page as Array<{
-      address: string; blockNumber: string; transactionHash: string; topics: string[]; data: string;
+      address: string; blockNumber: string; transactionHash: string; logIndex: string; topics: string[]; data: string;
     }>) {
-      if (seen.has(l.transactionHash)) continue;
-      seen.add(l.transactionHash);
+      // Dedupe by txHash:logIndex — one tx can emit several transfers (even across
+      // tokens); keying on txHash alone would silently drop them.
+      const key = `${l.transactionHash}:${l.logIndex}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       const token = TOKEN_BY_ADDRESS[l.address.toLowerCase()];
       if (!token) continue;
       const fromAddr = "0x" + l.topics[1].slice(-40);

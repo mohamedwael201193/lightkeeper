@@ -1,0 +1,41 @@
+# LIGHTKEEPER task manifest — T11 Policy Gatekeeper
+task_id: T11
+slug: policy-gatekeeper
+name: Policy Gatekeeper
+tier: Medium
+points: 100
+toolkit: SkillEngine
+status: shipped
+owner: devmo (build agent)
+
+description: >
+  A pre-execution policy engine for agent write actions: 8 named rules
+  (action/network/selector/token/destination allowlists, per-action caps,
+  time window, cooldown) over a versioned, hash-stamped policy.json;
+  APPROVE mints an audit-backed gate stamp, DENY names the rule, mainnet
+  is REFUSED outright. Append-only hash-chained audit trail of every
+  decision. The 4 mandatory SkillEngine Write Operation Pre-checks enforced
+  on the execute path. Differs from T05 (amount thresholds) by deciding on
+  action policy.
+
+deliverables:
+  - policy.json            # versioned policy (hash stamped into every audit entry)
+  - gatekeeper.py          # evaluate -> stamp; execute (pre-checks + stamp + broadcast)
+  - tests/test_policy_engine.py  # 22 unit tests: every rule type, fail-closed, mainnet, no-bypass, chain tamper
+  - audit/check-log.jsonl  # append-only hash-chained decision log (5 entries)
+  - run-logs/              # deny.log, approve-evaluate.log, nobypass.log, mainnet-refusal.log, approve-execute.log, audit-verify.log
+  - REQUIREMENTS.md        # official requirements quoted verbatim
+  - README.md              # 8 sections, opens with OCTOPUS header
+  - evidence.md / evidence.json  # real tx hash, spend log, curl-tested links
+  - LINKS.md               # curl-verified links
+  - SUBMISSION.md          # exact copy-paste Arena pack
+
+budget:
+  max_phrs: 0.15
+  spent_phrs: 0.00204200021   # from T11's own receipts (RUN B + RUN C: value + gas); shared wallet, balance deltas not attributable
+
+evidence:
+  atlantic_explorer: https://atlantic.pharosscan.xyz/
+  txs:
+    - 0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb
+    - 0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329

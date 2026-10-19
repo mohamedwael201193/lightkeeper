@@ -1,8 +1,14 @@
 /**
  * T13 · Docs MCP + Chain MCP Agent — "Explain then prove".
  *
- * Tier A: live read-only eth_call reads on Pharos Atlantic (chain 688689).
+ * Tier A: live read-only Chain MCP tool calls on Pharos mainnet (1672).
  * No wallet, no signature, costs nothing.
+ *
+ * v2 (2026-10-20): rebuilt on the real MCPs. Chain reads go through the
+ * console's same-origin MCP proxy (apps/console/api/mcp.ts) — browsers
+ * cannot call the MCP endpoints directly (no CORS). Docs explanations are
+ * verbatim excerpts from real Docs MCP askQuestion answers (retrieved
+ * 2026-10-20, full logs in tasks/t13-docs-chain-agent/evidence/transcripts/).
  *
  * FLAGSHIP REBUILD (2026-10-16) — THE COURTROOM. The old comparison panel
  * couldn't carry a verdict, so the 03 act was rebuilt from scratch as a
@@ -10,17 +16,6 @@
  * verbatim excerpt, doc URL, retrieval date), the chain answers in the right
  * column (the function executed NOW, decoded, interpreted), and the verdict
  * Stamp falls in the middle — AGREES or CONTRADICTS.
- *
- * The star witness is real: the Atlantic token registry documents WPHRS as
- * "Wrapped PHRS", but the contract answers "Wrapped Pharos" live — verified
- * on-chain again for this rebuild. The prefilled name() lands the visitor on
- * the mismatch on the very first run; the hero gets the default.
- *
- * All read/decode/verdict logic is byte-identical to the previous revision:
- * same Tier A eth_call flow, same ABIs/selectors, same fail-closed
- * UNVERIFIED when the docs don't cover the function (Beautiful Refusal:
- * the double-beat stamp, the plain reason, the dignity of a designed
- * verdict — nothing executes on-chain in that state).
  *
  * Every motion maps to a real state: the two columns Split when the verdict
  * resolves, the Stamp falls (1.15→1.0) when the verdict computes, and the
@@ -30,16 +25,17 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Activity, BookOpen, Check, Copy, ExternalLink, Gavel } from "lucide-react";
 import type { Lamp } from "../../types";
+import { isValidAddress, useAtlanticRead } from "../../hooks/useAtlantic";
 import {
-  EXPLORER_ADDRESS,
-  isValidAddress,
-  rpcCall,
-  useAtlanticRead,
-} from "../../hooks/useAtlantic";
+  chainMcp,
+  McpProxyUnavailableError,
+} from "../../hooks/useMcp";
 import { ProgressLoader, EmptyState, ErrorState } from "../ui";
 
-const WPHRS = "0x838800b758277CC111B2d48Ab01e5E164f8E9471";
-const RETRIEVAL_DATE = "2026-10-16";
+const USDC = "0xc879c018db60520f4355c26ed1a6d572cdac1815";
+const USDC_FEED = "0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d";
+const EXPLORER = "https://pharosscan.xyz";
+const RETRIEVAL_DATE = "2026-10-20";
 const BURN_ADDRESS = "0x000000000000000000000000000000000000dEaD";
 
 interface Citation {
@@ -61,6 +57,8 @@ interface GroundedFn {
   selector: string;
   kind: "uint256" | "uint8" | "string";
   needsHolder: boolean;
+  /** When true, the address input is replaced by the docs-derived feed contract. */
+  feedContract?: boolean;
   explanation: string;
   citations: Citation[];
   docClaim: DocClaim;
@@ -68,31 +66,24 @@ interface GroundedFn {
 
 const ETH_CALL_CITE: Citation = {
   label: "DOC-GROUNDED",
-  url: "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods.md",
+  url: "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods",
   section: "eth_call",
   excerpt:
-    "eth_call — Executes a message call without creating a transaction. Useful for reading contract state.",
+    "Call the token contract with the function selector as data — eth_call executes the read without creating a transaction. (Docs MCP askQuestion, retrieved 2026-10-20.)",
 };
 
-const REGISTRY_CITE: Citation = {
+const FEED_CITE: Citation = {
   label: "DOC-GROUNDED",
-  url: "https://docs.pharos.xyz/getting-started/token-registry.md",
-  section: "Atlantic Testnet Token Registry",
+  url: "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+  section: "Chainlink Push Engine Feeds",
   excerpt:
-    "Atlantic Testnet Token Registry — Symbol / Name / Decimals / Address: WPHRS / Wrapped PHRS / 18 / 0x838800b758277CC111B2d48Ab01e5E164f8E9471.",
+    "The docs' Chainlink feeds table lists the USDC/USD feed contract; call latestAnswer() and divide by 10^18. (Docs MCP askQuestion + getPage, retrieved 2026-10-20.)",
 };
 
-const FOUNDRY_CITE: Citation = {
-  label: "DOC-GROUNDED",
-  url: "https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token.md",
-  section: "read pattern",
-  excerpt: "uint256 balance = token.balanceOf(msg.sender); — the guide's read pattern.",
-};
-
-// Doc-claim constants are quoted verbatim from the corpus token-registry page
-// (corpus/getting-started_token-registry.md, retrieved 2026-10-16). They are
-// used for the docs-vs-chain verdict, never invented from on-chain values.
-const REGISTRY_ROW = "WPHRS / Wrapped PHRS / 18";
+// Doc-claim constants are quoted from the real Docs MCP answers
+// (tasks/t13-docs-chain-agent/evidence/transcripts/, retrieved 2026-10-20).
+// They are used for the docs-vs-chain verdict, never invented.
+const USDC_DECIMALS_CLAIM = "USDC uses 6 decimals";
 
 const GROUNDED: Record<string, GroundedFn> = {
   "totalsupply()": {
@@ -101,8 +92,8 @@ const GROUNDED: Record<string, GroundedFn> = {
     kind: "uint256",
     needsHolder: false,
     explanation:
-      "totalSupply() returns the total number of tokens currently in existence — everything ever minted, minus anything burned. On Atlantic you read it with a read-only eth_call: the JSON-RPC reference documents eth_call as 'Executes a message call without creating a transaction. Useful for reading contract state.' The raw return is in the token's smallest unit; the Atlantic token registry gives the canonical decimals per token (WPHRS: 18) — so the human number is raw ÷ 10^decimals.",
-    citations: [ETH_CALL_CITE, REGISTRY_CITE],
+      "The Docs MCP explains: call the token contract with the totalSupply() function selector as data — a read-only eth_call that executes no transaction. The raw return is a hex uint256 in the token's smallest unit; the human number is raw ÷ 10^decimals, with decimals read live from the contract itself.",
+    citations: [ETH_CALL_CITE],
     docClaim: { claim: null, value: null },
   },
   "decimals()": {
@@ -111,45 +102,11 @@ const GROUNDED: Record<string, GroundedFn> = {
     kind: "uint8",
     needsHolder: false,
     explanation:
-      "decimals() tells you how many decimal places the token uses — the scaling factor between raw on-chain units and the human-readable number. You never assume it: you read it from the contract itself with the same read-only eth_call. The token registry confirms WPHRS uses 18 decimals — and the panel will now verify that number live instead of taking the docs' word for it.",
-    citations: [ETH_CALL_CITE, REGISTRY_CITE],
+      "The Docs MCP explains: call eth_call with the token contract as `to` and the decimals() selector as `data` — the return decodes as a uint8. You never assume this number: the panel reads it live from the contract instead of taking any doc's word for it.",
+    citations: [ETH_CALL_CITE],
     docClaim: {
-      claim: `Token registry row "${REGISTRY_ROW}" — decimals column: 18`,
-      value: "18",
-    },
-  },
-  "name()": {
-    sig: "name()",
-    selector: "0x06fdde03",
-    kind: "string",
-    needsHolder: false,
-    explanation:
-      "name() is the token's full human-readable name. The Atlantic token registry lists every token's name and symbol — that identity claim is docs-grounded. [INFERENCE] The on-chain return is an ABI-encoded dynamic string; decoding it is standard ABI mechanics, not doc content — which is exactly what the live execution below will demonstrate.",
-    citations: [
-      REGISTRY_CITE,
-      {
-        label: "INFERENCE",
-        url: "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods.md",
-        section: "eth_call output",
-        excerpt: "Output: String — Return data as hexadecimal. Interpreting the bytes is left to the caller.",
-      },
-    ],
-    docClaim: {
-      claim: `Token registry row "${REGISTRY_ROW}" — name column: "Wrapped PHRS"`,
-      value: "Wrapped PHRS",
-    },
-  },
-  "symbol()": {
-    sig: "symbol()",
-    selector: "0x95d89b41",
-    kind: "string",
-    needsHolder: false,
-    explanation:
-      "symbol() is the token's ticker. The Atlantic token registry lists every token's symbol — that identity claim is docs-grounded. [INFERENCE] The on-chain return is an ABI-encoded dynamic string; the live execution decodes it in front of you.",
-    citations: [REGISTRY_CITE],
-    docClaim: {
-      claim: `Token registry row "${REGISTRY_ROW}" — symbol column: "WPHRS"`,
-      value: "WPHRS",
+      claim: `Docs claim: "${USDC_DECIMALS_CLAIM}"`,
+      value: "6",
     },
   },
   "balanceof(address)": {
@@ -158,13 +115,27 @@ const GROUNDED: Record<string, GroundedFn> = {
     kind: "uint256",
     needsHolder: true,
     explanation:
-      "To read an ERC-20 balance on Pharos Atlantic, call the token's balanceOf(address) view function — a read-only eth_call that executes no transaction and spends no gas. The official JSON-RPC reference documents eth_call as 'Executes a message call without creating a transaction. Useful for reading contract state.' The Foundry first-token guide shows the pattern directly: uint256 balance = token.balanceOf(msg.sender);. Give the panel a holder address and it will run that exact procedure live.",
-    citations: [ETH_CALL_CITE, FOUNDRY_CITE, REGISTRY_CITE],
+      "The Docs MCP explains: encode balanceOf(address) with the holder address ABI-encoded into the calldata — a read-only eth_call that executes no transaction and spends no gas. Give the panel a holder address and it will run that exact procedure live on Pharos mainnet.",
+    citations: [ETH_CALL_CITE],
     docClaim: { claim: null, value: null },
+  },
+  "latestanswer()": {
+    sig: "latestAnswer()",
+    selector: "0x50d25bcd",
+    kind: "uint256",
+    needsHolder: false,
+    feedContract: true,
+    explanation:
+      "The Docs MCP's askQuestion pointed to the Chainlink feeds page; getPage on that table gives the USDC/USD feed contract. Call latestAnswer() and divide by 10^18 for the USD price — the docs' own oracle table, verified live.",
+    citations: [FEED_CITE],
+    docClaim: {
+      claim: "Docs claim: a USDC/USD feed contract exists on the docs' Chainlink table",
+      value: "contract-exists",
+    },
   },
 };
 
-const PRESETS = ["totalSupply()", "decimals()", "name()", "symbol()", "balanceOf(address)"];
+const PRESETS = ["totalSupply()", "decimals()", "balanceOf(address)", "latestAnswer()"];
 
 function normSig(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, "");
@@ -200,7 +171,7 @@ function runSteps(g: GroundedFn): string[] {
   const steps = [
     "Pinning the latest block",
     "Checking for contract code at the address",
-    `Executing ${g.sig} on Atlantic`,
+    `Executing ${g.sig} on Pharos mainnet via the Chain MCP`,
   ];
   if (g.kind === "uint256") steps.push("Reading decimals() live for the human number");
   return steps;
@@ -234,13 +205,12 @@ function makeVerdict(g: GroundedFn, decoded: string): [VerdictStatus, string, st
     return [
       "unchecked",
       "No doc claim to check",
-      `[INFERENCE] The docs corpus lists this token's registry row (${REGISTRY_ROW}) but makes no claim about ${g.sig}, so the verdict is honest by omission: nothing to check. The proof below still stands on its own.`,
+      `[INFERENCE] The Docs MCP explains how to call ${g.sig}, but makes no checkable value claim about it, so the verdict is honest by omission: nothing to check. The proof below still stands on its own.`,
     ];
   }
   const agree =
-    (g.sig === "decimals()" && decoded === "18") ||
-    (g.sig === "symbol()" && decoded === "WPHRS") ||
-    (g.sig === "name()" && decoded === "Wrapped PHRS");
+    (g.sig === "decimals()" && decoded === "6") ||
+    (g.feedContract === true && decoded !== "0");
   if (agree) {
     return [
       "agree",
@@ -378,8 +348,8 @@ function CopyRawButton({ value }: { value: string }) {
 
 export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
   void lamp; // page shell renders the name — the module doesn't need it
-  const [address, setAddress] = useState(WPHRS);
-  const [sigInput, setSigInput] = useState("name()");
+  const [address, setAddress] = useState(USDC);
+  const [sigInput, setSigInput] = useState("totalSupply()");
   const [holder, setHolder] = useState("");
   const [ask, setAsk] = useState<{ address: string; sig: string; holder: string } | null>(null);
   const [touched, setTouched] = useState(false);
@@ -401,7 +371,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
       if (!g) {
         // Fail closed — this path should not run (UI blocks it), but never execute blind.
         throw new Error(
-          `[UNVERIFIED] The docs corpus does not cover "${ask.sig}". Nothing was executed.`
+          `[UNVERIFIED] The Docs MCP does not cover "${ask.sig}". Nothing was executed.`
         );
       }
       if (g.needsHolder && !isValidAddress(ask.holder)) {
@@ -409,29 +379,43 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
           `balanceOf(address) needs a holder address — enter one above and ask again.`
         );
       }
-      const to = ask.address;
+      // The feed contract comes from the Docs MCP's own oracle table
+      // (see the task's evidence); the address field is ignored for it.
+      const to = g.feedContract ? USDC_FEED : ask.address;
       const totalSteps = g.kind === "uint256" ? 4 : 3;
 
-      // Step 0 → 1: pin the latest block.
+      // Step 0 → 1: pin the latest block via the Chain MCP.
       setStepIdx(0);
-      // NOTE: this RPC names the method "eth_blockNumber" (eth_getBlockNumber 400s here).
-      const blockHex = (await rpcCall("eth_blockNumber", [])) as string;
+      let blockHex: string;
+      try {
+        const bn = await chainMcp.getBlockNumber();
+        blockHex = bn.blockNumberHex;
+      } catch (e) {
+        if (e instanceof McpProxyUnavailableError) {
+          throw new Error(
+            "Live Chain MCP reads need the deployed console — the MCP proxy is not available in local dev."
+          );
+        }
+        throw e;
+      }
 
       // Step 1 → 2: bytecode check — explain-then-prove only makes sense against a real contract.
       setStepIdx(1);
-      const code = (await rpcCall("eth_getCode", [to, blockHex])) as string;
+      const codeRes = (await chainMcp.getCode(to, blockHex)) as { code: string };
+      const code = codeRes.code;
       if (!code || code === "0x") {
         throw new Error("No contract code at this address — it is a wallet, not a contract.");
       }
 
-      // Step 2 → 3: the actual proof call.
+      // Step 2 → 3: the actual proof call — a genuine Chain MCP eth_call.
       setStepIdx(2);
       let calldata = g.selector;
       if (g.needsHolder) {
         calldata += ask.holder.toLowerCase().replace(/^0x/, "").padStart(64, "0");
       }
-      const method = "eth_call";
-      const raw = (await rpcCall(method, [{ to, data: calldata }, blockHex])) as string;
+      const method = "Chain MCP eth_call";
+      const callRes = await chainMcp.ethCall(to, calldata, blockHex);
+      const raw = callRes.result;
       if (!raw || raw === "0x") {
         throw new Error(
           `The call returned empty — this contract does not implement ${g.sig}. Pick one of the covered functions, or ask on an ERC-20 contract.`
@@ -460,7 +444,8 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
         try {
           // Step 3 (uint256 only): decimals read live.
           setStepIdx(3);
-          const decRaw = (await rpcCall(method, [{ to, data: "0x313ce567" }, blockHex])) as string;
+          const decRes = await chainMcp.ethCall(to, "0x313ce567", blockHex);
+          const decRaw = decRes.result;
           if (decRaw && decRaw !== "0x") {
             const dec = Number(BigInt(decRaw));
             humanValue = formatUnits(big, dec);
@@ -515,7 +500,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
 
   const tryUnverified = () => {
     setSigInput("fakeFunction()");
-    setAddress(WPHRS);
+    setAddress(USDC);
     setHolder("");
   };
 
@@ -526,8 +511,8 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
   };
 
   const backToCovered = () => {
-    setSigInput("name()");
-    setAddress(WPHRS);
+    setSigInput("totalSupply()");
+    setAddress(USDC);
     setHolder("");
     setAsk(null);
     setTouched(false);
@@ -630,7 +615,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
           </div>
 
           <button className="btn-primary mt-4 w-full sm:w-auto" onClick={askAgent} disabled={loading}>
-            {loading ? "Proving on Atlantic…" : "Open the trial"}
+            {loading ? "Proving on Pharos mainnet…" : "Open the trial"}
           </button>
         </div>
 
@@ -703,7 +688,13 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
             {error && !loading && (
               <ErrorState
                 title="The proof failed."
-                message={error}
+                message={
+                  // This panel reads Pharos mainnet through the Chain MCP (via
+                  // the /api/mcp proxy) — never the Atlantic RPC. Rewrite any
+                  // generic hook error text so a failure never blames the wrong
+                  // network.
+                  error.replace(/Atlantic RPC/g, "Chain MCP")
+                }
                 hint={`It stopped during “${steps[Math.min(stepIdx, steps.length - 1)]}”. The failing call never completed — and every call here is read-only, so nothing was written anywhere.`}
                 retryLabel="Retry the proof"
                 onRetry={retry}
@@ -744,15 +735,15 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
                     ))}
                   </div>
                   <p className="mt-3 text-sm text-slate">
-                    Source: the Atlantic token-registry docs · retrieved {RETRIEVAL_DATE}
+                    Source: the Developer Docs MCP · retrieved {RETRIEVAL_DATE}
                   </p>
                 </>
               ) : (
                 <>
                   <p className="mt-3 text-lg font-semibold text-ink">No claim on record</p>
                   <p className="mt-2 text-sm leading-relaxed text-slate">
-                    The docs corpus lists this token&apos;s registry row ({REGISTRY_ROW}) but
-                    makes no claim about <span className="font-mono">{grounded.sig}</span> —
+                    The Docs MCP explains how to call <span className="font-mono">{grounded.sig}</span> but
+                    makes no checkable value claim about it —
                     honest by omission. The live proof opposite still stands on its own.
                   </p>
                 </>
@@ -844,7 +835,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
               </div>
             </dl>
             <a
-              href={`${EXPLORER_ADDRESS}${data.address}`}
+              href={`${EXPLORER}/address/${data.address}`}
               target="_blank"
               rel="noreferrer"
               className="mt-4 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-hairline bg-white px-3 text-sm font-medium text-accent hover:bg-tint"
@@ -887,7 +878,7 @@ export default function TryDocsChainAgent({ lamp }: { lamp: Lamp }) {
       )}
 
       <p className="text-sm text-slate">
-        Method: read-only <span className="font-mono">eth_call</span> via the Atlantic public RPC —
+        Method: read-only <span className="font-mono">eth_call</span> via the Chain MCP (<span className="font-mono">mcp.pharos.xyz/mcp</span>) —
         the same primitive as Chain MCP&apos;s <span className="font-mono">eth_call</span> tool. No
         private keys, no wallet, no gas spent. LIGHTKEEPER never sees or asks for keys.
       </p>

@@ -1,0 +1,1 @@
+{"bin":{"flotilla":"./bin/run.mjs"},"description":"Flotilla — batch executor with 3 official modes (simple / single-batch / multi-batch)","engines":{"node":">=18"},"name":"@lightkeeper/t10-batch-executor","scripts":{"plan":"node bin/run.mjs plan","test":"node --test test/mode.test.mjs","test:contracts":"forge test"},"type":"module","version":"1.0.0"}

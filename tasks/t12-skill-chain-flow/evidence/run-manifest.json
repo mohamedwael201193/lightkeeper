@@ -1,0 +1,28 @@
+{
+  "task": "t12-skill-chain-flow",
+  "run_ids": [
+    "allow-1-1792448486",
+    "block-1-1792448505"
+  ],
+  "verdicts": {
+    "allow-1-1792448486": "ALLOW",
+    "block-1-1792448505": "BLOCK"
+  },
+  "mcp_endpoint": "https://mcp.pharos.xyz/mcp",
+  "mcp_server": "pharos-mcp-server",
+  "mcp_tools_called": [
+    "get_chain_info",
+    "get_block_number",
+    "get_balance",
+    "eth_call",
+    "get_gas_price",
+    "estimate_gas"
+  ],
+  "raw_rpc_calls": 0,
+  "network": {
+    "chain_id": 1672,
+    "name": "pharos-mainnet"
+  },
+  "v1_history_retained": true,
+  "ts": "2026-10-20T01:30:00+00:00"
+}

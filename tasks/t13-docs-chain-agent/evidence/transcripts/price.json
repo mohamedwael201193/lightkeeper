@@ -1,0 +1,120 @@
+{
+  "id": "price",
+  "question": "What is the live USD market price of USDC on Pharos mainnet?",
+  "goal": "Find the documented USDC price feed and read its live quote",
+  "function": "latestAnswer()",
+  "contract": "USDC/USD feed",
+  "address": "0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d",
+  "docs": {
+    "endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+    "tool": "askQuestion",
+    "asked_at_utc": "2026-10-19T22:26:21.028670+00:00",
+    "answer_chars": 1329,
+    "answer": "I can\u00e2\u0080\u0099t read the live quote from here. The documented Pacific Mainnet feed is [Chainlink Push Engine Feeds](/tooling-and-infrastructure/oracles/chainlink-pe), at `0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d`.\n\nCall `latestAnswer()` for the quote and `latestTimestamp()` to check its observation time. The feed uses **18 decimals**, so divide the answer by `10^18` to get USD. The docs list the feed address and interface, but not a current numeric quote.\n\n# Sources\n\n- [Chainlink Push Engine Feeds](https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe)\n- [Chainlink Data Feeds](https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-ds)\n- [x402 Pacific Mainnet](https://docs.pharos.xyz/developer-guide/x402/x402-pacific-mainnet)\n- [Supra](https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra)\n- [Oracle](https://docs.pharos.xyz/tooling-and-infrastructure/oracles)\n- [Pacific Mainnet](https://docs.pharos.xyz/getting-started/network/pacific-mainnet)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [About Pharos](https://docs.pharos.xyz/introduction/readme)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [Pharos Network Snapshots](https://docs.pharos.xyz/node-and-validator-guide/pharos-network-snapshots)",
+    "feeds_page_chars": 6973
+  },
+  "citations": [
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+      "retrieval_date": "2026-10-19",
+      "section": "Chainlink Push Engine Feeds",
+      "excerpt": "Linked from the Docs MCP answer as [Chainlink Push Engine Feeds]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-ds",
+      "retrieval_date": "2026-10-19",
+      "section": "Chainlink Data Feeds",
+      "excerpt": "Linked from the Docs MCP answer as [Chainlink Data Feeds]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/x402/x402-pacific-mainnet",
+      "retrieval_date": "2026-10-19",
+      "section": "x402 Pacific Mainnet",
+      "excerpt": "Linked from the Docs MCP answer as [x402 Pacific Mainnet]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra",
+      "retrieval_date": "2026-10-19",
+      "section": "Supra",
+      "excerpt": "Linked from the Docs MCP answer as [Supra]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles",
+      "retrieval_date": "2026-10-19",
+      "section": "Oracle",
+      "excerpt": "Linked from the Docs MCP answer as [Oracle]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/network/pacific-mainnet",
+      "retrieval_date": "2026-10-19",
+      "section": "Pacific Mainnet",
+      "excerpt": "Linked from the Docs MCP answer as [Pacific Mainnet]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/token-registry",
+      "retrieval_date": "2026-10-19",
+      "section": "Token Registry",
+      "excerpt": "Linked from the Docs MCP answer as [Token Registry]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/introduction/readme",
+      "retrieval_date": "2026-10-19",
+      "section": "About Pharos",
+      "excerpt": "Linked from the Docs MCP answer as [About Pharos]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet",
+      "retrieval_date": "2026-10-19",
+      "section": "x402 Atlantic Testnet",
+      "excerpt": "Linked from the Docs MCP answer as [x402 Atlantic Testnet]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/node-and-validator-guide/pharos-network-snapshots",
+      "retrieval_date": "2026-10-19",
+      "section": "Pharos Network Snapshots",
+      "excerpt": "Linked from the Docs MCP answer as [Pharos Network Snapshots]"
+    }
+  ],
+  "docs_names_function": true,
+  "docs_source_count": 10,
+  "feed_address_from_docs": "0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d",
+  "feed_page": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+  "chain": {
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "tools_called": [
+      "eth_call",
+      "get_code"
+    ],
+    "calls": [
+      {
+        "tool": "get_code",
+        "address": "0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d",
+        "has_code": true
+      },
+      {
+        "tool": "eth_call",
+        "to": "0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d",
+        "data": "0x50d25bcd\u2026",
+        "block": 20695304,
+        "result": "0x0000000000000000000000000000000000000000000000000de0429d26881000"
+      }
+    ]
+  },
+  "interpretation": "[INFERENCE] The Docs MCP askQuestion pointed to the Chainlink feeds page; getPage on that page gave the USDC/USD row with feed 0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d; get_code confirmed the contract; latestAnswer() live at block 20695304: 999872360000000000 -> $0.99987 (18 decimals, per the docs). Every step of the address discovery came from the Docs MCP.",
+  "ok": true,
+  "docs_tools_used": [
+    "askQuestion",
+    "getPage"
+  ],
+  "ran_at_utc": "2026-10-19T22:26:32.732375+00:00"
+}

@@ -1,0 +1,22 @@
+slug: t10-batch-executor
+title: "Flotilla — Batch Executor"
+task_id: T10
+difficulty: Medium
+points: 100
+toolkit: SkillEngine
+status: ready-for-review
+chain_id: 688689
+network: atlantic-testnet
+no_mock_attestation: true
+contracts:
+  BatchDistributor: 0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4
+  RevertingReceiver: 0x49b26d4685262e7756cbE623f134cFa97d142B94
+live_transactions: 12
+total_spend_phrs: "0.0617"
+tests:
+  forge: 12 passed
+  node: 9 passed
+proof:
+  explorer_tx_links: 9
+  share_link: PENDING-PORTAL
+video_slot: PENDING-VIDEO

@@ -1,0 +1,3 @@
+{"ts":1792123983,"metric":"baseFeePerGas","chainId":688689,"mode":"LIVE","blockNumber":31481567,"valueWei":"1000000000","fastMAWei":null,"slowMAWei":null,"trend":"WARMUP","above":false,"streak":0,"decision":"HOLD","reason":"WARMUP_INSUFFICIENT_SAMPLES"}
+{"ts":1792123983,"metric":"baseFeePerGas","chainId":688689,"mode":"LIVE","blockNumber":31481568,"valueWei":"1000000000","fastMAWei":null,"slowMAWei":null,"trend":"WARMUP","above":false,"streak":0,"decision":"HOLD","reason":"WARMUP_INSUFFICIENT_SAMPLES"}
+{"ts":1792123983,"metric":"baseFeePerGas","chainId":688689,"mode":"LIVE","blockNumber":31481569,"valueWei":"1000000000","fastMAWei":null,"slowMAWei":null,"trend":"WARMUP","above":false,"streak":0,"decision":"HOLD","reason":"WARMUP_INSUFFICIENT_SAMPLES"}

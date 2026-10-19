@@ -1,0 +1,195 @@
+{
+  "budget_phrs": 0.15,
+  "chain_id": 688689,
+  "honesty_label": "testnet mechanics demonstration \u2014 rewards are valueless testnet PHRS, never real yield",
+  "live_run": {
+    "claims": [
+      {
+        "label": "claim OctopusVault-Kelp",
+        "hash": "0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+        "explorer": "https://atlantic.pharosscan.xyz/tx/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+        "block": 31483737,
+        "status": 1,
+        "gas_used": 89777,
+        "effective_gas_price_wei": 1000000001,
+        "tx_fee_wei": 89777089777000,
+        "claimed_wei": 1410000000000000,
+        "math_proof": "(31483737-31483596) x 1e13 = 1410000000000000 \u2014 EXACT to the wei"
+      },
+      {
+        "label": "claim OctopusVault-Kraken",
+        "hash": "0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+        "explorer": "https://atlantic.pharosscan.xyz/tx/0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+        "block": 31483743,
+        "status": 1,
+        "gas_used": 89777,
+        "effective_gas_price_wei": 1000000001,
+        "tx_fee_wei": 89777089777000,
+        "claimed_wei": 3524999999999999,
+        "math_proof": "141 blocks x 2.5e13 pro-rata over 0.0099 staked = 3524999999999999 \u2014 EXACT to the wei vs on-chain integer-division formula (1 wei truncation vs naive, documented)"
+      }
+    ],
+    "stakes": [
+      {
+        "label": "stake 0.02 PHRS OctopusVault-Kelp",
+        "hash": "0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+        "explorer": "https://atlantic.pharosscan.xyz/tx/0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+        "block": 31483596,
+        "status": 1,
+        "gas_used": 102375,
+        "effective_gas_price_wei": 1000000001,
+        "tx_fee_wei": 102375102375000,
+        "principal_wei": 20000000000000000,
+        "entry_fee_wei": 0,
+        "net_staked_wei": 20000000000000000
+      },
+      {
+        "label": "stake 0.01 PHRS OctopusVault-Kraken",
+        "hash": "0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+        "explorer": "https://atlantic.pharosscan.xyz/tx/0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+        "block": 31483602,
+        "status": 1,
+        "gas_used": 105175,
+        "effective_gas_price_wei": 1000000001,
+        "tx_fee_wei": 105175105175000,
+        "principal_wei": 10000000000000000,
+        "entry_fee_wei": 100000000000000,
+        "net_staked_wei": 9900000000000000,
+        "note": "1% entry fee deducted on-chain: 0.01 -> 0.0099 staked (fee -> reward pool)"
+      }
+    ],
+    "status": "COMPLETE \u2014 full lifecycle proven: stake -> claim -> withdraw on both vaults",
+    "withdrawals": [
+      {
+        "label": "withdraw OctopusVault-Kelp (full)",
+        "hash": "0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+        "explorer": "https://atlantic.pharosscan.xyz/tx/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+        "block": 31483757,
+        "status": 1,
+        "gas_used": 53605,
+        "effective_gas_price_wei": 1000000001,
+        "tx_fee_wei": 53605053605000,
+        "claimed_wei": 200000000000000,
+        "claimed_proof": "(31483757-31483737) x 1e13 = 200000000000000 \u2014 EXACT",
+        "principal_out_wei": 20000000000000000,
+        "exit_fee_wei": 0,
+        "fee_note": "fee-free: withdrawn after 100-block min hold (block 31483757 >= 31483696)"
+      },
+      {
+        "label": "withdraw OctopusVault-Kraken (full, early)",
+        "hash": "0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+        "explorer": "https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+        "block": 31483766,
+        "status": 1,
+        "gas_used": 53980,
+        "effective_gas_price_wei": 1000000001,
+        "tx_fee_wei": 53980053980000,
+        "claimed_wei": 575000000000000,
+        "claimed_proof": "(31483766-31483743) x 2.5e13 = 575000000000000 \u2014 EXACT",
+        "principal_out_wei": 9801000000000000,
+        "exit_fee_wei": 99000000000000,
+        "fee_note": "early exit before 400-block hold: 100 bps of 0.0099 = 0.000099 fee -> reward pool (event-verified)"
+      }
+    ],
+    "rewards_harvested_wei": 5709999999999999
+  },
+  "network": "Pharos Atlantic testnet",
+  "operator": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "spend_log_phrs": {
+    "budget": 0.15,
+    "deploys_fees": 0.001985557984556,
+    "deploys_funding": 0.02,
+    "total_so_far": 0.022480247479244996,
+    "within_budget": true,
+    "stake_fees": 0.00020755020755,
+    "claim_fees": 0.000179554179554,
+    "withdraw_fees": 0.000107585107585
+  },
+  "task": "T15 Yield Optimizer",
+  "tests": {
+    "forge": "8/8 pass (test/OctopusVault.t.sol)",
+    "python": "12/12 pass (tests/test_optimizer.py, incl. key-hygiene grep gate)"
+  },
+  "txs": [
+    {
+      "address": "0xe3212234B17A90cCBC36b0B44845394b62838b08",
+      "effective_gas_price_wei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9",
+      "funding_wei": 10000000000000000,
+      "gas_used": 992754,
+      "hash": "0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9",
+      "label": "deploy OctopusVault-Kelp",
+      "rate_card": {
+        "entryFeeBps": 0,
+        "exitFeeBps": 50,
+        "minHoldBlocks": 100,
+        "rewardPerBlock_wei": 10000000000000
+      },
+      "tx_fee_wei": 992754992754000
+    },
+    {
+      "address": "0xDC3D4a3f47BB479692239ECC362a16CE3485B283",
+      "effective_gas_price_wei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd",
+      "funding_wei": 10000000000000000,
+      "gas_used": 992802,
+      "hash": "0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd",
+      "label": "deploy OctopusVault-Kraken",
+      "rate_card": {
+        "entryFeeBps": 100,
+        "exitFeeBps": 100,
+        "minHoldBlocks": 400,
+        "rewardPerBlock_wei": 25000000000000
+      },
+      "tx_fee_wei": 992802992802000
+    },
+    {
+      "label": "stake 0.02 PHRS OctopusVault-Kelp",
+      "hash": "0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+      "gas_used": 102375,
+      "effective_gas_price_wei": 1000000001,
+      "tx_fee_wei": 102375102375000
+    },
+    {
+      "label": "stake 0.01 PHRS OctopusVault-Kraken",
+      "hash": "0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+      "gas_used": 105175,
+      "effective_gas_price_wei": 1000000001,
+      "tx_fee_wei": 105175105175000
+    },
+    {
+      "label": "claim OctopusVault-Kelp",
+      "hash": "0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+      "gas_used": 89777,
+      "effective_gas_price_wei": 1000000001,
+      "tx_fee_wei": 89777089777000
+    },
+    {
+      "label": "claim OctopusVault-Kraken",
+      "hash": "0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+      "gas_used": 89777,
+      "effective_gas_price_wei": 1000000001,
+      "tx_fee_wei": 89777089777000
+    },
+    {
+      "label": "withdraw OctopusVault-Kelp (full)",
+      "hash": "0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+      "gas_used": 53605,
+      "effective_gas_price_wei": 1000000001,
+      "tx_fee_wei": 53605053605000
+    },
+    {
+      "label": "withdraw OctopusVault-Kraken (full, early)",
+      "hash": "0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+      "gas_used": 53980,
+      "effective_gas_price_wei": 1000000001,
+      "tx_fee_wei": 53980053980000
+    }
+  ]
+}

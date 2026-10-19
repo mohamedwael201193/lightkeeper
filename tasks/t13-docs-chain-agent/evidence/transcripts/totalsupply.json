@@ -1,0 +1,145 @@
+{
+  "id": "totalsupply",
+  "question": "How do I read an ERC-20 token's total supply using eth_call?",
+  "goal": "Call totalSupply() on an ERC-20 contract via eth_call",
+  "function": "totalSupply()",
+  "contract": "USDC",
+  "address": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "docs": {
+    "endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+    "tool": "askQuestion",
+    "asked_at_utc": "2026-10-19T22:25:13.081202+00:00",
+    "answer_chars": 2204,
+    "answer": "Call the token contract with the `totalSupply()` function selector as `data`. For example:\n\n```bash\ncurl https://rpc.pharos.xyz \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"eth_call\",\n    \"params\": [\n      {\n        \"to\": \"0x<TOKEN_CONTRACT_ADDRESS>\",\n        \"data\": \"0x18160ddd\"\n      },\n      \"latest\"\n    ],\n    \"id\": 1\n  }'\n```\n\nReplace the address with the ERC-20 contract address. `eth_call` reads contract state without creating a transaction. The result is hex-encoded return data; `totalSupply()` returns a `uint256`, so decode the returned value as an unsigned integer. It is in the token\u00e2\u0080\u0099s smallest units; check `decimals()` to convert it to a user-facing amount.\n\nSee [JSON-RPC API Methods](/api-and-sdk/json-rpc-methods) for the `eth_call` request format and [Rust](/developer-guide/rust) for the ERC-20 `totalSupply()` and `decimals()` ABI entries.\n\n# Sources\n\n- [JSON-RPC API Methods](https://docs.pharos.xyz/api-and-sdk/json-rpc-methods)\n- [Call EVM From WASM](https://docs.pharos.xyz/developer-guide/interoperability/call-evm-from-wasm)\n- [eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)](https://docs.pharos.xyz/api-and-sdk/eth-getproof)\n- [Canonical Contracts](https://docs.pharos.xyz/getting-started/canonical-contracts)\n- [Rust](https://docs.pharos.xyz/developer-guide/rust)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [FAQs](https://docs.pharos.xyz/getting-started/faqs)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af)\n- [Get PROS Gas](https://docs.pharos.xyz/getting-started/get-pros-gas)\n- [Chainlink CCIP](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/chainlink-ccip)\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)\n- [Chainlink Push Engine Feeds](https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)"
+  },
+  "citations": [
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/json-rpc-methods",
+      "retrieval_date": "2026-10-19",
+      "section": "JSON-RPC API Methods",
+      "excerpt": "Linked from the Docs MCP answer as [JSON-RPC API Methods]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/rust",
+      "retrieval_date": "2026-10-19",
+      "section": "Rust",
+      "excerpt": "Linked from the Docs MCP answer as [Rust]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/interoperability/call-evm-from-wasm",
+      "retrieval_date": "2026-10-19",
+      "section": "Call EVM From WASM",
+      "excerpt": "Linked from the Docs MCP answer as [Call EVM From WASM]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/api-and-sdk/eth-getproof",
+      "retrieval_date": "2026-10-19",
+      "section": "eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)",
+      "excerpt": "Linked from the Docs MCP answer as [eth_getProof \u00e2\u0080\u0094 Storage State Verification (SPV)]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/canonical-contracts",
+      "retrieval_date": "2026-10-19",
+      "section": "Canonical Contracts",
+      "excerpt": "Linked from the Docs MCP answer as [Canonical Contracts]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/token-registry",
+      "retrieval_date": "2026-10-19",
+      "section": "Token Registry",
+      "excerpt": "Linked from the Docs MCP answer as [Token Registry]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide",
+      "retrieval_date": "2026-10-19",
+      "section": "Pharos Skill Engine",
+      "excerpt": "Linked from the Docs MCP answer as [Pharos Skill Engine]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/faqs",
+      "retrieval_date": "2026-10-19",
+      "section": "FAQs",
+      "excerpt": "Linked from the Docs MCP answer as [FAQs]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
+      "retrieval_date": "2026-10-19",
+      "section": "Pharos MCP",
+      "excerpt": "Linked from the Docs MCP answer as [Pharos MCP]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af",
+      "retrieval_date": "2026-10-19",
+      "section": "Publish Service Agent",
+      "excerpt": "Linked from the Docs MCP answer as [Publish Service Agent]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/get-pros-gas",
+      "retrieval_date": "2026-10-19",
+      "section": "Get PROS Gas",
+      "excerpt": "Linked from the Docs MCP answer as [Get PROS Gas]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/chainlink-ccip",
+      "retrieval_date": "2026-10-19",
+      "section": "Chainlink CCIP",
+      "excerpt": "Linked from the Docs MCP answer as [Chainlink CCIP]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+      "retrieval_date": "2026-10-19",
+      "section": "Atlantic Testnet",
+      "excerpt": "Linked from the Docs MCP answer as [Atlantic Testnet]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+      "retrieval_date": "2026-10-19",
+      "section": "Chainlink Push Engine Feeds",
+      "excerpt": "Linked from the Docs MCP answer as [Chainlink Push Engine Feeds]"
+    },
+    {
+      "label": "DOC-GROUNDED",
+      "url": "https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet",
+      "retrieval_date": "2026-10-19",
+      "section": "x402 Atlantic Testnet",
+      "excerpt": "Linked from the Docs MCP answer as [x402 Atlantic Testnet]"
+    }
+  ],
+  "docs_names_function": true,
+  "docs_source_count": 15,
+  "chain": {
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "tools_called": [
+      "eth_call"
+    ],
+    "calls": [
+      {
+        "tool": "eth_call",
+        "to": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+        "data": "0x18160ddd\u2026",
+        "block": 20695304,
+        "result": "0x0000000000000000000000000000000000000000000000000000278bc63430ed"
+      }
+    ]
+  },
+  "interpretation": "[INFERENCE] The Docs MCP explained totalSupply() as an eth_call with selector 0x18160ddd. Called live at block 20695304: raw 43481279246573; with 6 decimals (live decimals() call) that is 43,481,279.246573 USDC in circulation. Read-only: no transaction, no gas.",
+  "ok": true,
+  "docs_tools_used": [
+    "askQuestion"
+  ],
+  "ran_at_utc": "2026-10-19T22:25:35.836915+00:00"
+}

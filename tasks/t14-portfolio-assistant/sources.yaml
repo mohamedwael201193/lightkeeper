@@ -1,0 +1,77 @@
+# LIGHTKEEPER Portfolio Assistant — verified on-chain source registry
+# T14 · Pharos Atlantic testnet (chain 688689) ONLY.
+# Every entry below was verified on-chain (eth_getCode non-empty) at the
+# verifiedAt block. Entries are NEVER trusted from docs alone.
+chain:
+  name: Pharos Atlantic testnet
+  chainId: 688689
+  rpc: https://atlantic.dplabs-internal.com
+  explorer: https://atlantic.pharosscan.xyz/
+  registryDoc: https://docs.pharos.xyz/getting-started/token-registry.md
+
+assets:
+  # native asset — read via eth_getBalance (no contract)
+  - symbol: PHRS
+    name: Pharos (native)
+    kind: native
+    address: null
+    decimals: 18
+
+  # Official Atlantic Token Registry (docs.pharos.xyz/getting-started/token-registry.md),
+  # each verified code-present on-chain 2026-10-16 (block ~31481175).
+  - symbol: USDC
+    name: USD Coin
+    kind: erc20
+    address: 0xcfC8330f4BCAB529c625D12781b1C19466A9Fc8B
+    decimals: 6
+    verifiedAtBlock: 31481175
+
+  - symbol: USDT
+    name: Tether USD
+    kind: erc20
+    address: 0xE7E84B8B4f39C507499c40B4ac199B050e2882d5
+    decimals: 6
+    verifiedAtBlock: 31481175
+
+  - symbol: WBTC
+    name: Wrapped BTC
+    kind: erc20
+    address: 0x0c64F03EEa5c30946D5c55B4b532D08ad74638a4
+    decimals: 18
+    verifiedAtBlock: 31481175
+
+  - symbol: WETH
+    name: Wrapped ETH
+    kind: erc20
+    address: 0x7d211F77525ea39A0592794f793cC1036eEaccD5
+    decimals: 18
+    verifiedAtBlock: 31481175
+
+  - symbol: WPHRS
+    name: Wrapped PHRS
+    kind: erc20
+    address: 0x838800b758277CC111B2d48Ab01e5E164f8E9471
+    decimals: 18
+    verifiedAtBlock: 31481175
+
+  # Deployed by this task (T14) so the portfolio is non-trivial.
+  # Deployer: 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+  # Deploy tx: 0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23
+  - symbol: LPK
+    name: Lightkeeper Test Token
+    kind: erc20
+    address: 0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9
+    decimals: 18
+    verifiedAtBlock: 31481364
+    note: testnet-only asset deployed by T14; NO market value
+
+# Valuation policy: there is NO price feed for Atlantic testnet assets.
+# The assistant must NEVER invent a USD price. Token units only.
+valuation:
+  policy: token-units-only
+  label: "testnet — no market value"
+
+# Activity scan window (getLogs capped at 1000 blocks/call by the node).
+activity:
+  windowBlocks: 10000
+  note: "Covers the most recent window only; older activity is out of scope and the assistant says so."

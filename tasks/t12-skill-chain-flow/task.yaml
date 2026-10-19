@@ -1,0 +1,40 @@
+# LIGHTKEEPER task manifest — T12 Skill + Chain MCP Flow
+task_id: T12
+slug: skill-chain-flow
+name: Skill + Chain MCP Flow
+tier: Medium
+points: 100
+toolkit: Composition
+status: shipped
+owner: devmo (build agent)
+
+description: >
+  One end-to-end composition flow: live Chain MCP reads BY NAME
+  (get_chain_info, get_block_number, get_balance, eth_call, get_gas_price)
+  on Pharos mainnet feed verbatim into a SkillEngine preflight skill;
+  the skill's ALLOW/BLOCK verdict depends on nothing but that data.
+  EXECUTE runs a real estimate_gas simulation (no signing, no broadcast —
+  mainnet is real funds); VERIFY re-reads via the MCP. Dependency proven
+  by contrast runs: 100 USDC → ALLOW + simulation vs 1,000,000 USDC → BLOCK
+  quoting the same live USDC balance.
+
+deliverables:
+  - policy.yaml            # pre-declared preflight policy (all limits commented)
+  - src/mcp_client.py      # Streamable-HTTP Chain MCP client (tools/call by name)
+  - flow.py                # the composed flow: READ → SKILL → EXECUTE → VERIFY
+  - tests/test_policy.py   # 8 unit tests of the skill engine (8/8 pass)
+  - run-logs/              # real run transcripts (JSONL), incl. deploy + contrast runs
+  - REQUIREMENTS.md        # official requirements quoted verbatim
+  - README.md              # 9 sections incl. Requirements→evidence table
+  - evidence.md / evidence.json  # MCP endpoint/tools, contrast runs, v1 history
+  - LINKS.md               # verified links
+  - SUBMISSION.md          # exact copy-paste Arena pack
+
+budget:
+  max_phrs: 0.15
+  spent_phrs: 0              # v2: zero broadcasts by design (mainnet = real funds)
+  v1_spent_phrs: 0.0005699020  # superseded Atlantic broadcasts; history only
+
+evidence:
+  atlantic_explorer: https://atlantic.pharosscan.xyz/
+  txs: []                # filled in evidence.json

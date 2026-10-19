@@ -1,0 +1,46 @@
+# =============================================================================
+# T12 "Skill + Chain MCP Flow" — PREFLIGHT POLICY (v2, 2026-10-20)
+# Pre-declared BEFORE any run. The skill engine evaluates live CHAIN MCP data
+# against THESE rules only. No rule may be edited mid-run.
+# Validate:  python3 flow.py validate
+#
+# v2 change: all chain reads go through the real Chain MCP
+# (https://mcp.pharos.xyz/mcp) on Pharos mainnet (chain 1672). The v1
+# Atlantic/cast design is superseded — see README.md §1.
+# =============================================================================
+
+task: "T12"
+name: "Spend Readiness Check (composition preflight)"
+
+# --- Network -----------------------------------------------------------------
+# The Chain MCP serves mainnet ONLY. RULE-NETWORK enforces this: any other
+# chainId => BLOCK, fail-closed.
+network:
+  allowed_chain_id: 1672
+  allowed_name: "pharos-mainnet"
+  mcp_endpoint: "https://mcp.pharos.xyz/mcp"
+
+# --- Composition target ------------------------------------------------------
+# Watched holder: a real USDC holder found via live Chain MCP get_logs
+# (Transfer events, 2026-10-20). The skill READS this address's balance —
+# never transacts with it. Selection method is documented in README.md §2.
+watch:
+  address: "0x936564245b69f5a293b42cbd752e0ee3bb68b470"
+  asset: "USDC"
+  token: "0xc879c018db60520f4355c26ed1a6d572cdac1815"
+
+# --- Limits ------------------------------------------------------------------
+limits:
+  max_gas_price_gwei: "50"    # live gas price above this => BLOCK
+  max_stale_blocks: 120       # pinned-block reads older than this => BLOCK
+                              # (checked at skill time AND at verify time,
+                              # failing closed both times)
+
+# --- Behaviour ---------------------------------------------------------------
+behavior:
+  fail_closed: true            # unreadable/stale data => BLOCK, never guess
+  no_broadcast: true           # mainnet = real funds. The skill NEVER signs or
+                              # broadcasts. On ALLOW it runs a real
+                              # estimate_gas simulation via the Chain MCP and
+                              # reports readiness. Stated plainly, not hidden.
+  audit_log: "run-logs/flow-transcript.jsonl"

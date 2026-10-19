@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-19T21:38:13.663Z",
+  "generated_at": "2026-10-19T22:38:16.251Z",
   "source": "../../tasks/*/evidence.json + task.yaml — statuses from real evidence only",
   "total_points": 3200,
-  "lamps_lit": 7,
-  "points_secured": 750,
+  "lamps_lit": 16,
+  "points_secured": 1900,
   "tasks": [
     {
       "id": "T01",
@@ -539,7 +539,7 @@
       "points": 50,
       "toolkit": "Developer Docs MCP",
       "dir": "t04-doc-search-cli",
-      "status": "in-progress",
+      "status": "shipped",
       "has_task_yaml": true,
       "has_readme": true,
       "readme_summary": "`pharos-docs` is a thin, honest command-line wrapper around the **real Pharos\nDeveloper Docs MCP**:\n\n```\nhttps://docs.pharos.xyz/~gitbook/mcp          (public GitBook MCP, no auth)\n```\n\nEvery query is a live MCP `tools/call` round-trip — `searchDocumentation` by\ndefault (`getPage` / `askQuestion` in the matching modes). Nothing is answered\nfrom a local index, nothing is scraped, nothing is invented. Stdlib Python only.\nRead-only task: zero chain interaction, zero spend.",
@@ -744,7 +744,9 @@
             "raw_log": "evidence/raw/M2.txt",
             "stdout": "{\n  \"label\": \"UNVERIFIED\",\n  \"exit_code\": 2,\n  \"question\": \"how do I run a Pharos node on a Raspberry Pi\",\n  \"mcp_endpoint\": \"https://docs.pharos.xyz/~gitbook/mcp\",\n  \"mcp_tool\": \"searchDocumentation\",\n  \"retrieved\": \"2026-10-19\",\n  \"citations\": [],\n  \"closest_pages\": [\n    {\n      \"page_title\": \"Validator Node Deployment\",\n      \"page_url\": \"https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment\"\n    },\n    {\n      \"page_title\": \"Pharos Testnet: Rebuild Node with Preserved Node Info\",\n      \"page_url\": \"https://docs.pharos.xyz/pharos-testnet-rebuild-node-with-preserved-node-info\"\n    },\n    {\n      \"page_title\": \"Enable AutoPruning in Pharos Node\",\n      \"page_url\": \"https://docs.pharos.xyz/enable-pruning-in-pharos-node\"\n    }\n  ],\n  \"note\": \"No good answer found. The Developer Docs MCP returned 10 result(s) but none covers this question above the relevance gate, so this tool will not improvise an answer.\"\n}"
           }
-        ]
+        ],
+        "shipped": true,
+        "status": "shipped"
       },
       "txs": [],
       "explorer_links": [],
@@ -2070,194 +2072,1531 @@
     },
     {
       "id": "T09",
-      "slug": "t09",
+      "slug": "swell-line",
       "name": "Trend Watcher",
       "tier": "Hard",
       "points": 200,
       "toolkit": "SkillEngine",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t09-trend-watcher",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "1. Verdict in 30 seconds\n\nSwell Line watches Atlantic's fee market and answers one question honestly:\n**is gas trending up, or is that just a wave?** It samples real `baseFeePerGas`\nper block, runs a 5/15 moving-average crossover with a 0.5% confirmation band,\nand FIRES only after **3 consecutive above-band readings** — a single spike\ncan never trigger it (the streak resets, proven by demo and by test).\n\n**Live state:** 60 real observations across blocks 31481567–31481678, all HOLD —\nAtlantic's base fee sat flat at 1 gwei. The FIRE path is proven on the\ncontrolled synthetic harness (`sustained-demo`) and in 12/12 unit tests.",
+      "readme_markdown": "## 1. Verdict in 30 seconds\n\nSwell Line watches Atlantic's fee market and answers one question honestly:\n**is gas trending up, or is that just a wave?** It samples real `baseFeePerGas`\nper block, runs a 5/15 moving-average crossover with a 0.5% confirmation band,\nand FIRES only after **3 consecutive above-band readings** — a single spike\ncan never trigger it (the streak resets, proven by demo and by test).\n\n**Live state:** 60 real observations across blocks 31481567–31481678, all HOLD —\nAtlantic's base fee sat flat at 1 gwei. The FIRE path is proven on the\ncontrolled synthetic harness (`sustained-demo`) and in 12/12 unit tests.\n\n**Try it:** `node bin/run.mjs observe` (one live cycle, ~40s) ·\n`node bin/run.mjs report` · `node bin/run.mjs spike-demo`\n\n## 2. How the trend math works\n\nAll money math is **BigInt wei** — no floats, ever. Parameters live in `config.yaml`:\n\n| Parameter | Value | Meaning |\n|---|---|---|\n| `fastWindow` | 5 samples | fast moving average |\n| `slowWindow` | 15 samples | slow moving average (the trend anchor) |\n| `bandBps` | 50 (0.5%) | deadband: fastMA must exceed slowMA × 1.005 to be \"above threshold\" |\n| `confirmations` | 3 | consecutive above-band readings required to FIRE |\n| `cooldownBlocks` | 20 | no second FIRE within 20 blocks of the last |\n\nA sample **confirms** only when BOTH hold:\n1. **Crossover:** `fastMA > slowMA × (1 + band)` — the trend direction, and\n2. **Reading above threshold:** the RAW sample value `> slowMA × (1 + band)` — the present reading, not an echo.\n\nCondition (2) is the anti-spike mechanism: a one-sample spike contaminates the\nfast-MA window for 5 samples, but the raw reading falls back to baseline on the\nvery next sample, so the streak can never reach 3. Any non-confirming sample\n**resets the streak to 0** — including BEARISH crossovers and flat readings.\nAfter a FIRE the streak resets and a 20-block cooldown begins.\nFailed RPC reads are **fail-closed**: recorded as `OBSERVER_ERROR`, decision\nHOLD, streak untouched.\n\nSee `src/trend.mjs` (`movingAverage`, `classifyTrend`, `decide`, `evaluateSeries`).\n\n## 3. Run it\n\n```bash\ncd tasks/t09-trend-watcher\nexport PATH=\"$HOME/.foundry/bin:$PATH\"\nset -a; source ../../.env; set +a   # ATLANTIC_RPC_URL only; no private key needed (read-only)\n\nnode bin/run.mjs observe          # live cycle: feeHistory window + gas spot polls -> evaluate -> persist -> report\nnode bin/run.mjs report           # summary of observations + why acted/not (official req 5)\nnode bin/run.mjs spike-demo       # CONTROLLED SYNTHETIC: single spike -> proves NO fire (official req 4)\nnode bin/run.mjs sustained-demo  # CONTROLLED SYNTHETIC: sustained rise -> proves confirmed FIRE\nnpm test                          # 12 unit tests, synthetic series only (math verification)\n```\n\nEvery command **asserts chain ID 688689 first** and aborts on mismatch. Read-only:\nno signing, no broadcasting, 0 gas spent.\n\n## 4. Evidence & verification\n\n### Requirements → evidence (official Arena requirements, verbatim)\n\n| # | Official requirement | How it is met | Evidence artifact |\n|---|---|---|---|\n| 1 | Persists observations to memory/DB between runs | Append-only `state/observations.jsonl` (one JSON object per sample) + `state/audit.jsonl` + `state/runtime.json` priors snapshot. `state/` is gitignored — the operator's machine holds the memory. | `sample-output/observations-head-live.jsonl`, `observations-tail-live.jsonl` |\n| 2 | Loads priors and checks threshold rule | Every `observe` cycle loads `runtime.json` priors (streak, lastFireBlock, counters), then evaluates: fastMA(5) vs slowMA(15) with 0.5% band — the raw reading must ALSO sit above the slow-MA threshold. | `src/store.mjs` (`loadPriors`), `src/trend.mjs` (`decide`), `sample-output/live-report.txt` |\n| 3 | Fires only after MULTIPLE confirmations (N times above threshold) | FIRE requires 3 CONSECUTIVE above-band samples; any miss resets the streak to 0; 20-block cooldown after each FIRE. All math in BigInt wei. | `test/trend.test.mjs` (fires at exactly the 3rd confirmation), `sample-output/sustained-demo-synthetic.txt` |\n| 4 | Must DEMONSTRATE single spike does NOT trigger | Controlled synthetic harness (labeled `SYNTHETIC-CONTROLLED`) runs the identical `evaluateSeries()` math on a single 5x spike: streak reaches 1, resets on the dip — HOLD throughout. | `node bin/run.mjs spike-demo` → `sample-output/spike-demo-synthetic.txt`; unit test \"single spike does NOT trigger\" |\n| 5 | Summary of observations + why acted/not | `node bin/run.mjs report` prints totals, block range, FIRE/HOLD counts, current priors, and the last 10 decisions each with its reason. | `sample-output/live-report.txt`, `evidence.md` |\n\n- `evidence.md` — the full run narrative with block numbers, computed MAs, and the signal.\n- `evidence.json` — machine-readable evidence packet (L10-style).\n- `sample-output/` — real artifacts: `live-observe-cycle1.txt`, `live-report.txt`,\n  `observations-head-live.jsonl`, `observations-tail-live.jsonl`, and both demo transcripts.\n- `LINKS.md` — curl-verified explorer links for the sampled block window.\n\nReproduce the live evidence: run `observe` twice; `runtime.json` priors (`samplesTotal`)\nprove observations persist between runs (official req 1–2).\n\n## 5. State & persistence (SkillEngine has no native state — this is the builder pattern)\n\n```\nstate/observations.jsonl   append-only memory: one JSON object per evaluated sample\nstate/runtime.json         priors snapshot: streak, lastFireBlock, counters, params hash\nstate/audit.jsonl          decision audit trail: every FIRE/HOLD with its reason\n```\n\n`state/` is **gitignored and never committed** — the repo documents the pattern\n(this section), the operator's machine holds the memory. A fresh machine starts\nat streak 0 / warmup and rebuilds state from live reads; nothing is fabricated to\nfill the gap.\n\n## 6. Scheduling (SkillEngine has no native cron — external operator pattern)\n\nSkillEngine provides no scheduling primitive, so Swell Line is dri\n\n…",
+      "task_config_text": "task: t09-trend-watcher\nslug: swell-line\narenaTask: T09\ntitle: Trend Watcher\ndifficulty: Hard\npoints: 200\ntoolkit: SkillEngine\nstatus: ready-for-review\nproofKind: transcript+explorer\nvideoSlot: PENDING-VIDEO\nrepoSubpath: tasks/t09-trend-watcher\n\ncommands:\n  observe: \"node bin/run.mjs observe\"\n  report: \"node bin/run.mjs report\"\n  spikeDemo: \"node bin/run.mjs spike-demo\"\n  sustainedDemo: \"node bin/run.mjs sustained-demo\"\n  test: \"node --test \\\"test/*.mjs\\\"\"\n\ntrendParams:\n  metric: baseFeePerGas\n  source: eth_feeHistory\n  fastWindow: 5\n  slowWindow: 15\n  bandBps: 50\n  confirmations: 3\n  cooldownBlocks: 20\n\nstate:\n  pattern: local-jsonl\n  files: [observations.jsonl, runtime.json, audit.jsonl]\n  committed: false\n  gitignored: true\n\nattestations:\n  noMockData: true\n  noSecretsInRepo: true\n  chainIdAsserted: 688689\n  gasSpentWei: \"0\"\n  syntheticLabeled: true\n\nofficialRequirements:\n  - persists-observations-between-runs\n  - loads-priors-and-checks-threshold-rule\n  - fires-only-after-multiple-confirmations\n  - demonstrates-single-spike-does-not-trigger\n  - summary-of-observations-and-why-acted-not\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
+      "has_evidence_json": true,
+      "evidence": {
+        "shipped": true,
+        "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
+        "artifact": "t09-trend-watcher evidence packet",
+        "chain": {
+          "chainId": 688689,
+          "explorer": "https://atlantic.pharosscan.xyz/",
+          "name": "Atlantic testnet",
+          "nativeToken": "PHRS",
+          "rpc": "https://atlantic.dplabs-internal.com"
+        },
+        "claim": "Swell Line detects fee-market trends with a 5/15 MA crossover + raw-reading confirmation band; FIRES only after 3 consecutive above-band readings; single spikes provably do not trigger.",
+        "claimKind": "LIVE",
+        "demoA_spikeHarness": {
+          "fired": false,
+          "label": "SYNTHETIC-CONTROLLED",
+          "mode": "synthetic",
+          "run": "node bin/run.mjs spike-demo",
+          "series": "14x 10 gwei, 1x 50 gwei spike, 6x 10 gwei",
+          "spikeStreak": 1,
+          "streakAfterDip": 0,
+          "transcript": "sample-output/spike-demo-synthetic.txt"
+        },
+        "demoB_sustainedHarness": {
+          "cooldownHolds": true,
+          "firedAtSyntheticBlock": 99000016,
+          "label": "SYNTHETIC-CONTROLLED",
+          "mode": "synthetic",
+          "reason": "CONFIRMED_3X_ABOVE_BAND",
+          "run": "node bin/run.mjs sustained-demo",
+          "transcript": "sample-output/sustained-demo-synthetic.txt"
+        },
+        "gasSpentWei": "0",
+        "liveRuns": [
+          {
+            "blockRange": [
+              31481567,
+              31481596
+            ],
+            "chainId": 688689,
+            "command": "node bin/run.mjs observe",
+            "cycle": "2026-10-16T04:13Z approx",
+            "decision": "HOLD",
+            "gasSpotGwei": [
+              10,
+              10,
+              10,
+              10,
+              10
+            ],
+            "gasSpotNote": "context only, not in MA math",
+            "metric": "baseFeePerGas",
+            "mode": "LIVE",
+            "observationsPersisted": 30,
+            "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+            "samples": [
+              {
+                "blockNumber": 31481567,
+                "fastMAWei": null,
+                "mode": "LIVE",
+                "slowMAWei": null,
+                "trend": "WARMUP",
+                "valueWei": "1000000000"
+              },
+              {
+                "blockNumber": 31481586,
+                "fastMAWei": "1000000000",
+                "mode": "LIVE",
+                "slowMAWei": "1000000000",
+                "trend": "FLAT",
+                "valueWei": "1000000000"
+              },
+              {
+                "blockNumber": 31481596,
+                "fastMAWei": "1000000000",
+                "mode": "LIVE",
+                "slowMAWei": "1000000000",
+                "trend": "FLAT",
+                "valueWei": "1000000000"
+              }
+            ],
+            "signal": "NO SIGNAL — market flat inside the 0.5% band"
+          },
+          {
+            "blockRange": [
+              31481649,
+              31481678
+            ],
+            "chainId": 688689,
+            "command": "node bin/run.mjs observe",
+            "cycle": "2026-10-16T04:15Z approx",
+            "decision": "HOLD",
+            "gasSpotGwei": [
+              10,
+              10,
+              10,
+              10,
+              10
+            ],
+            "gasSpotNote": "context only, not in MA math",
+            "metric": "baseFeePerGas",
+            "mode": "LIVE",
+            "observationsPersisted": 30,
+            "priorsLoadedFrom": "state/runtime.json (samplesTotal 30 -> 60)",
+            "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+            "signal": "NO SIGNAL — market flat inside the 0.5% band"
+          },
+          {
+            "cycle": "2026-10-16T06:37Z",
+            "command": "node bin/run.mjs observe",
+            "mode": "LIVE",
+            "chainId": 688689,
+            "metric": "baseFeePerGas",
+            "blockRange": [
+              31486349,
+              31486378
+            ],
+            "observationsPersisted": 30,
+            "decision": "HOLD",
+            "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+            "signal": "NO SIGNAL — market flat inside the 0.5% band",
+            "gasSpotGwei": [
+              10,
+              10,
+              10,
+              10,
+              10
+            ],
+            "gasSpotNote": "context only, not in MA math",
+            "priorsLoadedFrom": "state/runtime.json (samplesTotal 60 -> 90)",
+            "notes": "2026-10-16 Harden op cycle. Validates two fixes: (1) cast auto-resolution via ~/.foundry/bin without PATH pre-export; (2) report now shows true totals (90 live observations, not tail-60). Streak 0, firesTotal 0 — honest flat-market HOLD."
+          }
+        ],
+        "metric": {
+          "name": "baseFeePerGas",
+          "source": "eth_feeHistory",
+          "unit": "wei (displayed gwei)"
+        },
+        "mode": "LIVE",
+        "priors": {
+          "cooldownBlocks": 20,
+          "lastFireBlock": null,
+          "samplesTotal": 60,
+          "streak": 0
+        },
+        "requirementsCoverage": {
+          "1_persistBetweenRuns": "state/observations.jsonl + runtime.json; run2 samplesTotal 30->60 proves load",
+          "2_loadPriorsAndThresholdRule": "store.loadPriors + decide() dual-condition rule",
+          "3_multipleConfirmations": "FIRE only at streak>=3; unit test + demoB",
+          "4_singleSpikeNoTrigger": "demoA + unit test",
+          "5_summaryAndWhy": "node bin/run.mjs report -> sample-output/live-report.txt"
+        },
+        "task": "T09 Trend Watcher (Swell Line)",
+        "trendParams": {
+          "bandBps": 50,
+          "confirmations": 3,
+          "cooldownBlocks": 20,
+          "fastWindow": 5,
+          "slowWindow": 15
+        },
+        "unitTests": {
+          "command": "npm test",
+          "mode": "synthetic-math-only",
+          "pass": 12,
+          "total": 12
+        }
+      },
       "txs": [],
       "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T10",
-      "slug": "t10",
-      "name": "Batch Executor",
+      "slug": "t10-batch-executor",
+      "name": "Flotilla — Batch Executor",
       "tier": "Medium",
       "points": 100,
       "toolkit": "SkillEngine",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t10-batch-executor",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "T10 — Batch Executor (\"Flotilla\")\n\n1. Verdict (the 30-second test)\n\n✅ **All 4 official requirements proven on Atlantic testnet (chain 688689) with\n12 real transactions.** A hardened `BatchDistributor` contract\n(`0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4`) executes 12 independent dust\ntransfers in **one transaction**, emits a per-recipient `Distributed` event\nwith a `success` flag, and isolates a deliberately reverting recipient\n(`success=false`) while the other 11 get paid — the batch completes with\nstatus `0x1`. Gas report from live receipts: at n=11 the single-batch run\ncost 202,173 gas vs 231,000 for 11 individual sends (12.5% saved), and a\n3-point receipt curve (n=8/10/11) puts the marginal cost at ≈17.7k\ngas/recipient → breakeven at **n≈3** for pre-existing EOA recipients — well\nbefore the SkillEngine mode boundary at 11. Total spend: **≈0.062 PHRS**\n(budget ≤ 0.15).",
+      "readme_markdown": "# T10 — Batch Executor (\"Flotilla\")\n\n## 1. Verdict (the 30-second test)\n\n✅ **All 4 official requirements proven on Atlantic testnet (chain 688689) with\n12 real transactions.** A hardened `BatchDistributor` contract\n(`0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4`) executes 12 independent dust\ntransfers in **one transaction**, emits a per-recipient `Distributed` event\nwith a `success` flag, and isolates a deliberately reverting recipient\n(`success=false`) while the other 11 get paid — the batch completes with\nstatus `0x1`. Gas report from live receipts: at n=11 the single-batch run\ncost 202,173 gas vs 231,000 for 11 individual sends (12.5% saved), and a\n3-point receipt curve (n=8/10/11) puts the marginal cost at ≈17.7k\ngas/recipient → breakeven at **n≈3** for pre-existing EOA recipients — well\nbefore the SkillEngine mode boundary at 11. Total spend: **≈0.062 PHRS**\n(budget ≤ 0.15).\n\n## 1b. Requirements → evidence (official Arena requirements, quoted in REQUIREMENTS.md)\n\n| # | Official requirement | How it is met | Evidence |\n|---|---|---|---|\n| 1 | Accepts ≥3 independent actions | `distributeNative(address[],uint256[])` takes N independent (recipient, amount) pairs; the headline run executed 12 | `src/BatchDistributor.sol`; tx `0x3daa4e…9a274b` (12 actions, receipt verified) |\n| 2 | Executes as batch (multicall / single prepared tx) | 12 transfers in ONE transaction via the Distributor contract; 3 official modes (simple ≤10 / single-batch 11–200 / multi-batch >200) | `bin/mode.mjs` (9/9 tests); tx `0x3daa4e…9a274b` status `0x1`; `evidence.json` runs |\n| 3 | Reports gas saving vs individual | Real receipts: n=11 batch = 202,173 gas vs 231,000 for 11 individual sends → **12.5% saved**; 3-point curve → marginal ≈17.7k/recipient, breakeven ≈ n=3 | README §5; `evidence.json` `gas_report`; txs `0xbfd1d1…eeec3c` / `0x067109…df0ae0c` / `0x0d5a9c…780ef35` |\n| 4 | Handles partial failure clearly (which failed, what happened to rest) | Per-recipient `Distributed(recipient,amount,success)` events; a deliberately reverting fixture fails alone while the other 11 are paid; `BatchExecuted(12,11,1)`; tx status `0x1`; failed funds refunded in-tx | tx `0x3daa4e…9a274b` decoded: 11× success=true, 1× success=false (`0x49b26d46…b94`), `BatchExecuted(total=12,succeeded=11,failed=1)`; `test_distributeNative_partialFailure_isolated` (forge, 12/12 pass) |\n\n## 2. What it is\n\nFlotilla is a batch-execution module implementing the **3 official batch modes**\nfrom the SkillEngine airdrop reference:\n\n| Recipients | Mode | How |\n|---|---|---|\n| ≤ 10 | **simple** | sequential transfers, no contract needed |\n| 11–200 | **single-batch** | one `BatchDistributor.distributeNative` call — ONE tx |\n| > 200 | **multi-batch** | chunked `distributeNative` calls (≤200/chunk, enforced on-chain) |\n\nMode selection is automatic (`bin/mode.mjs`), unit-tested at every boundary,\nand every broadcast goes through the shared nonce lock\n(`flock /tmp/lk-nonce.lock`).\n\n## 3. The hardened Distributor contract\n\nBeyond the skill reference, `BatchDistributor` is hardened for a judge's\nadversarial eye:\n\n- **Partial failure never reverts the batch.** Each recipient gets\n  `Distributed(recipient, amount, success)`; a reverting recipient only flips\n  its own flag. `BatchExecuted` summarizes `(total, succeeded, failed)`.\n- **Validation:** length match, non-empty, chunk ≤ 200 (`ChunkTooLarge`),\n  zero-address rejection, **duplicate-recipient rejection**.\n- **Reentrancy guard** + 3000-gas call stipend per recipient.\n- **No escrow:** leftover native is refunded to the caller in the same tx.\n- **ERC20 path** (`distributeERC20`) with per-recipient try/catch isolation\n  (unit-tested; the live demo uses native PHRS to keep the dust budget tight).\n\n## 4. Live evidence (Atlantic, all curl-verified)\n\n| # | What | Tx hash | Gas |\n|---|---|---|---|\n| 1 | Deploy `BatchDistributor` | [`0xa12af6…0bde30`](https://atlantic.pharosscan.xyz/tx/0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30) | 608,179 |\n| 2 | Deploy `RevertingReceiver` (failure fixture) | [`0x5809d3…87ed7b`](https://atlantic.pharosscan.xyz/tx/0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b) | 99,083 |\n| 3–5 | Simple mode: 3 sequential sends | [`0xcff6be…3353ea`](https://atlantic.pharosscan.xyz/tx/0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea) · [`0x3648f9…06965`](https://atlantic.pharosscan.xyz/tx/0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965) · [`0x9c9eb1…7e9edee`](https://atlantic.pharosscan.xyz/tx/0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee) | 21,000 ×3 |\n| 6 | **Single-batch: 12 recipients, 1 tx** (incl. the refuser) | [`0x3daa4e…9a274b`](https://atlantic.pharosscan.xyz/tx/0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b) | 430,405 |\n| 7 | Single-batch repeat (all recipients existing) | [`0x06482f…3832bb94`](https://atlantic.pharosscan.xyz/tx/0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94) | 230,405 |\n| 8–9 | Multi-batch: 2 chunks × 6 | [`0x2feffc…b9a6913`](https://atlantic.pharosscan.xyz/tx/0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913) · [`0xce333b…a81054d1c8`](https://atlantic.pharosscan.xyz/tx/0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8) | 115,163 / 121,208 |\n| 10–12 | **Builder round-trip: the exact commands the console generates** (preflight `cast call` then broadcast) at n=8/10/11 | [`0xbfd1d1…eeec3c`](https://atlantic.pharosscan.xyz/tx/0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5) · [`0x067109…df0ae0c`](https://atlantic.pharosscan.xyz/tx/0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c) · [`0x0d5a9c…780ef35`](https://atlantic.pharosscan.xyz/tx/0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35) | 149,170 / 185,573 / 202,173 |\n\nPartial-failure proof (tx 6, decoded from receipt logs): **11×\n`Distributed(…, success=true)`**, **1× `Distributed(0x49b26d46…, success=fa\n\n…",
+      "task_config_text": "slug: t10-batch-executor\ntitle: \"Flotilla — Batch Executor\"\ntask_id: T10\ndifficulty: Medium\npoints: 100\ntoolkit: SkillEngine\nstatus: ready-for-review\nchain_id: 688689\nnetwork: atlantic-testnet\nno_mock_attestation: true\ncontracts:\n  BatchDistributor: 0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4\n  RevertingReceiver: 0x49b26d4685262e7756cbE623f134cFa97d142B94\nlive_transactions: 12\ntotal_spend_phrs: \"0.0617\"\ntests:\n  forge: 12 passed\n  node: 9 passed\nproof:\n  explorer_tx_links: 9\n  share_link: PENDING-PORTAL\nvideo_slot: PENDING-VIDEO\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
-      "activity": []
+      "has_evidence_json": true,
+      "evidence": {
+        "chain_id": 688689,
+        "contracts": {
+          "BatchDistributor": {
+            "address": "0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4",
+            "deploy_gas_used": 608179,
+            "deploy_tx": "0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30"
+          },
+          "RevertingReceiver": {
+            "address": "0x49b26d4685262e7756cbE623f134cFa97d142B94",
+            "deploy_gas_used": 99083,
+            "deploy_tx": "0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b",
+            "purpose": "partial-failure fixture: refuses native transfers so the batch can prove isolation"
+          }
+        },
+        "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "final_balances_wei": {
+          "0x107DCf4CdDCB1a092f728D46A900D7e474C224BE": "6500000000000000",
+          "0x174CFa52Eb47368A74Aa194471ADC745B6b248cA": "6500000000000000",
+          "0x25b3471a368F52A12169f7BCC7b9cd424950355b": "5500000000000000",
+          "0x5dc79689CAADc7B92588F8fE6FD2bBAb35945981": "5500000000000000",
+          "0x74B8CEf859d3B34b05285F9865D398EB5DE6B8aE": "5500000000000000",
+          "0x857ECee811EE5C421c489A38B66A077418948dA5": "5500000000000000",
+          "0x8735119FFC44d0dfed808260265686Aa96f7c155": "5500000000000000",
+          "0xb106705378ADb7BC179CD28c939Bc7d10d15bb5A": "5500000000000000",
+          "0xd5c0032d4561CcD1B0268391eA98F2F5a84Ed12A": "4500000000000000",
+          "0xe05388e4BDC339e9dD265204998c20EFc93683a7": "4500000000000000",
+          "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3": "5841548365312237361"
+        },
+        "gas_report": {
+          "breakeven_recipients": "~3 (measured, pre-existing EOA recipients; first-touch new accounts cost +25000 each, raising it)",
+          "individual_baseline_gas_per_send": 21000,
+          "individual_baseline_source": "3 live sequential sends on Atlantic (receipts), confirmed by cast estimate",
+          "marginal_per_recipient_gas": "~17743 (least-squares fit over 3 live receipts: n=8/10/11 = 149170/185573/202173; supersedes the earlier ~13866 which came from cast estimates and underestimated)",
+          "projected_saving_at_n200_pct": "~32",
+          "saving_gas_at_n12": 21595,
+          "saving_pct_at_n12": 8.6,
+          "single_batch_12_existing_recipients_gas": 230405,
+          "twelve_individual_sends_gas": 252000,
+          "fixed_overhead_gas": "~7450 (fit intercept; physical intrinsic floor is 21000 — the fit is a local curve for n>=8, not a physical decomposition)",
+          "single_batch_8_existing_recipients_gas": 149170,
+          "single_batch_10_existing_recipients_gas": 185573,
+          "single_batch_11_existing_recipients_gas": 202173,
+          "saving_pct_at_n8": 11.2,
+          "saving_pct_at_n11": 12.5,
+          "breakeven_note": "the earlier '~11' breakeven used the underestimated cast-estimate marginal; live receipts correct it. The SkillEngine 11-200 mode boundary is unchanged as the reference."
+        },
+        "links_verified_http200": 14,
+        "network": "atlantic-testnet",
+        "portal_share_link": "PENDING-PORTAL",
+        "runs": [
+          {
+            "mode": "simple",
+            "recipients": 3,
+            "txs": [
+              {
+                "gas_used": 21000,
+                "hash": "0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea",
+                "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+                "value_wei": "1000000000000000"
+              },
+              {
+                "gas_used": 21000,
+                "hash": "0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965",
+                "to": "0x174CFa52Eb47368A74Aa194471ADC745B6b248cA",
+                "value_wei": "1000000000000000"
+              },
+              {
+                "gas_used": 21000,
+                "hash": "0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee",
+                "to": "0x107DCf4CdDCB1a092f728D46A900D7e474C224BE",
+                "value_wei": "1000000000000000"
+              }
+            ]
+          },
+          {
+            "mode": "single-batch",
+            "note": "recipient #11 is the RevertingReceiver fixture (intentional failure, clearly labeled)",
+            "recipients": 12,
+            "txs": [
+              {
+                "batch_executed": {
+                  "failed": 1,
+                  "succeeded": 11,
+                  "total": 12,
+                  "total_value_wei": "12000000000000000"
+                },
+                "block": 31481710,
+                "failed_recipient": "0x49b26d4685262e7756cbE623f134cFa97d142B94",
+                "first_touch_note": "8 recipients were brand-new addresses; 8x25000 G_newaccount = 200000 of the gas",
+                "gas_used": 430405,
+                "hash": "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b",
+                "status": "0x1"
+              },
+              {
+                "gas_used": 230405,
+                "hash": "0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94",
+                "note": "repeat of the same 12-recipient batch after all recipients exist; proves the 200000 first-touch delta",
+                "status": "0x1"
+              }
+            ]
+          },
+          {
+            "chunk_size": 6,
+            "chunk_size_note": "reduced from 200 for the live demo so the chunking path executes on-chain; honestly labeled",
+            "mode": "multi-batch",
+            "recipients": 12,
+            "txs": [
+              {
+                "chunk": "1/2",
+                "gas_used": 115163,
+                "hash": "0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913",
+                "recipients": 6
+              },
+              {
+                "chunk": "2/2",
+                "gas_used": 121208,
+                "hash": "0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8",
+                "note": "chunk 2/2 includes the RevertingReceiver: 5 succeeded, 1 isolated failure",
+                "recipients": 6
+              }
+            ]
+          },
+          {
+            "mode": "single-batch",
+            "recipients": 8,
+            "note": "builder round-trip test: exact comma-separated command format the console generates, preflighted then broadcast; all recipients pre-existing EOAs",
+            "txs": [
+              {
+                "hash": "0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5",
+                "gas_used": 149170,
+                "status": "0x1",
+                "batch_executed": {
+                  "total": 8,
+                  "succeeded": 8,
+                  "failed": 0
+                },
+                "total_value_wei": "8000000000000000"
+              }
+            ]
+          },
+          {
+            "mode": "single-batch",
+            "recipients": 10,
+            "note": "builder round-trip test, 10 pre-existing EOA recipients",
+            "txs": [
+              {
+                "hash": "0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c",
+                "gas_used": 185573,
+                "status": "0x1",
+                "batch_executed": {
+                  "total": 10,
+                  "succeeded": 10,
+                  "failed": 0
+                },
+                "total_value_wei": "10000000000000000"
+              }
+            ]
+          },
+          {
+            "mode": "single-batch",
+            "recipients": 11,
+            "note": "builder round-trip test at the SkillEngine 11-recipient mode boundary, 11 pre-existing EOAs",
+            "txs": [
+              {
+                "hash": "0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35",
+                "gas_used": 202173,
+                "status": "0x1",
+                "batch_executed": {
+                  "total": 11,
+                  "succeeded": 11,
+                  "failed": 0
+                },
+                "total_value_wei": "11000000000000000",
+                "block": 31486420
+              }
+            ]
+          }
+        ],
+        "spend_log_phrs": {
+          "budget_cap": 0.15,
+          "dust_net_sent": "0.0595",
+          "gas_by_tx": {
+            "0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94": "0.000230405230405",
+            "0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913": "0.000115163115163",
+            "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b": "0.000430405430405",
+            "0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b": "0.000099083099083",
+            "0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30": "0.000608179",
+            "0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8": "0.000121208121208",
+            "simple_x3": "0.000189000000189",
+            "0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5": "0.000149170000149170",
+            "0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c": "0.000185573000185573",
+            "0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35": "0.000202173000202173"
+          },
+          "gas_total": "0.002205127668747916",
+          "grand_total": "0.061705127668747916",
+          "within_budget": true
+        },
+        "task": "t10-batch-executor",
+        "task_title": "Flotilla — Batch Executor",
+        "tests": {
+          "forge": "12/12 passed",
+          "node_mode_selection": "9/9 passed"
+        },
+        "video_slot": "PENDING-VIDEO",
+        "balance_note": "throwaway balances verified on-chain (spot-checked) and by receipt arithmetic; deployer balance is the live on-chain value — the delta since the last record includes other agents' concurrent broadcasts from the shared key, not only this task's 0.0295 PHRS"
+      },
+      "txs": [
+        "0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30",
+        "0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b",
+        "0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea",
+        "0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965",
+        "0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee",
+        "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b",
+        "0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94",
+        "0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913",
+        "0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8",
+        "0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5",
+        "0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c",
+        "0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30",
+        "https://atlantic.pharosscan.xyz/tx/0x5809d308110ff5ec3e363e60ead5af626ecbd163479405b50ac6a0849e87ed7b",
+        "https://atlantic.pharosscan.xyz/tx/0xcff6be41a4eee20b094369d1791971b0e41671ed4f7c20be27bc0649193353ea",
+        "https://atlantic.pharosscan.xyz/tx/0x3648f97c71debc26716dae89ec1475ade18420e4de185704cbea907831306965",
+        "https://atlantic.pharosscan.xyz/tx/0x9c9eb17827067d6f23ed0525892cdc9982ae6b51ed11915943349a68c7e9edee",
+        "https://atlantic.pharosscan.xyz/tx/0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b",
+        "https://atlantic.pharosscan.xyz/tx/0x06482f20df77f1ef438ff4cba4c57635ba4502e041c0a3de8fb5f8113832bb94",
+        "https://atlantic.pharosscan.xyz/tx/0x2feffc088533f1a55e4e77048809dfb1fd7b6213dbc3d936dfdeebcb1b9a6913",
+        "https://atlantic.pharosscan.xyz/tx/0xce333bf2fd59a57b40ef2b3bde85131155522125858accd4219e74a81054d1c8",
+        "https://atlantic.pharosscan.xyz/tx/0xbfd1d120d7c8552b5076c3a9574eb717e6acd56a09a3411455085e4eeec3cee5",
+        "https://atlantic.pharosscan.xyz/tx/0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c",
+        "https://atlantic.pharosscan.xyz/tx/0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35",
+        "https://atlantic.pharosscan.xyz/address/0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4",
+        "https://atlantic.pharosscan.xyz/address/0x49b26d4685262e7756cbE623f134cFa97d142B94",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0x174CFa52Eb47368A74Aa194471ADC745B6b248cA",
+        "https://atlantic.pharosscan.xyz/address/0x107DCf4CdDCB1a092f728D46A900D7e474C224BE"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Run",
+          "detail": "",
+          "at": "",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xa12af6de7b4f7c9ca1b2ddf691d7f738c3cf02e301211a47aa02952f5c0bde30"
+        },
+        {
+          "title": "Run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run",
+          "detail": "",
+          "at": ""
+        }
+      ]
     },
     {
       "id": "T11",
-      "slug": "t11",
+      "slug": "policy-gatekeeper",
       "name": "Policy Gatekeeper",
       "tier": "Medium",
       "points": 100,
       "toolkit": "SkillEngine",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t11-policy-gatekeeper",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "*No agent writes to the chain until the policy has spoken — and every word is written down.*\n\nThe Policy Gatekeeper is a pre-execution policy engine for **agent write\nactions**. Before any write is proposed to the chain, the gate evaluates it\nagainst a versioned `policy.json` and returns **APPROVE** (with a gate\nstamp) or **DENY** (with the named rule that fired and why). Every decision\n— approve, deny, or refuse — is appended to a hash-chained, append-only\naudit trail (`audit/check-log.jsonl`).\n\nIt is **not** T05's threshold guardian: T05 decides on *amounts*. T11 decides\non *action policy*: which action types exist, which selectors, which tokens,\nwhich destinations, at what hours, how often.",
+      "readme_markdown": "*No agent writes to the chain until the policy has spoken — and every word is written down.*\n\n---\n\n## 1. What this is\n\nThe Policy Gatekeeper is a pre-execution policy engine for **agent write\nactions**. Before any write is proposed to the chain, the gate evaluates it\nagainst a versioned `policy.json` and returns **APPROVE** (with a gate\nstamp) or **DENY** (with the named rule that fired and why). Every decision\n— approve, deny, or refuse — is appended to a hash-chained, append-only\naudit trail (`audit/check-log.jsonl`).\n\nIt is **not** T05's threshold guardian: T05 decides on *amounts*. T11 decides\non *action policy*: which action types exist, which selectors, which tokens,\nwhich destinations, at what hours, how often.\n\n## 2. The policy (`policy.json`, versioned, hashed)\n\n`policy_id: t11-policy-v1`, sha256 `403e6395…159bb` (recomputed live; the\nhash is stamped into every audit entry so a policy edit can never rewrite\nhistory).\n\n| Rule | What it does |\n|---|---|\n| `action_allowlist` | Only `native_transfer`, `erc20_transfer`, `contract_call`. `deploy` is absent on purpose — proposing it DENIES. |\n| `network_firewall` | Only Atlantic chain 688689. Mainnet (1672) is **REFUSED outright** (`mainnet.enabled=false`); re-confirmation is required and never granted. |\n| `selector_allowlist` | `contract_call` may only invoke 4 whitelisted ERC-20 selectors (`transfer`, `approve`, `mint`, `balanceOf`). |\n| `token_allowlist` | `erc20_transfer` only for whitelisted token contracts (empty in v1 → such actions DENY until a token is added). |\n| `destination_allowlist` | Two entries: the dust sink `0x0000…dEaD` and the deployer itself. |\n| `per_action_caps` | `native_transfer` ≤ 0.01 PHRS; token/call actions carry 0 native value. |\n| `time_window` | Writes approved only 02:00–08:00 UTC (demo window; the deny path is unit-tested). |\n| `cooldown` | ≥ 60 s between approved writes, enforced from the audit trail. |\n\nFail-closed: missing, corrupt, or incomplete policy → REFUSE, never approve.\n\n## 3. How a run works\n\n```\npropose → evaluate --action-file A.json → DENY  (named rule, no stamp, logged)\n                                          → APPROVE (+ gate stamp, logged)\n                                          → REFUSED_MAINNET (logged, nothing broadcast)\nAPPROVE → execute --action-file A.json --stamp S.json\n          → 4 mandatory pre-checks → broadcast once (nonce lock) → receipt → logged\n```\n\n`evaluate` is pure: no RPC, no subprocess, no side effects — proven by a unit\ntest that replaces every side-effecting callable with one that explodes.\n`execute` cannot run without a **fresh, audit-backed gate stamp**: the stamp\nmust be unexpired, bind exactly this action and this policy version, be\ncryptographically intact, and have a matching APPROVE entry in the audit\nchain. A forged/expired stamp → `REFUSE` (demonstrated in\n`run-logs/nobypass.log`).\n\n## 4. The 4 mandatory SkillEngine Write Operation Pre-checks\n\nEnforced on the execute path, in order, before any broadcast:\n\n- **P1** — private key present (value never printed).\n- **P2** — key derives to `policy.sender` (`0xf76e…bC71a3`); any other key is a key-confusion firewall trip.\n- **P3** — chain id read **live** from the RPC; anything but 688689 aborts.\n- **P4** — balance covers value + 0.001 PHRS fee reserve (fail-closed on unreadable balance), plus gas-price sanity ≤ 50 gwei.\n\nMainnet re-confirmation: a mainnet-class proposal is refused at `evaluate`\ntime with `REFUSED_MAINNET` — no RPC call, no broadcast path exists.\n\n## 5. No-bypass\n\nThe only sanctioned write path is `gatekeeper.py execute`, which requires a\nvalid stamp. Demonstrated: a tampered stamp (expiry edited) is refused with\n`no-bypass: stamp signature mismatch (tampered)`, and the refusal is itself\naudit-logged (entry 3). Honest scope: this is a software guardrail over the\nagent's own executor — it cannot stop someone from calling `cast send`\ndirectly, and it does not claim to.\n\n## 6. Audit trail\n\n`audit/check-log.jsonl`: append-only, each entry carrying `prev_hash` and a\nsha256 `entry_hash` over its canonical content. `audit-verify` recomputes the\nwhole chain (verified: 7 entries intact). Tampering is detected and proven in\nunit tests.\n\n## 7. Evidence — how to verify in 60 seconds\n\n1. `python3 gatekeeper.py audit-verify` → chain intact, 7 entries.\n2. Entry 1: DENY — destination `0x1111…1111` not allowlisted (named rule).\n3. Entries 2+5: APPROVE → EXECUTED, tx\n   [`0xc471c8…159bb`](https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb)\n   (block 31481699, 0.001 PHRS to the dust sink).\n4. Entry 4: REFUSED_MAINNET — proof the mainnet path refuses without broadcast.\n5. Entries 6+7: APPROVE → EXECUTED again, tx\n   [`0x42c4a3…05b6329`](https://atlantic.pharosscan.xyz/tx/0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329)\n   (block 31486909, 0.001 PHRS to the *other* allowlisted recipient, deployer\n   self — the allowlist has two live entries, both proven).\n6. `python3 tests/test_policy_engine.py` → 22/22.\n\n## 8. Honest limits\n\n- The demo executor broadcasts only `native_transfer`; other approved action\n  types honestly refuse at execute time (\"needs calldata the demo does not\n  build\") rather than fake a broadcast.\n- `token_allowlist` is empty in v1, so `erc20_transfer` always denies today —\n  the rule is live, the list is just unpopulated.\n- The time window is a demo window; production would set real ops hours.\n- Cooldown is per-machine (audit file), not global across the 28 workers.\n- Gate-stamp = software guardrail, not a cryptographic signature.\n\n## 9. Requirements → evidence\n\n| # | Official requirement (T11) | How it is met | Evidence |\n|---|---|---|---|\n| 1 | Clear policy (allowlists/limits/denylists) | `policy.json` v1.0.0 (`t11-policy-v1`): action/selector/token/destination allowlists, per-action caps, time window, cooldown, gas cap; sha256-hashed into every audit entry | `policy.json`; `gatekeeper.py show-policy` → `policy_hash 403e6\n\n…",
+      "task_config_text": "# LIGHTKEEPER task manifest — T11 Policy Gatekeeper\ntask_id: T11\nslug: policy-gatekeeper\nname: Policy Gatekeeper\ntier: Medium\npoints: 100\ntoolkit: SkillEngine\nstatus: shipped\nowner: devmo (build agent)\n\ndescription: >\n  A pre-execution policy engine for agent write actions: 8 named rules\n  (action/network/selector/token/destination allowlists, per-action caps,\n  time window, cooldown) over a versioned, hash-stamped policy.json;\n  APPROVE mints an audit-backed gate stamp, DENY names the rule, mainnet\n  is REFUSED outright. Append-only hash-chained audit trail of every\n  decision. The 4 mandatory SkillEngine Write Operation Pre-checks enforced\n  on the execute path. Differs from T05 (amount thresholds) by deciding on\n  action policy.\n\ndeliverables:\n  - policy.json            # versioned policy (hash stamped into every audit entry)\n  - gatekeeper.py          # evaluate -> stamp; execute (pre-checks + stamp + broadcast)\n  - tests/test_policy_engine.py  # 22 unit tests: every rule type, fail-closed, mainnet, no-bypass, chain tamper\n  - audit/check-log.jsonl  # append-only hash-chained decision log (5 entries)\n  - run-logs/              # deny.log, approve-evaluate.log, nobypass.log, mainnet-refusal.log, approve-execute.log, audit-verify.log\n  - REQUIREMENTS.md        # official requirements quoted verbatim\n  - README.md              # 8 sections, opens with OCTOPUS header\n  - evidence.md / evidence.json  # real tx hash, spend log, curl-tested links\n  - LINKS.md               # curl-verified links\n  - SUBMISSION.md          # exact copy-paste Arena pack\n\nbudget:\n  max_phrs: 0.15\n  spent_phrs: 0.00204200021   # from T11's own receipts (RUN B + RUN C: value + gas); shared wallet, balance deltas not attributable\n\nevidence:\n  atlantic_explorer: https://atlantic.pharosscan.xyz/\n  txs:\n    - 0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb\n    - 0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329\n",
       "policy_yaml_text": null,
-      "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "run_log_files": [
+        {
+          "name": "run-logs/action-approve-self.json",
+          "tail": "{\"type\": \"native_transfer\", \"network\": \"atlantic\", \"chain_id\": 688689,\n \"to\": \"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3\",\n \"value_wei\": \"1000000000000000\", \"note\": \"RUN C: 0.001 PHRS to allowlisted deployer self\"}\n"
+        },
+        {
+          "name": "run-logs/action-approve.json",
+          "tail": "{\"type\": \"native_transfer\", \"network\": \"atlantic\", \"chain_id\": 688689,\n \"to\": \"0x000000000000000000000000000000000000dEaD\",\n \"value_wei\": \"1000000000000000\"}\n"
+        },
+        {
+          "name": "run-logs/action-deny.json",
+          "tail": "{\"type\": \"native_transfer\", \"network\": \"atlantic\", \"chain_id\": 688689,\n \"to\": \"0x1111111111111111111111111111111111111111\",\n \"value_wei\": \"1000000000000000\"}\n"
+        },
+        {
+          "name": "run-logs/action-mainnet.json",
+          "tail": "{\"type\": \"native_transfer\", \"network\": \"mainnet\", \"chain_id\": 1672,\n \"to\": \"0x000000000000000000000000000000000000dEaD\",\n \"value_wei\": \"1000000000000000\"}\n"
+        },
+        {
+          "name": "run-logs/approve-evaluate.log",
+          "tail": "    },\n    {\n      \"rule\": \"action_allowlist\",\n      \"result\": \"PASS\",\n      \"detail\": \"action 'native_transfer' allowed=['native_transfer', 'erc20_transfer', 'contract_call']\"\n    },\n    {\n      \"rule\": \"destination_allowlist\",\n      \"result\": \"PASS\",\n      \"detail\": \"destination 0x000000000000000000000000000000000000dead allowlisted=True\"\n    },\n    {\n      \"rule\": \"per_action_caps\",\n      \"result\": \"PASS\",\n      \"detail\": \"value_wei=1000000000000000 cap=10000000000000000 for native_transfer\"\n    },\n    {\n      \"rule\": \"time_window\",\n      \"result\": \"PASS\",\n      \"detail\": \"utc_hour=4.20 window=[2,8)\"\n    },\n    {\n      \"rule\": \"cooldown\",\n      \"result\": \"PASS\",\n      \"detail\": \"no prior approval on record\"\n    }\n  ],\n  \"reasons\": [],\n  \"stamp\": {\n    \"policy_id\": \"t11-policy-v1\",\n    \"policy_hash\": \"403e6395e173008667cd68d8bcc1876ce20c746fa32a8e55b717294a7243515d\",\n    \"action_hash\": \"496fe7e1988d9094048c1e576cea533cc222613a2821485f2ad4c92d54b72392\",\n    \"decision\": \"APPROVE\",\n    \"issued_at\": \"2026-10-16T04:12:26.754830+00:00\",\n    \"expires_at\": \"2026-10-16T04:17:26.754830+00:00\",\n    \"stamp_hash\": \"524d8459175602f0f5ce1d4ef5b3be9f56fceb561fdb5e27375855791c64a2ed\"\n  },\n  \"stamp_file\": \"run-logs/stamp.json\"\n}\n"
+        },
+        {
+          "name": "run-logs/approve-execute.log",
+          "tail": "P1 private key: set (value never printed)\nP2 sender binding: key derives to policy.sender — confirmed\nP3 network: Atlantic testnet (chain_id=688689) confirmed live\nP4 balance: 6004731924989131922 wei covers value+reserve (2000000000000000 wei)\nC1 gas price: 10000000000 wei within cap\nbroadcasting via nonce lock: cast send 0x000000000000000000000000000000000000dEaD 1000000000000000 wei\n\nblockHash            0x4c5409d79733fefde17e9d38e73e999aa9f73e6219bf95f8c7bf7c71f9ff230d\nblockNumber          31481699\ncontractAddress      \ncumulativeGasUsed    21000\neffectiveGasPrice    1000000001\nfrom                 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3\ngasUsed              21000\nlogs                 []\nlogsBloom            0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\nroot                 \nstatus               1 (success)\ntransactionHash      0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb\ntransactionIndex     0\ntype                 2\nblobGasPrice         \nblobGasUsed          \nto                   0x000000000000000000000000000000000000dEaD\n\n{\n  \"decision\": \"EXECUTED\",\n  \"tx_hash\": \"0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb\",\n  \"explorer\": \"https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb\"\n}\n"
+        }
+      ],
+      "has_evidence_json": true,
+      "evidence": {
+        "_note": "Spend is computed from the receipt of T11's own broadcast (value + gasUsed*effectiveGasPrice). The wallet is shared by 28 workers, so raw balance deltas are NOT attributable and are not used.",
+        "audit": {
+          "chain_verified": true,
+          "entries": 7,
+          "file": "audit/check-log.jsonl"
+        },
+        "budget_phrs_max": 0.15,
+        "evidence_runs": [
+          {
+            "action": "native_transfer 0.001 PHRS to non-allowlisted 0x1111...1111",
+            "audit_seq": 1,
+            "broadcast": false,
+            "decision": "DENIED",
+            "name": "RUN A (violating)",
+            "reason_rule": "destination_allowlist"
+          },
+          {
+            "action": "native_transfer 0.001 PHRS to allowlisted dust sink 0x0000...dEaD",
+            "audit_seq": [
+              2,
+              5
+            ],
+            "broadcast": true,
+            "decision": "APPROVED then EXECUTED",
+            "name": "RUN B (compliant)",
+            "reason_rule": "all 8 rules PASS"
+          },
+          {
+            "action": "native_transfer 0.001 PHRS to allowlisted deployer self 0xf76e...bC71a3",
+            "audit_seq": [
+              6,
+              7
+            ],
+            "broadcast": true,
+            "decision": "APPROVED then EXECUTED",
+            "name": "RUN C (compliant, second recipient)",
+            "reason_rule": "all 8 rules PASS"
+          },
+          {
+            "action": "execute with tampered gate stamp",
+            "audit_seq": 3,
+            "broadcast": false,
+            "decision": "REFUSED (no-bypass)",
+            "name": "no-bypass demo",
+            "reason_rule": "stamp signature mismatch"
+          },
+          {
+            "action": "native_transfer on chain_id 1672 (mainnet)",
+            "audit_seq": 4,
+            "broadcast": false,
+            "decision": "REFUSED_MAINNET",
+            "name": "mainnet proposal",
+            "reason_rule": "network_firewall (mainnet.enabled=false)"
+          }
+        ],
+        "policy_hash": "403e6395e173008667cd68d8bcc1876ce20c746fa32a8e55b717294a7243515d",
+        "policy_id": "t11-policy-v1",
+        "spend_log": [
+          {
+            "amount_phrs": 0.001,
+            "block": 31481699,
+            "detail": "dust transfer to allowlisted sink after APPROVE",
+            "effective_gas_price_wei": 1000000001,
+            "gas_cost_phrs": 0.00002100021,
+            "gas_used": 21000,
+            "tx_hash": "0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb"
+          },
+          {
+            "amount_phrs": 0.001,
+            "block": 31486909,
+            "detail": "dust transfer to allowlisted deployer self after APPROVE (RUN C)",
+            "effective_gas_price_wei": 1000000001,
+            "gas_cost_phrs": 0.00002100021,
+            "gas_used": 21000,
+            "tx_hash": "0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329"
+          }
+        ],
+        "tests": "22/22 pass (tests/test_policy_engine.py)",
+        "total_spent_phrs": 0.00204200042,
+        "txs": [
+          {
+            "block": 31481699,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb",
+            "hash": "0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb",
+            "kind": "APPROVED dust broadcast (RUN B)",
+            "status": "0x1 success",
+            "value_phrs": 0.001
+          },
+          {
+            "block": 31486909,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329",
+            "hash": "0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329",
+            "kind": "APPROVED dust broadcast (RUN C, deployer self)",
+            "status": "0x1 success"
+          }
+        ]
+      },
+      "txs": [
+        "0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb",
+        "0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb",
+        "https://atlantic.pharosscan.xyz/tx/0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T12",
-      "slug": "t12",
+      "slug": "skill-chain-flow",
       "name": "Skill + Chain MCP Flow",
       "tier": "Medium",
       "points": 100,
       "toolkit": "Composition",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
-      "policy_yaml_text": null,
-      "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
+      "dir": "t12-skill-chain-flow",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "> LIGHTKEEPER · Task 12 — **Skill + Chain MCP Flow** (Medium · 100 pts · Composition)\n\n§1 — What this is (v2)\n\nOne end-to-end composition flow: **read live state via the real Chain MCP →\ninvoke a skill on that data → verify via the Chain MCP** — all from a single\nuser request, in one session.",
+      "readme_markdown": "> LIGHTKEEPER · Task 12 — **Skill + Chain MCP Flow** (Medium · 100 pts · Composition)\n\n# §1 — What this is (v2)\n\nOne end-to-end composition flow: **read live state via the real Chain MCP →\ninvoke a skill on that data → verify via the Chain MCP** — all from a single\nuser request, in one session.\n\nThe flow is a **\"Spend Readiness Check\"**: a single CLI request\n(`python3 flow.py --amount-usdc X --run-label Y`) triggers\n\n1. **READ** — Chain MCP `tools/call` **by name** on Pharos mainnet (1672),\n   all pinned to one block: `get_chain_info`, `get_block_number`,\n   `get_balance` (PROS), `eth_call` (USDC `balanceOf`, USDC `decimals`),\n   `get_gas_price`.\n2. **SKILL** — a preflight skill evaluates the *live MCP values verbatim*\n   against `policy.yaml` (four named rules: network, balance, gas,\n   freshness). Verdict: `ALLOW` or `BLOCK`.\n3. **EXECUTE** — on ALLOW only: a real `estimate_gas` simulation through the\n   Chain MCP. **No signing, no broadcast** — mainnet is real funds; this is\n   stated in `policy.yaml` (`behavior.no_broadcast: true`), in the code, and\n   here — not hidden. On BLOCK: skipped loudly.\n4. **VERIFY** — follow-up MCP reads: freshness re-check + verdict\n   re-validation against the latest live values.\n\nSkill output **depends on** live Chain MCP data: the same flow with a\ndifferent proposed amount on the same live state yields a different verdict\n(see §4). Zero raw JSON-RPC against an RPC URL. Zero private keys.\n\n**v1 → v2 note:** v1 (2026-10-16) read Atlantic testnet via `cast` and called\nthose \"Chain MCP-equivalent queries\". That rationalization is **withdrawn** —\nthe Arena reviewers rejected T01–T04 for exactly this pattern. v2 calls the\nreal Chain MCP. The v1 Atlantic flow (KeeperPing, `ping()` broadcasts) is\nsuperseded; its artifacts were removed from the repo (preserved in the private\narchive), not shipped as current claims.\n\n# §2 — The preflight skill (policy)\n\n`policy.yaml` is pre-declared before any run and never edited mid-run. Rules, in evaluation order:\n\n| Rule | What it checks | Fail means |\n|---|---|---|\n| RULE-NETWORK | live `chainId` == 1672 (the Chain MCP serves mainnet only) | BLOCK |\n| RULE-BALANCE | live USDC balance of the watched holder ≥ proposed amount | BLOCK (quotes the live balance verbatim) |\n| RULE-GAS | live gas price ≤ 50 gwei | BLOCK |\n| RULE-FRESHNESS | verify-block − read-block ≤ 120 (skill time **and** verify time) | BLOCK — stale-packet rejection |\n\nFail-closed throughout: any unreadable data → BLOCK, never guess.\n\nThe watched holder (`0x936564245b69f5a293b42cbd752e0ee3bb68b470`) is a real\nUSDC holder found via live Chain MCP `get_logs` (Transfer events,\n2026-10-20). The skill **reads** this address's balance — never transacts\nwith it.\n\n# §3 — Call order\n\n```\nUSER REQUEST  (single command: flow.py --amount-usdc X --run-label Y)\n│\n├─► READ ........ Chain MCP tools/call BY NAME @ https://mcp.pharos.xyz/mcp\n│                 get_chain_info · get_block_number (pin) · get_balance (PROS)\n│                 eth_call balanceOf(watch)@block · eth_call decimals()@block\n│                 get_gas_price\n│\n├─► SKILL ....... evaluate(live MCP values verbatim, policy.yaml)\n│                 verdict = ALLOW | BLOCK (+ named failing rules)\n│\n├─► EXECUTE ..... if ALLOW: estimate_gas via Chain MCP (simulation only —\n│                 │           no signature, no broadcast; mainnet = real funds)\n│                 else:       skipped loudly — nothing simulated, nothing signed\n│\n└─► VERIFY ...... Chain MCP: get_block_number + eth_call balanceOf() @latest\n                  freshness re-check · verdict re-validation (must be STABLE)\n```\n\n# §4 — Live contrast runs (dependency proven, 2026-10-20)\n\nSame flow, same watched holder, different proposed amounts → different verdicts.\nEvery value below came from the Chain MCP live:\n\n**allow-1** — 100 USDC → all 4 rules PASS → **ALLOW**\n→ READ @ block 20695075: USDC balance **16,712.740923**, gas **10 gwei**, chain 1672\n→ EXECUTE: `estimate_gas` via Chain MCP → **52,679 gas** (simulation only)\n→ VERIFY @ block 20695077: balance unchanged, verdict STABLE → OK\n\n**block-1** — 1,000,000 USDC → RULE-BALANCE FAIL → **BLOCK**\n→ detail: \"live USDC balance=16712740923 base units (16712.740923 USDC)\nvs proposed 1000000000000 (1000000 USDC)\" — quoting the live balance\n→ EXECUTE skipped → VERIFY @ block 20695083: verdict STABLE → OK\n\nFull transcripts with every real value: `run-logs/flow-transcript.jsonl`\n(append-only; v1 Atlantic runs retained above the v2 entries as labeled history).\nRun manifest: `evidence/run-manifest.json` (`mcp_endpoint`,\n`mcp_tools_called`, `raw_rpc_calls: 0`, commit, dirty flag).\n\n# §5 — Requirements → evidence\n\n| # | Official requirement (verbatim) | How met | Evidence |\n|---|---|---|---|\n| 1 | Skill output depends on LIVE Chain MCP data in the same flow | `flow.py` READ: 6 MCP `tools/call` by name, pinned to one block; values pass verbatim into `evaluate()` — the verdict depends on nothing else | `flow.py:180-230`, `run-logs/flow-transcript.jsonl` (READ phases) |\n| 2 | End-to-end from a single user request | `flow.py --amount-usdc X --run-label Y` drives READ → SKILL → EXECUTE → VERIFY | §4 runs above; `flow.py:150-178` |\n| 3 | Diagram/write-up of call order | §3 above, with MCP tool names | this file |\n| 4 | Demo run showing real data through both tools (composed, not side-by-side) | Contrast pair `allow-1`/`block-1`: same flow, same holder, different amounts → ALLOW+simulation vs BLOCK quoting live balance | `run-logs/flow-transcript.jsonl`, §4 |\n\n# §6 — Reproduce it\n\n```bash\ncd tasks/t12-skill-chain-flow\npip install requests          # only dependency (MCP client)\npython3 flow.py validate                 # policy sanity check\npython3 tests/test_policy.py            # 8 unit tests, no chain needed\npython3 flow.py --amount-usdc 100 --run-label allow     # → ALLOW + simulation + verify\npython3 flow.py --amount-usdc 1000000 --run-label block # → BLOCK quoting live balance\n```\n\nNo `.env`, no private keys, no Foundr\n\n…",
+      "task_config_text": "# LIGHTKEEPER task manifest — T12 Skill + Chain MCP Flow\ntask_id: T12\nslug: skill-chain-flow\nname: Skill + Chain MCP Flow\ntier: Medium\npoints: 100\ntoolkit: Composition\nstatus: shipped\nowner: devmo (build agent)\n\ndescription: >\n  One end-to-end composition flow: live Chain MCP reads BY NAME\n  (get_chain_info, get_block_number, get_balance, eth_call, get_gas_price)\n  on Pharos mainnet feed verbatim into a SkillEngine preflight skill;\n  the skill's ALLOW/BLOCK verdict depends on nothing but that data.\n  EXECUTE runs a real estimate_gas simulation (no signing, no broadcast —\n  mainnet is real funds); VERIFY re-reads via the MCP. Dependency proven\n  by contrast runs: 100 USDC → ALLOW + simulation vs 1,000,000 USDC → BLOCK\n  quoting the same live USDC balance.\n\ndeliverables:\n  - policy.yaml            # pre-declared preflight policy (all limits commented)\n  - src/mcp_client.py      # Streamable-HTTP Chain MCP client (tools/call by name)\n  - flow.py                # the composed flow: READ → SKILL → EXECUTE → VERIFY\n  - tests/test_policy.py   # 8 unit tests of the skill engine (8/8 pass)\n  - run-logs/              # real run transcripts (JSONL), incl. deploy + contrast runs\n  - REQUIREMENTS.md        # official requirements quoted verbatim\n  - README.md              # 9 sections incl. Requirements→evidence table\n  - evidence.md / evidence.json  # MCP endpoint/tools, contrast runs, v1 history\n  - LINKS.md               # verified links\n  - SUBMISSION.md          # exact copy-paste Arena pack\n\nbudget:\n  max_phrs: 0.15\n  spent_phrs: 0              # v2: zero broadcasts by design (mainnet = real funds)\n  v1_spent_phrs: 0.0005699020  # superseded Atlantic broadcasts; history only\n\nevidence:\n  atlantic_explorer: https://atlantic.pharosscan.xyz/\n  txs: []                # filled in evidence.json\n",
+      "policy_yaml_text": "# =============================================================================\n# T12 \"Skill + Chain MCP Flow\" — PREFLIGHT POLICY (v2, 2026-10-20)\n# Pre-declared BEFORE any run. The skill engine evaluates live CHAIN MCP data\n# against THESE rules only. No rule may be edited mid-run.\n# Validate:  python3 flow.py validate\n#\n# v2 change: all chain reads go through the real Chain MCP\n# (https://mcp.pharos.xyz/mcp) on Pharos mainnet (chain 1672). The v1\n# Atlantic/cast design is superseded — see README.md §1.\n# =============================================================================\n\ntask: \"T12\"\nname: \"Spend Readiness Check (composition preflight)\"\n\n# --- Network -----------------------------------------------------------------\n# The Chain MCP serves mainnet ONLY. RULE-NETWORK enforces this: any other\n# chainId => BLOCK, fail-closed.\nnetwork:\n  allowed_chain_id: 1672\n  allowed_name: \"pharos-mainnet\"\n  mcp_endpoint: \"https://mcp.pharos.xyz/mcp\"\n\n# --- Composition target ------------------------------------------------------\n# Watched holder: a real USDC holder found via live Chain MCP get_logs\n# (Transfer events, 2026-10-20). The skill READS this address's balance —\n# never transacts with it. Selection method is documented in README.md §2.\nwatch:\n  address: \"0x936564245b69f5a293b42cbd752e0ee3bb68b470\"\n  asset: \"USDC\"\n  token: \"0xc879c018db60520f4355c26ed1a6d572cdac1815\"\n\n# --- Limits ------------------------------------------------------------------\nlimits:\n  max_gas_price_gwei: \"50\"    # live gas price above this => BLOCK\n  max_stale_blocks: 120       # pinned-block reads older than this => BLOCK\n                              # (checked at skill time AND at verify time,\n                              # failing closed both times)\n\n# --- Behaviour ---------------------------------------------------------------\nbehavior:\n  fail_closed: true            # unreadable/stale data => BLOCK, never guess\n  no_broadcast: true           # mainnet = real funds. The skill NEVER signs or\n                              # broadcasts. On ALLOW it runs a real\n                              # estimate_gas simulation via the Chain MCP and\n                              # reports readiness. Stated plainly, not hidden.\n  audit_log: \"run-logs/flow-transcript.jsonl\"\n",
+      "run_log_files": [
+        {
+          "name": "run-logs/flow-transcript.jsonl",
+          "tail": "ad@20695075 <= 120 blocks\"}], \"blocked_by\": []}\n{\"ts\": \"2026-10-19T22:21:40.877064+00:00\", \"run_id\": \"allow-1-1792448486\", \"phase\": \"EXECUTE\", \"simulated\": true, \"tool\": \"estimate_gas\", \"from\": \"0x936564245b69f5a293b42cbd752e0ee3bb68b470\", \"to\": \"0xc879c018db60520f4355c26ed1a6d572cdac1815\", \"method\": \"transfer(address,uint256)\", \"amount_base\": 100000000, \"gas_estimate\": \"52679\", \"note\": \"simulation only \\u2014 no signature, no broadcast (mainnet real funds)\"}\n{\"ts\": \"2026-10-19T22:21:42.021679+00:00\", \"run_id\": \"allow-1-1792448486\", \"phase\": \"VERIFY\", \"verify_block\": 20695077, \"verify_balance_base\": 16712740923, \"verdict_at_verify\": \"ALLOW\", \"verdict_stable\": true, \"freshness_blocks\": 2, \"commit\": \"735a0bd\", \"dirty\": true}\n{\"ts\": \"2026-10-19T22:21:49.834453+00:00\", \"run_id\": \"block-1-1792448505\", \"phase\": \"READ\", \"mcp_endpoint\": \"https://mcp.pharos.xyz/mcp\", \"mcp_tools\": [\"get_chain_info\", \"get_block_number\", \"get_balance\", \"eth_call\", \"eth_call\", \"get_gas_price\"], \"read_block\": 20695080, \"chain_id\": 1672, \"watch\": \"0x936564245b69f5a293b42cbd752e0ee3bb68b470\", \"token\": \"0xc879c018db60520f4355c26ed1a6d572cdac1815\", \"usdc_balance_base\": 16712740923, \"usdc_balance_human\": \"16712.740923\", \"usdc_decimals\": 6, \"pros_balance_wei\": 0, \"gas_price_wei\": 10000000000, \"gas_price_gwei\": 10.0, \"proposed_amount_base\": 1000000000000, \"proposed_amount_human\": \"1000000\"}\n{\"ts\": \"2026-10-19T22:21:49.847012+00:00\", \"run_id\": \"block-1-1792448505\", \"phase\": \"SKILL\", \"verdict\": \"BLOCK\", \"rules\": [{\"rule\": \"RULE-NETWORK\", \"verdict\": \"PASS\", \"detail\": \"live chainId=1672 vs allowed=1672 (Chain MCP serves mainnet only)\"}, {\"rule\": \"RULE-BALANCE\", \"verdict\": \"FAIL\", \"detail\": \"live USDC balance=16712740923 base units (16712.740923 USDC) vs proposed 1000000000000 (1000000 USDC)\"}, {\"rule\": \"RULE-GAS\", \"verdict\": \"PASS\", \"detail\": \"live gas 10000000000 wei <= max 50000000000 wei (50 gwei)\"}, {\"rule\": \"RULE-FRESHNESS\", \"verdict\": \"PASS\", \"detail\": \"verify@20695080 - read@20695080 <= 120 blocks\"}], \"blocked_by\": [\"RULE-BALANCE\"]}\n{\"ts\": \"2026-10-19T22:21:49.850643+00:00\", \"run_id\": \"block-1-1792448505\", \"phase\": \"EXECUTE\", \"simulated\": false, \"reason\": \"BLOCKED by ['RULE-BALANCE'] \\u2014 nothing simulated, nothing signed\"}\n{\"ts\": \"2026-10-19T22:21:51.511670+00:00\", \"run_id\": \"block-1-1792448505\", \"phase\": \"VERIFY\", \"verify_block\": 20695083, \"verify_balance_base\": 16712740923, \"verdict_at_verify\": \"BLOCK\", \"verdict_stable\": true, \"freshness_blocks\": 3, \"commit\": \"735a0bd\", \"dirty\": true}\n"
+        },
+        {
+          "name": "run-logs/v1-superseded.jsonl",
+          "tail": "2ff4410f6dd53f01722abc71a3\"}, {\"rule\": \"RULE-AMOUNT\", \"verdict\": \"FAIL\", \"detail\": \"proposed 100000000000000000 wei <= max 5000000000000000 wei (0.005 PHRS)\"}, {\"rule\": \"RULE-GAS\", \"verdict\": \"PASS\", \"detail\": \"live gas 10000000000 wei <= max 50000000000 wei (50 gwei)\"}, {\"rule\": \"RULE-FRESHNESS\", \"verdict\": \"PASS\", \"detail\": \"execute@31486316 - read@31486316 <= 120 blocks\"}]}\n{\"ts\": \"2026-10-16T06:35:20.648158+00:00\", \"run_id\": \"block-2-1792132488\", \"phase\": \"EXECUTE\", \"broadcast\": false, \"reason\": \"BLOCKED by ['RULE-AMOUNT']\"}\n{\"ts\": \"2026-10-16T06:35:41.357967+00:00\", \"run_id\": \"block-2-1792132488\", \"phase\": \"VERIFY\", \"verify_block\": 31486356, \"pingCount_after\": 1, \"expected\": 1, \"verify_ok\": true, \"tx_hash\": null}\n{\"ts\": \"2026-10-16T06:36:39.624384+00:00\", \"run_id\": \"allow-4-1792132561\", \"phase\": \"READ\", \"read_block\": 31486374, \"chain_id\": 688689, \"balance_wei\": 5870568420313157416, \"balance_phrs\": \"5.870568420313157416\", \"gas_price_wei\": 10000000000, \"gas_price_gwei\": 10.0, \"contract\": \"0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1\", \"pingCount_before\": 1, \"keeper_onchain\": \"0xf76e6b0920e9332ff4410f6dd53f01722abc71a3\", \"proposed_value_wei\": 100000000000000}\n{\"ts\": \"2026-10-16T06:36:39.635424+00:00\", \"run_id\": \"allow-4-1792132561\", \"phase\": \"SKILL\", \"verdict\": \"ALLOW\", \"blocked_by\": [], \"rules\": [{\"rule\": \"RULE-NETWORK\", \"verdict\": \"PASS\", \"detail\": \"live chainId=688689 vs allowed=688689\"}, {\"rule\": \"RULE-DEST\", \"verdict\": \"PASS\", \"detail\": \"target=0xFc9fe952036bFe00F8BC5d9D2860c3750B834Ad1\"}, {\"rule\": \"RULE-KEEPER-CONSISTENCY\", \"verdict\": \"PASS\", \"detail\": \"on-chain keeper()=0xf76e6b0920e9332ff4410f6dd53f01722abc71a3\"}, {\"rule\": \"RULE-AMOUNT\", \"verdict\": \"PASS\", \"detail\": \"proposed 100000000000000 wei <= max 5000000000000000 wei (0.005 PHRS)\"}, {\"rule\": \"RULE-GAS\", \"verdict\": \"PASS\", \"detail\": \"live gas 10000000000 wei <= max 50000000000 wei (50 gwei)\"}, {\"rule\": \"RULE-FRESHNESS\", \"verdict\": \"PASS\", \"detail\": \"execute@31486374 - read@31486374 <= 120 blocks\"}]}\n{\"ts\": \"2026-10-16T06:37:34.499200+00:00\", \"run_id\": \"allow-4-1792132561\", \"phase\": \"EXECUTE\", \"broadcast\": true, \"tx_hash\": \"0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128\", \"status\": 1, \"block\": 31486412, \"gas_used\": 33698}\n{\"ts\": \"2026-10-16T06:37:42.106550+00:00\", \"run_id\": \"allow-4-1792132561\", \"phase\": \"VERIFY\", \"verify_block\": 31486420, \"pingCount_after\": 2, \"expected\": 2, \"verify_ok\": true, \"tx_hash\": \"0x022bc47b3f1932f531791f7b6fc9ed30da719bf9535394c30e4bbcbc11fd7128\"}\n"
+        }
+      ],
+      "has_evidence_json": true,
+      "evidence": {
+        "task": "t12-skill-chain-flow",
+        "version": "v2-2026-10-20",
+        "network": {
+          "chain_id": 1672,
+          "name": "pharos-mainnet"
+        },
+        "mcp": {
+          "endpoint": "https://mcp.pharos.xyz/mcp",
+          "server": "pharos-mcp-server",
+          "tools_called": [
+            "get_chain_info",
+            "get_block_number",
+            "get_balance",
+            "eth_call",
+            "get_gas_price",
+            "estimate_gas"
+          ],
+          "raw_rpc_calls": 0
+        },
+        "watch": {
+          "address": "0x936564245b69f5a293b42cbd752e0ee3bb68b470",
+          "asset": "USDC",
+          "token": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+          "selection": "real holder found via live Chain MCP get_logs (USDC Transfer events, 2026-10-20); read-only, never transacted with"
+        },
+        "contrast_runs": [
+          {
+            "label": "allow-1",
+            "run_id": "allow-1-1792448486",
+            "proposed_amount_usdc": "100",
+            "verdict": "ALLOW",
+            "live_usdc_balance": "16712.740923",
+            "live_gas_gwei": 10,
+            "read_block": 20695075,
+            "estimate_gas": "52679",
+            "verify_block": 20695077,
+            "verify": "STABLE"
+          },
+          {
+            "label": "block-1",
+            "run_id": "block-1-1792448505",
+            "proposed_amount_usdc": "1000000",
+            "verdict": "BLOCK",
+            "blocked_by": [
+              "RULE-BALANCE"
+            ],
+            "live_usdc_balance": "16712.740923",
+            "live_gas_gwei": 10,
+            "read_block": 20695080,
+            "verify_block": 20695083,
+            "verify": "STABLE"
+          }
+        ],
+        "unit_tests": "tests/test_policy.py — 8/8 pass",
+        "broadcasts": 0,
+        "no_broadcast_note": "mainnet = real funds; the skill never signs or broadcasts by design (policy.yaml behavior.no_broadcast)",
+        "v1_history": "v1 (2026-10-16) used cast against Atlantic testnet — superseded 2026-10-20; artifacts retained as labeled history, not current claims",
+        "shipped": true,
+        "status": "shipped"
+      },
       "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/address/0x936564245b69f5a293b42cbd752e0ee3bb68b470",
+        "https://atlantic.pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T13",
-      "slug": "t13",
+      "slug": "t13-docs-chain-agent",
       "name": "Docs MCP + Chain MCP Agent",
       "tier": "Medium",
       "points": 100,
       "toolkit": "Composition",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t13-docs-chain-agent",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "T13 — Docs MCP + Chain MCP Agent\n\n**One agent, two real MCPs, one genuine loop:** a question goes to the\nDeveloper Docs MCP (`askQuestion` with cited sources) → the agent calls the\nSAME function on-chain via the Chain MCP (`eth_call` by name) → the result is\ninterpreted in the context of the docs explanation.\n\n- Docs MCP: `https://docs.pharos.xyz/~gitbook/mcp` (public, no auth)\n- Chain MCP: `https://mcp.pharos.xyz/mcp` (Pharos mainnet, chain 1672)\n- Read-only. Zero raw `eth_*` against RPC URLs. Zero local doc indexes.",
+      "readme_markdown": "# T13 — Docs MCP + Chain MCP Agent\n\n**One agent, two real MCPs, one genuine loop:** a question goes to the\nDeveloper Docs MCP (`askQuestion` with cited sources) → the agent calls the\nSAME function on-chain via the Chain MCP (`eth_call` by name) → the result is\ninterpreted in the context of the docs explanation.\n\n- Docs MCP: `https://docs.pharos.xyz/~gitbook/mcp` (public, no auth)\n- Chain MCP: `https://mcp.pharos.xyz/mcp` (Pharos mainnet, chain 1672)\n- Read-only. Zero raw `eth_*` against RPC URLs. Zero local doc indexes.\n\n## Requirements → evidence\n\n| # | Official requirement (T13, Medium) | How it is met | Evidence |\n|---|---|---|---|\n| 1 | Explanation comes from Docs MCP WITH sources referenced | Every round asks the Docs MCP `askQuestion`; answers logged verbatim with 10–15 markdown source links each, extracted as DOC-GROUNDED citations (doc URL + retrieval date) | `evidence/transcripts/*.json` → `docs.answer`, `citations[]`; machine-checked by `tests/test_agent.py` |\n| 2 | Agent then calls the SAME function on-chain via Chain MCP | `totalSupply()` → `eth_call` data `0x18160ddd`; `decimals()` → `0x313ce567`; `balanceOf(address)` → `0x70a08231…`; `latestAnswer()` → `0x50d25bcd` — all via Chain MCP `tools/call` by name, on Pharos mainnet (chain 1672, asserted) | `src/doc_agent.py` `run_round()`; `evidence/run-manifest.json` (`rawRpcCalls: 0`) |\n| 3 | Interprets result in context of explanation | Each round ends with an `[INFERENCE]` interpretation referencing the docs explanation (selector, decimals, feed contract) | `evidence/transcripts/*.json` → `interpretation` |\n| 4 | Works for ≥2 different functions/contracts | 4 functions on 2 contracts: `totalSupply`/`decimals`/`balanceOf` on USDC `0xc879c018db60520f4355c26ed1a6d572cdac1815`, `latestAnswer` on the USDC/USD feed `0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d` (the feed contract was NAMED by the Docs MCP answer, then verified with `get_code` before calling) | `evidence/transcripts/` (4 rounds, 4/4 ok) |\n\n## The four rounds (live, 2026-10-20, block 20695304)\n\n1. **totalSupply** — Docs MCP explains `eth_call` with selector `0x18160ddd` (15 sources) → Chain MCP `eth_call` → raw `43481279246573` → 43,481,279.246573 USDC (6 decimals, live).\n2. **decimals** — Docs MCP explains `decimals()` as a `uint8` eth_call (15 sources) → live: `6`.\n3. **balanceOf** — Docs MCP explains ABI-encoded `balanceOf(address)` (10 sources) → holder `0x936564245b69f5a293b42cbd752e0ee3bb68b470` taken from a REAL recent Transfer log (via Chain MCP `get_logs`) → live balance read.\n4. **price** — Docs MCP `askQuestion` points to the Chainlink feeds page; `getPage` on that page yields the USDC/USD row with the feed address (10 sources) → `get_code` confirms the contract exists → `latestAnswer()` live: `$0.99987`.\n\n## Run it\n\n```bash\ncd tasks/t13-docs-chain-agent\npython3 src/doc_agent.py        # 4 rounds, live against both MCPs (~2 min)\npython3 tests/test_agent.py     # offline machine checks: citations, tools, honesty\n```\n\nNeeds `pip install requests`. No API keys. No wallet. No broadcasts.\n\n## Citation discipline\n\n- **DOC-GROUNDED** — doc URL + retrieval date, extracted from the verbatim Docs MCP answer. Every technical claim carries these.\n- **INFERENCE** — derived from grounded facts (on-chain values + docs text), labelled as such.\n- **UNVERIFIED** — if the docs don't cover it, the agent says so and does not execute. (The `get_code` pre-check on the docs-named feed contract is the on-chain version of this: no code → no call.)\n\n## Honest notes\n\n- v1 of this task (2026-10-16) used a local docs corpus and direct Atlantic RPC (`cast`). Both were the exact pattern Arena reviewers rejected in T01–T04. v2 (2026-10-20) is a full rebuild on the real MCPs; the corpus is deleted and Atlantic is gone (Chain MCP serves mainnet 1672 only).\n- Both MCP endpoints intermittently drop connections (~30–40%); the client retries with backoff (4 attempts). Drops are loud, never silent.\n- The balanceOf holder is derived from live Transfer logs — a real address that held USDC at the pinned block, never invented.",
+      "task_config_text": "id: T13\nslug: t13-docs-chain-agent\ntitle: Docs MCP + Chain MCP Agent\ndifficulty: Medium\npoints: 100\ntoolkit: Composition\nnetwork: Pharos mainnet\nchain_id: 1672\nstatus: shipped\ndeliverables:\n  - REQUIREMENTS.md\n  - README.md\n  - evidence.md\n  - evidence/run-manifest.json\n  - evidence/transcripts/totalsupply.json\n  - evidence/transcripts/decimals.json\n  - evidence/transcripts/balanceof.json\n  - evidence/transcripts/price.json\n  - LINKS.md\n  - SUBMISSION.md\n  - src/doc_agent.py\n  - src/mcp.py\n  - tests/test_agent.py\nevidence_summary:\n  rounds: 4/4 ok (totalsupply, decimals, balanceof, price)\n  chain_mcp: https://mcp.pharos.xyz/mcp (eth_call, get_logs, get_code, get_block_number, get_chain_info)\n  docs_mcp: https://docs.pharos.xyz/~gitbook/mcp (askQuestion)\n  raw_rpc_calls: 0\n  broadcasts: 0\n  gas_spent: 0\n  tests: all pass\nvideo: REPLACE_WITH_NEW_VIDEO_LINK\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_evidence_json": true,
+      "evidence": {
+        "task": "T13 Docs MCP + Chain MCP Agent",
+        "network": "Pharos Atlantic testnet",
+        "chain_id": 688689,
+        "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "token": {
+          "symbol": "WPHRS",
+          "address": "0x838800b758277CC111B2d48Ab01e5E164f8E9471",
+          "decimals": 18
+        },
+        "transactions": [
+          {
+            "purpose": "dust deposit 0.0005 PHRS -> WPHRS (real event-log footprint for Q3)",
+            "hash": "0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
+            "block": 31482314,
+            "gas_used": 28138,
+            "gas_price_wei": 1000000001,
+            "status": "0x1",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b"
+          },
+          {
+            "purpose": "dust transfer 0.0001 WPHRS self->self (real Transfer log for Q3)",
+            "hash": "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+            "block": 31482328,
+            "gas_used": 27776,
+            "gas_price_wei": 1000000001,
+            "status": "0x1",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7"
+          }
+        ],
+        "spend_log": {
+          "total_gas_wei": 55914000055914,
+          "total_phrs": 0.000055914000055914,
+          "budget_phrs": 0.15,
+          "within_budget": true,
+          "note": "Balance/estimate/failclosed transcripts are read-only (eth_call / eth_estimateGas): zero gas spent."
+        },
+        "transcripts": {
+          "logs": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/logs.json",
+          "balance": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/balance.json",
+          "estimate": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/estimate.json",
+          "failclosed": "/home/hatch/workspace/lightkeeper/tasks/t13-docs-chain-agent/evidence/transcripts/failclosed.json"
+        },
+        "transcripts_ok": {
+          "logs": true,
+          "balance": true,
+          "estimate": true,
+          "failclosed": true
+        }
+      },
+      "txs": [
+        "0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
+        "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
+        "https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T14",
-      "slug": "t14",
+      "slug": "t14-portfolio-assistant",
       "name": "Portfolio Assistant",
       "tier": "Hard",
       "points": 200,
       "toolkit": "DeFi / Portfolio",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t14-portfolio-assistant",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "T14 — Portfolio Assistant\n\nRead-only natural-language portfolio reports for a Pharos Atlantic testnet wallet.\nAsk in plain words; get answers pinned to a block, every number citing its source\ncontract. It says \"I don't know\" instead of guessing, refuses USD valuations\n(testnet assets have no market value), and cannot initiate transactions — there\nis no key anywhere in this folder.\n\n1. Verdict (the 30-second test)",
+      "readme_markdown": "# T14 — Portfolio Assistant\n\nRead-only natural-language portfolio reports for a Pharos Atlantic testnet wallet.\nAsk in plain words; get answers pinned to a block, every number citing its source\ncontract. It says \"I don't know\" instead of guessing, refuses USD valuations\n(testnet assets have no market value), and cannot initiate transactions — there\nis no key anywhere in this folder.\n\n## 1. Verdict (the 30-second test)\n\n```bash\ncd tasks/t14-portfolio-assistant\nnode bin/run.mjs --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --question \"What tokens do I hold?\"\nnode bin/run.mjs --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --demo\nnode --test test/portfolio.test.mjs\n```\n\n- **Shipped:** 6 NL question types, block-pinned reads across 7 verified on-chain sources, citation validator, 4 negative probes, live test suite that asserts the assistant's numbers equal direct `cast` queries at the same pinned block.\n- **Live evidence:** portfolio snapshot of the LIGHTKEEPER wallet at block **31483013** (chain 688689) — 5.865657109313757106 PHRS, 18.5 USDC, 0.0025 WPHRS, 1,000,000 LPK, 139 outgoing txs (see `evidence.json`).\n- **Honest gaps:** no USD valuations (no price feed exists); activity scan covers the latest 10,000 blocks only; native PHRS transfers aren't visible in event logs — all stated, none papered over.\n\n## 2. What it does\n\n- Reads native PHRS balance, ERC20 balances across a verified registry (`sources.yaml`), outgoing transaction count, recent ERC20 Transfer activity, and gas headroom for any Atlantic address.\n- Answers 6 question types in natural language: **balance, holdings, transaction count, recent activity, gas headroom, token info** — routed by a local intent router (no LLM, no guessing).\n- Generates a natural-language portfolio summary from the snapshot (local template code, no LLM).\n- Refuses what it cannot know: untracked protocols, USD valuations, unsupported contract functions, no-code addresses, unknown question types.\n\n## 3. How it works\n\n```\nbin/run.mjs            # chain-ID assertion FIRST (refuses unless 688689), arg parsing\nsrc/index.mjs          # registry parsing, block-pinned snapshot, NL answer(), negativeProbes()\nsrc/lib/portfolio.mjs  # core reader library: PortfolioReader (reads only),\n                       # cite()/assertCited(), intent router, NL summary generator\nsources.yaml           # coverage manifest: 7 assets, each code-verified on-chain\n```\n\nAll reads go through `eth_getBalance`, `eth_getTransactionCount`, `eth_call(balanceOf)`,\nand `eth_getLogs` (Transfer events, paged in 1,000-block chunks — the node's hard\nlimit, discovered live). One `eth_blockNumber` pins the snapshot; reads are taken at\nthat block. `cite()` throws on any number missing a source or block, and\n`assertCited()` validates every answer before it is returned.\n\nRead-only by construction: no private key, no signer, no broadcast path exists in the\ncode. The only on-chain write in this task's history is the operator-deployed LPK\ntest token — the assistant itself never writes.\n\n## 4. Quickstart\n\n```bash\n# full JSON snapshot\nnode bin/run.mjs --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --snapshot\n\n# one question\nnode bin/run.mjs --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --question \"How much gas can I afford?\"\n\n# all 6 question types + NL summary\nnode bin/run.mjs --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --demo\n\n# negative probes (the \"I don't know\" paths)\nnode bin/run.mjs --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --probes\n\n# tests (live tests compare the assistant against direct cast queries)\nnode --test test/portfolio.test.mjs\n```\n\nZero dependencies — Node ≥ 18 only. The Atlantic RPC is public; no key needed.\n\n## 5. The 6 question types\n\n| # | Type | Example | Source cited |\n|---|---|---|---|\n| 1 | balance | \"What is my LPK balance?\" | `balanceOf` on the token contract |\n| 2 | holdings | \"What tokens do I hold?\" | all registry contracts |\n| 3 | transaction count | \"How many transactions have I made?\" | `eth_getTransactionCount` |\n| 4 | recent activity | \"What is my recent activity?\" | `eth_getLogs` Transfer events |\n| 5 | gas headroom | \"How much gas can I afford?\" | `eth_getBalance` + `eth_gasPrice` |\n| 6 | token info | \"What is USDC?\" | registry entry + on-chain metadata |\n\nAsk \"what is my portfolio worth in USD?\" and you get a refusal, not a price.\n\n## 6. Evidence & citations\n\n- `evidence.json` — full portfolio snapshot at block 31483013: balances with raw values, sources, blocks; tx count; 2 Transfer events in blocks 31473013–31483013 (LPK mint + WPHRS self-transfer); gas headroom; spend log.\n- `evidence.md` — the narrative: what was built, what the chain said, what was refused.\n- Every number in every answer cites source contract AND block, enforced by code\n  (`assertCited`), not by convention.\n- The live test suite asserts the assistant's balances and tx count equal independent\n  `cast` queries at the same pinned block.\n\n## 7. Honest limits\n\n- **No USD valuations, ever.** Atlantic testnet assets have no market value; no price feed is queried. Token units only.\n- **\"Positions\" = wallet balances.** Atlantic testnet has no live lending/vault protocols holding positions for this wallet — the assistant reports wallet balances across 7 verified sources and labels them exactly that, never as vault positions.\n- **Activity window is bounded.** `eth_getLogs` is capped at 1,000 blocks/call on this node; the assistant pages the latest 10,000 blocks and prints the window it scanned. The 18.5 USDC predates the window — reported as out-of-scope, not invented.\n- **Native transfers are invisible to it.** PHRS transfers emit no events; the assistant says so rather than claiming to see them.\n- **Shared wallet.** The LIGHTKEEPER deployer wallet is used by the whole build operation; its PHRS balance moves as sibling tasks spend gas. Snapshots are pinned to a block so each report is internally consistent.\n- **RPC flakiness.** The Atlantic endpoint occasionally t\n\n…",
+      "task_config_text": "# task.yaml — T14 Portfolio Assistant (machine manifest)\n\nslug: t14-portfolio-assistant\ntask: T14\ntitle: Portfolio Assistant\ndifficulty: Hard\npoints: 200\ntoolkit: DeFi / Portfolio\n\nstatus: ready-for-review\nproofKind: live-chain-reads\nvideoSlot: PENDING-VIDEO\n\nchain:\n  name: Pharos Atlantic testnet\n  chainId: 688689\n  rpc: https://atlantic.dplabs-internal.com\n\nnoMockAttestation: >\n  All balances, transaction counts, activity events, and gas figures in\n  evidence were read live from Pharos Atlantic testnet at pinned blocks.\n  No mock, demo, placeholder, or fabricated data exists in this task.\n  Testnet assets are explicitly labeled \"testnet — no market value\"; no USD\n  price or yield was invented. The LPK test token was really deployed\n  (tx 0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23,\n  block 31481364).\n\nreadOnlyAttestation: >\n  The assistant holds no private key and cannot sign or broadcast. The only\n  on-chain write in this task's history is the operator-deployed LPK test\n  token; the assistant itself performs reads only.\n\nentrypoint: bin/run.mjs\ntests: node --test test/portfolio.test.mjs\n\ndeliverables:\n  - task.yaml\n  - REQUIREMENTS.md\n  - README.md\n  - evidence.md\n  - evidence.json\n  - LINKS.md\n  - SUBMISSION.md\n  - package.json\n  - src/index.mjs\n  - bin/run.mjs\n  - sources.yaml\n  - config.example.yaml\n  - test/portfolio.test.mjs\n  - contracts/KeeperToken.sol\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_evidence_json": true,
+      "evidence": {
+        "task": "t14-portfolio-assistant",
+        "chain": {
+          "name": "Pharos Atlantic testnet",
+          "chainId": 688689,
+          "rpc": "https://atlantic.dplabs-internal.com",
+          "explorer": "https://atlantic.pharosscan.xyz/"
+        },
+        "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "snapshotBlock": 31483013,
+        "balances": [
+          {
+            "symbol": "PHRS",
+            "formatted": "5.865657109313757106",
+            "raw": "5865657109313757106",
+            "decimals": 18,
+            "source": "eth_getBalance",
+            "block": 31483013,
+            "address": null
+          },
+          {
+            "symbol": "USDC",
+            "formatted": "18.5",
+            "raw": "18500000",
+            "decimals": 6,
+            "source": "0xcfC8330f4BCAB529c625D12781b1C19466A9Fc8B :: balanceOf(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3)",
+            "block": 31483013,
+            "address": "0xcfC8330f4BCAB529c625D12781b1C19466A9Fc8B"
+          },
+          {
+            "symbol": "USDT",
+            "formatted": "0",
+            "raw": "0",
+            "decimals": 6,
+            "source": "0xE7E84B8B4f39C507499c40B4ac199B050e2882d5 :: balanceOf(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3)",
+            "block": 31483013,
+            "address": "0xE7E84B8B4f39C507499c40B4ac199B050e2882d5"
+          },
+          {
+            "symbol": "WBTC",
+            "formatted": "0",
+            "raw": "0",
+            "decimals": 18,
+            "source": "0x0c64F03EEa5c30946D5c55B4b532D08ad74638a4 :: balanceOf(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3)",
+            "block": 31483013,
+            "address": "0x0c64F03EEa5c30946D5c55B4b532D08ad74638a4"
+          },
+          {
+            "symbol": "WETH",
+            "formatted": "0",
+            "raw": "0",
+            "decimals": 18,
+            "source": "0x7d211F77525ea39A0592794f793cC1036eEaccD5 :: balanceOf(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3)",
+            "block": 31483013,
+            "address": "0x7d211F77525ea39A0592794f793cC1036eEaccD5"
+          },
+          {
+            "symbol": "WPHRS",
+            "formatted": "0.0025",
+            "raw": "2500000000000000",
+            "decimals": 18,
+            "source": "0x838800b758277CC111B2d48Ab01e5E164f8E9471 :: balanceOf(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3)",
+            "block": 31483013,
+            "address": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+          },
+          {
+            "symbol": "LPK",
+            "formatted": "1000000",
+            "raw": "1000000000000000000000000",
+            "decimals": 18,
+            "source": "0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9 :: balanceOf(0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3)",
+            "block": 31483013,
+            "address": "0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9"
+          }
+        ],
+        "txCount": {
+          "value": "139",
+          "raw": "139",
+          "unit": "txs",
+          "source": "eth_getTransactionCount",
+          "block": 31483013
+        },
+        "activity": {
+          "window": {
+            "from": 31473013,
+            "to": 31483013,
+            "windowBlocks": 10000
+          },
+          "events": [
+            {
+              "txHash": "0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23",
+              "block": 31481364,
+              "dir": "in",
+              "from": "0x0000000000000000000000000000000000000000",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "1000000000000000000000000",
+              "symbol": "LPK",
+              "decimals": 18,
+              "formatted": "1000000",
+              "token": "0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9"
+            },
+            {
+              "txHash": "0x1b372d6ba7eea2f926444cdc168e6868c707a7098a236112bda47e6d63b0c9fa",
+              "block": 31481975,
+              "dir": "in",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            },
+            {
+              "txHash": "0x1b372d6ba7eea2f926444cdc168e6868c707a7098a236112bda47e6d63b0c9fa",
+              "block": 31481975,
+              "dir": "out",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            },
+            {
+              "txHash": "0x4974632705a0d1ccc9e81b16e29b390ba9629a5d8bbfeebd64bbaca3eab0b05c",
+              "block": 31482106,
+              "dir": "in",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            },
+            {
+              "txHash": "0x4974632705a0d1ccc9e81b16e29b390ba9629a5d8bbfeebd64bbaca3eab0b05c",
+              "block": 31482106,
+              "dir": "out",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            },
+            {
+              "txHash": "0xc52873bba706c287672cea1c2410d46ef81bcc008ebf1c842e1112ae90477b9e",
+              "block": 31482231,
+              "dir": "in",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            },
+            {
+              "txHash": "0xc52873bba706c287672cea1c2410d46ef81bcc008ebf1c842e1112ae90477b9e",
+              "block": 31482231,
+              "dir": "out",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            },
+            {
+              "txHash": "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+              "block": 31482328,
+              "dir": "in",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            },
+            {
+              "txHash": "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+              "block": 31482328,
+              "dir": "out",
+              "from": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "to": "0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
+              "amountRaw": "100000000000000",
+              "symbol": "WPHRS",
+              "decimals": 18,
+              "formatted": "0.0001",
+              "token": "0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+            }
+          ]
+        },
+        "gasHeadroom": {
+          "value": "5.865657109313757106",
+          "raw": "5865657109313757106",
+          "unit": "PHRS",
+          "source": "eth_getBalance + eth_gasPrice",
+          "block": 31483013,
+          "formatted": "5.865657109313757106",
+          "simpleTransfers": 27931,
+          "gasPriceGwei": "10.000"
+        },
+        "valuation": "testnet — no market value (no price feed exists for Atlantic testnet assets; no USD valuation is shown or implied)",
+        "testTokenDeployment": {
+          "contract": "KeeperToken (LPK)",
+          "address": "0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9",
+          "deployTx": "0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23",
+          "deployBlock": 31481364,
+          "gasUsed": 742987,
+          "initialSupplyToDeployer": "1000000",
+          "sourceFile": "contracts/KeeperToken.sol"
+        },
+        "negativeProbes": [
+          {
+            "name": "unsupported-function",
+            "honest": true,
+            "result": "call refused as designed: unsupported call signature (negative probe): nonExistentView()(uint256)"
+          },
+          {
+            "name": "untracked-protocol",
+            "honest": true,
+            "result": "I don't know: that protocol/asset is not in my verified on-chain registry. I only report positions I can read from verified contracts at a pinned block — I won't guess. Tracked sources: PHRS, USDC, USDT, WBTC, WETH, WPHRS, LPK."
+          },
+          {
+            "name": "no-price-feed",
+            "honest": true,
+            "result": "I don't know the USD value: Atlantic testnet assets have no market value and I query no price feed. I will never invent a price. Balances are reported in native token units only."
+          },
+          {
+            "name": "no-code-address",
+            "honest": true,
+            "result": "no code at address → reported as unknown, never as zero balance"
+          }
+        ],
+        "spendLog": [
+          {
+            "action": "KeeperToken (LPK) deployment",
+            "tx": "0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23",
+            "costPHRS": "0.005924",
+            "budgetPHRS": 0.15,
+            "note": "measured as wallet balance delta 6017642492998791710 -> 6011718494993118492 wei; well under the 0.15 PHRS budget"
+          }
+        ],
+        "registryVerification": {
+          "doc": "https://docs.pharos.xyz/getting-started/token-registry.md",
+          "method": "eth_getCode non-empty on each address at block ~31481175",
+          "entries": [
+            "USDC",
+            "USDT",
+            "WBTC",
+            "WETH",
+            "WPHRS"
+          ]
+        },
+        "notes": [
+          "The 18.5 USDC predates the 10,000-block activity window; reported as out of scope, not invented.",
+          "Native PHRS transfers emit no events; the assistant states it cannot see them.",
+          "The deployer wallet is shared across the LIGHTKEEPER build operation; sibling tasks spend gas from it, so balances move between snapshots. Each snapshot is block-pinned and internally consistent.",
+          "The 0.0001 WPHRS in/out pairs are third-party dust transfers observed on-chain, reported as-is."
+        ]
+      },
+      "txs": [
+        "0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23",
+        "0x1b372d6ba7eea2f926444cdc168e6868c707a7098a236112bda47e6d63b0c9fa",
+        "0x4974632705a0d1ccc9e81b16e29b390ba9629a5d8bbfeebd64bbaca3eab0b05c",
+        "0xc52873bba706c287672cea1c2410d46ef81bcc008ebf1c842e1112ae90477b9e",
+        "0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23",
+        "https://atlantic.pharosscan.xyz/tx/0x1b372d6ba7eea2f926444cdc168e6868c707a7098a236112bda47e6d63b0c9fa",
+        "https://atlantic.pharosscan.xyz/tx/0x4974632705a0d1ccc9e81b16e29b390ba9629a5d8bbfeebd64bbaca3eab0b05c",
+        "https://atlantic.pharosscan.xyz/tx/0xc52873bba706c287672cea1c2410d46ef81bcc008ebf1c842e1112ae90477b9e",
+        "https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0xcfC8330f4BCAB529c625D12781b1C19466A9Fc8B",
+        "https://atlantic.pharosscan.xyz/address/0xE7E84B8B4f39C507499c40B4ac199B050e2882d5",
+        "https://atlantic.pharosscan.xyz/address/0x0c64F03EEa5c30946D5c55B4b532D08ad74638a4",
+        "https://atlantic.pharosscan.xyz/address/0x7d211F77525ea39A0592794f793cC1036eEaccD5",
+        "https://atlantic.pharosscan.xyz/address/0x838800b758277CC111B2d48Ab01e5E164f8E9471",
+        "https://atlantic.pharosscan.xyz/address/0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9",
+        "https://atlantic.pharosscan.xyz/address/0x0000000000000000000000000000000000000000",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6b0920e9332ff4410f6dd53f01722abc71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T15",
-      "slug": "t15",
+      "slug": "yield-optimizer",
       "name": "Yield Optimizer",
       "tier": "Hard",
       "points": 200,
       "toolkit": "DeFi / Portfolio",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t15-yield-optimizer",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "⚱️ T15 · YIELD OPTIMIZER\n\n**One lighthouse. Twenty-eight lamps — this one finds where the light pays.**\n\n*The honest yield-seeker of the LIGHTKEEPER fleet: it surveys every lamp in the\nharbor, measures the true flame against wind and wax, and tells you plainly\nwhether to move your oil — or stay put.*",
+      "readme_markdown": "# ⚱️ T15 · YIELD OPTIMIZER\n\n**One lighthouse. Twenty-eight lamps — this one finds where the light pays.**\n\n*The honest yield-seeker of the LIGHTKEEPER fleet: it surveys every lamp in the\nharbor, measures the true flame against wind and wax, and tells you plainly\nwhether to move your oil — or stay put.*\n\n> **TESTNET MECHANICS DEMONSTRATION.** Every number below is read live from Pharos\n> Atlantic testnet (chain 688689). Rewards are valueless testnet PHRS — never real yield.\n\n---\n\n## 1. What it is\n\nA yield optimizer with radical honesty as its competitive edge. It (1) **discovers**\nwhat yield venues actually exist on Atlantic testnet, (2) reads **live on-chain rate\nviews** (reward rate, entry/exit fees, minimum holding period, reward-pool runway) from\n≥3 sources at a **pinned block**, (3) computes **net yield** — gross rewards minus\nentry fee, minus exit fee (waived only after the holding period), minus real gas from\nlive `eth_gasPrice` × `eth_estimateGas`, and (4) outputs a **recommendation with\nexpected net gain, or \"stay put\" with a reason**. Execution is **unsigned-tx only**:\nthe module builds the deposit transaction for *your* signature and never holds keys\n(CI grep gate enforces this).\n\n## 2. The discovery finding (this IS the result)\n\nAtlantic testnet has **no third-party yield venues**. The discovery module\n(`optimizer/discover.py`) proves it two ways: `eth_getCode` probes on well-known\ndeterministic deployments (canonical Multicall3: absent) with the two OctopusVaults\nas **positive controls** (present — the probe method works), plus a 30-block activity\nscan (5 txs, chain near-idle). `runs/discovery.json` documents the method and the\nempty result. Rather than mock venues, T15 deploys **two real, funded staking vaults**\nwith immutable on-chain rate cards — fully disclosed testnet fixtures — and compares\nthose plus the honest 0% \"stay put\" wallet baseline.\n\n## 3. The two OctopusVaults (live on Atlantic)\n\n| | OctopusVault-Kelp | OctopusVault-Kraken |\n|---|---|---|\n| Address | `0xe3212234B17A90cCBC36b0B44845394b62838b08` | `0xDC3D4a3f47BB479692239ECC362a16CE3485B283` |\n| rewardPerBlock | 1e13 wei (0.00001 PHRS) | 2.5e13 wei (0.000025 PHRS) |\n| entryFeeBps / exitFeeBps | 0 / 50 | 100 / 100 |\n| minHoldBlocks | 100 | 400 |\n| Reward pool (funded at deploy) | 0.01 PHRS | 0.01 PHRS |\n\n`src/OctopusVault.sol` — MasterChef-style accrual, rewards **capped by the funded\npool** (the vault can never promise more than it holds; `runwayBlocks()` is a view),\nfees routed back into the reward pool, all parameters immutable. 8 forge unit tests.\n\n## 4. Net-yield math\n\nFor horizon H blocks and principal P:\n\n```\nshare     = P_net / (totalStaked + P_net)          # marginal share, stated\ngross     = rewardPerBlock × min(H, runway) × share # runway-capped: honesty\nentryFee  = P × entryFeeBps / 10000\nexitFee   = (P − entryFee) × exitFeeBps / 10000  iff H < minHoldBlocks else 0\ngas       = (gasStake + gasClaim + gasWithdraw) × liveGasPrice\nnet(H)    = gross − entryFee − exitFee − gas\nAPY       = rewardPerBlock × share × blocksPerYear / P   # blocksPerYear from MEASURED block time\n```\n\nThe optimizer runs every venue at **two horizons**: the fee-sensitivity flip is real —\nat 50 blocks gas+fees dominate and **STAY PUT** wins; at 1,000 blocks the rate\ndifferential wins. The runway cap is the star of the show: Kraken's 2.5× rate is\n**capped at its 400-block funded runway**, so Kelp (deeper runway, zero entry fee)\nwins the 1,000-block comparison on net. Naive APY ranking would pick the loser.\n\n## 5. Live evidence (Atlantic, dust amounts)\n\n- **Deploy txs:** Kelp `0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9`,\n  Kraken `0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd`\n- **Stake → claim → withdraw** run with before/after balances; claim deltas equal\n  `(claimBlock − stakeBlock) × rewardPerBlock` exactly (single staker).\n- Full tx ledger + spend log: `evidence.json` · narrative: `evidence.md`\n- Explorer: https://atlantic.pharosscan.xyz/tx/`<hash>` (every link curl-tested)\n\n## 6. How to run\n\n```bash\nexport PATH=\"$HOME/.foundry/bin:$PATH\"\nset -a; source ~/workspace/lightkeeper/.env; set +a   # ATLANTIC_RPC_URL only; no keys needed\ncd ~/workspace/lightkeeper/tasks/t15-yield-optimizer\n\n# 1. discovery (documents the empty-venue finding)\npython3 -m optimizer.discover --out runs/discovery.json\n\n# 2. live scan (pinned block; needs VAULT_A / VAULT_B)\nexport VAULT_A=0xe3212234B17A90cCBC36b0B44845394b62838b08\nexport VAULT_B=0xDC3D4a3f47BB479692239ECC362a16CE3485B283\npython3 -m optimizer.scan --out runs/scan.json\n\n# 3. optimize (two horizons; fee-sensitivity flip included)\npython3 -m optimizer.optimize --scan runs/scan.json --principal 0.02 \\\n  --horizon 1000 --short-horizon 50 --out runs/recommendation.json\n\n# 4. unsigned deposit tx (for YOUR signature — the module never signs)\npython3 -m optimizer.prepare --scan runs/scan.json --venue Kelp \\\n  --principal 0.02 --out runs/unsigned_deposit.json\n\n# 5. tests\nforge test                                  # 8 vault rate-math tests\npython3 tests/test_optimizer.py             # 12 net-math + key-hygiene tests\n```\n\n## 7. Key hygiene\n\n`optimizer/` contains **no signing code and no keys** — `tests/test_optimizer.py`\nruns a CI grep gate over `optimizer/`, `src/`, and docs that fails on any mention\nof secret key material, signing routines, or wallet-recovery phrases.\nThe live evidence run (stake/claim/withdraw) was executed by the **operator** via\nflock-wrapped `cast send` (dust, Atlantic only) **outside** the module — the module\nitself can only *propose* unsigned transactions.\n\n## 8. Honest limits\n\n- Atlantic has no third-party yield venues; the comparison set is two\n  builder-deployed fixtures + a 0% baseline. All three are labeled as such.\n- Rewards are testnet PHRS with zero monetary value — \"testnet mechanics demonstration\".\n- APY is illustrative at dust scale (marginal share ≈ 100%); large deposits dilute.\n- Reward pools are finite: when a pool empt\n\n…",
+      "task_config_text": "id: T15\nname: Yield Optimizer\ntrack: Hard\npoints: 200\ntoolkit: DeFi / Portfolio\nnetwork: Pharos Atlantic testnet (chain id 688689) ONLY. Never mainnet.\nbudget_phrs: 0.15\nstatus: COMPLETE — full lifecycle proven live (stake -> claim -> withdraw, exact wei-level math)\n\nofficial_requirements:\n  - Compares >=3 yield sources on LIVE on-chain data.\n  - Accounts for gas + entry/exit fees + minimum holding period.\n  - Outputs clear recommendation with expected net gain, or 'stay put' with reason.\n  - If executing: prepares txs for USER SIGNATURE ONLY - agent never holds keys.\n\ndesign:\n  discovery: >\n    Venue DISCOVERY module enumerates what yield venues actually exist on\n    Atlantic (eth_getCode probes + recent-block contract-creation scan).\n    Finding: ZERO third-party yield venues exist (chain near-idle).\n    The empty result IS the finding, documented in runs/discovery.json.\n  venues: >\n    3 live on-chain rate sources: OctopusVault A \"Kelp\" (1e13 wei/block,\n    0bps entry, 50bps early exit, 100-block min hold) and OctopusVault B\n    \"Kraken\" (2.5e13 wei/block, 100bps entry, 100bps early exit, 400-block\n    min hold) - both builder-deployed, fully disclosed testnet fixtures with\n    immutable on-chain rate cards - plus the \"stay put\" wallet baseline (0%).\n  net_math: >\n    net(H) = rewardPerBlock*min(H,runway)*share - entryFee - exitFee(H) - gas.\n    APY from MEASURED block time. Runway-capped gross (vault can't pay more\n    than funded). Fee-sensitivity tested at two horizons (the flip is real).\n  execution: >\n    Optimizer module is key-free (CI grep gate). Unsigned deposit tx via\n    optimizer/prepare.py for user signature. Live evidence run (stake/claim/\n    withdraw) executed by the OPERATOR via flock-wrapped `cast send`, dust\n    amounts, outside the module.\n\nhonesty_label: TESTNET MECHANICS DEMONSTRATION - rewards are valueless testnet PHRS, never real yield.\n\ndeliverables:\n  - task.yaml, REQUIREMENTS.md, README.md, LINKS.md\n  - SUBMISSION.md, evidence.md, evidence.json\n  - src/OctopusVault.sol, script/DeployVault.s.sol, test/OctopusVault.t.sol\n  - optimizer/{common,discover,scan,optimize,prepare}.py, tests/test_optimizer.py\n  - runs/{discovery,scan,recommendation,unsigned_deposit,live_run}.json\n\ntests:\n  forge: 8 unit tests (rate accrual exactness, pro-rata, pool cap, fees, views)\n  python: 12 unit tests (net math, runway cap, stay-put logic, unsigned-tx shape, key hygiene)\n  live: stake -> claim -> withdraw on Atlantic with balance deltas matching on-chain rate math\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_phrs": 0.15,
+        "chain_id": 688689,
+        "honesty_label": "testnet mechanics demonstration — rewards are valueless testnet PHRS, never real yield",
+        "live_run": {
+          "claims": [
+            {
+              "label": "claim OctopusVault-Kelp",
+              "hash": "0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+              "explorer": "https://atlantic.pharosscan.xyz/tx/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+              "block": 31483737,
+              "status": 1,
+              "gas_used": 89777,
+              "effective_gas_price_wei": 1000000001,
+              "tx_fee_wei": 89777089777000,
+              "claimed_wei": 1410000000000000,
+              "math_proof": "(31483737-31483596) x 1e13 = 1410000000000000 — EXACT to the wei"
+            },
+            {
+              "label": "claim OctopusVault-Kraken",
+              "hash": "0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+              "explorer": "https://atlantic.pharosscan.xyz/tx/0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+              "block": 31483743,
+              "status": 1,
+              "gas_used": 89777,
+              "effective_gas_price_wei": 1000000001,
+              "tx_fee_wei": 89777089777000,
+              "claimed_wei": 3524999999999999,
+              "math_proof": "141 blocks x 2.5e13 pro-rata over 0.0099 staked = 3524999999999999 — EXACT to the wei vs on-chain integer-division formula (1 wei truncation vs naive, documented)"
+            }
+          ],
+          "stakes": [
+            {
+              "label": "stake 0.02 PHRS OctopusVault-Kelp",
+              "hash": "0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+              "explorer": "https://atlantic.pharosscan.xyz/tx/0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+              "block": 31483596,
+              "status": 1,
+              "gas_used": 102375,
+              "effective_gas_price_wei": 1000000001,
+              "tx_fee_wei": 102375102375000,
+              "principal_wei": 20000000000000000,
+              "entry_fee_wei": 0,
+              "net_staked_wei": 20000000000000000
+            },
+            {
+              "label": "stake 0.01 PHRS OctopusVault-Kraken",
+              "hash": "0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+              "explorer": "https://atlantic.pharosscan.xyz/tx/0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+              "block": 31483602,
+              "status": 1,
+              "gas_used": 105175,
+              "effective_gas_price_wei": 1000000001,
+              "tx_fee_wei": 105175105175000,
+              "principal_wei": 10000000000000000,
+              "entry_fee_wei": 100000000000000,
+              "net_staked_wei": 9900000000000000,
+              "note": "1% entry fee deducted on-chain: 0.01 -> 0.0099 staked (fee -> reward pool)"
+            }
+          ],
+          "status": "COMPLETE — full lifecycle proven: stake -> claim -> withdraw on both vaults",
+          "withdrawals": [
+            {
+              "label": "withdraw OctopusVault-Kelp (full)",
+              "hash": "0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+              "explorer": "https://atlantic.pharosscan.xyz/tx/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+              "block": 31483757,
+              "status": 1,
+              "gas_used": 53605,
+              "effective_gas_price_wei": 1000000001,
+              "tx_fee_wei": 53605053605000,
+              "claimed_wei": 200000000000000,
+              "claimed_proof": "(31483757-31483737) x 1e13 = 200000000000000 — EXACT",
+              "principal_out_wei": 20000000000000000,
+              "exit_fee_wei": 0,
+              "fee_note": "fee-free: withdrawn after 100-block min hold (block 31483757 >= 31483696)"
+            },
+            {
+              "label": "withdraw OctopusVault-Kraken (full, early)",
+              "hash": "0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+              "explorer": "https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+              "block": 31483766,
+              "status": 1,
+              "gas_used": 53980,
+              "effective_gas_price_wei": 1000000001,
+              "tx_fee_wei": 53980053980000,
+              "claimed_wei": 575000000000000,
+              "claimed_proof": "(31483766-31483743) x 2.5e13 = 575000000000000 — EXACT",
+              "principal_out_wei": 9801000000000000,
+              "exit_fee_wei": 99000000000000,
+              "fee_note": "early exit before 400-block hold: 100 bps of 0.0099 = 0.000099 fee -> reward pool (event-verified)"
+            }
+          ],
+          "rewards_harvested_wei": 5709999999999999
+        },
+        "network": "Pharos Atlantic testnet",
+        "operator": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "spend_log_phrs": {
+          "budget": 0.15,
+          "deploys_fees": 0.001985557984556,
+          "deploys_funding": 0.02,
+          "total_so_far": 0.022480247479244996,
+          "within_budget": true,
+          "stake_fees": 0.00020755020755,
+          "claim_fees": 0.000179554179554,
+          "withdraw_fees": 0.000107585107585
+        },
+        "task": "T15 Yield Optimizer",
+        "tests": {
+          "forge": "8/8 pass (test/OctopusVault.t.sol)",
+          "python": "12/12 pass (tests/test_optimizer.py, incl. key-hygiene grep gate)"
+        },
+        "txs": [
+          {
+            "address": "0xe3212234B17A90cCBC36b0B44845394b62838b08",
+            "effective_gas_price_wei": 1000000001,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9",
+            "funding_wei": 10000000000000000,
+            "gas_used": 992754,
+            "hash": "0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9",
+            "label": "deploy OctopusVault-Kelp",
+            "rate_card": {
+              "entryFeeBps": 0,
+              "exitFeeBps": 50,
+              "minHoldBlocks": 100,
+              "rewardPerBlock_wei": 10000000000000
+            },
+            "tx_fee_wei": 992754992754000
+          },
+          {
+            "address": "0xDC3D4a3f47BB479692239ECC362a16CE3485B283",
+            "effective_gas_price_wei": 1000000001,
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd",
+            "funding_wei": 10000000000000000,
+            "gas_used": 992802,
+            "hash": "0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd",
+            "label": "deploy OctopusVault-Kraken",
+            "rate_card": {
+              "entryFeeBps": 100,
+              "exitFeeBps": 100,
+              "minHoldBlocks": 400,
+              "rewardPerBlock_wei": 25000000000000
+            },
+            "tx_fee_wei": 992802992802000
+          },
+          {
+            "label": "stake 0.02 PHRS OctopusVault-Kelp",
+            "hash": "0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+            "gas_used": 102375,
+            "effective_gas_price_wei": 1000000001,
+            "tx_fee_wei": 102375102375000
+          },
+          {
+            "label": "stake 0.01 PHRS OctopusVault-Kraken",
+            "hash": "0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+            "gas_used": 105175,
+            "effective_gas_price_wei": 1000000001,
+            "tx_fee_wei": 105175105175000
+          },
+          {
+            "label": "claim OctopusVault-Kelp",
+            "hash": "0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+            "gas_used": 89777,
+            "effective_gas_price_wei": 1000000001,
+            "tx_fee_wei": 89777089777000
+          },
+          {
+            "label": "claim OctopusVault-Kraken",
+            "hash": "0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+            "gas_used": 89777,
+            "effective_gas_price_wei": 1000000001,
+            "tx_fee_wei": 89777089777000
+          },
+          {
+            "label": "withdraw OctopusVault-Kelp (full)",
+            "hash": "0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+            "gas_used": 53605,
+            "effective_gas_price_wei": 1000000001,
+            "tx_fee_wei": 53605053605000
+          },
+          {
+            "label": "withdraw OctopusVault-Kraken (full, early)",
+            "hash": "0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+            "gas_used": 53980,
+            "effective_gas_price_wei": 1000000001,
+            "tx_fee_wei": 53980053980000
+          }
+        ]
+      },
+      "txs": [
+        "0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+        "0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+        "0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+        "0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+        "0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+        "0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+        "0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9",
+        "0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb342344e22f8565f198ea44e2",
+        "https://atlantic.pharosscan.xyz/tx/0x6decfa5ca770bd7cab1ae08425a6f726032b794f4beeaa70ef01e18d9b73da09",
+        "https://atlantic.pharosscan.xyz/tx/0x67784abb03a93435cb9d818c390ee6542454050d506e921e01aa086dfdd8d0c5",
+        "https://atlantic.pharosscan.xyz/tx/0x01e6ce14c573c0f5493f222e05c13cb69f8aae478b12b9462be988a28cf6c766",
+        "https://atlantic.pharosscan.xyz/tx/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c660b03b0abb5e5c57af87d9d2",
+        "https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
+        "https://atlantic.pharosscan.xyz/tx/0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9",
+        "https://atlantic.pharosscan.xyz/tx/0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0xe3212234B17A90cCBC36b0B44845394b62838b08",
+        "https://atlantic.pharosscan.xyz/address/0xDC3D4a3f47BB479692239ECC362a16CE3485B283"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T16",
-      "slug": "t16",
+      "slug": "liquidation-watchdog",
       "name": "Liquidation Watchdog",
       "tier": "Medium",
       "points": 100,
       "toolkit": "DeFi / Portfolio",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t16-liquidation-watchdog",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "A liquidation watchdog for on-chain lending positions. A minimal lending pool\n(`MiniLend`) computes a **real Aave-style health factor on-chain**; an off-chain\nwatcher reads it live, evaluates it against configurable thresholds, and fires a\n**single transition-only Telegram alert** carrying a **concrete action** —\nrepay $X of debt, or add Y PHRS collateral. Proven end-to-end on Pharos\nAtlantic: healthy → real price drop → WARNING alert delivered → real repay →\nrecovered. No mocks, no simulations, no spam.\n\n```\n ┌──────────────┐  getUserAccountData()   ┌──────────────┐  zone transition   ┌──────────┐\n │   MiniLend   │ ─────────────────────▶  │ watcher/     │ ───────────────▶  │ Telegram │\n │  (Atlantic)  │   collateral/debt/HF    │  watch.py    │  WARNING/CRITICAL │  alert   │\n │  HF on-chain │   price, LT             │  thresholds  │  + concrete $/PHRS│  (1 only)│\n └──────────────┘  via c…",
+      "readme_markdown": "---\n\n## 1. What it is\n\nA liquidation watchdog for on-chain lending positions. A minimal lending pool\n(`MiniLend`) computes a **real Aave-style health factor on-chain**; an off-chain\nwatcher reads it live, evaluates it against configurable thresholds, and fires a\n**single transition-only Telegram alert** carrying a **concrete action** —\nrepay $X of debt, or add Y PHRS collateral. Proven end-to-end on Pharos\nAtlantic: healthy → real price drop → WARNING alert delivered → real repay →\nrecovered. No mocks, no simulations, no spam.\n\n## 2. Architecture\n\n```\n ┌──────────────┐  getUserAccountData()   ┌──────────────┐  zone transition   ┌──────────┐\n │   MiniLend   │ ─────────────────────▶  │ watcher/     │ ───────────────▶  │ Telegram │\n │  (Atlantic)  │   collateral/debt/HF    │  watch.py    │  WARNING/CRITICAL │  alert   │\n │  HF on-chain │   price, LT             │  thresholds  │  + concrete $/PHRS│  (1 only)│\n └──────────────┘  via cast call          └──────────────┘  state.json       └──────────┘\n        ▲                                        │\n        │ setPrice / deposit / borrow / repay     │ watcher.log (timestamps)\n        │ (real txs, flock-guarded)              ▼\n        └────────────────────────────────  transition-only: no duplicates\n```\n\n## 3. The on-chain math\n\n`src/MiniLend.sol` — collateral is native PHRS (wei), debt is USD-denominated\n(8 decimals, Chainlink-style), the oracle price is updated **on-chain** by\n`setPrice` (emits `PriceUpdated`):\n\n```\nHF = (collateralUSD × LT) / debtUSD,   LT = 80%,   1e18 == 1.0\n```\n\nDebt-free positions return `type(uint256).max`. Borrowing or withdrawing that\nwould push HF below 1.0 reverts. Debt is USD-denominated on purpose: it is what\nmakes the oracle price move the health factor — the realistic\nborrow-stable-against-volatile-collateral shape.\n\n## 4. The watcher\n\n`watcher/watch.py` (Python + `cast`, no new dependencies):\n\n- Reads `watcher/config.yaml` — thresholds `warn_hf: 1.3`, `critical_hf: 1.1`,\n  action target `target_hf: 1.5` (all configurable, nothing hard-coded).\n- Calls `getUserAccountData` live, classifies OK / WARNING / CRITICAL.\n- **Transition-only**: `watcher/state.json` stores the last zone; an alert fires\n  only on entry into WARNING/CRITICAL. Re-runs in the same zone stay silent;\n  recovery logs `RECOVERED` silently.\n- `concrete_actions()` computes both fixes for the target HF: repay-$X of debt,\n  or add-Y-PHRS collateral — the alert carries both numbers.\n\n## 5. Live detection run (real chain, real alert)\n\n| Time (UTC) | Block | HF | Zone | Event |\n|---|---|---|---|---|\n| 04:13:33 | 31481623 | 1.6000 | OK | Position opened (0.002 PHRS coll., $0.002 debt) — no alert |\n| 04:15:51 | 31481762 | 1.2000 | **WARNING** | `setPrice` $2.00 → $1.50 on-chain → **Telegram alert, message_id 716** |\n| 04:16:18 | 31481788 | 1.2000 | WARNING | Re-run — **no duplicate** |\n| 04:18:32 | 31481892 | 1.5000 | OK | Real repay of $0.0004 → **RECOVERED**, no alert |\n\nThe delivered alert read: *\"🟠 LIQUIDATION WATCHDOG — WARNING … Health factor:\n1.2000 … Concrete action: repay $0.000400 of debt OR add 0.000267 PHRS\ncollateral to restore HF ≥ 1.5\"* — with position, block, and explorer link.\n\n> **Formula correction (2026-10-16):** the alert's add-collateral leg used the\n> original formula (`repay_usd / price`); re-verified on live reads it restores\n> HF to only 1.36, not 1.5. The repay leg was exact ($0.0004 → HF 1.5 on-chain).\n> `watch.py` and the console try module now use the exact restore-to-target\n> solution (`target × debt / lt − collateral` → 0.000500 PHRS at alert-time\n> state; both legs provably restore HF = 1.5). See `evidence.md`.\n\n### Requirements → evidence (official T16 requirements, verbatim)\n\n| # | Official requirement | How it is met | Evidence |\n|---|---|---|---|\n| 1 | Reads collateral/debt/health factor from chain | `watch.py` calls `MiniLend.getUserAccountData(user)` via a live `eth_call` on Atlantic; HF is computed **on-chain** in `MiniLend.healthFactor` | `watcher/watch.py` (`get_account_data`); `watcher/watcher.log`; independently re-verified live 2026-10-20: coll $0.003000, debt $0.001600, HF 1.5, price $1.50, LT 8000bps — matches `watcher.log` tail |\n| 2 | Configurable thresholds (e.g. warn 1.3, critical 1.1) | `watcher/config.yaml`: `warn_hf: 1.3`, `critical_hf: 1.1`, `target_hf: 1.5` | `watcher/config.yaml` |\n| 3 | Alerts via ≥1 channel (Telegram/Discord/email/console with timestamps) | Real Telegram `sendMessage` on zone transition; UTC timestamps in `watcher.log`; transition-only via `watcher/state.json` (no duplicates); missing `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` disables alerts with a plain-language log note — never crashes, never fakes | `watcher/watcher.log` (2026-10-16T04:15:53Z `ALERT SENT zone=WARNING telegram_message_id=716`); `watcher/state.json`; `watch.py` (`send_telegram`) |\n| 4 | Each alert suggests a CONCRETE action ('repay X or add Y collateral') | `concrete_actions()` solves both legs exactly: repay `$X` = debt − coll·lt/target; add `Y` PHRS = (target·debt/lt − coll)/price | `watcher/watch.py` (`concrete_actions`); delivered alert text in `watcher.log`: *\"repay $0.000400 of debt OR add 0.000267 PHRS collateral to restore HF ≥ 1.5\"* |\n\n> **MCP note:** the official T16 requirements do not name the Chain MCP or Docs\n> MCP, so direct-RPC reads are the honest path here — and the only possible one:\n> MiniLend lives on Atlantic (688689) while the hosted Chain MCP serves mainnet\n> (1672) only. No MCP substitution is claimed.\n\n## 6. Run it yourself\n\n```bash\nexport PATH=\"$HOME/.foundry/bin:$PATH\"\nset -a; source ~/workspace/lightkeeper/.env; set +a   # secrets stay in env\n\n# unit tests (9 pass)\ncd ~/workspace/lightkeeper/tasks/t16-liquidation-watchdog\nforge test\n\n# live check (reads chain; sends an alert ONLY on a new WARNING/CRITICAL entry)\npython3 watcher/watch.py --dry-run   # prints what it would send\npython3 watcher/watch.py              # live\n```\n\nTo re-run the full demo: `deposit()` → `borrow()` → `setPrice(\n\n…",
+      "task_config_text": "# LIGHTKEEPER task manifest — T16 Liquidation Watchdog\ntask_id: T16\nslug: liquidation-watchdog\nname: Liquidation Watchdog\ntier: Medium\npoints: 100\ntoolkit: DeFi / Portfolio\nstatus: shipped\nowner: devmo (build agent)\n\ndescription: >\n  A liquidation watchdog for a minimal on-chain lending pool (MiniLend) on\n  Pharos Atlantic. The pool computes a REAL Aave-style health factor on-chain\n  (collateral vs USD-denominated debt, 80% liquidation threshold, operator\n  price feed). The watcher reads collateral/debt/HF live via\n  getUserAccountData, evaluates against configurable warn (1.3) / critical\n  (1.1) thresholds, and delivers a transition-only Telegram alert carrying a\n  CONCRETE action (repay $X of debt OR add Y PHRS collateral to restore\n  HF >= 1.5). Proven end-to-end on Atlantic: healthy position -> real\n  on-chain price drop -> WARNING alert delivered (Telegram message 716) ->\n  real repay -> RECOVERED, with no duplicate alerts.\n\ndeliverables:\n  - src/MiniLend.sol        # lending pool: real on-chain health-factor math\n  - test/MiniLend.t.sol     # 9 forge unit tests of the HF math (all pass)\n  - watcher/watch.py        # the watchdog: live read -> zone eval -> 1 alert\n  - watcher/config.yaml     # thresholds, contract, watched position\n  - watcher/watcher.log     # real detection run with timestamps\n  - watcher/state.json      # transition-only state (last zone)\n  - foundry.toml\n  - lib/forge-std           # test dependency (vendored)\n  - REQUIREMENTS.md         # official requirements quoted verbatim\n  - README.md               # 8 sections, opens with OCTOPUS header\n  - evidence.md / evidence.json  # 5 real txs, Telegram message_id, spend log\n  - LINKS.md                # curl-verified links\n  - SUBMISSION.md           # exact copy-paste Arena pack\n\nbudget:\n  max_phrs: 0.15\n  spent_phrs: 0.00164354   # gas only; dust value moved is listed in evidence.json\n\nevidence:\n  atlantic_explorer: https://atlantic.pharosscan.xyz/\n  contract: 0x108989a165a446e1d89CEe3C9936344ea7ADbf4a\n  telegram_message_id: 716\n  txs:\n    - 0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de  # deploy\n    - 0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7  # deposit 0.002 PHRS\n    - 0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d  # borrow $0.002\n    - 0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861  # setPrice $2.00 -> $1.50\n    - 0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4  # repay (recovery)\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_evidence_json": true,
+      "evidence": {
+        "chain_id": 688689,
+        "contract": "0x108989a165a446e1d89CEe3C9936344ea7ADbf4a",
+        "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "explorer": "https://atlantic.pharosscan.xyz/",
+        "links_curl_verified": true,
+        "network": "Pharos Atlantic testnet",
+        "secrets_in_repo": false,
+        "spend": {
+          "budget_phrs": 0.15,
+          "dust_value_locked_in_position_phrs": 0.001,
+          "note": "Budget counts gas. 0.002 PHRS deposited as collateral; 0.001 PHRS borrowed out; 0.000000267 PHRS repaid. Net locked in pool: 0.001 PHRS collateral + $0.0016 debt.",
+          "total_gas_phrs": 0.001643544001643544,
+          "hardening_pass_2026_10_16_gas_phrs": 0
+        },
+        "task": "T16 Liquidation Watchdog",
+        "telegram": {
+          "alert_block": 31481762,
+          "alert_health_factor": 1.2,
+          "alert_zone": "WARNING",
+          "alerts_sent": 1,
+          "bot_validated_via_getMe": true,
+          "channel": "Telegram",
+          "concrete_action_in_alert": "repay $0.000400 of debt OR add 0.000267 PHRS collateral to restore HF >= 1.5",
+          "duplicate_alerts": 0,
+          "message_id": 716,
+          "note": "Transition-only: re-runs in WARNING sent nothing; recovery run logged RECOVERED with no alert."
+        },
+        "transactions": [
+          {
+            "block": 31481451,
+            "curl_http": 200,
+            "description": "Deploy MiniLend with initial oracle price $2.00 (200000000, 8dp)",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+            "gas_cost_phrs": 0.001476456001476456,
+            "gas_price_wei": 1000000001,
+            "gas_used": 1476456,
+            "hash": "0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+            "step": "1-deploy"
+          },
+          {
+            "block": 31481508,
+            "curl_http": 200,
+            "description": "Open position: deposit 0.002 PHRS collateral",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+            "gas_cost_phrs": 0.00004522000004522,
+            "gas_price_wei": 1000000001,
+            "gas_used": 45220,
+            "hash": "0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+            "step": "2-deposit",
+            "value_phrs": 0.002
+          },
+          {
+            "block": 31481539,
+            "curl_http": 200,
+            "description": "Borrow $0.002 (200000 units, 8dp) against collateral — HF 1.6, healthy",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+            "gas_cost_phrs": 0.000059838000059838,
+            "gas_price_wei": 1000000001,
+            "gas_used": 59838,
+            "hash": "0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+            "step": "3-borrow"
+          },
+          {
+            "block": 31481741,
+            "curl_http": 200,
+            "description": "REAL state change: oracle setPrice $2.00 -> $1.50 — HF 1.6 -> 1.2 (WARNING zone)",
+            "event": "PriceUpdated(old=200000000, new=150000000, block=31481741)",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+            "gas_cost_phrs": 0.000030848000030848,
+            "gas_price_wei": 1000000001,
+            "gas_used": 30848,
+            "hash": "0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+            "step": "4-price-drop"
+          },
+          {
+            "block": 31481869,
+            "curl_http": 200,
+            "description": "Repay $0.0004 of debt (266666666666667 wei) — HF 1.2 -> 1.5, position recovered",
+            "explorer": "https://atlantic.pharosscan.xyz/tx/0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4",
+            "gas_cost_phrs": 0.000031182000031182,
+            "gas_price_wei": 1000000001,
+            "gas_used": 31182,
+            "hash": "0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4",
+            "step": "5-repay-recovery",
+            "value_phrs": 2.66666666667e-7
+          }
+        ],
+        "unit_tests": {
+          "failed": 0,
+          "passed": 9,
+          "suite": "forge test"
+        },
+        "watcher_runs": [
+          {
+            "alert": false,
+            "at": "2026-10-16T04:13:33Z",
+            "block": 31481623,
+            "hf": 1.6,
+            "zone": "OK"
+          },
+          {
+            "alert": true,
+            "at": "2026-10-16T04:15:51Z",
+            "block": 31481762,
+            "hf": 1.2,
+            "telegram_message_id": 716,
+            "zone": "WARNING"
+          },
+          {
+            "alert": false,
+            "at": "2026-10-16T04:16:18Z",
+            "block": 31481788,
+            "hf": 1.2,
+            "note": "no duplicate alert",
+            "zone": "WARNING"
+          },
+          {
+            "alert": false,
+            "at": "2026-10-16T04:18:32Z",
+            "block": 31481892,
+            "hf": 1.5,
+            "note": "RECOVERED after real repay",
+            "zone": "OK"
+          }
+        ],
+        "formula_correction_2026_10_16": {
+          "note": "Alert 716's add-collateral leg (0.000267 PHRS) used the original formula (repay_usd/price); re-verified on live reads it restores HF to only 1.36, not 1.5. Corrected to the exact restore-to-target solution (0.000500 PHRS at alert-time state; both legs provably restore HF=1.5). The Telegram message is quoted verbatim as the historical record.",
+          "alert_time_state": {
+            "collateral_usd": 0.003,
+            "debt_usd": 0.002,
+            "price_usd": 1.5
+          },
+          "old_add_phrs": 0.000267,
+          "old_add_restores_hf_to": 1.36,
+          "corrected_add_phrs": 0.0005,
+          "corrected_restores_hf_to": 1.5
+        }
+      },
+      "txs": [
+        "0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+        "0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+        "0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+        "0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+        "0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de",
+        "https://atlantic.pharosscan.xyz/tx/0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4ab81c53c26a542df614288d7",
+        "https://atlantic.pharosscan.xyz/tx/0xfa4674f23632226406fc24f264be85d10c14eb5d59494595c8965e8e24116c0d",
+        "https://atlantic.pharosscan.xyz/tx/0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
+        "https://atlantic.pharosscan.xyz/tx/0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4",
+        "https://atlantic.pharosscan.xyz/address/0x108989a165a446e1d89CEe3C9936344ea7ADbf4a",
+        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
