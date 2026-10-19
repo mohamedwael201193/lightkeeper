@@ -1,0 +1,20 @@
+For **Pharos Atlantic Testnet**, get testnet `PHRS` from the **Pharos faucet** or directly from the Pharos team. The docs don’t specify a faucet URL. Add the testnet using chain ID `688689` and RPC `https://atlantic.dplabs-internal.com` ([Atlantic Testnet](/getting-started/network/atlantic-testnet)).
+
+# Sources
+
+- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token)
+- [Gas Model](https://docs.pharos.xyz/getting-started/gas-model)
+- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token)
+- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)
+- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)
+- [Rust](https://docs.pharos.xyz/developer-guide/rust)
+- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-nft)
+- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan)
+- [Get PROS Gas](https://docs.pharos.xyz/getting-started/get-pros-gas)
+- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy)
+- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)
+- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)
+- [Network](https://docs.pharos.xyz/getting-started/network)
+- [Pacific Mainnet](https://docs.pharos.xyz/getting-started/network/pacific-mainnet)
+- [Circle CCTP](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp)
+- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)

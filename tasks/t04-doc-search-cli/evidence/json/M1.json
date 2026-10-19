@@ -1,0 +1,24 @@
+{
+  "label": "UNVERIFIED",
+  "exit_code": 2,
+  "question": "what is the birthday of the Pharos CEO",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_tool": "searchDocumentation",
+  "retrieved": "2026-10-19",
+  "citations": [],
+  "closest_pages": [
+    {
+      "page_title": "Pharos Skill Engine",
+      "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide"
+    },
+    {
+      "page_title": "Piggy Bank Tutorial",
+      "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide"
+    },
+    {
+      "page_title": "About Pharos",
+      "page_url": "https://docs.pharos.xyz/introduction/readme"
+    }
+  ],
+  "note": "No good answer found. The Developer Docs MCP returned 10 result(s) but none covers this question above the relevance gate, so this tool will not improvise an answer."
+}

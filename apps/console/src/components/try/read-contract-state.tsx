@@ -1,7 +1,12 @@
 /**
  * T01 · Read Contract State — "Ask any contract anything".
  *
- * Tier A: live read-only eth_call reads (no wallet, no signature, costs nothing).
+ * Tier A: live read-only reads through the real Chain MCP (no wallet, no
+ * signature, costs nothing). Every chain read is a genuine MCP tool call by
+ * name — get_block_number, get_code, get_block, eth_call — routed through the
+ * same-origin proxy (/api/mcp), because browsers cannot call the MCP endpoint
+ * directly (no CORS). Target: Pharos mainnet (chain 1672).
+ *
  * Presentation rebuilt on the SHOWTIME standard: 01 Configure → 02 Run
  * (ProgressLoader — one step per real async phase) → 03 Result (ResultCard
  * showpiece with the token name as the big headline).
@@ -12,19 +17,17 @@
  * Raw values are human-formatted with decimals read from the contract
  * itself — never assumed. name()/symbol() fall back to bytes32 decoding
  * (MKR-style tokens). Per-value failures are loud, never silent zeros.
- *
- * This RPC exposes `eth_blockNumber`, NOT `eth_getBlockNumber` (the Chain MCP
- * tool name) — the hardened rpcCall in ../../hooks/useAtlantic normalizes it.
  */
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import { History, Minus, TrendingDown, TrendingUp } from "lucide-react";
 import type { Lamp } from "../../types";
+import { isValidAddress } from "../../hooks/useAtlantic";
 import {
-  EXPLORER_ADDRESS,
-  isValidAddress,
-  rpcCall,
-} from "../../hooks/useAtlantic";
+  chainMcp,
+  mcpCall,
+  McpProxyUnavailableError,
+} from "../../hooks/useMcp";
 import {
   EmptyState,
   ErrorState,
@@ -33,7 +36,11 @@ import {
   StatStrip,
 } from "../ui";
 
-const WPHRS = "0x838800b758277CC111B2d48Ab01e5E164f8E9471";
+/** Pharos mainnet (chain 1672) explorer — the Chain MCP serves mainnet only. */
+const MAINNET_EXPLORER_ADDRESS = "https://pharosscan.xyz/address/";
+
+/** USDC on Pharos mainnet — the default read target (Chain MCP, chain 1672). */
+const USDC_MAINNET = "0xc879c018db60520f4355c26ed1a6d572cdac1815";
 
 const READ_FNS = [
   { label: "name", sig: "name()", selector: "0x06fdde03", kind: "string" as const },
@@ -110,7 +117,7 @@ interface ValueRead {
   big?: bigint;
   decimals?: number;
   failure?: string;
-  /** Compact human value at the pinned block, e.g. "150,993,019.0752 WPHRS". */
+  /** Compact human value at the pinned block, e.g. "43,376,165.5737 USDC". */
   compact?: string;
   /** Latest-block comparison read (historical pins only). Preserved from the
    * already-computed vs-latest read — no extra math, just kept for display. */
@@ -339,7 +346,7 @@ function TimeTravelSplit({
 
 export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
   void lamp; // page shell renders the name — the module doesn't need it
-  const [address, setAddress] = useState(WPHRS);
+  const [address, setAddress] = useState(USDC_MAINNET);
   const [holder, setHolder] = useState("");
   const [blockInput, setBlockInput] = useState("");
   const [addrTouched, setAddrTouched] = useState(false);
@@ -377,14 +384,14 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
     const to = t.address;
     const alive = () => mounted.current && runSeq.current === seq;
 
-    // Phase 0 — pin the block.
+    // Phase 0 — pin the block, via the Chain MCP get_block_number tool.
     setStepsSafe(0, seq);
-    const latestHex = (await rpcCall("eth_blockNumber", [])) as string;
-    const latest = Number(BigInt(latestHex));
+    const { blockNumber: blockNumberStr } = await chainMcp.getBlockNumber();
+    const latest = Number(BigInt(blockNumberStr));
     const pinNum = t.blockNum ?? latest;
     if (pinNum > latest) {
       throw new Error(
-        `Block ${pinNum.toLocaleString("en-US")} is in the future — Atlantic is only at block ` +
+        `Block ${pinNum.toLocaleString("en-US")} is in the future — Pharos mainnet is only at block ` +
           `${latest.toLocaleString("en-US")} right now. Pick a block at or below ` +
           `${latest.toLocaleString("en-US")}, or leave the block empty for latest.`
       );
@@ -394,9 +401,9 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
     // The pin is a real state change — surface it in the 02 act immediately.
     if (mounted.current && runSeq.current === seq) setPinnedBlock(pinNum);
 
-    // Phase 1 — bytecode check at the pinned block.
+    // Phase 1 — bytecode check at the pinned block, via the Chain MCP get_code tool.
     setStepsSafe(1, seq);
-    const code = (await rpcCall("eth_getCode", [to, blockHex])) as string;
+    const { code } = (await chainMcp.getCode(to, blockHex)) as { code: string };
     if (!code || code === "0x") {
       throw new NoCodeError(
         historical
@@ -407,21 +414,23 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
       );
     }
 
-    // Phase 2 — the real reads. Block timestamp (best-effort) rides alongside.
+    // Phase 2 — the real reads, via the Chain MCP eth_call tool. Block
+    // timestamp (best-effort) rides alongside via the get_block tool.
     setStepsSafe(2, seq);
-    const blockInfoP = rpcCall("eth_getBlockByNumber", [blockHex, false])
+    const blockInfoP = mcpCall("chain", "get_block", { block: blockHex })
       .then((b) => b as { timestamp?: string } | null)
       .catch(() => null);
 
     const callAt = async (payload: string): Promise<string> => {
-      let res: unknown;
+      let res: { result: string };
       try {
-        res = await rpcCall("eth_call", [{ to, data: payload }, blockHex]);
+        res = await chainMcp.ethCall(to, payload, blockHex);
       } catch {
         throw new Error("REVERTED");
       }
-      if (typeof res !== "string" || res === "0x" || res === "") throw new Error("EMPTY");
-      return res;
+      if (typeof res?.result !== "string" || res.result === "0x" || res.result === "")
+        throw new Error("EMPTY");
+      return res.result;
     };
 
     const readOne = async (
@@ -486,20 +495,22 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
     let latestSupplyP: Promise<bigint | null> | null = null;
     let latestBalanceP: Promise<bigint | null> | null = null;
     if (historical) {
-      latestSupplyP = (
-        rpcCall("eth_call", [{ to, data: READ_FNS[3].selector }, latestHex]) as Promise<string>
-      )
-        .then((raw) =>
-          typeof raw === "string" && raw !== "0x" && raw !== "" ? hexToBigInt(raw) : null
+      latestSupplyP = chainMcp
+        .ethCall(to, READ_FNS[3].selector, "latest")
+        .then((r) =>
+          typeof r?.result === "string" && r.result !== "0x" && r.result !== ""
+            ? hexToBigInt(r.result)
+            : null
         )
         .catch(() => null);
       if (t.holder !== "") {
         const arg = t.holder.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-        latestBalanceP = (
-          rpcCall("eth_call", [{ to, data: BALANCEOF_SELECTOR + arg }, latestHex]) as Promise<string>
-        )
-          .then((raw) =>
-            typeof raw === "string" && raw !== "0x" && raw !== "" ? hexToBigInt(raw) : null
+        latestBalanceP = chainMcp
+          .ethCall(to, BALANCEOF_SELECTOR + arg, "latest")
+          .then((r) =>
+            typeof r?.result === "string" && r.result !== "0x" && r.result !== ""
+              ? hexToBigInt(r.result)
+              : null
           )
           .catch(() => null);
       }
@@ -597,8 +608,12 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
         if (!mounted.current || runSeq.current !== seq) return;
         if (e instanceof NoCodeError) {
           setEmptyMsg(e.message);
+        } else if (e instanceof McpProxyUnavailableError) {
+          setError(
+            "Live Chain MCP reads need the deployed console — this preview runs without the MCP proxy. Deploy (or open the production site) and the same read goes through the real Chain MCP."
+          );
         } else {
-          setError(e instanceof Error ? e.message : "The Atlantic RPC did not answer.");
+          setError(e instanceof Error ? e.message : "The Chain MCP did not answer.");
         }
       })
       .finally(() => {
@@ -660,8 +675,10 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
           Paste an ERC-20 contract address and LIGHTKEEPER reads{" "}
           <span className="font-mono">name()</span>, <span className="font-mono">symbol()</span>,{" "}
           <span className="font-mono">decimals()</span> and <span className="font-mono">totalSupply()</span>{" "}
-          live — all pinned to a single block. Free reads on the Atlantic network, no wallet, no
-          signature. Add a past block to time-travel and see the state as it was then.
+          live — all pinned to a single block. Free reads on Pharos mainnet (chain 1672),
+          no wallet, no signature. Every read is a real Chain MCP{" "}
+          <span className="font-mono">eth_call</span> tool call. Add a past block to time-travel
+          and see the state as it was then.
         </p>
 
         <div className="mt-5 grid gap-4">
@@ -690,11 +707,11 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
               type="button"
               className="mt-2 text-sm font-medium text-accent hover:underline"
               onClick={() => {
-                setAddress(WPHRS);
+                setAddress(USDC_MAINNET);
                 setHolder("");
               }}
             >
-              Use WPHRS, the canonical wrapped token
+              Use USDC on Pharos mainnet
             </button>
           </div>
 
@@ -731,7 +748,7 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
               <input
                 id="t01-block"
                 className="min-h-[44px] w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm text-ink"
-                placeholder="e.g. 30000000 (empty = latest)"
+                placeholder="e.g. 20690000 (empty = latest)"
                 value={blockInput}
                 onChange={(e) => setBlockInput(e.target.value)}
                 onKeyDown={onEnter}
@@ -767,7 +784,7 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
             title={
               pinnedBlock !== null
                 ? `Reading ${truncAddr(lastTarget?.address ?? address)} · pinned at block ${pinnedBlock.toLocaleString("en-US")}`
-                : `Reading ${truncAddr(lastTarget?.address ?? address)} on Atlantic`
+                : `Reading ${truncAddr(lastTarget?.address ?? address)} on Pharos mainnet`
             }
           />
         </section>
@@ -844,7 +861,7 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
                 links={[
                   {
                     label: "View contract on the explorer",
-                    href: `${EXPLORER_ADDRESS}${fresh.address}`,
+                    href: `${MAINNET_EXPLORER_ADDRESS}${fresh.address}`,
                   },
                 ]}
               >
@@ -917,7 +934,7 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
                           <span className="font-mono text-sm font-semibold text-ink">{v.sig}</span>
                           <span className="font-mono text-xs text-slate">{v.selector}</span>
                           <span className="rounded-full bg-tint px-2 py-0.5 font-mono text-xs text-accent">
-                            eth_call @ block {fresh.blockNum.toLocaleString("en-US")}
+                            Chain MCP eth_call @ block {fresh.blockNum.toLocaleString("en-US")}
                           </span>
                         </div>
                         {v.ok ? (
@@ -953,10 +970,9 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
                     Refresh (free)
                   </button>
                   <p className="text-xs text-slate">
-                    Read-only <span className="font-mono">eth_call</span> via the Atlantic public
-                    RPC — the same primitive as Chain MCP's{" "}
-                    <span className="font-mono">eth_call</span> tool. No private keys, no wallet,
-                    no gas spent.
+                    Read-only <span className="font-mono">eth_call</span> via the real Chain MCP{" "}
+                    (<span className="font-mono">mcp.pharos.xyz/mcp</span>), Pharos mainnet. No
+                    private keys, no wallet, no gas spent.
                   </p>
                 </div>
               </ResultCard>
@@ -969,9 +985,9 @@ export default function TryReadContractState({ lamp }: { lamp: Lamp }) {
       {!loading && !fresh && !error && !emptyMsg && (
         <EmptyState
           title="Nothing read yet"
-          message="The contract address field is pre-filled with WPHRS, the canonical wrapped token. Press Read contract state to see its live on-chain state — name, symbol, decimals and total supply, all pinned to one block."
-          actionLabel="Read the WPHRS contract"
-          onAction={() => submit(WPHRS, "")}
+          message="The contract address field is pre-filled with USDC on Pharos mainnet. Press Read contract state to see its live on-chain state — name, symbol, decimals and total supply, all pinned to one block, every read a real Chain MCP tool call."
+          actionLabel="Read the USDC contract"
+          onAction={() => submit(USDC_MAINNET, "")}
         />
       )}
     </div>

@@ -1,0 +1,14 @@
+The Atlantic testnet chain ID is **688689**. See [Atlantic Testnet](/getting-started/network/atlantic-testnet).
+
+# Sources
+
+- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)
+- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)
+- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)
+- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain)
+- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token)
+- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-nft)
+- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token)
+- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-nft)
+- [Rapid Node Initialization(Testnet)](https://docs.pharos.xyz/node-and-validator-guide/rapid-node-initialization/rapid-node-initialization-testnet)
+- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)

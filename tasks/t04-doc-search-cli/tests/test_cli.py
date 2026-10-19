@@ -1,154 +1,151 @@
 #!/usr/bin/env python3
-"""Tests for pharos-docs (T04 Doc-Search CLI).
+"""Tests for pharos-docs (T04 Doc-Search CLI), rebuilt on the Developer Docs MCP.
 
-Run: python3 tests/test_cli.py   (stdlib only, no network, no chain)
+Run:  python3 -m unittest tests.test_cli        (offline machine-checks;
+                                                 no network, no chain)
+      python3 -m unittest tests.test_cli.Live   (live: hits the real Docs MCP)
 
-Core contract under test: the CLI NEVER improvises. When the index has no
-covering passage it must label the result UNVERIFIED and refuse to answer
-(exit code 2) instead of inventing content.
+Core contracts under test:
+1. The CLI NEVER improvises: when no MCP result covers the question it labels
+   the result UNVERIFIED and refuses to answer (exit code 2).
+2. Machine-checked citations: every quoted excerpt in the committed evidence
+   is a VERBATIM substring of the raw MCP response it came from
+   (evidence/raw/<id>.txt). No paraphrase can pass as a quote.
+3. The CLI only ever calls the allowed Docs MCP tools (searchDocumentation,
+   getPage, askQuestion) -- never sendFeedback, never raw page scraping.
 """
 import json
 import os
 import subprocess
+import sys
 import unittest
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLI = os.path.join(BASE, "pharos-docs")
-INDEX = os.path.join(BASE, "index", "index.json")
-CORPUS_FULL = os.path.join(BASE, "corpus", "llms-full.txt")
-CORPUS_LLMS = os.path.join(BASE, "corpus", "llms.txt")
+EVIDENCE = os.path.join(BASE, "evidence", "evidence.json")
+RAW_DIR = os.path.join(BASE, "evidence", "raw")
+
+sys.path.insert(0, os.path.join(BASE, "src"))
+from docs_mcp import ALLOWED_TOOLS  # noqa: E402
 
 
-def run(*args):
-    r = subprocess.run([CLI, *args], capture_output=True, text=True, timeout=120)
+def run(*args, timeout=300):
+    r = subprocess.run([CLI, *args], capture_output=True, text=True, timeout=timeout)
     return r.returncode, r.stdout, r.stderr
 
 
-class TestMissPath(unittest.TestCase):
-    """The honest-miss gate: no covering passage -> UNVERIFIED, exit 2."""
+class TestMachineCheck(unittest.TestCase):
+    """Offline: every committed citation is verbatim from its raw MCP log."""
 
-    def test_off_topic_query_is_unverified(self):
+    @classmethod
+    def setUpClass(cls):
+        if not os.path.exists(EVIDENCE):
+            raise unittest.SkipTest("evidence/evidence.json not built yet "
+                                    "(run evidence/run_evidence.py)")
+
+    def _captured(self):
+        doc = json.load(open(EVIDENCE, encoding="utf-8"))
+        return [r for r in doc["records"] if r.get("raw_log")]
+
+    def test_every_excerpt_is_verbatim_from_raw_mcp_response(self):
+        records = self._captured()
+        self.assertTrue(records, "no captured records in evidence.json")
+        checked = 0
+        for rec in records:
+            raw_path = os.path.join(BASE, rec["raw_log"])
+            self.assertTrue(os.path.exists(raw_path), "missing raw log for " + rec["id"])
+            raw = open(raw_path, encoding="utf-8").read()
+            for cit in rec["citations"]:
+                excerpt = cit["excerpt"]
+                self.assertTrue(excerpt, "empty excerpt in " + rec["id"])
+                # The quote must appear VERBATIM in the raw MCP response.
+                # Whitespace-normalized comparison tolerates the card's
+                # "> " line-prefix rendering only.
+                norm_raw = " ".join(raw.split())
+                norm_ex = " ".join(excerpt.split())
+                self.assertIn(
+                    norm_ex, norm_raw,
+                    "excerpt NOT verbatim in raw MCP response (%s): %r"
+                    % (rec["id"], excerpt[:120]))
+                checked += 1
+        self.assertGreater(checked, 0, "no citations checked -- evidence is empty?")
+
+    def test_every_citation_points_at_docs_pharos(self):
+        for rec in self._captured():
+            for cit in rec["citations"]:
+                self.assertTrue(
+                    cit["page_url"].startswith("https://docs.pharos.xyz/"),
+                    "citation URL not a docs page: " + cit["page_url"])
+
+    def test_tool_names_are_mcp_tools_only(self):
+        for rec in self._captured():
+            self.assertIn(rec["mcp_tool"], ALLOWED_TOOLS,
+                          "non-MCP tool used: " + rec["mcp_tool"])
+            self.assertNotEqual(rec["mcp_tool"], "sendFeedback")
+        self.assertEqual(ALLOWED_TOOLS, {"searchDocumentation", "getPage", "askQuestion"})
+
+    def test_miss_records_carry_no_citations(self):
+        for rec in self._captured():
+            if rec["label"] == "UNVERIFIED":
+                self.assertEqual(rec["citations"], [])
+                self.assertEqual(rec["exit_code"], 2)
+
+
+class TestSourceHygiene(unittest.TestCase):
+    """The llms-full.txt index approach is gone: no corpus, no index files."""
+
+    def test_no_local_index_machinery(self):
+        for dead in ["index/index.json", "corpus/llms-full.txt", "corpus/llms.txt",
+                     "src/build_index.py", "fetch_corpus.sh"]:
+            self.assertFalse(os.path.exists(os.path.join(BASE, dead)),
+                             "stale index artifact still present: " + dead)
+
+    def test_cli_source_mentions_mcp_not_index(self):
+        src = open(CLI, encoding="utf-8").read()
+        self.assertIn("docs.pharos.xyz/~gitbook/mcp", src)
+        self.assertNotIn("index/index.json", src)
+        self.assertNotIn("llms-full", src)
+
+
+@unittest.skipUnless(os.environ.get("T04_LIVE"), "live MCP tests need T04_LIVE=1")
+class Live(unittest.TestCase):
+    """Live: real queries against the real Docs MCP. Slow/flaky by nature
+    (the endpoint drops connections; the client retries)."""
+
+    def test_grounded_query(self):
+        code, out, _ = run("--json", "what is the Atlantic testnet chain id and RPC url")
+        self.assertEqual(code, 0, out)
+        d = json.loads(out)
+        self.assertEqual(d["label"], "DOC-GROUNDED")
+        self.assertTrue(d["citations"])
+        self.assertEqual(d["mcp_tool"], "searchDocumentation")
+        self.assertIn("688689", json.dumps(d))
+
+    def test_miss_query_refuses(self):
         code, out, _ = run("what is the birthday of the Pharos CEO")
         self.assertEqual(code, 2, out)
         self.assertIn("LABEL: UNVERIFIED", out)
-        self.assertIn("No good answer found", out)
-
-    def test_uncovered_dev_query_is_unverified(self):
-        # "Raspberry Pi" never appears in the docs; the CLI must not answer
-        # about it from generic node material.
-        code, out, _ = run("how do I run a Pharos node on a Raspberry Pi")
-        self.assertEqual(code, 2, out)
-        self.assertIn("LABEL: UNVERIFIED", out)
+        self.assertIn("will not improvise", out)
 
     def test_miss_never_invents_content(self):
-        code, out, _ = run("what is the daily withdrawal limit of the Pharos faucet in PROS")
-        self.assertEqual(code, 2)
-        self.assertNotIn("ANSWER (quoted verbatim", out)
-        self.assertIn("will not", out)  # "will not improvise an answer"
-
-    def test_high_threshold_forces_miss(self):
-        code, out, _ = run("--min-score", "999999", "how do I deploy a contract?")
-        self.assertEqual(code, 2, out)
-        self.assertIn("LABEL: UNVERIFIED", out)
-
-    def test_miss_json_shape(self):
-        code, out, _ = run("--json", "what is the birthday of the Pharos CEO")
+        code, out, _ = run("--json", "how do I run a Pharos node on a Raspberry Pi")
         self.assertEqual(code, 2)
         d = json.loads(out)
         self.assertEqual(d["label"], "UNVERIFIED")
         self.assertEqual(d["citations"], [])
-        self.assertTrue(d["note"])
 
-
-class TestGroundedAnswers(unittest.TestCase):
-    """Grounded answers carry DOC-GROUNDED + URL + date + verbatim excerpt."""
-
-    def test_deploy_question_grounded(self):
-        code, out, _ = run("how do I deploy a contract?")
+    def test_getpage_mode(self):
+        code, out, _ = run("--page", "https://docs.pharos.xyz/getting-started/network/atlantic-testnet")
         self.assertEqual(code, 0, out)
-        self.assertIn("LABEL: DOC-GROUNDED", out)
-        self.assertIn("https://docs.pharos.xyz/", out)
-        self.assertIn("retrieved 2026-10-16", out)
+        self.assertIn("688689", out)
 
-    def test_chain_id_answer_contains_real_value(self):
-        code, out, _ = run("what is the Atlantic testnet chain id and RPC url")
+    def test_ask_mode(self):
+        code, out, _ = run("--json", "--ask", "what is the Atlantic testnet chain id")
         self.assertEqual(code, 0, out)
-        self.assertIn("688689", out)  # Atlantic Testnet ChainID from the live docs
-
-    def test_inference_always_labeled(self):
-        code, out, _ = run("which oracle should I use for price feeds on Pharos")
-        self.assertEqual(code, 0, out)
-        self.assertIn("[INFERENCE]", out)
-
-    def test_excerpts_are_verbatim_from_corpus(self):
-        # Every quoted excerpt in --json must be traceable to the fetched corpus:
-        # the excerpt must be a prefix of its indexed passage, and a long
-        # alphanumeric-only run from the excerpt must exist in the corpus after
-        # the same markdown-chrome stripping the indexer applies (no words
-        # altered or added anywhere in the pipeline).
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(
-            "build_index", os.path.join(BASE, "src", "build_index.py"))
-        bi = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(bi)
-        corpus = open(CORPUS_FULL, encoding="utf-8").read() + "\n" + open(CORPUS_LLMS, encoding="utf-8").read()
-        corpus_flat = "".join(ch.lower() for ch in bi.clean_text(corpus) if ch.isalnum())
-        idx = json.load(open(INDEX, encoding="utf-8"))
-        code, out, _ = run("--json", "how do I bridge USDC from Ethereum to Pharos")
-        self.assertEqual(code, 0)
         d = json.loads(out)
-        self.assertTrue(d["citations"])
-        for c in d["citations"]:
-            matches = [p for p in idx["passages"]
-                       if p["page_url"] == c["page_url"] and p["text"].startswith(c["excerpt"])]
-            self.assertTrue(matches,
-                            "excerpt is not a prefix of any indexed passage from %s" % c["page_url"])
-            run40 = "".join(ch.lower() for ch in c["excerpt"] if ch.isalnum())[:80]
-            self.assertIn(run40, corpus_flat,
-                          "excerpt content not found in the fetched corpus")
-
-    def test_citation_urls_are_live_doc_pages(self):
-        code, out, _ = run("--json", "how do I install the Pharos MCP server")
-        self.assertEqual(code, 0)
-        d = json.loads(out)
-        for c in d["citations"]:
-            self.assertTrue(c["page_url"].startswith("https://docs.pharos.xyz/") or
-                            c["page_url"].startswith("https://www.pharos.xyz/"), c["page_url"])
-            self.assertRegex(c["retrieved"], r"^\d{4}-\d{2}-\d{2}$")
-
-    def test_deterministic(self):
-        _, out1, _ = run("how do I deploy a contract?")
-        _, out2, _ = run("how do I deploy a contract?")
-        self.assertEqual(out1, out2)
-
-    def test_no_mock_or_placeholder_content(self):
-        for q in ["how do I deploy a contract?",
-                  "what is the birthday of the Pharos CEO",
-                  "which oracle should I use for price feeds on Pharos"]:
-            _, out, _ = run(q)
-            low = out.lower()
-            self.assertNotIn("mock", low)
-            self.assertNotIn("placeholder", low)
-            self.assertNotIn("lorem", low)
-            self.assertNotIn("todo:", low)
-
-
-class TestIndexIntegrity(unittest.TestCase):
-    def test_index_exists_and_covers_docs(self):
-        idx = json.load(open(INDEX, encoding="utf-8"))
-        self.assertGreaterEqual(idx["passage_count"], 400)
-        urls = {p["page_url"] for p in idx["passages"]}
-        self.assertGreaterEqual(len(urls), 70)
-        self.assertIn("https://docs.pharos.xyz/getting-started/network/atlantic-testnet", urls)
-
-    def test_no_thin_http_wrapper(self):
-        # The CLI must not shell out to curl/the ?ask= endpoint at answer time.
-        src = open(CLI, encoding="utf-8").read()
-        self.assertNotIn("?ask=", src)
-        self.assertNotIn("curl", src)
-        self.assertNotIn("urllib", src)
-        self.assertNotIn("requests", src)
+        self.assertEqual(d["mcp_tool"], "askQuestion")
+        self.assertIn("688689", d["answer"])
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    unittest.main()

@@ -1,0 +1,150 @@
+Title: Pharos Skill Engine
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide
+Content: SKILL.md
+The entry point — read by the AI agent first
+Defines what capabilities exist and where to find detailed instructions for each
+assets/networks.json
+Network configuration
+RPC URLs, chain IDs, explorer URLs, native token symbols for both Atlantic testnet and mainnet
+assets/tokens.json
+Known token registry
+Pre-populated ERC20 addresses and decimals for both networks
+assets/erc20/StandardERC20.sol
+Built-in ERC20 contract template
+Ready-to-deploy OpenZeppelin-based ERC20 with configurable name, symbol, decimals, supply
+assets/airdrop/
+Built-in airdrop infrastructure
+Distributor contracts and batch scripts; supports up to 6000+ addresses via CSV
+assets/templates/
+Script generation templates
+JS (ethers.js v6), TypeScript (viem), Python (web3.py) templates for contract interaction
+references/query.md
+Query command reference
+Full cast call / cast balance / cast tx command specs
+references/transaction.md
+Transaction command reference
+Full cast send / cast estimate / airdrop specs
+references/contract.md
+Contract command reference
+Full forge script / forge verify-contract / ERC20 deploy specs
+references/script-gen.md
+Script generation reference
+Rules for generating JS/TS/Python interaction scripts from ABI or source
+Title: Atlantic Testnet
+Link: https://docs.pharos.xyz/getting-started/network/atlantic-testnet
+Content: RPC Public Endpoint
+https://atlantic.dplabs-internal.com
+WSS Public Endpoint
+wss://atlantic.dplabs-internal.com
+Explorer
+https://atlantic.pharosscan.xyz/
+ChainID
+688689
+Environment
+Atlantic Testnet
+Ratelimit
+500 times/5m
+Max Pending TXs (Addr)
+64
+
+For the current node binary and Docker image versions, see Current Node Versions.
+Title: x402 Atlantic Testnet
+Link: https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet
+Content: Skill Repository: https://github.com/PharosNetwork/examples/tree/main/skills/x402-pharos
+
+This skill facilitates using the x402 SDK to construct the Pharos x402 server and the corresponding test client. For Atlantic Testnet, configure chain ID 688689 and the test USDC token address (0xE0BE08c77f415F577A1B3A9aD7a1Df1479564ec8), which is not an official address. Ensure the generated server and client use these Atlantic Testnet settings.
+
+The following demonstrates building a server and client demo using this skill, taking opencode as an example.
+
+Create Server: Enter the prompt: "Help me create a pharos-x402 server." It will ask for corresponding parameters (recipient address, Facilitator URL, etc.) and automatically generate the corresponding code files and configuration files.
+
+During the process, you can ask it to generate simple example code through conversation, including /data and /premium endpoints.
+
+The service can then be started.
+
+Next, you can ask it to write a test client.
+
+Once the private key is configured, you can test the payment process.
+
+Please note: never reveal your private key to large models. Configure it via environment variables or file writing.
+Title: Node Management
+Link: https://docs.pharos.xyz/node-and-validator-guide/node-management
+Content: This uses the Atlantic RPC and the value for --stake 100000:
+
+cast send 0x4100000000000000000000000000000000000000 \
+  --ledger \
+  --rpc-url "https://atlantic.dplabs-internal.com" \
+  --value 100000000000000000000000 \
+  --data "YOUR_CALLDATA_PRINTED_BY_OPS"
+Title: Cross Chain Infrastructure
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain
+Content: Transfer assets between networks
+Send messages across chains
+Build omnichain applications
+Access liquidity and users from other ecosystems
+Coordinate logic across multiple chains
+Title: ZAN RPC
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan
+Content: After the API key is created, you can get the URLs that can be used for accessing Pharos Network. Search for Pharos in the Chain RPC section. Click Copy to the right of the HTTPS URL to quickly copy the URL.
+Title: RPC Infrastructure
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/rpc
+Content: Send transactions to the network
+Read on-chain data (balances, contract state, logs)
+Interact with smart contracts
+Listen to events and track activity
+Power applications, scripts, and integrations
+Title: Chainlink Push Engine Feeds
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe
+Content: SelfManagedFeedsCache
+All feeds
+0x388c44D3B59d7e89582Caa6Fc475f282a0725480
+PROS/USD
+0x00037de4af3cb4fd0d82eed58a43ec144809f7fa7b4c6508eb628ad6d4d8b363
+0x14d427B112aD61B18E4b1ACdB2893987EB483760
+BTC/USD
+0x00037da06d56d083fe599397a4769a042d63aa73dc4ef57709d31e9971a5b439
+0x5bcff8e4f4C02b5a3192A96DF4Eb5BB0Afdc36f0
+ETH/USD
+0x000359843a543ee2fe414dc14c7e7920ef10f4372990b79d6361cdc0dd1ba782
+0x72A7c93b90fEbAA9fD53ded20411Fbb09eA72D03
+WETH/USD
+Same as ETH/USD
+Same as ETH/USD
+WBTC/USD
+0x0003986bae710e410e6a6ec824db9ac91f97f6dd47fc5b28d028c14e825c5891
+0xA5b7Fa94b22588f7E6df28f3F242b81e84DBE9Ef
+USDT/USD
+0x00032874077216155926e26c159c1c20a572921371d9de605fe9633e48d136f9
+0xc5e5b55352c5a6b50Bc9F8e192948D9F51523649
+USDC/USD
+0x0003dc85e8b01946bf9dfd8b0db860129181eb6105a8c8981d9f28e00b6f60d9
+0x70dcf7caD4D5C54e9b4f7286Cd5a2794b93B038a
+LINK/USD
+0x00036fe43f87884450b4c7e093cd5ed99cac6640d8c2000e6afc02c8838d0265
+0x58DDd6596605f550db5ce1892867ecEA7Db5CDDC
+BNB/USD
+0x000387d7c042a9d5c97c15354b531bd01bf6d3a351e190f2394403cf2f79bde9
+0x0D030427DFFe9644121429bD0CE6260EbeE5CEC6
+SOL/USD
+0x0003d338ea2ac3be9e026033b1aa601673c37bab5e13851c59966f9f820754d6
+0xbb4b916035F28757e1fFC303CC81a1A29536F8F9
+XRP/USD
+0x00035e3ddda6345c3c8ce45639d4449451f1d5828d7a70845e446f04905937cd
+0x731bF4Fbb91A47cf795f87b8E12148Cdd1a3FEBa
+WSRUSD/RUSD
+0x000706ad7092fdc2310335a82828efe1d4c0220e5bf0fc46100da431f3433743
+0x045fE9F80ac65c2702985a889A6a500D9fA20897
+SYZUSD/YZUSD
+0x00070d19efa92f43763e29a8c444be98d19bf9c7487fb6e62ab5be7adb8ba896
+0x3aca4c56afc1BA3CfF9C8f8e9911798ad82F538A
+STRUSD/TRUSD
+0x00074185003a58896a9e79b81bcfb4ab3212924f4dbb75629d795143ab967e06
+0x9A648AC8B1bB657C64A73d9912e816973a998552
+Title: Circle CCTP
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp
+Title: Supra
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra
+Content: Storage
+0xaa2f56843Cec7840F0C106F0202313d8d8CB13d6
+Pull
+0x443A0f4Da5d2fdC47de3eeD45Af41d399F0E5702

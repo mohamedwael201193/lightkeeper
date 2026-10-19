@@ -13,5 +13,8 @@ Additional implementation guidance from the LIGHTKEEPER research (non-official, 
   signature computed in code).
 - Dedupe via `blockNumber:logIndex` seen-set with atomic persist-before-emit.
 - 2-block confirmation lag for reorg tolerance; per-cycle logging.
-- Test event: a self-generated REAL dust transfer on Atlantic (explicitly allowed as
-  "test event" — labeled, never fabricated).
+- ~~Test event: a self-generated REAL dust transfer on Atlantic (explicitly allowed as
+  "test event" — labeled, never fabricated).~~ **SUPERSEDED 2026-10-19 (v2):**
+  the monitor now watches real USDC `Transfer` events on Pharos mainnet via
+  Chain MCP `get_logs`; the v1 Atlantic self-generated test event is retained
+  as labeled history only.

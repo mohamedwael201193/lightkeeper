@@ -10,10 +10,10 @@ status: built
 commit: 4830726
 
 summary: >
-  A feedback-task deliverable built with ONLY Docs MCP surfaces: a verbatim
-  step-by-step query log (9 queries -> answers received from the real docs
-  surfaces), 5 confirmed gaps each with the EXACT query and a suggested fix,
-  and a "First 5 Queries" quickstart artifact derived solely from real answers.
+  A feedback-task deliverable built with ONLY the Developer Docs MCP: a verbatim
+  step-by-step query log (9 queries -> 9 answers through the real Docs MCP
+  askQuestion tool), 5 confirmed gaps each with the EXACT query and a suggested fix,
+  and a "First 5 Queries" quickstart artifact derived solely from real MCP answers.
 
 deliverables:
   - task.yaml
@@ -23,27 +23,31 @@ deliverables:
   - evidence.md
   - evidence.json
   - queries.json
-  - REVIEWER_NOTES.md
   - LINKS.md
   - SUBMISSION.md
-  - VIDEO-GUIDE.md
+  - evidence/runs/
+  - evidence/transcripts/
   - scripts/query_log.py
+  - scripts/quote_check.py
 
 evidence:
-  log: evidence.md §1 + evidence.json (runs/)
-  gaps: evidence.md §2 (G1–G5)
-  build: README.md §6 + QUICKSTART.md
+  log: evidence.md §1 + evidence/runs/run-mcp-*.json + evidence/transcripts/
+  gaps: evidence.md §2 (G1–G5, all Docs-MCP-derived)
+  build: README.md §5 + QUICKSTART.md
   runner: python3 scripts/query_log.py run
+  quote_check: python3 scripts/quote_check.py
 
 constraints:
-  - ONLY Docs MCP surfaces; no search engines, no community help
+  - ONLY the Developer Docs MCP (https://docs.pharos.xyz/~gitbook/mcp, askQuestion); no search engines, no community help
   - hypotheses/external probes quarantined to evidence.md §3 (non-evidence appendix)
   - no fabricated answers; unreachable queries SAY SO with the exact query
+  - sendFeedback NEVER invoked (files a real report to the docs team)
   - no secrets in repo; Atlantic testnet only; spend ~0 PHRS
 
 notes: >
-  Portal-embedded Docs MCP chat (ai.pharos.xyz) requires a wallet sign-in this
-  agent cannot perform. All evidence comes from the publicly reachable docs
-  surfaces: llms.txt, the .md docs pages, and the documented GitBook ?ask=
-  dynamic query endpoint. Reachability discrepancy vs the verdict team's 403
-  finding is documented honestly in evidence.md.
+  Claim boundary: the public GitBook Docs MCP endpoint
+  (docs.pharos.xyz/~gitbook/mcp, server v0.27.2) — NOT the login-gated
+  ai.pharos.xyz portal session, which is unrepresented here. Docs-only surface:
+  no chain-tool access claimed. Resubmission 2026-10-19: the 2026-10-16 ?ask=
+  page-endpoint log was rejected by the reviewer ("queries weren't made through
+  the Developer Docs MCP") and is superseded (retained in evidence.json as legacy).

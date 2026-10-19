@@ -1,65 +1,70 @@
-# T01 · Evidence — Read Contract State (≥300 words)
+# T01 · Evidence — Read Contract State via Chain MCP (≥300 words)
 
-## What was built
+## What was built (v2, 2026-10-19)
 
-A contract-state reader for Pharos Atlantic (chain 688689) in
-`tasks/t01-read-contract-state/`. It deploys a minimal typed-state contract
-(`KeeperRegistry`: uint256, address, string, uint8, and two mappings — 8
-readable values total), then reads **every** state variable via `eth_call`,
-all pinned to a single block, and pretty-prints raw hex, decoded values,
-human formatting, and decoding notes. The deploy is the task's only
-transaction; reads are free.
+A contract-state reader in `tasks/t01-read-contract-state/` built directly on
+the **Chain MCP** (`https://mcp.pharos.xyz/mcp`, `pharos-mcp-server 0.1.0`,
+keyless Streamable HTTP). `src/mcp_client.py` speaks the real MCP protocol —
+`initialize` (protocol `2025-03-26`) → `mcp-session-id` header →
+`tools/call` — and `bin/read-contract-state.py` issues **every** read as an
+MCP tool call by name: `get_chain_info` (chain-id gate), `get_code`
+(bytecode check), `get_block_number` (block pinning), `eth_call` per value at
+the pinned block. Target: **USDC on Pharos mainnet** (chain 1672)
+`0xc879c018db60520f4355c26ed1a6d572cdac1815` — a real token real users hold —
+reading `name()`, `symbol()`, `decimals()`, `totalSupply()`. No deployment, no
+transactions, no raw JSON-RPC calls anywhere in the task (`rawRpcCalls: 0`).
 
-## Real on-chain facts
+## Real on-chain facts (live Chain MCP, 2026-10-19)
 
-- **Deploy tx:** `0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b`
-  — block **31481260**, status 1, gas used 399603 @ 1000000001 wei.
-  Explorer: https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b
-- **Contract:** `0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD`
-  Explorer: https://atlantic.pharosscan.xyz/address/0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD
-- **Live read (pinned block 31481725):** totalLamps=3, keeper=
-  0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3, realmName="Atlantic Deep",
-  decimals=6, lampBalanceOf(keeper)=3000000 (3.000000 lamps), lampBearer(0..2)=keeper.
-- **Slot proof:** `eth_getStorageAt(keccak256(keeper ‖ slot4))` returned the
-  identical 3000000 — the mapping layout is demonstrated, not asserted.
+- **MCP endpoint:** `https://mcp.pharos.xyz/mcp` — server `pharos-mcp-server
+  0.1.0`; `get_chain_info` reports chain 1672, native symbol PROS.
+- **Contract:** USDC `0xc879c018db60520f4355c26ed1a6d572cdac1815`
+  Explorer: https://pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815
+- **Live read (pinned block 20686894):** name="USDC", symbol="USDC",
+  decimals=6, totalSupply=43376165573737 (43,376,165.573737 USDC).
+- **Negative paths:** `get_code` on the burn address returns empty `0x` →
+  loud abort; `eth_call` with selector `0xdeadbeef` returns on-chain
+  `execution reverted` inside the tool result → loud `ERROR`, never a value.
 
-## Honesty notes (what didn't go as the spec literally said)
+## Honesty notes
 
-1. The task spec asks for a `forge script` deploy. `forge script`'s on-chain
-   simulation passes the block number as a raw JSON number, which the Atlantic
-   RPC rejects (`PARAM_VERIFY_ERROR: failed to parse block hash or number` —
-   reproduced with isolated probes against `eth_getBalance`/`eth_getBlockByNumber`;
-   `eth_call` tolerates it, the others don't). Deployment used
-   `forge create --broadcast` instead: one signed tx, nonce-safe under
-   `flock /tmp/lk-nonce.lock`. The `script/DeployKeeper.s.sol` recipe is kept
-   in-repo; the deviation is documented in README §8, not hidden.
-2. The public hosted Chain MCP (`mcp.pharos.xyz`) serves **mainnet only**, so
-   Atlantic reads use direct JSON-RPC `eth_call` — the identical primitive
-   behind Chain MCP's `eth_call` tool. Stated in the reader output and README,
-   never implied otherwise.
+1. v1 of this task (2026-10-16) read a purpose-deployed `KeeperRegistry` on
+   Pharos Atlantic via direct RPC. Reviewers returned it: *"Switch the reads
+   to Chain MCP (mainnet is fine)"*. v2 is a full rebuild on the real Chain
+   MCP, on the chain the hosted MCP serves. The v1 deployment
+   (`0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD`, deploy tx
+   `0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b`)
+   remains on-chain and untouched; its records (`deployment.json`,
+   `evidence.json` v1 fields) are kept as history, not claimed as current.
+2. The console try-it-live panel cannot call the hosted MCP endpoint directly
+   (no CORS headers — verified by probe), so it routes through the console's
+   same-origin proxy (`apps/console/api/mcp.ts`), which issues genuine MCP
+   `tools/call` requests server-side. The submitted task code calls the MCP
+   directly. Same chain, same values; documented in SUBMISSION.md, not hidden.
 
 ## Spend log (≤ 0.15 PHRS budget)
 
-| Action | Tx hash | Gas used | Gas price (wei) | Cost (PHRS) |
-|---|---|---|---|---|
-| Deploy `KeeperRegistry` | `0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b` | 399603 | 1000000001 | **0.0003996030** |
-| All reads (`eth_call`) | — (no tx) | 0 | — | 0 |
-| **Total** | | | | **0.0003996030** |
+| Action | Tx hash | Cost (PHRS) |
+|---|---|---|
+| Reads (`eth_call` via Chain MCP) | — (no tx) | 0 |
+| **Total** | | **0** |
 
 ## Test run
 
-`test/run-tests.sh` — 5 groups against the live deployment: (1) reader runs
-clean + manifest emitted; (2) all 8 values re-read via **independent raw
-curl JSON-RPC** at the pinned block and byte-compared; manifest decoded values
-asserted equal; (3) mapping slot layout re-verified independently;
+`test/run-tests.sh` — 5 groups, all live: (1) reader runs clean + manifest
+emitted; (2) manifest proves MCP routing (`mcpToolsCalled` ⊇ the 4 tools,
+`rawRpcCalls == 0`); (3) all 4 values re-read via **independent raw JSON-RPC**
+against the public mainnet RPC (no MCP, no shared code path) at the pinned
+block and byte-compared; manifest decoded values asserted equal;
 (4) negative path 2/2 fail loudly + no-code-address read aborts;
-(5) chain-id gate aborts on mismatch. Result: **all PASS, 0 failed**.
+(5) chain-id gate aborts on mismatch. Result: **7/7 groups PASS, 0 failed**
+(15 individual checks).
 
 ## Artifacts
 
-- `sample-output/transcript-live.txt` — real terminal transcript of the read
+- `sample-output/transcript-live.txt` — real terminal transcript (live MCP)
 - `sample-output/transcript-negative.txt` — negative-path transcript
-- `evidence/run-manifest.json` — generated per-run manifest (tool, chain,
-  block + hash, all values raw/decoded/human, slot check, no-mock attestation)
-- `deployment.json` — contract, deploy tx, block, explorer links
+- `evidence/run-manifest.json` — per-run manifest (MCP endpoint, tool names,
+  pinned block, git commit, dirty flag)
+- `deployment.json` — v1 Atlantic deployment record (history only)
 - Every link in `LINKS.md` was curl-verified HTTP 200.

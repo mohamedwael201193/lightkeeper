@@ -1,52 +1,25 @@
-═══ LIGHTKEEPER · T01 · READ CONTRACT STATE ═══
-The keeper reads the stone before lighting the lamp.
-────────────────────────────────────────────────────────────────
-contract         0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD  (KeeperRegistry contract (this task's deployment))
-chain            688689 (Pharos Atlantic testnet) — asserted
-block read at    31481725  (hash 0x5dbac718191c0033955c54b8c699848163e6a01ea9af2e2507b0dc28dd8639e2)
-tool             cast 1.8.5 eth_call (same JSON-RPC primitive as Chain MCP eth_call)
-deploy tx        0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b
-────────────────────────────────────────────────────────────────
-▸ totalLamps   · uint256   · selector 0x186c42b7   · storage slot 0
-    raw     0x0000000000000000000000000000000000000000000000000000000000000003
-    decoded 3
-    human   3 lamps
-    note    plain counter
-▸ keeper   · address   · selector 0xaced1661   · storage slot 1
-    raw     0x000000000000000000000000f76e6b0920e9332ff4410f6dd53f01722abc71a3
-    decoded 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    human   keeper — deployer (LIGHTKEEPER Atlantic wallet)
-    note    set once in constructor = deployer
-▸ realmName   · string   · selector 0x7938b0e4   · storage slot 2
-    raw     0x0000000000000000000000000000000000000000000000000000000000000020…
-    decoded "Atlantic Deep"
-    human   "Atlantic Deep"
-    note    dynamic type: offset→length→bytes
-▸ decimals   · uint8   · selector 0x313ce567   · storage slot 3
-    raw     0x0000000000000000000000000000000000000000000000000000000000000006
+mcp              https://mcp.pharos.xyz/mcp
+mcp server       pharos-mcp-server 0.1.0
+chain            1672 (Pharos mainnet) — asserted via get_chain_info
+contract         0xc879c018db60520f4355c26ed1a6d572cdac1815  (USDC — Pharos mainnet stablecoin (real token real users hold))
+code length      1798 bytes — get_code non-empty
+block read at    20686894  (all reads pinned here)
+═══ LIGHTKEEPER · T01 · READ CONTRACT STATE (Chain MCP) ═══
+▸ name        · string  · selector 0x06fdde03
+    raw     0x000000000000000000…00000000
+    decoded USDC
+    human   "USDC"
+▸ symbol      · string  · selector 0x95d89b41
+    raw     0x000000000000000000…00000000
+    decoded USDC
+    human   "USDC"
+▸ decimals    · uint8   · selector 0x313ce567
+    raw     0x000000000000000000…00000006
     decoded 6
-    human   6 decimals
-    note    read from chain — never assumed
-▸ lampBalanceOf(keeper)   · mapping→uint256   · selector 0x05319364   · storage slot 4 (keyed)
-    raw     0x00000000000000000000000000000000000000000000000000000000002dc6c0
-    decoded 3000000
-    human   3.000000 lamps
-    note    VERIFIED: eth_getStorageAt(keccak256(keeper ++ slot4)) == lampBalanceOf(keeper) view result
-▸ lampBearer(0)   · mapping→address   · selector 0xfde97eee   · storage slot 5 (keyed)
-    raw     0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    decoded 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    human   keeper — deployer (LIGHTKEEPER Atlantic wallet)
-    note    lamp #0 bearer
-▸ lampBearer(1)   · mapping→address   · selector 0xfde97eee   · storage slot 5 (keyed)
-    raw     0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    decoded 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    human   keeper — deployer (LIGHTKEEPER Atlantic wallet)
-    note    lamp #1 bearer
-▸ lampBearer(2)   · mapping→address   · selector 0xfde97eee   · storage slot 5 (keyed)
-    raw     0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    decoded 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    human   keeper — deployer (LIGHTKEEPER Atlantic wallet)
-    note    lamp #2 bearer
-────────────────────────────────────────────────────────────────
-values read: 8 · failures: 0 (any failure aborts loudly)
-manifest written: evidence/run-manifest.json
+    human   6 — human-formatting scale (read from the contract, never assumed)
+▸ totalSupply · uint256 · selector 0x18160ddd
+    raw     0x000000000000000000…4cf0d469
+    decoded 43376165573737
+    human   43,376,165.573737 USDC
+reads            4 values · 4 MCP tools (eth_call, get_block_number, get_chain_info, get_code) · 0 raw-RPC calls
+manifest         evidence/run-manifest.json

@@ -1,6 +1,12 @@
-═══ NEGATIVE-PATH SUITE ═══
-── case A: read state from a no-code address (0x000000000000000000000000000000000000dEaD)
-OK-LOUD: no code at address → reader would ERROR here (verified empty 0x).
-── case B: call an unknown selector on the real contract
-OK-LOUD: unknown selector reverts → reader reports ERROR, never a fabricated value.
-NEGATIVE-PATH SUITE: PASS (2/2 fail loudly)
+mcp              https://mcp.pharos.xyz/mcp
+mcp server       pharos-mcp-server 0.1.0
+chain            1672 (Pharos mainnet) — asserted via get_chain_info
+contract         0xc879c018db60520f4355c26ed1a6d572cdac1815  (USDC — Pharos mainnet stablecoin (real token real users hold))
+code length      1798 bytes — get_code non-empty
+block read at    20686898  (all reads pinned here)
+═══ NEGATIVE-PATH SUITE (via Chain MCP tools) ═══
+── case A: get_code on a no-code address (0x000000000000000000000000000000000000dEaD)
+OK-LOUD: no code at address → reader would ERROR here (verified empty).
+── case B: eth_call with an unknown selector on the real contract
+OK-LOUD: unknown selector reverts on-chain (execution reverted:) → reader reports ERROR, never a fabricated value.
+═══ RESULT: PASS (2/2 fail loudly) ═══

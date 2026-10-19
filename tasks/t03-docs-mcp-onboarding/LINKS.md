@@ -1,12 +1,13 @@
-# T03 — Links (all curl-verified 2026-10-16)
+# T03 — Links (curl-verified 2026-10-19)
 
 Every URL referenced in the evidence, fetched with `curl` in this session.
 Verification log: `evidence/link_check.json` (`python3 scripts/query_log.py links`).
 
 **Transience note:** docs.pharos.xyz intermittently drops connections (`RemoteDisconnected`) for
-scripted clients — different URLs fail on different runs while succeeding on others (same
-bot-mitigation flakiness as the ask endpoint, `evidence.md` G1). Every docs URL below returned
-HTTP 200 at least once in this session; the checker log records the latest run's snapshot.
+scripted clients — different URLs fail on different runs while succeeding on others. Every docs URL
+below returned HTTP 200 at least once in this session; the checker log records the latest run's
+snapshot. The Docs MCP endpoint itself drops ~30–40% of calls (stateless — retry recovers);
+see `evidence.md` G4.
 
 ## Docs corpus & indexes
 
@@ -41,6 +42,14 @@ HTTP 200 at least once in this session; the checker log records the latest run's
   `POST {"method":"eth_chainId"}` → HTTP 200, `{"result":"0xa8231"}` = **688689** — live-verified 2026-10-16.
 - https://mcp.pharos.xyz/mcp — hosted Chain MCP endpoint. Plain GET → HTTP 404 (31 B). **Expected:** it is a Streamable-HTTP MCP endpoint, not a web page; it only answers MCP handshakes. Not a broken link.
 
-## Docs-MCP ask endpoint (the query surface)
+## Developer Docs MCP (the query surface — 2026-10-19)
 
-- `GET https://docs.pharos.xyz/<page>.md?ask=<question>&goal=<goal>` — documented in llms.txt and every page footer. Scriptable but throttled: this session saw HTTP 200 answers, HTTP 403s, `IncompleteRead` drops, and one stalled connection (see `evidence.md` G1).
+- `POST https://docs.pharos.xyz/~gitbook/mcp` — the real Developer Docs MCP: public GitBook MCP
+  endpoint, MCP Streamable HTTP (JSON-RPC 2.0 over POST, SSE frames), no auth, server v0.27.2.
+  Tools: `searchDocumentation`, `getPage`, `askQuestion` (`sendFeedback` never invoked).
+  All 9 onboarding queries in this build went through `askQuestion` here.
+  **No CORS headers** — browsers cannot call it directly (verified 2026-10-19).
+  Plain GET/HEAD times out — expected: it is a POST-only MCP endpoint, not a web page
+  (same as the Chain MCP's 404 on GET below). Not a broken link.
+- ~~`GET https://docs.pharos.xyz/<page>.md?ask=<question>&goal=<goal>` — the documented GitBook
+  ask page endpoint used by the superseded 2026-10-16 log. NOT the Docs MCP; do not use.~~

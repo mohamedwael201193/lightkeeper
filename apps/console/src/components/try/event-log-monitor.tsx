@@ -2,11 +2,13 @@
  * T02 — Event/Log Monitor · "Watch any contract live" (Tier A: live reads only,
  * no wallet, costs nothing).
  *
- * Configure → run → result: pick a contract + event signature (presets include
- * the T02 LogEmitter itself), scan chunked eth_getLogs (≤1,000 blocks/call —
- * the node range cap is respected, larger ranges are chunked automatically),
- * decode indexed topics + ABI data into readable fields, click through to the
- * explorer for the full receipt.
+ * Configure → run → result: pick a contract + event signature (presets target
+ * Pharos mainnet), scan chunked get_logs via the real Chain MCP (≤1,000
+ * blocks/call — the server range cap is respected, larger ranges are chunked
+ * automatically), decode indexed topics + ABI data into readable fields, click
+ * through to the explorer for the full receipt. Every chain read is a genuine
+ * MCP tool call by name, routed through the same-origin proxy (/api/mcp),
+ * because browsers cannot call the MCP endpoint directly (no CORS).
  *
  * The sharp bit: the watch session splits every result into "Caught after you
  * started watching" vs "Historical context". Any event whose block is higher
@@ -18,22 +20,23 @@
  * mirroring the Python monitor.
  *
  * SHOWTIME presentation: 01 Configure → 02 Run (a sonar sweep — one horizontal
- * block-range bar where each chunk is one real eth_getLogs call, filling chunk
+ * block-range bar where each chunk is one real get_logs call, filling chunk
  * by chunk with the real block ranges labeled) → 03 Result (the "caught live"
  * panel as the climax when anything landed after the watch began, then
  * ResultCard → StatStrip → FeedList). Every animation maps to a real state;
- * every number came from a real RPC call.
+ * every number came from a real Chain MCP call.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { Blocks, History, Layers, Radio } from "lucide-react";
 import type { Lamp } from "../../types";
 import {
-  EXPLORER_ADDRESS,
-  EXPLORER_TX,
   isValidAddress,
-  rpcCall,
 } from "../../hooks/useAtlantic";
+import {
+  chainMcp,
+  McpProxyUnavailableError,
+} from "../../hooks/useMcp";
 import {
   ResultCard,
   EmptyState,
@@ -44,10 +47,15 @@ import {
 import type { FeedItem } from "../ui";
 import { keccak256Hex } from "./keccak256";
 
-const LOGEMITTER = "0x2C1dB0C436B72D94a4112f321DFbD13a976D8831";
-const CHUNK_CAP = 1000; // node range cap: ≤1,000 blocks per getLogs call
-// Default window covers the emitter's real keepalive/live-catch events
-// (newest ~8k blocks behind the tip; verified against the live RPC).
+/** Pharos mainnet (chain 1672) explorer — the Chain MCP serves mainnet only. */
+const MAINNET_EXPLORER_ADDRESS = "https://pharosscan.xyz/address/";
+const MAINNET_EXPLORER_TX = "https://pharosscan.xyz/tx/";
+
+/** USDC on Pharos mainnet — the default watch target (Chain MCP, chain 1672). */
+const USDC_MAINNET = "0xc879c018db60520f4355c26ed1a6d572cdac1815";
+const CHUNK_CAP = 1000; // Chain MCP range cap: ≤1,000 blocks per get_logs call
+// Default window: USDC emits Transfers constantly on mainnet, so 20k blocks
+// always has real events to show (verified against the live Chain MCP).
 const DEFAULT_WINDOW = 20000;
 const REORG_LAG = 2; // blocks skipped behind tip — mirrors monitor.py CONFIRM_LAG
 const AUTO_FAIL_LIMIT = 3; // consecutive auto-refresh failures before self-pausing
@@ -63,33 +71,15 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    label: "LogEmitter · Ping",
-    signature: "Ping(address,uint256,string)",
-    contract: LOGEMITTER,
-    fields: ["from", "value", "note"],
-  },
-  {
-    label: "LogEmitter · Zap",
-    signature: "Zap(address,address,uint256)",
-    contract: LOGEMITTER,
-    fields: ["sender", "target", "amount"],
-  },
-  {
-    label: "LogEmitter · Marker",
-    signature: "Marker(uint256,bytes32,bytes)",
-    contract: LOGEMITTER,
-    fields: ["id", "tag", "payload"],
-  },
-  {
-    label: "ERC-20 · Transfer",
+    label: "USDC · Transfer",
     signature: "Transfer(address,address,uint256)",
-    contract: "",
+    contract: USDC_MAINNET,
     fields: ["from", "to", "value"],
   },
   {
-    label: "ERC-20 · Approval",
+    label: "USDC · Approval",
     signature: "Approval(address,address,uint256)",
-    contract: "",
+    contract: USDC_MAINNET,
     fields: ["owner", "spender", "value"],
   },
 ];
@@ -203,14 +193,16 @@ function readableValue(v: string): string {
 
 /** Turn an RPC/transport failure into a plain-language message + keep the session. */
 function classifyError(e: unknown): string {
+  if (e instanceof McpProxyUnavailableError)
+    return "Live Chain MCP scans need the deployed console — this preview runs without the MCP proxy. Deploy (or open the production site) and the same scan goes through the real Chain MCP.";
   const raw = e instanceof Error ? e.message : String(e);
   const low = raw.toLowerCase();
   if (/429|rate.?limit|too many requests/.test(low))
-    return "The Atlantic RPC is rate-limiting reads right now. Wait a few seconds, then try again — your watch session is kept.";
+    return "The Chain MCP is rate-limiting reads right now. Wait a few seconds, then try again — your watch session is kept.";
   if (/exceed|range|block range|too large/.test(low))
     return "The node rejected that block range. Narrow the look-back and try again — your watch session is kept.";
   if (/did not answer|failed to fetch|network|timeout|http 5\d\d|econnrefused/.test(low))
-    return "The Atlantic RPC did not answer. Check your connection and try again — your watch session is kept.";
+    return "The Chain MCP did not answer. Check your connection and try again — your watch session is kept.";
   return raw.length > 220 ? raw.slice(0, 220) + "…" : raw;
 }
 
@@ -234,7 +226,7 @@ interface ScanOpts {
 
 /**
  * 02 · The sonar sweep. A horizontal block-range bar that fills chunk by
- * chunk — each chunk is one real eth_getLogs call, labeled with its real
+ * chunk — each chunk is one real Chain MCP get_logs call, labeled with its real
  * block range. The pulsing head + the step label are the only motion, and
  * both map to the RPC call currently in flight.
  */
@@ -326,7 +318,7 @@ function SonarSweep({
             Chunk <span className="font-semibold text-ink">{done + 1} of {total}</span>{" "}
             — blocks{" "}
             <span className="font-mono text-ink">{fmt(curA)} → {fmt(curB)}</span>{" "}
-            · one real <span className="font-mono">eth_getLogs</span> call
+            · one real <span className="font-mono">get_logs</span> Chain MCP call
           </>
         )}
         {phase === "decode" && "Scan complete — decoding the events…"}
@@ -404,7 +396,7 @@ function FieldRow({ field, value }: { field: string; value: string }) {
       <span className="w-20 shrink-0 text-sm font-semibold text-slate">{field}</span>
       {isAddr ? (
         <a
-          href={`${EXPLORER_ADDRESS}${value}`}
+          href={`${MAINNET_EXPLORER_ADDRESS}${value}`}
           target="_blank"
           rel="noreferrer"
           title={value}
@@ -448,7 +440,7 @@ function eventCardNode(l: DecodedLog, eventName: string): React.ReactNode {
         {" · "}
         <a
           className="font-mono text-accent hover:underline"
-          href={`${EXPLORER_TX}${l.transactionHash}`}
+          href={`${MAINNET_EXPLORER_TX}${l.transactionHash}`}
           target="_blank"
           rel="noreferrer"
           title={l.transactionHash}
@@ -479,8 +471,8 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
   const [autoStopped, setAutoStopped] = useState<string | null>(null);
   const [meta, setMeta] = useState<ScanMeta | null>(null);
   const [auto, setAuto] = useState(false);
-  // 02 · Run state: the sonar sweep maps 1:1 onto real RPC calls — one chunk
-  // per eth_getLogs call, labeled with its real block range.
+  // 02 · Run state: the sonar sweep maps 1:1 onto real Chain MCP calls — one chunk
+  // per get_logs call, labeled with its real block range.
   const [stepIdx, setStepIdx] = useState(0);
   const [scanLabel, setScanLabel] = useState("");
   const [chunks, setChunks] = useState<Array<[number, number]>>([]);
@@ -549,8 +541,9 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         setAutoProgress(null);
       }
       try {
-        // Step 1 of the run: the real eth_blockNumber call.
-        const chainTip = hexToNum((await rpcCall("eth_blockNumber", [])) as string);
+        // Step 1 of the run: the real Chain MCP get_block_number call.
+        const { blockNumber } = await chainMcp.getBlockNumber();
+        const chainTip = Number(BigInt(blockNumber));
         if (!alive()) return;
         const lag = reorgLag ? REORG_LAG : 0;
         const tip = Math.max(0, chainTip - lag);
@@ -559,27 +552,23 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         const watchStart = watchStartRef.current;
         const win = Math.max(1, Math.min(200000, parseInt(windowBlocks, 10) || DEFAULT_WINDOW));
         const from = Math.max(0, tip - win);
-        const filter = {
-          address: effContract,
-          topics: [keccak256Hex(effSig)],
-        };
+        const topic0 = keccak256Hex(effSig);
         const chunks: Array<[number, number]> = [];
         for (let s = from; s <= tip; s += CHUNK_CAP)
           chunks.push([s, Math.min(s + CHUNK_CAP - 1, tip)]);
         if (manual) setChunks(chunks);
-        // One real eth_getLogs call per chunk — the loader advances per call.
+        // One real Chain MCP get_logs call per chunk — the loader advances per call.
         const all: LogEntry[] = [];
         for (let i = 0; i < chunks.length; i++) {
           const [a, b] = chunks[i];
           if (manual) setStepIdx(1 + i);
           else setAutoProgress({ current: i + 1, total: chunks.length });
-          const logs = (await rpcCall("eth_getLogs", [
-            {
-              ...filter,
-              fromBlock: "0x" + a.toString(16),
-              toBlock: "0x" + b.toString(16),
-            },
-          ])) as LogEntry[];
+          const logs = (await chainMcp.getLogs({
+            address: effContract,
+            topics: [topic0],
+            fromBlock: a,
+            toBlock: b,
+          })) as LogEntry[];
           if (!alive()) return; // a newer scan owns the state now
           all.push(...logs);
         }
@@ -790,7 +779,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
             disabled={!contractOk || !sigOk || loading}
             onClick={() => void runScan({ fresh: true })}
           >
-            {loading ? "Scanning Atlantic…" : "Watch now"}
+            {loading ? "Scanning Pharos mainnet…" : "Watch now"}
           </button>
           <button
             type="button"
@@ -829,13 +818,13 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         </div>
         <p className="mt-4 text-sm leading-relaxed text-slate">
           topic0 <code className="font-mono">{topic0}</code> is computed from the
-          signature, never hardcoded. The node caps eth_getLogs at{" "}
+          signature, never hardcoded. The Chain MCP caps get_logs at{" "}
           {CHUNK_CAP.toLocaleString()} blocks per call — wider ranges scan in chunks,
           and each chunk is one real step of the run below.
         </p>
       </section>
 
-      {/* 02 · Run — the sonar sweep: one bar, one chunk per real eth_getLogs call */}
+      {/* 02 · Run — the sonar sweep: one bar, one chunk per real Chain MCP get_logs call */}
       {loading && (
         <SonarSweep
           title={`Watching ${scanLabel}`}
@@ -892,15 +881,15 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
             }
             subline={
               liveRows.length > 0
-                ? `${liveRows.length} caught live after you started watching · ${histRows.length} historical. Scanned blocks ${fmt(meta.from)} → ${fmt(meta.to)} on the Atlantic testnet.`
-                : `${histRows.length} historical ${histRows.length === 1 ? "event" : "events"} in blocks ${fmt(meta.from)} → ${fmt(meta.to)} on the Atlantic testnet. Nothing new landed while you watched.`
+                ? `${liveRows.length} caught live after you started watching · ${histRows.length} historical. Scanned blocks ${fmt(meta.from)} → ${fmt(meta.to)} on Pharos mainnet.`
+                : `${histRows.length} historical ${histRows.length === 1 ? "event" : "events"} in blocks ${fmt(meta.from)} → ${fmt(meta.to)} on Pharos mainnet. Nothing new landed while you watched.`
             }
             rows={[
               {
                 label: "Contract",
                 value: (
                   <a
-                    href={`${EXPLORER_ADDRESS}${meta.contract}`}
+                    href={`${MAINNET_EXPLORER_ADDRESS}${meta.contract}`}
                     target="_blank"
                     rel="noreferrer"
                     title={meta.contract}
@@ -923,7 +912,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
             links={[
               {
                 label: "View contract on the explorer",
-                href: `${EXPLORER_ADDRESS}${meta.contract}`,
+                href: `${MAINNET_EXPLORER_ADDRESS}${meta.contract}`,
               },
             ]}
           />
@@ -946,7 +935,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
                 icon: <History size={15} aria-hidden />,
               },
               {
-                label: "RPC calls",
+                label: "MCP calls",
                 value: meta.chunks + 1,
                 icon: <Layers size={15} aria-hidden />,
               },
@@ -967,7 +956,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
         <EmptyState
           title="Quiet window"
           message="No events matched in this range. That's an honest answer, not an error — the contract simply emitted nothing with this signature in these blocks."
-          actionLabel="Scan the LogEmitter's real events"
+          actionLabel="Scan USDC's real Transfer events"
           onAction={() => scanPresetNow(0)}
         />
       )}
@@ -975,7 +964,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
       {/* Not started yet */}
       {!loading && !error && !results && (
         <div className="empty-panel px-5 py-6 text-sm leading-relaxed text-slate">
-          Nothing watched yet — pick a preset (the LogEmitter presets have real on-chain
+          Nothing watched yet — pick a preset (USDC has real on-chain
           events waiting) and hit <strong className="text-ink">Watch now</strong>.
           Refresh keeps the same watch session going; new arrivals are flagged Caught
           live.
@@ -983,7 +972,7 @@ export default function TryEventLogMonitor({ lamp }: { lamp: Lamp }) {
       )}
 
       <p className="text-sm text-slate">
-        Tier A — plain JSON-RPC reads on the Atlantic testnet. No wallet, no signature,
+        Tier A — real Chain MCP reads on Pharos mainnet (1672). No wallet, no signature,
         costs nothing. Click any tx hash or address to trace it on the explorer.
         LIGHTKEEPER never sees, holds, or asks for private keys.
       </p>

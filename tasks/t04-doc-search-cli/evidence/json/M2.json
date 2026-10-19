@@ -1,0 +1,24 @@
+{
+  "label": "UNVERIFIED",
+  "exit_code": 2,
+  "question": "how do I run a Pharos node on a Raspberry Pi",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_tool": "searchDocumentation",
+  "retrieved": "2026-10-19",
+  "citations": [],
+  "closest_pages": [
+    {
+      "page_title": "Validator Node Deployment",
+      "page_url": "https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment"
+    },
+    {
+      "page_title": "Pharos Testnet: Rebuild Node with Preserved Node Info",
+      "page_url": "https://docs.pharos.xyz/pharos-testnet-rebuild-node-with-preserved-node-info"
+    },
+    {
+      "page_title": "Enable AutoPruning in Pharos Node",
+      "page_url": "https://docs.pharos.xyz/enable-pruning-in-pharos-node"
+    }
+  ],
+  "note": "No good answer found. The Developer Docs MCP returned 10 result(s) but none covers this question above the relevance gate, so this tool will not improvise an answer."
+}

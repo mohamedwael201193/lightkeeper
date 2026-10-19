@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
-# T01 test suite — runs the reader against the LIVE Atlantic deployment and
-# asserts every reported value matches an INDEPENDENT on-chain read
-# (raw JSON-RPC via curl — no cast, no shared code path with the reader).
+# T01 test suite — runs the Chain-MCP reader against LIVE Pharos mainnet and
+# asserts every reported value matches an INDEPENDENT on-chain re-read
+# (raw JSON-RPC against the public mainnet RPC — no MCP, no shared code path
+# with the reader). The MCP is keyless and the mainnet RPC is public, so no
+# secrets are needed.
 set -uo pipefail
 
 TASK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PATH="$HOME/.foundry/bin:$PATH"
-set -a; source ~/workspace/lightkeeper/.env; set +a; set +a
-
-RPC="$ATLANTIC_RPC_URL"
-CONTRACT="$(python3 -c "import json;print(json.load(open('$TASK_DIR/deployment.json'))['contract'])")"
-KEEPER="0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+RPC="https://rpc.pharos.xyz"
+CONTRACT="0xc879c018db60520f4355c26ed1a6d572cdac1815"
 PASS=0; FAIL=0
 MANIFEST="$TASK_DIR/evidence/run-manifest.json"
+export MANIFEST
 
 ok()   { PASS=$((PASS+1)); echo "  PASS: $*"; }
 bad()  { FAIL=$((FAIL+1)); echo "  FAIL: $*"; }
 
-echo "═══ T01 TESTS — live Atlantic reads ═══"
+echo "═══ T01 TESTS — live Chain MCP reads, independent RPC verification ═══"
 
 echo "── [1] reader runs clean and emits a manifest"
 if "$TASK_DIR/bin/read-contract-state.sh" --manifest "$MANIFEST" >/tmp/t01-out.txt 2>&1; then
@@ -25,66 +24,61 @@ if "$TASK_DIR/bin/read-contract-state.sh" --manifest "$MANIFEST" >/tmp/t01-out.t
 else bad "reader exit $?"; fi
 [[ -s "$MANIFEST" ]] && ok "manifest exists and non-empty" || bad "manifest missing/empty"
 
+echo "── [2] manifest proves MCP routing (no raw-RPC calls)"
+python3 - "$MANIFEST" <<'EOF'
+import json,sys
+m=json.load(open(sys.argv[1]))
+tools=set(m.get("mcpToolsCalled",[]))
+need={"get_chain_info","get_code","get_block_number","eth_call"}
+assert need<=tools, f"missing MCP tools: {need-tools}"
+assert m.get("rawRpcCalls")==0, "rawRpcCalls != 0"
+assert m.get("mcpEndpoint")=="https://mcp.pharos.xyz/mcp", "wrong endpoint"
+assert m.get("chainId")==1672, "wrong chain"
+print("  PASS: manifest records MCP endpoint + 4 MCP tools, rawRpcCalls=0")
+EOF
+[[ $? -eq 0 ]] && ok "manifest MCP-routing proof" || bad "manifest MCP-routing proof"
+
 BLOCK="$(python3 -c "import json;print(json.load(open('$MANIFEST'))['blockReadAt'])")"
-echo "── [2] independent re-reads at pinned block $BLOCK (raw JSON-RPC, python+urllib — no cast)"
-export TASK_DIR
-python3 - <<'EOF'
-import json,urllib.request,os
-from Crypto.Hash import keccak
-rpc=os.environ["ATLANTIC_RPC_URL"]
-m=json.load(open(os.environ["TASK_DIR"]+"/evidence/run-manifest.json"))
-contract=m["contract"]; block=hex(m["blockReadAt"])
-keeper="0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
-def sel(sig):
-    return "0x"+keccak.new(digest_bits=256,data=sig.encode()).hexdigest()[:8]
-def call(data):
-    req=urllib.request.Request(rpc,data=json.dumps(
-     {"jsonrpc":"2.0","id":1,"method":"eth_call",
-      "params":[{"to":contract,"data":data},block]}).encode(),
-     headers={"content-type":"application/json"})
-    return json.load(urllib.request.urlopen(req))["result"]
+echo "── [3] independent re-reads at pinned block $BLOCK (raw JSON-RPC, python+urllib — no MCP)"
+RPC="$RPC" CONTRACT="$CONTRACT" BLOCK="$BLOCK" python3 - <<'EOF'
+import json,urllib.request,os,time
+rpc=os.environ["RPC"]; contract=os.environ["CONTRACT"]; block=hex(int(os.environ["BLOCK"]))
+def call(data, attempts=3):
+    last=None
+    for i in range(attempts):
+        try:
+            req=urllib.request.Request(rpc,data=json.dumps(
+             {"jsonrpc":"2.0","id":1,"method":"eth_call",
+              "params":[{"to":contract,"data":data},block]}).encode(),
+             headers={"content-type":"application/json"})
+            return json.load(urllib.request.urlopen(req,timeout=30))["result"]
+        except Exception as e:
+            last=e
+            if i < attempts-1: time.sleep(2*(i+1))
+    raise last
+def dec_str(h):
+    b=bytes.fromhex(h[2:]); o=int.from_bytes(b[:32],"big"); ln=int.from_bytes(b[o:o+32],"big")
+    return b[o+32:o+32+ln].decode()
 passed=failed=0
 def check(name,cond,detail=""):
     global passed,failed
     if cond: passed+=1; print(f"  PASS: {name}")
     else: failed+=1; print(f"  FAIL: {name} {detail}")
-check("totalLamps == 3", int(call(sel("totalLamps()")),16)==3)
-r=call(sel("keeper()")); check("keeper == deployer", "0x"+r[-40:].lower()==keeper.lower(), r)
-r=call(sel("realmName()"))
-ln=int(r[2+64:2+128],16); s=bytes.fromhex(r[2+128:2+128+ln*2]).decode()
-check("realmName == 'Atlantic Deep'", s=="Atlantic Deep", repr(s))
-check("decimals == 6", int(call(sel("decimals()")),16)==6)
-pad=keeper[2:].lower().rjust(64,"0")
-check("lampBalanceOf(keeper) == 3000000", int(call(sel("lampBalanceOf(address)")+pad),16)==3000000)
-for i in range(3):
-    r=call(sel("lampBearer(uint256)")+("%064x"%i))
-    check(f"lampBearer({i}) == keeper", "0x"+r[-40:].lower()==keeper.lower(), r)
-v={x["name"]:x["decoded"] for x in m["values"]}
-check("manifest decoded values agree (8/8)",
-      v["totalLamps"]=="3" and v["keeper"]==keeper and v["realmName"]=="Atlantic Deep"
-      and v["decimals"]=="6" and v["lampBalanceOf(keeper)"]=="3000000"
-      and all(v[f"lampBearer({i})"]==keeper for i in range(3)))
-print(f"SECTION2: {passed} passed, {failed} failed")
+check("name() decodes", dec_str(call("0x06fdde03"))=="USDC")
+check("symbol() == USDC", dec_str(call("0x95d89b41"))=="USDC")
+check("decimals() == 6", int(call("0x313ce567"),16)==6)
+check("totalSupply() > 0", int(call("0x18160ddd"),16)>0)
+m=json.load(open(os.environ.get("MANIFEST","")))
+v={x["name"]:x for x in m["values"]}
+check("manifest name agrees", v["name"]["decoded"]=="USDC")
+check("manifest symbol agrees", v["symbol"]["decoded"]=="USDC")
+check("manifest decimals agrees", v["decimals"]["decoded"]=="6")
+check("manifest totalSupply agrees",
+      v["totalSupply"]["decoded"]==str(int(call("0x18160ddd"),16)))
+print(f"SECTION3: {passed} passed, {failed} failed")
 raise SystemExit(1 if failed else 0)
 EOF
-[[ $? -eq 0 ]] && ok "section 2: all independent re-reads match" || bad "section 2 had failures"
-
-echo "── [3] mapping storage-slot layout verified independently"
-python3 - <<'EOF'
-import json,urllib.request,os
-from Crypto.Hash import keccak
-keeper="f76e6b0920e9332ff4410f6dd53f01722abc71a3".rjust(64,"0")
-slot=keccak.new(digest_bits=256,data=bytes.fromhex(keeper+"4".rjust(64,"0"))).hexdigest()
-m=json.load(open(os.environ["TASK_DIR"]+"/evidence/run-manifest.json"))
-block=hex(m["blockReadAt"])
-req=urllib.request.Request(os.environ["ATLANTIC_RPC_URL"],data=json.dumps(
- {"jsonrpc":"2.0","id":1,"method":"eth_getStorageAt",
-  "params":[m["contract"],"0x"+slot,block]}).encode(),headers={"content-type":"application/json"})
-val=int(json.load(urllib.request.urlopen(req))["result"],16)
-assert val==3000000, val
-print("  PASS: eth_getStorageAt(keccak256(keeper||slot4)) == 3000000")
-EOF
-[[ $? -eq 0 ]] || bad "slot verification"
+[[ $? -eq 0 ]] && ok "section 3: all independent re-reads match" || bad "section 3 had failures"
 
 echo "── [4] negative path fails loudly"
 if "$TASK_DIR/bin/read-contract-state.sh" --negative >/tmp/t01-neg.txt 2>&1; then

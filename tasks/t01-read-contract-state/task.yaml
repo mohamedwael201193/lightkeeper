@@ -4,11 +4,17 @@ difficulty: Easy
 points: 50
 toolkit: Chain MCP
 status: shipped
-contract: 0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD
-chain_id: 688689
-deploy_tx: 0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b
-proof_kind: live-tx + explorer + transcript
+contract: 0xc879c018db60520f4355c26ed1a6d572cdac1815
+chain_id: 1672
+mcp_endpoint: https://mcp.pharos.xyz/mcp
+mcp_server: pharos-mcp-server 0.1.0
+mcp_tools:
+  - get_chain_info
+  - get_code
+  - get_block_number
+  - eth_call
+proof_kind: live Chain MCP tool calls + explorer + transcript + per-run manifest
 video: PENDING-VIDEO
 no_mock_attestation: true
-spend_phrs: 0.00039961
+spend_phrs: 0
 budget_phrs: 0.15

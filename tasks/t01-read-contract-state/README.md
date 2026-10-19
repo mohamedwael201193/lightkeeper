@@ -1,164 +1,180 @@
 <div align="center" style="background:#1414c8;padding:48px 24px;border-radius:4px;">
 <h1 style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;letter-spacing:0.35em;font-size:42px;margin:0;">T01 · READ CONTRACT STATE</h1>
 <p style="color:#ffffff;font-style:italic;font-size:18px;margin:16px 0 0;">The keeper reads the stone before lighting the lamp.</p>
-<p style="color:#b9c2f5;font-size:13px;margin:12px 0 0;">LIGHTKEEPER · Lamp 1 of 28 · Pharos Agent Arena · Atlantic testnet</p>
+<p style="color:#b9c2f5;font-size:13px;margin:12px 0 0;">LIGHTKEEPER · Lamp 1 of 28 · Pharos Agent Arena · Pharos mainnet · Chain MCP</p>
 </div>
 
 ## 1 · The 30-second verdict
 
-A contract-state reader that reads **8 typed values** from one live contract on
-Pharos Atlantic, **all pinned to a single block**, with raw hex, decoded values,
-human formatting (decimals read from the contract itself), address labels, and
-an independently-verified storage-slot proof. Failure states fail loudly —
-never silent zeros.
+A contract-state reader that reads **4 typed values** from a live mainnet
+contract — **every read is a Chain MCP `tools/call` by name**
+(`get_chain_info`, `get_code`, `get_block_number`, `eth_call`) against the
+hosted MCP at `https://mcp.pharos.xyz/mcp`. All values are pinned to a single
+block, shown with raw hex, decoded values, human formatting (decimals read
+from the contract itself), and address labels. Failure states fail loudly —
+never silent zeros. **Zero raw JSON-RPC calls** against any RPC URL.
 
-- **Contract:** `KeeperRegistry` `0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD`
-  ([explorer](https://atlantic.pharosscan.xyz/address/0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD))
-- **Deploy tx:** `0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b`
-  ([explorer](https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b))
-- **Chain:** Pharos Atlantic testnet, chain ID **688689** (asserted before every run)
-- **Cost:** 0.00039961 PHRS (1 deploy tx; all reads free) — budget was 0.15
-- **Proof:** live transcript + per-run evidence manifest + explorer links (all curl-verified 200)
+- **Contract:** USDC `0xc879c018db60520f4355c26ed1a6d572cdac1815`
+  ([explorer](https://pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815))
+  — a real token real users hold, read on the chain the hosted MCP serves.
+- **Chain:** Pharos mainnet, chain ID **1672** (asserted via MCP
+  `get_chain_info` before every run).
+- **MCP:** `pharos-mcp-server 0.1.0`, keyless Streamable HTTP
+  (`initialize` → session header → `tools/call`).
+- **Cost:** 0 PHRS — all reads are free; no deployment, no transactions.
+- **Proof:** live transcript + per-run evidence manifest recording the MCP
+  endpoint, tool names, pinned block, git commit and dirty flag.
 
-## 2 · Which contract
+## 2 · Requirements → evidence
 
-`KeeperRegistry` (`src/KeeperRegistry.sol`) — a minimal typed-state contract
-deployed for this task. It holds four plain state variables and two mappings:
+| # | Official Arena requirement | How this submission meets it | Evidence |
+|---|---|---|---|
+| 1 | Read ≥3 different values from one contract **via Chain MCP** | 4 values from one contract — `name()` (string), `symbol()` (string), `decimals()` (uint8), `totalSupply()` (uint256) — each read as an MCP `tools/call` named `eth_call`. No `eth_*` call is ever made against an RPC URL. | `bin/read-contract-state.py` (`read_view`); manifest `mcpToolsCalled`; `sample-output/transcript-live.txt` |
+| 2 | Show contract address + block number read at | Every run prints the contract address and the pinned block; all 4 reads carry that block. | Transcript header; manifest `blockReadAt` |
+| 3 | Format raw values for humans (decimals applied, addresses labelled) | `decimals()` is read **from the contract itself (6)** — never assumed — and `totalSupply` renders as `43,376,165.573737 USDC`. Addresses are checksummed and labelled via `config/labels.json`; the zero address is special-cased; unknown addresses print `unlabeled address` — never a made-up label. | Transcript `human` lines; `config/labels.json` |
+| 4 | Short README (which contract, how to run, sample output) | This file: contract + explorer link (§1), one-command run (§4), real sample output (§5). | — |
 
-| # | Name | Type | Slot | Meaning |
-|---|---|---|---|---|
-| 1 | `totalLamps` | `uint256` | 0 | counter — 3 |
-| 2 | `keeper` | `address` | 1 | owner = deployer |
-| 3 | `realmName` | `string` | 2 | `"Atlantic Deep"` |
-| 4 | `decimals` | `uint8` | 3 | 6 — human-formatting scale |
-| 5 | `lampBalanceOf` | `mapping(address=>uint256)` | 4 | keeper → 3.000000 lamps |
-| 6 | `lampBearer` | `mapping(uint256=>address)` | 5 | lamp 0/1/2 → keeper |
+## 3 · Which contract
 
-The constructor seeds **all** state, so the task spends exactly **one**
-transaction; everything afterwards is free `eth_call` reads.
+USDC on Pharos mainnet (`0xc879c018db60520f4355c26ed1a6d572cdac1815`,
+code length 1798 bytes, verified via MCP `get_code`). The hosted Chain MCP
+serves mainnet (chain 1672) only, so the task reads where the MCP reads —
+a production token instead of a test deployment.
 
-## 3 · How to run
+| # | Value | Type | Selector |
+|---|---|---|---|
+| 1 | `name` | `string` | `0x06fdde03` → `"USDC"` |
+| 2 | `symbol` | `string` | `0x95d89b41` → `"USDC"` |
+| 3 | `decimals` | `uint8` | `0x313ce567` → `6` |
+| 4 | `totalSupply` | `uint256` | `0x18160ddd` → `43376165573737` raw → `43,376,165.573737 USDC` |
 
-Prerequisites: Foundry (`cast` 1.8.5) on PATH, `ATLANTIC_RPC_URL` set
-(public: `https://atlantic.dplabs-internal.com`). No private key needed —
-reading is keyless.
+## 4 · How to run
+
+Prerequisites: Python 3 + `requests` (stdlib otherwise). No API key, no
+private key, no RPC URL — the Chain MCP is keyless. No install step.
 
 ```bash
 # read everything, pretty-printed, with a per-run evidence manifest
 bin/read-contract-state.sh --manifest evidence/run-manifest.json
 
 # pin a historical block instead of latest
-bin/read-contract-state.sh --block 31481260
+bin/read-contract-state.sh --block 20686000
+
+# read a different contract (any mainnet address with code)
+bin/read-contract-state.sh --contract 0x...
 
 # negative-path suite (no-code address + unknown selector): both must fail loudly
 bin/read-contract-state.sh --negative
 
-# test suite: reader vs INDEPENDENT raw-JSON-RPC re-reads + slot proof + gates
+# test suite: reader vs INDEPENDENT raw-JSON-RPC re-reads + gates
 bash test/run-tests.sh
 ```
 
-The script asserts **chain ID 688689 first** and aborts on mismatch; checks the
-address holds bytecode; pins one block; then issues all `eth_call`s at that
-block.
+The script asserts **chain ID 1672 via MCP `get_chain_info` first** and aborts
+on mismatch; checks the address holds bytecode via MCP `get_code`; pins one
+block via MCP `get_block_number`; then issues all `eth_call`s at that block —
+each one an MCP `tools/call` by name.
 
-## 4 · Sample output (real — from the live deployment)
+## 5 · Sample output (real — live Chain MCP, 2026-10-19)
 
 ```
-═══ LIGHTKEEPER · T01 · READ CONTRACT STATE ═══
-contract         0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD  (KeeperRegistry contract (this task's deployment))
-chain            688689 (Pharos Atlantic testnet) — asserted
-block read at    31481725  (hash 0x…)
-tool             cast 1.8.5 eth_call (same JSON-RPC primitive as Chain MCP eth_call)
-deploy tx        0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b
-▸ totalLamps   · uint256   · selector 0x186c42b7   · storage slot 0
-    raw     0x0000…0003      decoded 3            human 3 lamps
-▸ keeper   · address   · selector 0xaced1661   · storage slot 1
-    raw     0x0000…71a3      decoded 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
-    human   keeper — deployer (LIGHTKEEPER Atlantic wallet)
-▸ realmName   · string   · selector 0x7938b0e4   · storage slot 2
-    decoded "Atlantic Deep"   human "Atlantic Deep"
-▸ decimals   · uint8   · selector 0x313ce567   · storage slot 3
-    decoded 6   human 6 decimals   (read from chain — never assumed)
-▸ lampBalanceOf(keeper)   · mapping→uint256   · selector 0x05319364   · slot 4 (keyed)
-    decoded 3000000   human 3.000000 lamps
-    note    VERIFIED: eth_getStorageAt(keccak256(keeper ++ slot4)) == view result
-▸ lampBearer(0..2)   · mapping→address   · selector 0xfde97eee   · slot 5 (keyed)
-    human   keeper — deployer (LIGHTKEEPER Atlantic wallet)  (×3)
-values read: 8 · failures: 0 (any failure aborts loudly)
+mcp              https://mcp.pharos.xyz/mcp
+mcp server       pharos-mcp-server 0.1.0
+chain            1672 (Pharos mainnet) — asserted via get_chain_info
+contract         0xc879c018db60520f4355c26ed1a6d572cdac1815  (USDC — Pharos mainnet stablecoin (real token real users hold))
+code length      1798 bytes — get_code non-empty
+block read at    20686894  (all reads pinned here)
+═══ LIGHTKEEPER · T01 · READ CONTRACT STATE (Chain MCP) ═══
+▸ name        · string  · selector 0x06fdde03
+    raw     0x000000000000000000…00000000
+    decoded USDC
+    human   "USDC"
+▸ symbol      · string  · selector 0x95d89b41
+    raw     0x000000000000000000…00000000
+    decoded USDC
+    human   "USDC"
+▸ decimals    · uint8   · selector 0x313ce567
+    raw     0x000000000000000000…00000006
+    decoded 6
+    human   6 — human-formatting scale (read from the contract, never assumed)
+▸ totalSupply · uint256 · selector 0x18160ddd
+    raw     0x000000000000000000…4cf0d469
+    decoded 43376165573737
+    human   43,376,165.573737 USDC
+reads            4 values · 4 MCP tools (eth_call, get_block_number, get_chain_info, get_code) · 0 raw-RPC calls
+manifest         evidence/run-manifest.json
 ```
 
 Full transcript: `sample-output/transcript-live.txt`.
 
-## 5 · Reading & decoding notes
+## 6 · Reading & decoding notes
 
-- **Block pinning.** `get_block_number` → every `eth_call` carries that block
-  tag, so "block read at" is honest — no drift between the 8 reads.
+- **Real MCP protocol.** `src/mcp_client.py` speaks Streamable HTTP:
+  `initialize` (protocol `2025-03-26`) → captures the `mcp-session-id`
+  response header → `notifications/initialized` → `tools/call` with the
+  `Mcp-Session-Id` header on every call. SSE `data:` frames are parsed and
+  matched by request id; the inner `content[0].text` JSON is decoded.
+  Sessions are reused per process and re-handshaked on `-32000`.
+- **Block pinning.** `get_block_number` → every `eth_call` carries that block,
+  so "block read at" is honest — no drift between the 4 reads.
 - **Decimals are read, not assumed.** `decimals()` returns 6 from chain; the
-  human balance is `raw / 10^decimals` computed with integer arithmetic.
-- **Address labels.** `config/labels.json` maps known addresses to labels
-  (checksummed comparison); the zero address is special-cased; anything else
-  prints `unlabeled address` — never a made-up label.
-- **Mapping slot proof.** `lampBalanceOf` lives at slot 4; the reader recomputes
-  `keccak256(abi.encode(keeper, 4))` off-chain and shows
-  `eth_getStorageAt` returning the identical 3000000 — the decoding isn't
-  asserted, it's *demonstrated*.
-- **Chain MCP mapping.** Each read is one JSON-RPC `eth_call` — the same
-  primitive as Chain MCP's `eth_call` tool (the 13-tool set: `get_chain_info`,
-  `get_block_number`, `get_block`, `get_gas_price`, `get_balance`,
-  `get_transaction_count`, `get_transaction`, `get_transaction_receipt`,
-  `eth_call`, `estimate_gas`, `get_code`, `get_storage_at`, `get_logs`,
-  `send_raw_transaction`). Honest note: the public hosted Chain MCP serves
-  **mainnet only**, so Atlantic reads go direct-RPC with identical semantics —
-  stated in the output, not hidden.
+  human supply is `raw / 10^decimals` with integer arithmetic.
+- **Reverts surface inside the tool result.** An unknown selector does not
+  raise at the MCP layer — the EVM revert arrives as
+  `{"error": {"message": "execution reverted: ", ...}}` inside a successful
+  tool result. The reader treats that as a loud `ERROR`, never a value.
+- **Address labels.** `config/labels.json` maps known addresses to labels;
+  the zero address is special-cased; anything else prints
+  `unlabeled address` — never a made-up label.
 
-## 6 · Failure modes (first-class, never silent)
+## 7 · Failure modes (first-class, never silent)
 
 | Trigger | Behavior |
 |---|---|
 | Wrong chain ID | abort, `chain-id mismatch … refusing to read the wrong network` |
-| No-code address | abort, `no contract code at …` (verified in `--negative` case A) |
-| Unknown selector | `eth_call` reverts → `ERROR`, never a fabricated value (case B) |
+| No-code address | abort, `no contract code at …` (verified in `--negative` case A via `get_code`) |
+| Unknown selector | on-chain `execution reverted` → `ERROR`, never a fabricated value (case B) |
 | View returns empty `0x` | treated as failure, not zero |
-| RPC failure | abort with `ERROR`, exit non-zero |
+| MCP/session failure | abort with `ERROR`, exit non-zero |
 
 `bin/read-contract-state.sh --negative` runs cases A+B and passes only if both
 fail loudly (2/2). Transcript: `sample-output/transcript-negative.txt`.
 
-## 7 · Tests
+## 8 · Tests
 
-`test/run-tests.sh` (5 groups, all against the live deployment):
+`test/run-tests.sh` (5 groups, all live — no mocks, no secrets needed):
 
 1. Reader runs clean and emits a manifest.
-2. **Independent re-reads**: raw `curl` JSON-RPC `eth_call` at the pinned block
-   (no `cast`, no shared code path) for all 8 values, byte-compared; manifest
-   decoded values asserted equal.
-3. Mapping slot layout re-verified independently
-   (`eth_getStorageAt(keccak256(keeper‖slot4)) == 3000000`).
+2. **Manifest proves MCP routing**: asserts `mcpEndpoint`,
+   `mcpToolsCalled ⊇ {get_chain_info, get_code, get_block_number, eth_call}`,
+   and `rawRpcCalls == 0`.
+3. **Independent re-reads**: raw JSON-RPC `eth_call` against the public
+   mainnet RPC (no MCP, no shared code path) at the pinned block — all 4
+   values byte-compared; manifest decoded values asserted equal.
 4. Negative path: suite passes + direct no-code-address read aborts.
 5. Chain-id gate: `EXPECT_CHAIN_ID=1` aborts.
 
-Result: **PASS** (see `evidence.md` for the run log).
+Result: **7/7 groups PASS** (15 individual checks).
 
-## 8 · Files & evidence index
+## 9 · Files & evidence index
 
 | Path | What |
 |---|---|
-| `src/KeeperRegistry.sol` | the state contract |
-| `script/DeployKeeper.s.sol` | forge deploy script (see note below) |
-| `bin/read-contract-state.sh` | the reader CLI |
+| `src/mcp_client.py` | minimal Streamable-HTTP MCP client (stdlib + `requests`) |
+| `bin/read-contract-state.py` | the reader (all reads = MCP `tools/call` by name) |
+| `bin/read-contract-state.sh` | one-command entry point (delegates to the reader) |
 | `config/labels.json` | address → human labels |
-| `deployment.json` | contract, deploy tx, block, explorer links |
-| `evidence/run-manifest.json` | generated per-run evidence manifest |
-| `evidence.md` / `evidence.json` | evidence packet + spend log |
+| `evidence/run-manifest.json` | generated per-run manifest (endpoint, tools, block, commit, dirty) |
 | `sample-output/transcript-live.txt` | real terminal transcript |
 | `sample-output/transcript-negative.txt` | negative-path transcript |
 | `test/run-tests.sh` | live test suite |
-| `SUBMISSION.md` / `VIDEO-GUIDE.md` | arena pack + filming guide |
+| `REQUIREMENTS.md` | official requirements, quoted verbatim, with the mapping |
+| `SUBMISSION.md` | arena submission pack (copy-paste) |
 
-**Deploy note (honest):** the task spec asks for a `forge script` deploy, but
-`forge script`'s on-chain simulation passes the block number as a raw JSON
-number, which the Atlantic RPC rejects (`PARAM_VERIFY_ERROR: failed to parse
-block hash or number` — verified with isolated probes). The deployment was
-therefore done with `forge create --broadcast` — a single signed transaction,
-nonce-safe under `flock /tmp/lk-nonce.lock`. The script file is kept as the
-canonical deploy recipe; this RPC quirk is documented, not hidden.
+**History note (honest):** v1 of this task (2026-10-16) read a purpose-deployed
+`KeeperRegistry` contract on Pharos Atlantic via direct RPC and was returned by
+reviewers with "Switch the reads to Chain MCP (mainnet is fine)". v2
+(2026-10-19) is a full rebuild: every read is a genuine Chain MCP tool call,
+on the chain the hosted MCP serves. The v1 Atlantic deployment
+(`0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD`) remains on-chain and untouched;
+nothing about it is claimed here.

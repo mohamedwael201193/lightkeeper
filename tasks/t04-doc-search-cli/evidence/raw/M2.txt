@@ -1,0 +1,71 @@
+Title: Validator Node Deployment
+Link: https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment
+Content: Before running a Validator Node or Validator Full Node (VFN) on the Pharos Network, you must choose a deployment method and ensure your machine meets the required specifications.
+
+This guide provides clear instructions for deploying nodes using different methods. Once deployed, you can connect your node to the Pharos network and begin participating in consensus or network operations.
+
+📘 Note: Please review the Node Requirements before choosing a deployment method.
+Title: Pharos Testnet: Rebuild Node with Preserved Node Info
+Link: https://docs.pharos.xyz/pharos-testnet-rebuild-node-with-preserved-node-info
+Content: docker stop pharos-testnet
+
+Replace new config with the backup node info:
+
+rm -rf /data/testnet/pharos-node/domain/light/data/
+rm -rf /data/testnet/pharos-node/domain/light/certs/
+rm -rf /data/testnet/resources/
+mv /data/testnet_bak/pharos-node/domain/light/data/ /data/testnet/pharos-node/domain/light/data/
+mv /data/testnet_bak/pharos-node/domain/light/certs/ /data/testnet/pharos-node/domain/light/certs/
+mv /data/testnet_bak/resources/ /data/testnet/resources/
+Title: Enable AutoPruning in Pharos Node
+Link: https://docs.pharos.xyz/enable-pruning-in-pharos-node
+Content: Check if the node is running:
+
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+  http://localhost:18100
+Title: Node Configuration
+Link: https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/node-configuration
+Content: Tracedb Node
+trace_filter can only be served by tracedb node. debug_traceBlockByHash, debug_traceBlockByNumber, debug_traceTransaction should be preferentially scheduled to tracedb node.
+RPC Node
+Interfaces other than trace/debug can be scheduled to regular RPC nodes.
+Fullnode
+Can be scheduled as a regular RPC node.
+Validator Node
+Do not schedule any JSON-RPC requests, only handle transactions forwarded from other RPC nodes.
+Title: Rapid Node Initialization(Devnet)
+Link: https://docs.pharos.xyz/node-and-validator-guide/rapid-node-initialization/rapid-node-initialization-devnet
+Content: docker stop pharos-devnet
+
+Make sure the node is fully stopped before continuing to avoid data corruption.
+Title: Pharos Skill Engine
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide
+Content: Understanding how the Skill Engine works helps both users who want to use it and developers who want to build new skills. The system has three layers.
+Title: About Pharos
+Link: https://docs.pharos.xyz/introduction/readme
+Content: Pharos has designed a Modular & Full-stack Parallel L1 Blockchain Network, structured into three primary layers: L1-Base, L1-Core, and L1-Extension.
+
+L1-Base: Delivers industry-leading data availability and hardware acceleration.
+L1-Core: A high-performance, globally distributed blockchain network powered by decentralized nodes. These nodes provide high-throughput and sub-second finality, enabling real-time Web3 user experiences.
+L1-Extension: Built on top of L1-Core, this layer supports network expansion across three dimensions:
+Leverages heterogeneous computation to create custom Special Processing Networks (SPNs), capable of running blockchain networks, sidechains, or non-blockchain applications like HFT, ZKML, and AI models.
+Enables Native Restaking to support rapid SPN creation, shared security, staking rewards, and slashing mechanisms. SPNs utilize the excess computing power of validators, providing flexibility in resource use while incentivizing upgrades.
+Facilitates Cross-SPNs Interoperation, allowing infrastructure, middleware, and application-focused SPNs to communicate and collaborate effortlessly, fostering a highly modular and composable ecosystem.
+Title: Node Management
+Link: https://docs.pharos.xyz/node-and-validator-guide/node-management
+Content: Complete the Docker Compose setup for your network using the deployment guide linked below. To create and start the container for the first time, run this from the workspace containing docker-compose.yml:
+
+docker compose up -d
+
+Use docker-compose up -d if your installation uses the standalone Compose command.
+
+If the container already exists but is stopped, use the matching docker start command below.
+Title: Piggy Bank Tutorial
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide
+Content: A Pharos Skill is a folder of files that teaches an AI (Claude) how to interact with the Pharos blockchain. When you ask the AI something like "Deploy a vault on Pharos", it reads your skill files to know exactly which commands to run.
+
+The AI is smart but it does not automatically know your contract. You teach it by writing instruction files in plain Markdown. The AI reads those files and follows them precisely.
+Title: Pharos Node Monitoring
+Link: https://docs.pharos.xyz/pharos-node-monitoring
+Content: We recommend deploying Prometheus, Pushgateway, and Grafana to monitor Pharos Node metrics.

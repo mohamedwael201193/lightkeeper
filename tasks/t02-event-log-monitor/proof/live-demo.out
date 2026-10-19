@@ -1,0 +1,23 @@
+connected: chain-mcp @ https://mcp.pharos.xyz/mcp (chain 1672)
+2026-10-19T20:03:27+0000 monitor started: chain=pharos-mainnet(1672) contract=USDC tool=chain-mcp:get_logs confirm_lag=2 interval=5s cursor=20686973
+2026-10-19T20:03:30+0000 cycle done: scanned to 20686989, 0 new event(s) this cycle
+2026-10-19T20:03:38+0000 cycle done: scanned to 20686998, 0 new event(s) this cycle
+2026-10-19T20:03:47+0000 cycle done: scanned to 20687007, 0 new event(s) this cycle
+2026-10-19T20:03:55+0000 ALERT Transfer block=20687008 tx=0x11ec559e5bef8165df872da5a86bfb549b3e837befe0435386b1f4543130c8b9 from=0x77b8fd431f11e3a3d53daa5ee7c8c3645743f993 to=0xfd78ee919681417d192449715b2594ab58f5d002 value=19.998000 USDC
+2026-10-19T20:03:55+0000 ALERT Transfer block=20687008 tx=0x11ec559e5bef8165df872da5a86bfb549b3e837befe0435386b1f4543130c8b9 from=0xfd78ee919681417d192449715b2594ab58f5d002 to=0x0000000000000000000000000000000000000000 value=19.998000 USDC
+2026-10-19T20:03:55+0000 ALERT Transfer block=20687012 tx=0x1095dbe4ba70f14afb52054226fa8723715cc56bedf2e4835107d9a19e0fd96f from=0x936564245b69f5a293b42cbd752e0ee3bb68b470 to=0x912c9ade24d44d8922f0866d8dcb079f1363f647 value=78.486418 USDC
+2026-10-19T20:03:55+0000 cycle done: scanned to 20687017, 3 new event(s) this cycle
+2026-10-19T20:04:03+0000 ALERT Transfer block=20687018 tx=0x65d5dd4bc81ec79f87f99c1183cf0cbfa092bc01959d6f05c0d4ac4caa744d9e from=0x936564245b69f5a293b42cbd752e0ee3bb68b470 to=0x912c9ade24d44d8922f0866d8dcb079f1363f647 value=78.495210 USDC
+2026-10-19T20:04:03+0000 cycle done: scanned to 20687027, 1 new event(s) this cycle
+2026-10-19T20:04:11+0000 ALERT Transfer block=20687034 tx=0x7e188cc5af8f59cd8741b33c67b27e17944c6a3376a75325afa6252030759bc2 from=0x936564245b69f5a293b42cbd752e0ee3bb68b470 to=0x912c9ade24d44d8922f0866d8dcb079f1363f647 value=39.251676 USDC
+2026-10-19T20:04:11+0000 cycle done: scanned to 20687036, 1 new event(s) this cycle
+2026-10-19T20:04:19+0000 cycle done: scanned to 20687045, 0 new event(s) this cycle
+2026-10-19T20:04:26+0000 cycle done: scanned to 20687054, 0 new event(s) this cycle
+2026-10-19T20:04:34+0000 ALERT Transfer block=20687061 tx=0xf1aa7df9e53ef2db14a9d4b2bb9f93d681859775dd80652de59c03e9a649b735 from=0x936564245b69f5a293b42cbd752e0ee3bb68b470 to=0x912c9ade24d44d8922f0866d8dcb079f1363f647 value=39.255336 USDC
+2026-10-19T20:04:34+0000 cycle done: scanned to 20687064, 1 new event(s) this cycle
+2026-10-19T20:04:42+0000 ALERT Transfer block=20687070 tx=0x96ce00763494d455866628984067e95cec1d77db8711846170287415819556c3 from=0x936564245b69f5a293b42cbd752e0ee3bb68b470 to=0x912c9ade24d44d8922f0866d8dcb079f1363f647 value=157.027054 USDC
+2026-10-19T20:04:42+0000 cycle done: scanned to 20687073, 1 new event(s) this cycle
+2026-10-19T20:04:50+0000 cycle done: scanned to 20687082, 0 new event(s) this cycle
+2026-10-19T20:04:58+0000 cycle done: scanned to 20687091, 0 new event(s) this cycle
+2026-10-19T20:05:06+0000 cycle done: scanned to 20687100, 0 new event(s) this cycle
+2026-10-19T20:05:13+0000 cycle done: scanned to 20687108, 0 new event(s) this cycle

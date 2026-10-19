@@ -1,0 +1,15 @@
+# Atlantic Testnet
+
+## Network Information
+
+| Parameter              | Value                                  |
+| ---------------------- | -------------------------------------- |
+| RPC Public Endpoint    | <https://atlantic.dplabs-internal.com> |
+| WSS Public Endpoint    | <wss://atlantic.dplabs-internal.com>   |
+| Explorer               | <https://atlantic.pharosscan.xyz/>     |
+| ChainID                | 688689                                 |
+| Environment            | Atlantic Testnet                       |
+| Ratelimit              | 500 times/5m                           |
+| Max Pending TXs (Addr) | 64                                     |
+
+> For the current node binary and Docker image versions, see [Current Node Versions](/node-and-validator-guide/validator-node-deployment#current-node-versions).

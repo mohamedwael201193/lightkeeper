@@ -1,0 +1,176 @@
+Title: Piggy Bank Tutorial
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide
+Content: A Pharos Skill is a folder of files that teaches an AI (Claude) how to interact with the Pharos blockchain. When you ask the AI something like "Deploy a vault on Pharos", it reads your skill files to know exactly which commands to run.
+
+The AI is smart but it does not automatically know your contract. You teach it by writing instruction files in plain Markdown. The AI reads those files and follows them precisely.
+Title: Rust
+Link: https://docs.pharos.xyz/developer-guide/rust
+Content: This guide is suitable for developers who want to start building dApps using Pharos and Rust WASM toolchains. If you are a new user of Ethereum, please consider researching the Ethereum documentation before continuing.
+
+This guide will walk you through the process of creating and deploying your first token on the Pharos blockchain using Rust and WASM toolchains. By the end of this guide, you will have a fully functional token contract and understand how to interact with it.
+Title: Validator Node Deployment
+Link: https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment
+Content: Before running a Validator Node or Validator Full Node (VFN) on the Pharos Network, you must choose a deployment method and ensure your machine meets the required specifications.
+
+This guide provides clear instructions for deploying nodes using different methods. Once deployed, you can connect your node to the Pharos network and begin participating in consensus or network operations.
+
+📘 Note: Please review the Node Requirements before choosing a deployment method.
+Title: Pharos Skill Engine
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide
+Content: # 1. Pre-checks
+cast wallet address --private-key $PRIVATE_KEY
+cast balance $DEPLOYER --rpc-url $RPC --ether
+# 2. Run the deploy script
+forge script script/DeployMyContract.s.sol:DeployMyContract \
+  --rpc-url $RPC \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+# 3. Wait 10 seconds, then verify
+sleep 10
+forge verify-contract <contract_address> src/MyContract.sol:MyContract \
+  --chain-id 688689 \
+  --verifier-url https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract \
+  --verifier blockscout
+Title: Write Your First Uniswap Contract
+Link: https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-uniswap-contract
+Content: Set the private key:
+
+npx hardhat vars set PRIVATE_KEY
+
+Deploy the Contract:
+
+npx hardhat ignition deploy ./ignition/modules/Token.js --network pharos
+Title: Write Your First Uniswap Contract
+Link: https://docs.pharos.xyz/developer-guide/foundry/write-your-first-uniswap-contract
+Content: Create a Deployment Script:
+
+Create a new file for the deployment script:
+
+touch script/DeployUniswap.s.sol
+
+Write the Deployment Script:
+
+Open script/DeployUniswap.s.sol and add the following code:
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+import "forge-std/Script.sol";
+import "../src/Uniswap.sol";
+contract DeployUniswap is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
+        address tokenA = address(0xAA); // Replace with the address of token A
+        address tokenB = address(0xBB); // Replace with the address of token B
+        Uniswap uniswap = new Uniswap(tokenA, tokenB);
+        vm.stopBroadcast();
+    }
+}
+
+Set the private key:
+
+export PRIVATE_KEY=<your private key>
+
+Deploy the Contract:
+
+Use forge to deploy the contract to the Pharos Testnet:
+
+forge script script/DeployUniswap.s.sol --rpc-url <PHAROS_RPC_URL> --broadcast
+Title: Canonical Contracts
+Link: https://docs.pharos.xyz/getting-started/canonical-contracts
+Content: Create2Deployer
+Helper for CREATE2 opcode usage
+0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2
+Foundry Deterministic Deploy
+Integrated with Foundry for deterministic deployments
+0x4e59b44847b379578588920ca78fbf26c0b4956c
+MultiCall3
+Allows bundling multiple transactions
+0xcA11bde05977b3631167028862bE2a173976CA11
+GnosisSafe (v1.3.0)
+Multisignature wallet
+0x69f4D1788e39c87893C980c06EdF4b7f686e2938
+GnosisSafeL2 (v1.3.0)
+Events-based implementation of GnosisSafe
+0xfb1bffC9d739B8D520DaF37dF666da4C687191EA
+SafeSingletonFactory
+Safe's deterministic deployment proxy
+0x914d7Fec6aaC8cd542e72Bca78B30650d45643d7
+CreateX
+Advanced cross-chain deployment factory supporting CREATE, CREATE2, and CREATE3
+0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed
+MultiSendCallOnly (v1.3.0)
+Batches multiple transactions (calls only)
+0xA1dabEF33b3B82c7814B6D82A79e50F4AC44102B
+MultiSend (v1.3.0)
+Batches multiple transactions
+0x998739BFdAAdde7C933B942a68053933098f9EDa
+Permit2
+Next-generation token approval system
+0x000000000022D473030F116dDEE9F6B43aC78BA3
+ERC-4337 EntryPoint (v0.7)
+ERC-4337 entry point for account abstraction
+0x0000000071727De22E5E9d8BAf0edAc6f37da032
+ERC-4337 SenderCreator (v0.7)
+Helper for EntryPoint
+0xEFC2c1444eBCC4Db75e7613d20C6a62fF67A167C
+ERC-4337 EntryPoint (v0.6)
+Account abstraction entry point (v0.6); validates and executes UserOperations
+0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789
+ERC-4337 SenderCreator (v0.6)
+Helper contract used by EntryPoint v0.6 to deploy smart accounts via initCode
+0x7fc98430eAEdbb6070B35B39D798725049088348
+Title: Pharos Node Monitoring
+Link: https://docs.pharos.xyz/pharos-node-monitoring
+Content: If you have already deployed a Prometheus monitoring and alerting system, you can skip this step:
+
+Create the Prometheus namespace:
+
+kubectl create namespace prometheus
+
+Add the prometheus-community chart repository:
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+Deploy Prometheus:
+
+helm upgrade -i prometheus prometheus-community/prometheus \
+--namespace prometheus \
+--set alertmanager.persistence.storageClass="gp2" \
+--set server.persistentVolume.storageClass="gp2"
+
+Verify that all pods in the prometheus namespace are in the READY state:
+
+kubectl get pods -n prometheus
+
+Get the Pushgateway Service IP/Domain:
+
+kubectl -n prometheus-agent-namespace get svc
+
+You should see the prometheus-pushgateway Service. Save the IP address of the Pushgateway Service.
+Title: Pharos MCP
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/mcp
+Content: eth_call
+eth_call
+Read-only contract call
+estimate_gas
+eth_estimateGas
+Estimate gas without sending
+get_code
+eth_getCode
+Contract bytecode
+get_storage_at
+eth_getStorageAt
+Read a contract storage slot
+get_logs
+eth_getLogs
+Event logs (max 1000 blocks per call)
+Title: Write Your First Token
+Link: https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token
+Content: Set the private key:
+
+npx hardhat vars set PRIVATE_KEY
+
+Deploy the Contract:
+
+npx hardhat ignition deploy ./ignition/modules/Token.js --network pharos

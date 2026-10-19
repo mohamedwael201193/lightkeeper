@@ -1,1 +1,39 @@
-{"budgetPHRS":0.15,"budgetPhases":[{"action":"deploy KeeperRegistry","costPHRS":0.000399603000399603,"gasPriceWei":1000000001,"gasUsed":399603,"txHash":"0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b"},{"action":"reads (eth_call)","costPHRS":0,"note":"reads are free, no transactions"}],"chainId":688689,"chainName":"Pharos Atlantic testnet","contractAddress":"0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD","deployBlock":31481260,"deployTxHash":"0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b","explorerContract":"https://atlantic.pharosscan.xyz/address/0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD","explorerTx":"https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b","liveReads":{"blockReadAt":31481725,"decimals":6,"keeper":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","lampBalanceOfKeeper":"3000000","lampBearer":["0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"],"realmName":"Atlantic Deep","totalLamps":3},"noMockAttestation":"all values are live eth_call results from Atlantic at the pinned block; no mocks, no fixtures, no placeholders","slotCheck":"VERIFIED: eth_getStorageAt(keccak256(keeper ++ slot4)) == lampBalanceOf(keeper) view result","spendLogPHRS":0.000399603000399603,"task":"t01-read-contract-state"}
+{
+  "task": "t01-read-contract-state",
+  "version": "v2 (2026-10-19) \u2014 Chain MCP rebuild",
+  "chainId": 1672,
+  "chainName": "Pharos mainnet",
+  "contractAddress": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "contractLabel": "USDC \u2014 Pharos mainnet stablecoin",
+  "explorerContract": "https://pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "mcpEndpoint": "https://mcp.pharos.xyz/mcp",
+  "mcpServer": "pharos-mcp-server 0.1.0",
+  "mcpToolsCalled": [
+    "eth_call",
+    "get_block_number",
+    "get_chain_info",
+    "get_code"
+  ],
+  "rawRpcCalls": 0,
+  "liveReads": {
+    "blockReadAt": 20686894,
+    "name": "USDC",
+    "symbol": "USDC",
+    "decimals": 6,
+    "totalSupply": "43376165573737",
+    "totalSupplyHuman": "43,376,165.573737 USDC"
+  },
+  "negativePaths": {
+    "noCodeAddress": "get_code returns 0x -> loud abort (verified)",
+    "unknownSelector": "eth_call returns on-chain execution reverted -> loud ERROR (verified)"
+  },
+  "noMockAttestation": "all values are live Chain MCP eth_call tool results from Pharos mainnet at the pinned block; no mocks, no fixtures, no placeholders; zero raw JSON-RPC calls",
+  "spendLogPHRS": 0,
+  "budgetPHRS": 0.15,
+  "testSuite": "test/run-tests.sh \u2014 7/7 groups PASS (15 checks), 2026-10-19",
+  "v1History": {
+    "note": "v1 (2026-10-16) read a purpose-deployed KeeperRegistry on Pharos Atlantic via direct RPC; returned by reviewers ('Switch the reads to Chain MCP (mainnet is fine)'). Records kept as history, not claimed as current.",
+    "contract": "0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD",
+    "deployTx": "0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b"
+  }
+}

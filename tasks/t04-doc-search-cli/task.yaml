@@ -6,51 +6,49 @@ difficulty: Easy
 base_points: 50
 video_bonus: 50
 toolkit: Developer Docs MCP
-status: built
-commit: 58ed09028eed0914f1afc9c2ce0bc2d6853ab970
+status: rebuilt
+commit: PENDING
 
 summary: >
-  A stdlib-only CLI (`pharos-docs`) that answers Pharos developer questions
-  from a LOCAL passage index built from the live docs (llms.txt +
-  llms-full.txt + sitemap, fetched 2026-10-16). BM25 retrieval with synonym
-  expansion, recommendation boost, and an honest-miss gate. Every answer
-  carries exactly one citation label: DOC-GROUNDED (doc URL + retrieval date
-  + verbatim excerpt), INFERENCE (explicitly marked synthesis), or UNVERIFIED
-  (exit 2, no invented content). NOT a thin HTTP wrapper around the GitBook
-  ?ask= endpoint.
+  A stdlib-only CLI (`pharos-docs`) that is a thin, honest wrapper around the
+  REAL Pharos Developer Docs MCP (https://docs.pharos.xyz/~gitbook/mcp,
+  public, no auth). Every query is a live MCP tools/call round-trip:
+  searchDocumentation for answer cards, getPage for full pages, askQuestion
+  for synthesized answers. A relevance gate over the MCP results decides
+  coverage (the MCP always returns results; "no" is the CLI's honest decision).
+  Every answer carries exactly one citation label: DOC-GROUNDED (verbatim MCP
+  excerpt + doc URL + retrieval date) or UNVERIFIED (exit 2, never invents).
+  The reviewer's rejected llms-full.txt index build was deleted outright.
 
 deliverables:
   - task.yaml
   - REQUIREMENTS.md
   - README.md
-  - evidence.md
-  - evidence/evidence.json
   - evidence/run_evidence.py
-  - evidence/transcripts/
-  - REVIEWER_NOTES.md
+  - evidence/evidence.json
+  - evidence/raw/
   - LINKS.md
   - SUBMISSION.md
-  - VIDEO-GUIDE.md
   - pharos-docs
-  - src/build_index.py
-  - fetch_corpus.sh
-  - index/index.json
-  - corpus/
+  - src/docs_mcp.py
   - tests/test_cli.py
-  - tests/probe_scores.py
 
 evidence:
-  log: evidence.md §1 + evidence/evidence.json (9 queries: 7 grounded, 2 honest misses)
+  log: evidence/evidence.json (7 queries: 5 grounded, 2 honest misses; every
+    query a real MCP round-trip; raw responses in evidence/raw/)
   replay: python3 evidence/run_evidence.py
-  tests: python3 -m unittest tests.test_cli  (14 tests, all pass)
+  tests: python3 -m unittest tests.test_cli  (offline machine-checks: every
+    citation verbatim vs its raw MCP log; no stale index artifacts)
 
 constraints:
   - no mock/demo/placeholder/fake success; never fabricate doc content
   - no secrets in repo; read-only task; spend 0 PHRS (budget cap 0.15)
-  - CLI makes zero network calls at answer time (local index)
+  - every answer comes from a live Docs MCP tools/call; sendFeedback never invoked
+  - honest claim boundary: public GitBook Docs MCP (docs-only), NOT the
+    login-gated ai.pharos.xyz portal session
 
 notes: >
-  The GitBook ?ask= endpoint was reachable (HTTP 200) during this build but
-  has 403'd before (verdict team, first-hand) and is undocumented; the CLI
-  deliberately does not depend on it. Retrieval date for all citations:
-  2026-10-16.
+  Rebuilt 2026-10-19 after the reviewer's "Changes requested": the Docs MCP
+  endpoint the October research declared nonexistent was found live at
+  docs.pharos.xyz/~gitbook/mcp (GitBook native MCP, server 0.27.2). The
+  endpoint drops connections frequently; the client retries with backoff.

@@ -1,0 +1,248 @@
+{
+  "run_at": "2026-10-19T20:08:16Z",
+  "runner": "scripts/query_log.py (v2.0, real Docs MCP)",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+  "mcp_server_version": "0.27.2",
+  "tool": "askQuestion",
+  "git_commit": "91caacab71edb55fcb56940f2a0b8eb56a031576",
+  "git_dirty": true,
+  "latency_p50_s": 19.5,
+  "latency_p90_s": 76.21,
+  "queries": [
+    {
+      "id": "Q1-signin",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "How do I sign in to the Pharos AI Agent Arena portal at ai.pharos.xyz to submit a task?",
+      "goal": "submitting to the agent arena",
+      "attempted_at": "2026-10-19T20:02:36Z",
+      "latency_s": 19.5,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "How do I sign in to the Pharos AI Agent Arena portal at ai.pharos.xyz to submit a task?",
+            "goal": "submitting to the agent arena"
+          }
+        }
+      },
+      "answer_verbatim": "I cannot find information about signing in to the Pharos AI Agent Arena or submitting tasks at `ai.pharos.xyz` in the docs. The available [Publish Service Agent](/tooling-and-infrastructure/overview/publish-skill-af) covers Anvita Flow, a separate portal.\n\n# Sources\n\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af)\n- [Anvita Flow](https://docs.pharos.xyz/tooling-and-infrastructure/overview)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy)\n- [x402](https://docs.pharos.xyz/developer-guide/x402)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [Using Binary](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/using-binary-deployment)\n- [Goldsky](https://docs.pharos.xyz/tooling-and-infrastructure/indexing/goldsky)\n- [About Pharos](https://docs.pharos.xyz/introduction/readme)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q2-network",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "What is the Atlantic testnet chain ID, RPC URL and native currency?",
+      "goal": "connecting a wallet and RPC client",
+      "attempted_at": "2026-10-19T20:03:02Z",
+      "latency_s": 10.31,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "What is the Atlantic testnet chain ID, RPC URL and native currency?",
+            "goal": "connecting a wallet and RPC client"
+          }
+        }
+      },
+      "answer_verbatim": "* **Chain ID:** `688689`\n* **RPC URL:** `https://atlantic.dplabs-internal.com`\n* **Native currency:** `PHRS` (18 decimals)\n\nSee [Atlantic Testnet](/getting-started/network/atlantic-testnet).\n\n# Sources\n\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)\n- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-nft)\n- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain)\n- [RPC Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/rpc)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q3-faucet",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "Where can I get Atlantic testnet PHRS from the official faucet?",
+      "goal": "funding a testnet wallet",
+      "attempted_at": "2026-10-19T20:03:18Z",
+      "latency_s": 14.02,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "Where can I get Atlantic testnet PHRS from the official faucet?",
+            "goal": "funding a testnet wallet"
+          }
+        }
+      },
+      "answer_verbatim": "The setup guide says to get testnet PHRS from the **Pharos faucet** or directly from the team, but it doesn\u2019t provide the faucet\u2019s URL. See [Pharos Skill Engine](/tooling-and-infrastructure/pharos-skill-engine-guide) for wallet setup details. Atlantic uses chain ID `688689`.\n\n# Sources\n\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [Pharos Network Snapshots](https://docs.pharos.xyz/node-and-validator-guide/pharos-network-snapshots)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [Network](https://docs.pharos.xyz/getting-started/network)\n- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan)\n- [Canonical Contracts](https://docs.pharos.xyz/getting-started/canonical-contracts)\n- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy)\n- [Pharos Testnet: Rebuild Node with Preserved Node Info](https://docs.pharos.xyz/pharos-testnet-rebuild-node-with-preserved-node-info)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [Rapid Node Initialization(Testnet)](https://docs.pharos.xyz/node-and-validator-guide/rapid-node-initialization/rapid-node-initialization-testnet)\n- [Chainlink Push Engine Feeds](https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q4-chainmcp",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "What is the Pharos Chain MCP and which read tools does it expose for an AI agent?",
+      "goal": "building an AI agent on Pharos",
+      "attempted_at": "2026-10-19T20:03:38Z",
+      "latency_s": 27.61,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "What is the Pharos Chain MCP and which read tools does it expose for an AI agent?",
+            "goal": "building an AI agent on Pharos"
+          }
+        }
+      },
+      "answer_verbatim": "The **Pharos Chain MCP** connects MCP-compatible AI clients to Pharos chain data and operations through natural-language requests. Its hosted endpoint is `https://mcp.pharos.xyz/mcp` using Streamable HTTP; it requires no API key and targets chain ID `1672` (`0x688`).\n\nIts read tools are:\n\n* **Chain and blocks:** `get_chain_info` (chain ID, client version, latest block), `get_block_number`, `get_block`, `get_gas_price`\n* **Accounts and transactions:** `get_balance` (native PROS), `get_transaction_count`, `get_transaction`, `get_transaction_receipt`\n* **Contracts and logs:** `eth_call` (read-only contract calls), `estimate_gas`, `get_code`, `get_storage_at`, `get_logs` (event logs; maximum 1,000 blocks per call)\n\n`send_raw_transaction` is also exposed, but it broadcasts an already-signed transaction rather than reading chain data. See [Pharos MCP](/tooling-and-infrastructure/mcp) for setup and tool details.\n\n# Sources\n\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)\n- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [About Pharos](https://docs.pharos.xyz/introduction/readme)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [Enable AutoPruning in Pharos Node](https://docs.pharos.xyz/enable-pruning-in-pharos-node)\n- [Solidity](https://docs.pharos.xyz/resources/solidity)\n- [Fordefi](https://docs.pharos.xyz/tooling-and-infrastructure/wallets/fordefi)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [x402 Pacific Mainnet](https://docs.pharos.xyz/developer-guide/x402/x402-pacific-mainnet)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q5-getlogs",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "What are the block range limits for eth_getLogs queries on Pharos?",
+      "goal": "building an on-chain event monitor",
+      "attempted_at": "2026-10-19T20:04:12Z",
+      "latency_s": 76.21,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "What are the block range limits for eth_getLogs queries on Pharos?",
+            "goal": "building an on-chain event monitor"
+          }
+        }
+      },
+      "answer_verbatim": "For direct Pharos JSON-RPC `eth_getLogs`, the range limit is **100 blocks when rate limiting is enabled**, or **10,000 blocks as a fallback cap**. Split larger backfills into smaller queries; narrow filters with `address` and `topics` where possible. See [JSON-RPC API Methods](/api-and-sdk/json-rpc-methods).\n\nIf you\u2019re using the Pharos MCP server\u2019s `get_logs` tool instead, its limit is **1,000 blocks per call**.\n\n# Sources\n\n- [JSON-RPC API Methods](https://docs.pharos.xyz/api-and-sdk/json-rpc-methods)\n- [Rollback Blocks](https://docs.pharos.xyz/node-and-validator-guide/rollback-blocks)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)\n- [Block Explorer](https://docs.pharos.xyz/tooling-and-infrastructure/block-explorer)\n- [eth_getProof \u2014 Storage State Verification (SPV)](https://docs.pharos.xyz/api-and-sdk/eth-getproof)\n- [Node Debugging & Configuration](https://docs.pharos.xyz/node-and-validator-guide/node-debugging-and-configuration)\n- [Why Pharos](https://docs.pharos.xyz/introduction/why-pharos)\n- [About Pharos](https://docs.pharos.xyz/introduction/readme)\n- [Node Configuration](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/node-configuration)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q6-skillengine",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "How do I install, build and publish a skill with the Pharos Skill Engine?",
+      "goal": "publishing an agent skill",
+      "attempted_at": "2026-10-19T20:05:34Z",
+      "latency_s": 71.18,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "How do I install, build and publish a skill with the Pharos Skill Engine?",
+            "goal": "publishing an agent skill"
+          }
+        }
+      },
+      "answer_verbatim": "The workflow has two parts: build and test the Pharos Skill, then upload it as a Service Agent on Anvita Flow.\n\n1. **Install the Skill Engine and Foundry.** Unzip the Skill Engine package, enter its directory, and install Foundry if needed:\n\n   ```bash\n   unzip pharos-skill-engine-0.1.0.zip\n   cd pharos-skill-engine-0.1.0\n\n   which cast || (curl -L https://foundry.paradigm.xyz | bash && source ~/.zshenv && foundryup)\n   cast --version\n   forge --version\n   ```\n\n   Configure your wallet with `PRIVATE_KEY` as an environment variable. Never put the key in a script or commit it to git. See [Pharos Skill Engine](/tooling-and-infrastructure/pharos-skill-engine-guide).\n2. **Build the skill.** Add the contract to `assets/<skill>/` and `src/<skill>/`, then run `forge build`. Write `references/<skill>.md` with command templates, parameters, output parsing, and error handling. Add natural-language intent rows to the Capability Index in `SKILL.md`.\n3. **Test and prepare the package.** Follow the Skill Engine\u2019s publishing checklist: compile, deploy and verify on testnet, and check that every operation has instructions. Package the skill folder itself as a `.zip`. It must contain an uppercase `SKILL.md` at its root folder, with `name` and `description` frontmatter; `name` must match the folder name exactly.\n4. **Publish on Anvita Flow.** Register at [Anvita Flow](https://flow.anvita.xyz/home), open the [Developer Console](https://flow.anvita.xyz/service-agents), and select **Create A Managed Service Agent**. Upload the zip, configure the service strategy and runtime, run a successful debug session, complete the Agent Card, and submit for review. It is live after approval, when its status shows **Published / Running**. See [Publish Service Agent](/tooling-and-infrastructure/overview/publish-skill-af).\n\n# Sources\n\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [Anvita Flow](https://docs.pharos.xyz/tooling-and-infrastructure/overview)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [Write Your First dApp](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-dapp)\n- [Write Your First dApp](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-dapp)\n- [x402 Pacific Mainnet](https://docs.pharos.xyz/developer-guide/x402/x402-pacific-mainnet)\n- [Validator Node Deployment](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q7-submission",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "How do I submit my solution for an Agent Arena task?",
+      "goal": "submitting to the agent arena",
+      "attempted_at": "2026-10-19T20:06:51Z",
+      "latency_s": 17.58,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "How do I submit my solution for an Agent Arena task?",
+            "goal": "submitting to the agent arena"
+          }
+        }
+      },
+      "answer_verbatim": "I cannot find information about submitting solutions to **Agent Arena** tasks in the docs. The [Publish Service Agent](/tooling-and-infrastructure/overview/publish-skill-af) covers publishing a Skill to Anvita Flow, not submitting an Agent Arena task solution.\n\n# Sources\n\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af)\n- [Anvita Flow](https://docs.pharos.xyz/tooling-and-infrastructure/overview)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [x402](https://docs.pharos.xyz/developer-guide/x402)\n- [Wallet](https://docs.pharos.xyz/tooling-and-infrastructure/wallets)\n- [Cross Chain Infrastructure](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain)\n- [Why Pharos](https://docs.pharos.xyz/introduction/why-pharos)\n- [Rust](https://docs.pharos.xyz/developer-guide/rust)\n- [Goldsky](https://docs.pharos.xyz/tooling-and-infrastructure/indexing/goldsky)\n- [Node Configuration](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/node-configuration)\n- [Safe MultiSig](https://docs.pharos.xyz/tooling-and-infrastructure/wallets/safe)\n- [Using Binary](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/using-binary-deployment)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q8-chainid-ambiguity",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "Is the Pharos Atlantic testnet chain ID 688689 or 1672, and which token does it use, PHRS or PROS?",
+      "goal": "connecting a wallet with correct chain parameters",
+      "attempted_at": "2026-10-19T20:07:15Z",
+      "latency_s": 40.95,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "Is the Pharos Atlantic testnet chain ID 688689 or 1672, and which token does it use, PHRS or PROS?",
+            "goal": "connecting a wallet with correct chain parameters"
+          }
+        }
+      },
+      "answer_verbatim": "For **Pharos Atlantic Testnet**, use **chain ID `688689`** and native token symbol **`PHRS`**. **`1672`** and **`PROS`** are for **Pacific Mainnet**.\n\n* [Atlantic Testnet](/getting-started/network/atlantic-testnet)\n* [Pacific Mainnet](/getting-started/network/pacific-mainnet)\n\n# Sources\n\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)\n- [Pacific Mainnet](https://docs.pharos.xyz/getting-started/network/pacific-mainnet)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-nft)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [Get PROS Gas](https://docs.pharos.xyz/getting-started/get-pros-gas)",
+      "outcome": "ANSWERED"
+    },
+    {
+      "id": "Q9-sharelinks",
+      "surface": "developer-docs-mcp",
+      "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+      "mcp_server_version": "0.27.2",
+      "tool": "askQuestion",
+      "question": "How do I create and share a session link for my agent work on ai.pharos.xyz?",
+      "goal": "sharing agent work with reviewers",
+      "attempted_at": "2026-10-19T20:08:02Z",
+      "latency_s": 13.74,
+      "jsonrpc_payload": {
+        "jsonrpc": "2.0",
+        "id": 10,
+        "method": "tools/call",
+        "params": {
+          "name": "askQuestion",
+          "arguments": {
+            "question": "How do I create and share a session link for my agent work on ai.pharos.xyz?",
+            "goal": "sharing agent work with reviewers"
+          }
+        }
+      },
+      "answer_verbatim": "I cannot find instructions in the docs for creating or sharing agent session links on [ai.pharos.xyz](https://ai.pharos.xyz/).\n\n# Sources\n\n- [Publish Service Agent](https://docs.pharos.xyz/tooling-and-infrastructure/overview/publish-skill-af)\n- [Anvita Flow](https://docs.pharos.xyz/tooling-and-infrastructure/overview)\n- [Pharos Skill Engine](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [Pharos MCP](https://docs.pharos.xyz/tooling-and-infrastructure/mcp)\n- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)\n- [Using Binary](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/using-binary-deployment)\n- [Node Configuration](https://docs.pharos.xyz/node-and-validator-guide/validator-node-deployment/node-configuration)\n- [x402](https://docs.pharos.xyz/developer-guide/x402)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [x402 Pacific Mainnet](https://docs.pharos.xyz/developer-guide/x402/x402-pacific-mainnet)\n- [Chainlink CCIP](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/chainlink-ccip)\n- [Pharos Network Snapshots](https://docs.pharos.xyz/node-and-validator-guide/pharos-network-snapshots)\n- [Hemera SocialScan](https://docs.pharos.xyz/tooling-and-infrastructure/block-explorer/hemera-socialscan)\n- [Node Debugging & Configuration](https://docs.pharos.xyz/node-and-validator-guide/node-debugging-and-configuration)\n- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy)",
+      "outcome": "ANSWERED"
+    }
+  ]
+}

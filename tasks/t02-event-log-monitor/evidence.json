@@ -110,5 +110,34 @@
   },
   "task": "T02",
   "title": "Event/Log Monitor",
-  "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+  "wallet": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "mcp_resubmission": {
+    "date": "2026-10-19",
+    "reviewer_feedback": "The task requires Chain MCP log queries; your code still calls eth_getLogs directly. Switch to Chain MCP get_logs and resubmit.",
+    "network": "pharos-mainnet",
+    "chain_id": 1672,
+    "mcp_endpoint": "https://mcp.pharos.xyz/mcp",
+    "mcp_tools": [
+      "get_block_number",
+      "get_logs",
+      "get_chain_info"
+    ],
+    "target": {
+      "contract": "USDC 0xc879c018db60520f4355c26ed1a6d572cdac1815",
+      "event": "Transfer(address,address,uint256)",
+      "topic0": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+    },
+    "test": "monitor.py test --from-block=20684347 --to-block=20685847 --expect-count=87 -> TEST PASS (exactly 87 Transfer events over 1,501 blocks / 2 chunked get_logs calls; re-scan identical)",
+    "live_catch": "18 real mainnet USDC Transfers caught while polling (2026-10-19); sample block=20687008 tx=0x11ec559e5bef8165df872da5a86bfb549b3e837befe0435386b1f4543130c8b9 (19.998000 USDC)",
+    "kill9_restart": "killed with kill -9 mid-run; restarted -> cursor restored exactly at 20687108, 0 re-emissions of 13 pre-kill alerts; 5 genuinely new alerts after restart",
+    "spend": "0 (keyless Chain MCP reads)",
+    "stamped_proof": "proof/mcp-resubmission.json",
+    "v1_atlantic_artifacts_preserved": [
+      "state.v1-atlantic.json",
+      "poll.v1-atlantic.log",
+      "alerts.v1-atlantic.jsonl",
+      "run.v1-atlantic.out",
+      "src/LogEmitter.sol"
+    ]
+  }
 }

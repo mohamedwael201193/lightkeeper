@@ -17,8 +17,10 @@
  * Nothing executes in the browser — the visitor runs the command in their
  * own terminal. LIGHTKEEPER never sees, holds, or asks for private keys.
  *
- * Every command shape is grounded in the real Docs-MCP query log captured
- * 2026-10-16 (tasks/t03-docs-mcp-onboarding/evidence.json). The byte-exact
+ * Every command shape is grounded in the real Developer Docs MCP query log —
+ * redone 2026-10-19 through the public Docs MCP endpoint
+ * (https://docs.pharos.xyz/~gitbook/mcp, tools askQuestion/searchDocumentation/
+ * getPage), captured in tasks/t03-docs-mcp-onboarding/evidence.md. The byte-exact
  * strings live in t03-command-builders.ts, verified outside the browser —
  * this file only presents them.
  */
@@ -215,16 +217,17 @@ function PipelineTrace() {
         ))}
       </ol>
       <p className="mt-2 text-sm text-slate">
-        Command shapes grounded in the real Docs-MCP query log —{" "}
+        Command shapes grounded in the real Developer Docs MCP query log —{" "}
         <a
           className="font-medium text-accent hover:underline"
-          href={`${GH}/evidence.json`}
+          href={`${GH}/evidence.md`}
           target="_blank"
           rel="noreferrer"
         >
-          evidence.json
+          evidence.md
         </a>
-        , captured 2026-10-16.
+        , 9 queries asked and answered 2026-10-19 through{" "}
+        <code className="font-mono">docs.pharos.xyz/~gitbook/mcp</code>.
       </p>
     </div>
   );
@@ -377,8 +380,8 @@ export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink">
           Pick what you want to do and this panel builds the exact{" "}
           <code className="font-mono">cast</code>/<code className="font-mono">forge</code> command —
-          Atlantic RPC and chain ID already filled in, from answers the real Pharos docs gave us on
-          2026-10-16. Copy it, run it in your own terminal. LIGHTKEEPER never executes anything for
+          Atlantic RPC and chain ID already filled in, from answers the real Developer Docs MCP
+          gave us on 2026-10-19. Copy it, run it in your own terminal. LIGHTKEEPER never executes anything for
           you and never asks for your private key.
         </p>
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -791,8 +794,13 @@ export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
         <p className="smallcaps mb-2 text-slate">The evidence behind these commands</p>
         <div className="space-y-4 rounded-xl border border-hairline bg-white p-5 text-sm text-ink sm:p-6">
           <p className="leading-relaxed">
-            Every command shape above comes from answers the real Pharos docs gave on 2026-10-16,
-            byte-verified outside this page — and from the gaps those docs honestly have:
+            Every command shape above comes from answers the real Developer Docs MCP gave on
+            2026-10-19 — asked and answered verbatim through the public Docs MCP endpoint{" "}
+            <code className="font-mono">docs.pharos.xyz/~gitbook/mcp</code> (tools{" "}
+            <code className="font-mono">askQuestion</code>/
+            <code className="font-mono">searchDocumentation</code>/
+            <code className="font-mono">getPage</code>), byte-verified outside this page — and
+            from the gaps those docs honestly have:
           </p>
           <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed">
             <li>the docs name no official faucet URL — so this builder generates no faucet command</li>
@@ -816,6 +824,20 @@ export default function TryDocsMcpOnboarding({ lamp: _lamp }: { lamp: Lamp }) {
             <a className="chip chip-info hover:underline" href={`${GH}/QUICKSTART.md`} target="_blank" rel="noreferrer">
               first-5-queries quickstart
             </a>
+          </div>
+          <div className="mt-4 rounded-xl border border-hairline bg-porcelain p-4">
+            <p className="text-sm font-semibold text-ink">Ask the Docs MCP yourself</p>
+            <p className="mt-1 text-sm leading-relaxed text-slate">
+              The same runner that produced the log above — a real MCP client for{" "}
+              <code className="font-mono">docs.pharos.xyz/~gitbook/mcp</code>, stdlib only, no
+              key. It replays the 9 onboarding queries through{" "}
+              <code className="font-mono">askQuestion</code> and writes a fresh verbatim
+              transcript:
+            </p>
+            <CommandCard
+              command="cd tasks/t03-docs-mcp-onboarding && python3 scripts/query_log.py run"
+              title="Re-run the Docs MCP query log"
+            />
           </div>
         </div>
       </div>

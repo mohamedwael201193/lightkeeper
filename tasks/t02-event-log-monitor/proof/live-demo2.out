@@ -1,0 +1,13 @@
+connected: chain-mcp @ https://mcp.pharos.xyz/mcp (chain 1672)
+2026-10-19T20:05:25+0000 monitor started: chain=pharos-mainnet(1672) contract=USDC tool=chain-mcp:get_logs confirm_lag=2 interval=5s cursor=20687108
+2026-10-19T20:05:28+0000 cycle done: scanned to 20687112, 0 new event(s) this cycle
+2026-10-19T20:05:36+0000 cycle done: scanned to 20687119, 0 new event(s) this cycle
+2026-10-19T20:05:44+0000 ALERT Transfer block=20687123 tx=0x9e0d373618a4abd687151143689cfb09ce610ad88e2281b595f73233ba15141f from=0x936564245b69f5a293b42cbd752e0ee3bb68b470 to=0x912c9ade24d44d8922f0866d8dcb079f1363f647 value=157.076725 USDC
+2026-10-19T20:05:44+0000 cycle done: scanned to 20687128, 1 new event(s) this cycle
+2026-10-19T20:05:51+0000 ALERT Transfer block=20687136 tx=0xed09abf3aaee1a08e37d5ceda6ad21e3db479d233103f966631095268fbb741b from=0x912c9ade24d44d8922f0866d8dcb079f1363f647 to=0x936564245b69f5a293b42cbd752e0ee3bb68b470 value=157.026573 USDC
+2026-10-19T20:05:51+0000 cycle done: scanned to 20687136, 1 new event(s) this cycle
+2026-10-19T20:05:59+0000 ALERT Transfer block=20687137 tx=0xbaa48551d3ae4589d11922e9ea90d89e1674ef582192e13f3fe1ed019df01799 from=0x912c9ade24d44d8922f0866d8dcb079f1363f647 to=0x1f3546a29eec2102c8d52e21a45114124014c85c value=62.888624 USDC
+2026-10-19T20:05:59+0000 cycle done: scanned to 20687145, 1 new event(s) this cycle
+2026-10-19T20:06:07+0000 ALERT Transfer block=20687148 tx=0xebec0b23d174db185c95373801be13fe3b2f29fb63b87ee012246be4614cdd78 from=0x912c9ade24d44d8922f0866d8dcb079f1363f647 to=0x936564245b69f5a293b42cbd752e0ee3bb68b470 value=78.489463 USDC
+2026-10-19T20:06:07+0000 ALERT Transfer block=20687148 tx=0x88abce7252da17a7801eb9e50053a912af5b4eca81f67f7a6a084f4318797048 from=0x912c9ade24d44d8922f0866d8dcb079f1363f647 to=0x1f3546a29eec2102c8d52e21a45114124014c85c value=62.860650 USDC
+2026-10-19T20:06:07+0000 cycle done: scanned to 20687154, 2 new event(s) this cycle

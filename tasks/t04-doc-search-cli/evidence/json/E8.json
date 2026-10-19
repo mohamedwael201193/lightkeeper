@@ -1,0 +1,9 @@
+{
+  "label": "DOC-GROUNDED",
+  "exit_code": 0,
+  "page_url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_tool": "getPage",
+  "retrieved": "2026-10-19",
+  "page_markdown": "# Atlantic Testnet\n\n## Network Information\n\n| Parameter              | Value                                  |\n| ---------------------- | -------------------------------------- |\n| RPC Public Endpoint    | <https://atlantic.dplabs-internal.com> |\n| WSS Public Endpoint    | <wss://atlantic.dplabs-internal.com>   |\n| Explorer               | <https://atlantic.pharosscan.xyz/>     |\n| ChainID                | 688689                                 |\n| Environment            | Atlantic Testnet                       |\n| Ratelimit              | 500 times/5m                           |\n| Max Pending TXs (Addr) | 64                                     |\n\n> For the current node binary and Docker image versions, see [Current Node Versions](/node-and-validator-guide/validator-node-deployment#current-node-versions).\n"
+}

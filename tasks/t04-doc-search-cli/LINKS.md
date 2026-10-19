@@ -1,37 +1,23 @@
 # T04 — Doc-Search CLI: Links
 
-Every URL below was curl-verified on **2026-10-16** (HTTP 200; `-L` followed the one redirect).
-Citation URLs appear verbatim in `evidence/evidence.json` and the answer cards.
+## The Docs MCP endpoint (verified live 2026-10-19)
 
-## Corpus sources (fetched live into `corpus/`)
-
-| URL | Status | Bytes | Used as |
-|---|---|---|---|
-| https://www.pharos.xyz/llms.txt | 200 | 16,089 | docs navigation index; indexed as "Pharos Documentation Index" (carries the authoritative Defaults block) |
-| https://docs.pharos.xyz/llms-full.txt | 200 | 403,670 | full GitBook corpus → 73 pages → 438 passages |
-| https://docs.pharos.xyz/sitemap.md | 200 | — | page-URL enumeration + positional attribution order |
-
-## Citation URLs (appear in evidence answer cards)
-
-| URL | Status | Cited by |
+| URL | What | Verified |
 |---|---|---|
-| https://docs.pharos.xyz/developer-guide/foundry/write-your-first-uniswap-contract | 200 | E1 |
-| https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-uniswap-contract | 200 | E1 |
-| https://docs.pharos.xyz/developer-guide/x402 | 200 | E5 |
-| https://docs.pharos.xyz/getting-started/network/atlantic-testnet | 200 | E2 |
-| https://docs.pharos.xyz/getting-started/token-registry | 200 | E5 |
-| https://docs.pharos.xyz/introduction/readme.md | 200 | E6 (extensionless form 307-redirects to docs home, so the stable `.md` form is cited — see REVIEWER_NOTES.md §2) |
-| https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp | 200 | E5 |
-| https://docs.pharos.xyz/tooling-and-infrastructure/mcp | 200 | E3, E7 |
-| https://docs.pharos.xyz/tooling-and-infrastructure/oracles/supra | 200 | E4 |
-| https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide | 200 | E2 (transient 000 on first pass; 200 on retry with `-L`) |
-| https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide | 200 | E3 (transient 000 on first pass; 200 on retry with `-L`) |
-| https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan | 200 | E2 |
+| https://docs.pharos.xyz/~gitbook/mcp | Developer Docs MCP — public GitBook MCP endpoint, no auth; Streamable HTTP JSON-RPC; server `docs.pharos.xyz MCP Server 0.27.2`; tools `searchDocumentation`, `getPage`, `askQuestion` (`sendFeedback` never invoked) | live `tools/list` + real `tools/call` round-trips 2026-10-19 |
 
-## Reference (miss-path suggestion)
+## Citation URLs (appear in `evidence/evidence.json` answer cards)
 
-| URL | Status | Used in |
-|---|---|---|
-| https://docs.pharos.xyz/sitemap.md | 200 | UNVERIFIED answer card ("browse the full doc index") |
+Citation URLs are the doc pages returned by the MCP's `searchDocumentation`
+tool for each evidence query. They are recorded verbatim per query in
+`evidence/evidence.json` under `citations[].page_url`, and the raw MCP
+responses that produced them are saved under `evidence/raw/`.
 
-Re-verify any time: the citation URLs are listed in `evidence/evidence.json` under each query's `citations`.
+Re-verify any time: `python3 evidence/run_evidence.py` replays the full
+10-query battery against the live MCP.
+
+## Claim boundary
+
+This endpoint is the **public GitBook Docs MCP** (docs-only). It is not the
+login-gated `ai.pharos.xyz` portal session, and it has no chain tools —
+see README §1.

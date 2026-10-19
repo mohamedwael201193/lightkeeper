@@ -1,20 +1,29 @@
 /**
  * T04 · Doc-Search CLI — "Search the docs, get the command" (Tier C).
  *
- * A keyword lookup over the real doc-grounded answer patterns from this task's
- * evidence battery (tasks/t04-doc-search-cli/evidence/evidence.json, 9 queries,
- * 2026-10-16): type a question, get the matched verbatim docs answer with its
- * doc-page citation plus the exact `./pharos-docs` CLI command that produces it,
- * copy-paste ready.
+ * A lookup over the real doc-grounded answer patterns from this task's
+ * evidence battery (tasks/t04-doc-search-cli/evidence/evidence.json, 10
+ * queries, 2026-10-19 — every one a real Developer Docs MCP tools/call):
+ * type a question, get the matched verbatim docs answer with its doc-page
+ * citation plus the exact `./pharos-docs` CLI command that produces it,
+ * copy-paste ready. The CLI wraps the public Docs MCP directly
+ * (https://docs.pharos.xyz/~gitbook/mcp, searchDocumentation tool);
+ * this panel mirrors its question patterns and its refusal behavior.
  *
  * Honest-miss path: when nothing matches, the panel issues a designed
  * UNVERIFIED verdict — the Beautiful Refusal doctrine (double-beat Stamp,
  * plain-language reason, the CLI's exit-2 mirror). Nothing is generated;
  * every answer shown is a verbatim excerpt with page URL and retrieval date.
  *
+ * CORS note (verified 2026-10-19): the Docs MCP endpoint does not answer
+ * browser preflights (OPTIONS → 403, no ACAO headers), so the live MCP call
+ * cannot run in the visitor's browser. The visitor runs the real CLI in
+ * their own terminal, where every query is a genuine MCP tools/call.
+ * This panel is the honest Tier C surface: real patterns, real commands.
+ *
  * PRESENTATION (FLAGSHIP): the three-act journey —
  *   01 Configure · ask a question (input + battery chips + refusal demos)
- *   02 Run       · instant: the match is a synchronous local index score —
+ *   02 Run       · instant: the match is a synchronous local pattern score —
  *                  it completes at once, so the verdict renders the moment the
  *                  work is done. No timer theater, ever.
  *   03 Result    · the match as a sourced-document citation card (the thinking
@@ -27,7 +36,7 @@ import { ResultCard } from "../ui";
 import type { Lamp } from "../../types";
 
 const GH = "https://github.com/mohamedwael201193/lightkeeper/tree/main/tasks/t04-doc-search-cli";
-const RETRIEVED = "2026-10-16";
+const RETRIEVED = "2026-10-19";
 
 interface Entry {
   id: string;
@@ -45,22 +54,24 @@ interface Entry {
 const ENTRIES: Entry[] = [
   {
     id: "deploy",
-    keywords: ["deploy", "contract", "hardhat", "foundry", "forge", "ignition", "npx", "token", "nft"],
-    question: "how do I deploy a contract?",
-    headline: "Deploy with Hardhat Ignition",
-    excerpt: "npx hardhat ignition deploy ./ignition/modules/Token.js --network pharos",
-    pageTitle: "Write Your First Uniswap Contract",
-    pageUrl: "https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-uniswap-contract",
-    cli: ['./pharos-docs "how do I deploy a contract?"'],
-    note: "Docs-publishing artifact, verified in the corpus: the Foundry Uniswap guide itself shows a Hardhat command. We quote what the page says.",
+    keywords: ["deploy", "contract", "forge", "broadcast", "deploy script", "token"],
+    question: "how do I deploy a contract on Pharos?",
+    headline: "Deploy with forge script --broadcast",
+    excerpt:
+      "cast wallet address --private-key $PRIVATE_KEY\ncast balance $DEPLOYER --rpc-url $RPC --ether\n# 2. Run the deploy script\nforge script script/DeployMyContract.s.sol:DeployMyContract \\\n  --rpc-url $RPC \\\n  --private-key $PRIVATE_KEY \\\n  --broadcast",
+    pageTitle: "Pharos Skill Engine",
+    pageUrl: "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide",
+    cli: ['./pharos-docs "how do I deploy a contract on Pharos?"'],
+    note: "Verbatim from the live Docs MCP (searchDocumentation, 2026-10-19). The full evidence battery is in evidence/evidence.json.",
   },
   {
     id: "network",
-    keywords: ["chain id", "chainid", "rpc", "network", "atlantic", "688689", "rpc url", "native currency", "phrs", "testnet"],
+    keywords: ["chain id", "chainid", "rpc", "network", "atlantic", "688689", "rpc url", "explorer", "testnet"],
     question: "what is the Atlantic testnet chain id and RPC url",
     headline: "688689 · Atlantic testnet",
-    excerpt: "| ChainID | 688689 |\n-- Atlantic Testnet — Network Information",
-    pageTitle: "Atlantic Testnet — Network Information",
+    excerpt:
+      "RPC Public Endpoint\nhttps://atlantic.dplabs-internal.com\nExplorer\nhttps://atlantic.pharosscan.xyz/\nChainID\n688689\nEnvironment\nAtlantic Testnet",
+    pageTitle: "Atlantic Testnet",
     pageUrl: "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
     cli: [
       './pharos-docs "what is the Atlantic testnet chain id and RPC url"',
@@ -69,69 +80,22 @@ const ENTRIES: Entry[] = [
   },
   {
     id: "faucet",
-    keywords: ["faucet", "gas", "fund", "drip", "testnet tokens", "tokens for gas"],
-    question: "how do I get testnet tokens for gas",
-    headline: "Testnet PHRS from the faucet",
-    excerpt: "Get testnet PHRS from the Pharos faucet or directly from the team.",
-    pageTitle: "Piggy Bank Tutorial — Prerequisites",
-    pageUrl: "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide",
-    cli: ['./pharos-docs "how do I get testnet tokens for gas"'],
-    note: "The docs answer names no official faucet URL — a documented docs gap (T03 G3). Trust only official Pharos channels.",
-  },
-  {
-    id: "oracle",
-    keywords: ["oracle", "price", "feed", "feeds", "chainlink", "market data"],
-    question: "which oracle should I use for price feeds on Pharos",
-    headline: "Prefer Chainlink for price feeds",
+    keywords: ["faucet", "gas", "fund", "drip", "testnet tokens", "tokens for gas", "phrs", "where do i get"],
+    question: "where do I get testnet tokens for gas on Pharos",
+    headline: "Testnet PHRS from the faucet — URL not in docs",
     excerpt:
-      "For price/market data, prefer Chainlink as the default oracle provider — use Chainlink Push Engine Feeds when your contract should react automatically to on-chain updates without polling, or Chainlink Data Feeds for low-latency, on-demand/pull consumption.",
-    pageTitle: "Pharos Documentation Index — Defaults",
-    pageUrl: "https://www.pharos.xyz/llms.txt",
-    cli: ['./pharos-docs "which oracle should I use for price feeds on Pharos"'],
-  },
-  {
-    id: "bridge",
-    keywords: ["bridge", "usdc", "ethereum", "cross-chain", "cross chain", "cctp", "ccip"],
-    question: "how do I bridge USDC from Ethereum to Pharos",
-    headline: "Bridge USDC with CCTP",
-    excerpt:
-      "Circle's Cross-Chain Transfer Protocol (CCTP) enables secure transfer of USDC across blockchains using a native burn-and-mint mechanism.",
-    pageTitle: "Circle CCTP",
-    pageUrl: "https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp",
-    cli: ['./pharos-docs "how do I bridge USDC from Ethereum to Pharos"'],
-  },
-  {
-    id: "confidential",
-    keywords: ["confidential", "privacy", "private transaction", "private transactions"],
-    question: "does Pharos support confidential transactions",
-    headline: "No feature spec in the docs",
-    excerpt:
-      "The Pharos ecosystem is structured across three key layers: 1. Transaction Layer: Facilitates secure, confidential, and efficient cross-chain asset and account interactions…",
-    pageTitle: "About Pharos",
-    pageUrl: "https://docs.pharos.xyz/introduction/readme.md",
-    cli: ['./pharos-docs "does Pharos support confidential transactions"'],
-    note: "Thin but honest: the covering passage is introduction-page text, not a feature specification. The citation is real; the claim's depth is what the docs offer.",
-  },
-  {
-    id: "mcp",
-    keywords: ["mcp", "mcp server", "chain mcp", "pharos-mcp", "claude desktop", "cursor", "windsurf", "codex", "agent"],
-    question: "how do I install the Pharos MCP server",
-    headline: "Clone the Pharos MCP repo",
-    excerpt:
-      "git clone https://github.com/PharosNetwork/pharos-mcp.git\nNo API key is required.\n{ \"mcpServers\": { \"pharos\": { \"type\": \"http\", \"url\": \"https://mcp.pharos.xyz/mcp\" } } }",
-    pageTitle: "Pharos MCP",
-    pageUrl: "https://docs.pharos.xyz/tooling-and-infrastructure/mcp",
-    cli: ['./pharos-docs "how do I install the Pharos MCP server"'],
-    note: "Heads-up from our Docs-MCP log (T03 G2): the hosted Chain MCP at mcp.pharos.xyz serves chain 1672/PROS (Pacific mainnet) — not Atlantic. Point your own instance at Atlantic RPC if you build on 688689.",
+      "For Pharos Atlantic Testnet, get testnet PHRS from the Pharos faucet or directly from the Pharos team. The docs don't specify a faucet URL.",
+    pageTitle: "Docs MCP answer (askQuestion)",
+    pageUrl: "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+    cli: ['./pharos-docs --ask "where do I get testnet tokens for gas on Pharos"'],
+    note: "Via the MCP's askQuestion tool — it honestly reports the docs gap (no faucet URL). Trust only official Pharos channels.",
   },
 ];
 
 const SUGGESTIONS = [
-  "how do I deploy a contract?",
+  "how do I deploy a contract on Pharos?",
   "what is the Atlantic testnet chain id and RPC url",
-  "how do I get testnet tokens for gas",
-  "which oracle should I use for price feeds on Pharos",
-  "how do I install the Pharos MCP server",
+  "where do I get testnet tokens for gas on Pharos",
 ];
 
 // The two real miss queries from the evidence battery (M1/M2): one-tap demos
@@ -230,7 +194,8 @@ function RefusalVerdict({
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink">
           “{question}” matched none of the {ENTRIES.length} documented question patterns on this
           page, so this panel generated nothing. That refusal is the feature: the real CLI
-          searches 438 passages from 74 docs pages and behaves the same way —{" "}
+          queries the live Developer Docs MCP (the <code className="font-mono">searchDocumentation</code> tool)
+          and behaves the same way —{" "}
           <span className="font-semibold">it exits with code 2 rather than improvising</span>.
         </p>
 
@@ -246,11 +211,12 @@ function RefusalVerdict({
             <CopyBtn text={`./pharos-docs "${question}"`} label="Copy CLI command" />
           </div>
           <p className="mt-3 text-sm leading-relaxed text-slate">
-            Run it in <code className="font-mono">tasks/t04-doc-search-cli/</code> — the local
-            BM25 index (stdlib only, no network at answer time) searches all 438 passages, not
-            just these {ENTRIES.length} patterns, and exits 2 with an UNVERIFIED refusal. The
-            real transcript is in the task evidence: <code className="font-mono">M1.txt</code>{" "}
-            and <code className="font-mono">M2.txt</code>.
+            Run it in <code className="font-mono">tasks/t04-doc-search-cli/</code> — every query
+            is a real Docs MCP <code className="font-mono">tools/call</code> round-trip
+            (stdlib only), and it exits 2 with an UNVERIFIED refusal when no MCP result covers
+            the question. The real transcripts are in the task evidence:{" "}
+            <code className="font-mono">evidence/evidence.json</code> (M1/M2) with the raw MCP
+            responses under <code className="font-mono">evidence/raw/</code>.
           </p>
         </div>
 
@@ -358,14 +324,14 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-base font-bold text-ink">Search the docs, get the command</h3>
           <span className="chip chip-info">Tier C — CLI lookup</span>
-          <span className="chip chip-pass">438 passages · retrieved {RETRIEVED}</span>
+          <span className="chip chip-pass">live Docs MCP · searchDocumentation</span>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-ink">
           Type a Pharos developer question. This panel matches it against the real doc-grounded
           answer patterns from our evidence battery — every match shows the verbatim docs quote
           with its page citation plus the exact{" "}
-          <code className="font-mono">pharos-docs</code> command that produces it, copy-paste
-          ready. The sharp edge:{" "}
+          <code className="font-mono">pharos-docs</code> command that produces it via the live
+          Developer Docs MCP, copy-paste ready. The sharp edge:{" "}
           <span className="font-semibold text-ink">it would rather refuse than invent</span> — tap
           a refusal demo below and watch it say no.
         </p>
@@ -459,7 +425,7 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
             rows={[
               { label: "Doc page", value: hit.entry.pageTitle },
               { label: "Retrieved", value: RETRIEVED },
-              { label: "Corpus", value: "438 passages · 74 pages" },
+              { label: "Source", value: "Developer Docs MCP · searchDocumentation" },
             ]}
             links={[{ label: "Open the doc page", href: hit.entry.pageUrl }]}
             copyValue={hit.entry.cli.join("\n")}
@@ -548,9 +514,9 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
         <p className="text-sm font-semibold text-slate">Run the real CLI</p>
         <div className="space-y-3 rounded-2xl border border-hairline bg-white p-5 sm:p-6 text-sm text-slate">
           <p className="leading-relaxed">
-            This panel shows {ENTRIES.length} patterns; the shipped tool answers from all 438
-            passages with the same citation discipline (DOC-GROUNDED / INFERENCE / UNVERIFIED) —
-            stdlib Python, works offline.
+            This panel shows {ENTRIES.length} patterns; the shipped tool answers any question
+            live through the Developer Docs MCP with the same citation discipline
+            (DOC-GROUNDED / UNVERIFIED) — stdlib Python, read-only, 0 PHRS spent.
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="code-block flex-1" style={{ padding: "0.7rem 0.9rem" }}>
@@ -560,15 +526,16 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="code-block flex-1" style={{ padding: "0.7rem 0.9rem" }}>
-              ./pharos-docs --rebuild-index
+              ./pharos-docs --page https://docs.pharos.xyz/getting-started/network/atlantic-testnet
             </div>
-            <CopyBtn text="./pharos-docs --rebuild-index" label="Copy" />
+            <CopyBtn text="./pharos-docs --page https://docs.pharos.xyz/getting-started/network/atlantic-testnet" label="Copy" />
           </div>
           <p className="leading-relaxed">
-            The second command refetches the corpus and rebuilds the local index behind the
-            “438 passages” badge — use it when the docs move on. Also try{" "}
-            <code className="font-mono">--json</code>, <code className="font-mono">--top N</code>,
-            and <code className="font-mono">--min-score</code> from the CLI help.
+            The second command fetches the full page through the MCP's{" "}
+            <code className="font-mono">getPage</code> tool. Also try{" "}
+            <code className="font-mono">--json</code>, <code className="font-mono">--ask</code>,
+            and <code className="font-mono">--top N</code> from the CLI help. Every answer is a
+            live MCP round-trip — there is no local index to rebuild.
           </p>
           <div className="flex flex-wrap gap-2 text-xs">
             <a className="chip chip-info hover:underline min-h-[36px] inline-flex items-center" href={`${GH}/evidence.md`} target="_blank" rel="noreferrer">query log (evidence.md)</a>
@@ -577,7 +544,7 @@ export default function TryDocSearchCli({ lamp }: { lamp: Lamp }) {
           </div>
           <p className="text-sm">
             <span className="font-semibold text-ink">{lamp.name}</span> is complete by design —
-            read-only research, 0 PHRS spent, 14 tests passing.
+            read-only research via the live Docs MCP, 0 PHRS spent, machine-checked citations.
           </p>
         </div>
       </section>

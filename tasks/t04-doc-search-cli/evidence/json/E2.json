@@ -1,0 +1,28 @@
+{
+  "label": "DOC-GROUNDED",
+  "exit_code": 0,
+  "question": "what is the Atlantic testnet chain id and RPC url",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_tool": "searchDocumentation",
+  "retrieved": "2026-10-19",
+  "citations": [
+    {
+      "page_title": "Pharos Skill Engine",
+      "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide",
+      "retrieved": "2026-10-19",
+      "excerpt": "Defines what capabilities exist and where to find detailed instructions for each\nassets/networks.json\nNetwork configuration\nRPC URLs, chain IDs, explorer URLs, native token symbols for both Atlantic testnet and mainnet\nassets/tokens.json\nKnown token registry\nPre-populated ERC20 addresses and decimals for both networks\nassets/erc20/StandardERC20.sol\nBuilt-in ERC20 contract template\nReady-to-deploy OpenZeppelin-based ERC20 with configurable name, symbol, decimals, supply"
+    },
+    {
+      "page_title": "Atlantic Testnet",
+      "page_url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+      "retrieved": "2026-10-19",
+      "excerpt": "RPC Public Endpoint\nhttps://atlantic.dplabs-internal.com\nWSS Public Endpoint\nwss://atlantic.dplabs-internal.com\nExplorer\nhttps://atlantic.pharosscan.xyz/\nChainID\n688689\nEnvironment\nAtlantic Testnet\nRatelimit\n500 times/5m\nMax Pending TXs (Addr)\n64\n\nFor the current node binary and Docker image versions, see Current Node Versions."
+    },
+    {
+      "page_title": "x402 Atlantic Testnet",
+      "page_url": "https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet",
+      "retrieved": "2026-10-19",
+      "excerpt": "This skill facilitates using the x402 SDK to construct the Pharos x402 server and the corresponding test client. For Atlantic Testnet, configure chain ID 688689 and the test USDC token address (0xE0BE08c77f415F577A1B3A9aD7a1Df1479564ec8), which is not an official address. Ensure the generated server and client use these Atlantic Testnet settings.\n\nThe following demonstrates building a server and client demo using this skill, taking opencode as an example."
+    }
+  ]
+}

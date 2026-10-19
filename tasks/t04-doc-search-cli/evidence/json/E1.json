@@ -1,0 +1,28 @@
+{
+  "label": "DOC-GROUNDED",
+  "exit_code": 0,
+  "question": "how do I deploy a contract on Pharos?",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_tool": "searchDocumentation",
+  "retrieved": "2026-10-19",
+  "citations": [
+    {
+      "page_title": "Piggy Bank Tutorial",
+      "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide",
+      "retrieved": "2026-10-19",
+      "excerpt": "A Pharos Skill is a folder of files that teaches an AI (Claude) how to interact with the Pharos blockchain. When you ask the AI something like \"Deploy a vault on Pharos\", it reads your skill files to know exactly which commands to run.\n\nThe AI is smart but it does not automatically know your contract. You teach it by writing instruction files in plain Markdown. The AI reads those files and follows them precisely."
+    },
+    {
+      "page_title": "Rust",
+      "page_url": "https://docs.pharos.xyz/developer-guide/rust",
+      "retrieved": "2026-10-19",
+      "excerpt": "table for developers who want to start building dApps using Pharos and Rust WASM toolchains. If you are a new user of Ethereum, please consider researching the Ethereum documentation before continuing.\n\nThis guide will walk you through the process of creating and deploying your first token on the Pharos blockchain using Rust and WASM toolchains. By the end of this guide, you will have a fully functional token contrac"
+    },
+    {
+      "page_title": "Pharos Skill Engine",
+      "page_url": "https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide",
+      "retrieved": "2026-10-19",
+      "excerpt": "cast wallet address --private-key $PRIVATE_KEY\ncast balance $DEPLOYER --rpc-url $RPC --ether\n# 2. Run the deploy script\nforge script script/DeployMyContract.s.sol:DeployMyContract \\\n  --rpc-url $RPC \\\n  --private-key $PRIVATE_KEY \\\n  --broadcast\n# 3. Wait 10 seconds, then verify\nsleep 10\nforge verify-contract <contract_address> src/MyContract.sol:MyContract \\\n  --chain-id 688689 \\\n  --verifier-url https://api.socialscan.io/pharos-atlantic-testnet/v1/explorer/command_api/contract \\"
+    }
+  ]
+}

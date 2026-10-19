@@ -1,0 +1,64 @@
+Title: Pharos Skill Engine
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide
+Content: The Pharos Skill Engine is a packaged developer toolkit that lets an AI agent perform any on-chain operation on the Pharos — check balances, send transactions, deploy and verify Solidity contracts, run batch airdrops, and generate Web3 interaction scripts — entirely through CLI commands.
+
+It is not an SDK, not an API, and not a smart contract framework. It is a self-contained knowledge and tooling package that a developer installs once and then hands to an AI agent (like Claude). The agent reads the package, understands what Pharos operations are available, and executes them by running the correct cast and forge commands.
+Title: Piggy Bank Tutorial
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide
+Content: A Pharos Skill is a folder of files that teaches an AI (Claude) how to interact with the Pharos blockchain. When you ask the AI something like "Deploy a vault on Pharos", it reads your skill files to know exactly which commands to run.
+
+The AI is smart but it does not automatically know your contract. You teach it by writing instruction files in plain Markdown. The AI reads those files and follows them precisely.
+Title: About Pharos
+Link: https://docs.pharos.xyz/introduction/readme
+Content: A modular stack is provided to support SPNs, Pharos L2/L3 systems. Each modular component is open-sourced and available to partners and developers for scaling and customization.Performance benchmarks have been demonstrated on Geth, and future collaborations with ecosystem partners will help drive the development of Web3 infrastructure.
+Title: Circle CCTP
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp
+Content: The relationship between CCTP’s onchain components and Circle’s offchain Attestation Service is illustrated below for a burn-and-mint of USDC between EVM-compatible domains:
+
+On Pharos, the onchain component for crosschain burning and minting is called TokenMessengerV2, which is built on top of MessageTransmitterV2, an onchain component for generalized message passing.
+
+In the diagram, a token depositor calls the TokenMessengerV2#depositForBurn function to deposit a native token (such as USDC), which delegates to the TokenMinterV2 contract to burn the token. The TokenMessengerV2 contract then sends a message via the MessageTransmitterV2#sendMessage function. After sufficient block confirmations, Circle’s offchain attestation service, Iris, signs the message. An API consumer must query this attestation and submits it onchain to the destination domain’s MessageTransmitterV2#receiveMessage function.
+
+To send an arbitrary message, directly call MessageTransmitterV2#sendMessage. The message recipient must implement the following methods to handle messages based on their finality threshold:
+
+Implement IMessageHandlerV2#handleReceiveFinalizedMessage to receive messages with finalityThresholdExecuted ≥ 2000.
+Implement IMessageHandlerV2#handleReceiveUnfinalizedMessage to receive messages with finalityThresholdExecuted < 2000.
+
+This distinction allows the recipient to control the level of finality it requires before accepting a message.
+Title: Pharos MCP
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/mcp
+Content: The Pharos MCP server brings Pharos chain data and onchain operations into any client that speaks the Model Context Protocol — Claude Desktop, Cursor, Windsurf, Codex, and custom agent runners.
+
+Instead of writing RPC plumbing, you ask your AI assistant in plain language — "what's the latest Pharos block?", "check the PROS balance of 0x…" — and it calls the right chain method for you.
+
+Hosted endpoint
+https://mcp.pharos.xyz/mcp
+Transport
+Streamable HTTP
+Authentication
+None — public
+Rate limit
+120 requests per minute per IP
+Chain ID
+1672 (0x688)
+Native token
+PROS
+Source
+github.com/PharosNetwork/pharos-mcp
+Title: Anvita Flow
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/overview
+Content: Anvita Flow is an AI agent infrastructure. It provides the underlying layer that lets developers convert their Pharos Skills into hosted, discoverable, and callable Service Agents, without building their own runtime, routing, or settlement infrastructure.
+Title: Node Debugging & Configuration
+Link: https://docs.pharos.xyz/node-and-validator-guide/node-debugging-and-configuration
+Content: You can refer to the Pharos Block Validation document for details on the Pharos consensus mechanism and block validation process.
+Title: Fordefi
+Link: https://docs.pharos.xyz/tooling-and-infrastructure/wallets/fordefi
+Content: Pharos can be enabled directly within the Fordefi platform from the Chains settings:
+
+https://app.fordefi.com/settings/chains?search=PHAROS&page=1
+Title: Rapid Node Initialization
+Link: https://docs.pharos.xyz/node-and-validator-guide/rapid-node-initialization
+Content: Atlantic
+Title: JSON-RPC API Methods
+Link: https://docs.pharos.xyz/api-and-sdk/json-rpc-methods
+Content: These are Pharos-specific debug methods that extend the standard debug namespace.

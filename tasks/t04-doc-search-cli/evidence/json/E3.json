@@ -1,0 +1,10 @@
+{
+  "label": "DOC-GROUNDED",
+  "exit_code": 0,
+  "question": "where do I get testnet tokens for gas on Pharos",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_tool": "askQuestion",
+  "retrieved": "2026-10-19",
+  "answer": "For **Pharos Atlantic Testnet**, get testnet `PHRS` from the **Pharos faucet** or directly from the Pharos team. The docs don’t specify a faucet URL. Add the testnet using chain ID `688689` and RPC `https://atlantic.dplabs-internal.com` ([Atlantic Testnet](/getting-started/network/atlantic-testnet)).\n\n# Sources\n\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/foundry/write-your-first-token)\n- [Gas Model](https://docs.pharos.xyz/getting-started/gas-model)\n- [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-token)\n- [Token Registry](https://docs.pharos.xyz/getting-started/token-registry)\n- [x402 Atlantic Testnet](https://docs.pharos.xyz/developer-guide/x402/x402-atlantic-testnet)\n- [Rust](https://docs.pharos.xyz/developer-guide/rust)\n- [Write Your First NFT](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-nft)\n- [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/zan)\n- [Get PROS Gas](https://docs.pharos.xyz/getting-started/get-pros-gas)\n- [Alchemy RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc/alchemy)\n- [Piggy Bank Tutorial](https://docs.pharos.xyz/tooling-and-infrastructure/pharos-skill-engine-guide/piggybank-skill-guide)\n- [Atlantic Testnet](https://docs.pharos.xyz/getting-started/network/atlantic-testnet)\n- [Network](https://docs.pharos.xyz/getting-started/network)\n- [Pacific Mainnet](https://docs.pharos.xyz/getting-started/network/pacific-mainnet)\n- [Circle CCTP](https://docs.pharos.xyz/tooling-and-infrastructure/cross-chain/circle-cctp)\n- [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management)",
+  "note": "Synthesized by the Docs MCP answer engine over the docs corpus; source links are inside the answer text."
+}

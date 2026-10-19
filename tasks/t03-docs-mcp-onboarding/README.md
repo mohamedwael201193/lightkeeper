@@ -10,71 +10,103 @@
 
 ---
 
+> **Resubmission note (2026-10-19):** the first submission was returned with
+> *"The onboarding queries weren't made through the Developer Docs MCP. Redo the log using the
+> Docs MCP and resubmit."* That verdict was correct: the original log used the GitBook `?ask=`
+> page endpoint, not the real Docs MCP. This build redoes the entire onboarding log through the
+> actual Developer Docs MCP — the public GitBook MCP endpoint
+> `https://docs.pharos.xyz/~gitbook/mcp` (MCP Streamable HTTP, no auth), tool `askQuestion`.
+> 9 queries, 9 verbatim answers, machine-checked quotes, stamped proof.
+
 ## 1. What this is
 
-A **feedback-task deliverable** built with ONLY Docs MCP surfaces: a verbatim step-by-step log of
-queries asked → answers received, **5 confirmed gaps** each with the EXACT query and a suggested fix,
-and a runnable query-log runner plus a "First 5 Queries" onboarding quickstart derived solely from
-real answers. No mocks, no invented answers — where the docs couldn't answer, the log says so.
+A **feedback-task deliverable** built with ONLY the Developer Docs MCP: a verbatim step-by-step log of
+queries asked → answers received through the real Docs MCP, **5 confirmed gaps** each with the EXACT
+query and a suggested fix, and a runnable query-log runner plus a "First 5 Queries" onboarding
+quickstart derived solely from real MCP answers. No mocks, no invented answers — where the docs
+couldn't answer, the MCP said so and the log says so.
 
-## 2. Official requirements → where they live
+**Claim boundary:** this is the public GitBook Docs MCP endpoint
+(`docs.pharos.xyz/~gitbook/mcp`, server v0.27.2) — NOT the login-gated ai.pharos.xyz portal
+session. It is docs-only: no chain-tool access is claimed through it, and `askQuestion` answers
+are GitBook's answer engine over the docs corpus, quoted verbatim.
 
-| Official requirement (MEGA §3.2, quoted in `REQUIREMENTS.md`) | Location |
+## 2. Official requirements → evidence
+
+| # | Official requirement (REQUIREMENTS.md, verbatim) | Evidence |
+|---|---|---|
+| (1) | Step-by-step log: tried → asked → received | `evidence.md` §1 · `evidence/runs/run-mcp-20261019T200816Z.json` (exact JSON-RPC payloads + verbatim answers) · `evidence/transcripts/transcript-20261019T200816Z.md` (rendered) |
+| (2) | ≥3 concrete gaps, each with the EXACT query | `evidence.md` §2 (G1–G5, all Docs-MCP-derived) |
+| (3) | Suggested fix per gap | Same table, "what the docs should have said" column |
+| (4) | What you built / ran | `QUICKSTART.md` + `scripts/query_log.py` v2.0 (§5) |
+| CONSTRAINT | ONLY Docs MCP — no external docs, search engines, or community help | `evidence.md` provenance + §3 quarantine; the endpoint itself *is* the Docs MCP |
+
+Reproduce the evidence: `python3 scripts/query_log.py run` → new run JSON + transcript + proof JSON.
+
+## 3. The log (summary — 9 queries, 9 answered, all via Docs MCP `askQuestion`)
+
+Run `20261019T200816Z` · endpoint `https://docs.pharos.xyz/~gitbook/mcp` · server v0.27.2 ·
+p50 19.5 s / p90 76.21 s · proof: `evidence/runs/proof-20261019T200816Z.json`
+
+| Query | Docs MCP answer (verbatim excerpt) |
 |---|---|
-| (1) Step-by-step log: tried → asked → received | `evidence.md` §1 · `evidence.json` (raw verbatim) |
-| (2) ≥3 concrete gaps, each with the EXACT query | `evidence.md` §2 (G1–G5) |
-| (3) Suggested fix per gap | Same table, "what the docs should have said" |
-| (4) What you built / ran | `QUICKSTART.md` + `scripts/query_log.py` (§5 below) |
-| CONSTRAINT: ONLY Docs MCP | `evidence.md` §3 firewall + §6 below |
-
-## 3. The log (summary — 3 runs, 15 attempts, 8 answers)
-
-Nine onboarding queries against the documented ask endpoint
-`GET https://docs.pharos.xyz/<page>.md?ask=<q>&goal=<g>` (2026-10-16, verbatim in `evidence.json`):
-
-| Query | Verdict |
-|---|---|
-| Sign-in to ai.pharos.xyz | "Cannot find" — arena absent from docs |
+| Sign-in to ai.pharos.xyz | "cannot find" — Arena absent from docs |
 | Atlantic network identity | 688689 · `atlantic.dplabs-internal.com` · PHRS ✅ |
-| Official faucet URL | "Docs don't provide a direct URL" — gap |
-| Chain MCP tools | 14 tools, hosted `mcp.pharos.xyz`, **chain 1672/PROS** — ambiguity confirmed |
-| get_logs limits | 100 blocks (rate-limited) / 10,000 fallback ✅ |
-| SkillEngine install | **Failed 3×** (`IncompleteRead`) — genuine breakdown, logged |
-| Arena submission | "Cannot find" — gap |
-| Chain-ID ambiguity (688689 vs 1672) | 403 ×2, then confirmed 688689/PHRS |
-| Share session links | "Cannot find" — gap |
+| Official faucet URL | "doesn't provide the faucet's URL" — gap |
+| Chain MCP tools | Hosted `mcp.pharos.xyz/mcp`, no key, targets 1672 — network unlabeled |
+| get_logs limits | 100 blocks (rate-limited) / 10,000 fallback — vs 1,000 observed |
+| SkillEngine install | Full build→publish flow via Anvita Flow ✅ |
+| Arena submission | "cannot find" — gap |
+| Chain-ID ambiguity (688689 vs 1672) | 688689/PHRS = Atlantic, 1672/PROS = Pacific ✅ (ambiguity resolved) |
+| Share session links | "cannot find" — gap |
 
-Notable: the verdict team recorded HTTP **403** first-hand on this endpoint; this session got 200 on
-most queries but 403s, `IncompleteRead`s and one stalled connection — reachability is client/rate
-dependent. Both observations are recorded in `evidence.md`.
+Full verbatim answers with source-link lists: `evidence/transcripts/transcript-20261019T200816Z.md`.
+Every `>` quote in `evidence.md` is machine-verified against the raw transcript
+(`python3 scripts/quote_check.py` → ALL QUOTES VERIFIED).
 
 ## 4. The five gaps
 
-1. **G1 — Flaky scripted access.** The documented ask endpoint 403s / drops connections unpredictably; no rate-limit contract is published. *Fix: publish the contract; long-term, a real public Docs-MCP API.*
-2. **G2 — Chain-identity ambiguity, confirmed.** Hosted Chain MCP = chain 1672/PROS = **Pacific mainnet**, never labeled as such; arena builders on Atlantic (688689/PHRS) can silently read the wrong chain. *Fix: one banner sentence on `mcp.md`.*
-3. **G3 — No official faucet URL in the docs corpus.** *Fix: Live-Data entry + URL + drip limits.*
-4. **G4 — The Agent Arena is entirely absent from the developer docs** (sign-in, submission, share links). *Fix: an "Agent Arena" docs section.*
-5. **G5 — `llms.txt` omits real pages** (e.g. the Pharos MCP page the Q&A itself cites). *Fix: regenerate from the sitemap in CI.*
+1. **G1 — The Agent Arena is entirely absent from the developer docs.** Three separate Docs-MCP
+   queries (sign-in, submission, share links) all return "cannot find". *Fix: an "Agent Arena"
+   docs section (sign-in, submission mechanics, share links).*
+2. **G2 — No official faucet URL in the docs corpus.** The MCP admits it directly. *Fix: Live-Data
+   entry + URL + drip limits.*
+3. **G3 — `eth_getLogs` limits: docs text vs. observed behavior.** Docs say 100/10,000; live Atlantic
+   enforces 1,000. *Fix: state the effective per-network limit explicitly.*
+4. **G4 — No reliability contract for the Docs MCP endpoint.** ~30–40% of calls dropped mid-stream
+   during this run (recovered by retry); no rate-limit/retry guidance published. *Fix: publish the
+   budget, retry policy, and latency bands.*
+5. **G5 — Chain-identity labeling (residual).** The MCP says the hosted Chain MCP "targets chain ID
+   1672" without naming the network; only a separate query reveals 1672 = Pacific Mainnet.
+   *Fix: one banner sentence on the MCP docs page.*
 
 Full table with exact queries and verbatim returns: `evidence.md` §2.
 
 ## 5. What got built
 
-- **`scripts/query_log.py`** (stdlib only) — replays `queries.json` against the live ask endpoint,
-  stores every response verbatim (or the failure) in `evidence/runs/` + cumulative `evidence.json`;
-  `check` gates on ≥7 documented queries; `links` curl-tests every URL in `LINKS.md`.
-  Run: `python3 scripts/query_log.py run` (~3 min, 6 s between queries).
-- **`QUICKSTART.md`** — "First 5 Queries": chain identity (+ the 1672 trap), Chain MCP tools,
-  get_logs paging, the faucet gap, the arena gap — each answer Docs-MCP-derived with source links.
+- **`scripts/query_log.py` v2.0** (stdlib only) — a minimal MCP Streamable-HTTP client:
+  `initialize` → `tools/call askQuestion` with retry-with-backoff (the endpoint drops ~30–40% of
+  connections; it is stateless, so retry is safe). Stores exact JSON-RPC payloads, verbatim answers,
+  per-query latency, git commit + dirty flag in `evidence/runs/`; writes a raw JSONL transcript, a
+  rendered markdown transcript, and a stamped `proof-<ts>.json`. `check` gates on ≥7 documented
+  queries; `links` curl-tests every URL in `LINKS.md`. Run: `python3 scripts/query_log.py run`
+  (~6 min, 6 s between queries). `sendFeedback` is never invoked (it would file a real report).
+- **`scripts/quote_check.py`** — asserts every `>` quote in `evidence.md` appears
+  (whitespace-normalized) in the verbatim transcript. Exit 0 = all verified.
+- **`QUICKSTART.md`** — "First 5 Queries": chain identity, Chain MCP tools, get_logs paging (with the
+  G3 discrepancy stated), the faucet gap, the arena gap — each answer Docs-MCP-derived, dated
+  2026-10-19, with source links.
 - **`queries.json`** — the 9 exact queries, reusable as regression probes for docs changes.
 
 ## 6. Firewall & honesty
 
-- Evidence section contains **only Docs-MCP-derived material** (ask-endpoint answers + fetched `.md` pages, labeled).
-- Hypotheses, inferences, and unrun probes are quarantined in `evidence.md` §3 (non-evidence appendix).
-- The portal-embedded Docs MCP chat (ai.pharos.xyz) needs a wallet sign-in this agent cannot perform —
-  it is **unrepresented** here; a logged-in follow-up session would strengthen G4. Stated, not hidden.
-- Q6's three `IncompleteRead` failures are logged as failures. Nothing was reconstructed.
+- The evidence section contains **only Docs-MCP-derived material** (`askQuestion` answers, labeled).
+- Endpoint discovery (my own `tools/list` probe) and pre-seeded hypotheses are quarantined in
+  `evidence.md` §3 (non-evidence appendix) — they informed the queries but are not evidence.
+- The 2026-10-16 `?ask=`-era log is superseded; retained in `evidence.json` (legacy) for the record.
+- The login-gated ai.pharos.xyz portal session is **unrepresented** here; a logged-in follow-up
+  session could strengthen G1. Stated, not hidden.
+- Dropped connections during the run are logged as observed behavior (G4), not papered over.
 
 ## 7. Files
 
@@ -82,27 +114,29 @@ Full table with exact queries and verbatim returns: `evidence.md` §2.
 tasks/t03-docs-mcp-onboarding/
 ├── README.md            # this file
 ├── REQUIREMENTS.md      # official requirements, quoted verbatim
-├── QUICKSTART.md        # onboarding artifact derived from real answers
+├── QUICKSTART.md        # onboarding artifact derived from real MCP answers
 ├── task.yaml            # machine-readable task record
 ├── queries.json         # the 9 exact queries
-├── evidence.md          # §1 log · §2 gap table · §3 non-evidence appendix
-├── evidence.json        # raw verbatim Q/A log (3 runs)
-├── evidence/runs/       # per-run JSON
+├── evidence.md          # §1 MCP log · §2 gap table · §3 non-evidence appendix
+├── evidence.json        # LEGACY 2026-10-16 ?ask=-era log (superseded, retained)
+├── evidence/runs/       # per-run JSON + stamped proof-<ts>.json
+├── evidence/transcripts/# verbatim transcript-<ts>.jsonl + .md
 ├── evidence/link_check.json  # curl-test results for LINKS.md
-├── REVIEWER_NOTES.md    # for the judge
 ├── LINKS.md             # every link, curl-verified
 ├── SUBMISSION.md        # copy-paste Arena pack
-├── VIDEO-GUIDE.md       # 45–90 s filming guide
-└── scripts/query_log.py # reproducible query-log runner
+└── scripts/
+    ├── query_log.py     # v2.0 — real Docs MCP runner
+    └── quote_check.py   # machine quote verification
 ```
 
 ## 8. Reproduce
 
 ```bash
 cd ~/workspace/lightkeeper/tasks/t03-docs-mcp-onboarding
-python3 scripts/query_log.py run    # replay all queries → evidence/runs/<ts>.json
-python3 scripts/query_log.py check  # verify ≥7 documented queries
-python3 scripts/query_log.py links   # curl-test every link in LINKS.md
+python3 scripts/query_log.py run          # 9 queries via Docs MCP → evidence/runs/<ts>.json + transcript + proof
+python3 scripts/query_log.py check        # verify ≥7 documented queries
+python3 scripts/query_log.py links        # curl-test every link in LINKS.md
+python3 scripts/quote_check.py            # verify every evidence.md quote against the transcript
 ```
 
 Zero PHRS spent. Atlantic testnet untouched (read-only research task).
