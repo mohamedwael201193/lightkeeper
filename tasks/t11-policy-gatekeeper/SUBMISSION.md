@@ -40,7 +40,7 @@ handling, mainnet refusal purity, stamp no-bypass, and audit tamper
 detection. Total spend: 0.00204200042 PHRS of the 0.15 budget.
 
 ## Repo link (commit-pinned)
-https://github.com/mohamedwael201193/lightkeeper/tree/REPLACE_WITH_COMMIT_SHA/tasks/t11-policy-gatekeeper
+https://github.com/mohamedwael201193/lightkeeper/tree/f646a97f7e985f1d68273331cb4212242ae21a89/tasks/t11-policy-gatekeeper
 
 ## Share / demo links
 - Tx (RUN B): https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb

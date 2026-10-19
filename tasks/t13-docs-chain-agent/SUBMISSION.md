@@ -17,7 +17,7 @@ T13 is the genuine Docs-MCP + Chain-MCP composition loop. For each question the 
 ## Links
 
 - Code (commit-pinned):
-  https://github.com/mohamedwael201193/lightkeeper/tree/REPLACE_WITH_COMMIT_SHA/tasks/t13-docs-chain-agent
+  https://github.com/mohamedwael201193/lightkeeper/tree/f646a97f7e985f1d68273331cb4212242ae21a89/tasks/t13-docs-chain-agent
 - USDC on Pharos mainnet: https://pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815
 - USDC/USD feed (named by the Docs MCP): https://pharosscan.xyz/address/0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d
 - Demo video: REPLACE_WITH_NEW_VIDEO_LINK

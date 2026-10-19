@@ -1,7 +1,7 @@
 # T15 — SUBMISSION PACK (copy-paste ready for the Pharos Agent Arena)
 
 > Paste the sections below into the per-task submission form. The repo link is
-> commit-pinned — fill `REPLACE_WITH_COMMIT_SHA` after the T09–T16 commit lands.
+> commit-pinned — fill `f646a97f7e985f1d68273331cb4212242ae21a89` after the T09–T16 commit lands.
 
 ---
 

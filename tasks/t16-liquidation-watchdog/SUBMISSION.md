@@ -1,6 +1,6 @@
 # SUBMISSION PACK — T16 Liquidation Watchdog (copy-paste ready)
 
-> Fill `REPLACE_WITH_COMMIT_SHA` with the real commit hash after committing (see LINKS.md).
+> Fill `f646a97f7e985f1d68273331cb4212242ae21a89` with the real commit hash after committing (see LINKS.md).
 > Video slot is PENDING-VIDEO until the demo is filmed.
 
 ---

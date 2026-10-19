@@ -13,7 +13,7 @@ All links curl-verified HTTP 200 on 2026-10-16.
 
 ## Repo (commit-pinned after commit)
 
-- Task dir: https://github.com/mohamedwael201193/lightkeeper/tree/REPLACE_WITH_COMMIT_SHA/tasks/t16-liquidation-watchdog
+- Task dir: https://github.com/mohamedwael201193/lightkeeper/tree/f646a97f7e985f1d68273331cb4212242ae21a89/tasks/t16-liquidation-watchdog
 
 ## Demo / video
 
