@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-19T22:38:16.251Z",
+  "generated_at": "2026-10-19T23:57:59.748Z",
   "source": "../../tasks/*/evidence.json + task.yaml — statuses from real evidence only",
   "total_points": 3200,
   "lamps_lit": 16,
@@ -66,7 +66,7 @@
       ],
       "explorer_links": [
         "https://atlantic.pharosscan.xyz/tx/0xe181acf0a80fa9b09ba0f77afe92c8f5faa36c193cf2735ec545265253b4a86b",
-        "https://atlantic.pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815",
+        "https://pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815",
         "https://atlantic.pharosscan.xyz/address/0xe1Ae5eC5B4416e7d725981946e11aF0A44bF4ecD"
       ],
       "has_submission": true,
@@ -244,24 +244,24 @@
         "0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf",
         "0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba",
         "0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893",
-        "0x4c4b32303236544f326d00000000000000000000000000000000000000000000",
         "0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186",
         "0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c",
-        "0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff",
-        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+        "0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff"
       ],
       "explorer_links": [
         "https://atlantic.pharosscan.xyz/tx/0x5ee42464c060dc4e23f270ead85128516454fbbc3bf64c3b0b78c565049044cf",
         "https://atlantic.pharosscan.xyz/tx/0x8822cc471760334c130856774f5e89c266600e4567e77dce1d51232fc2cba1ba",
         "https://atlantic.pharosscan.xyz/tx/0xa84422575f2a92344c72fa7a289df378616b297d5df62f33b78aab5401838893",
-        "https://atlantic.pharosscan.xyz/tx/0x4c4b32303236544f326d00000000000000000000000000000000000000000000",
         "https://atlantic.pharosscan.xyz/tx/0x802e1cc1012ee67ededaccfb48889cf5453abcd92134248f23ebc318d4d54186",
         "https://atlantic.pharosscan.xyz/tx/0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2f65b34e041584568aba8fd9c",
         "https://atlantic.pharosscan.xyz/tx/0x94e293342120ec9a44468413fe881af50f0b90c0278cb3b03594b9b85f8a70ff",
-        "https://atlantic.pharosscan.xyz/tx/0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
         "https://atlantic.pharosscan.xyz/address/0x2C1dB0C436B72D94a4112f321DFbD13a976D8831",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6b0920e9332ff4410f6dd53f01722abc71a3",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+        "https://atlantic.pharosscan.xyz/address/0x5ee42464c060dc4e23f270ead85128516454fbbc",
+        "https://atlantic.pharosscan.xyz/address/0x8822cc471760334c130856774f5e89c266600e45",
+        "https://atlantic.pharosscan.xyz/address/0xa84422575f2a92344c72fa7a289df378616b297d",
+        "https://atlantic.pharosscan.xyz/address/0x802e1cc1012ee67ededaccfb48889cf5453abcd9",
+        "https://atlantic.pharosscan.xyz/address/0x37f245ef74863d46ea6faf05ff4bfc94c561b9c2",
+        "https://atlantic.pharosscan.xyz/address/0x94e293342120ec9a44468413fe881af50f0b90c0"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -997,7 +997,11 @@
         "https://atlantic.pharosscan.xyz/tx/0x04effe58f393349714ff6a5badeff5780d2c30ccce238f8184075854eb223f3f",
         "https://atlantic.pharosscan.xyz/tx/0xe160ca25fd76966a867fd36b761c08831ad54ed395069cfb59e1dc23ed912e7b",
         "https://atlantic.pharosscan.xyz/tx/0xe51e3e9b7fb93d9232d092725eedd6aac6d6d8f3d1688e4def8bf9ad0d6e85c3",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+        "https://atlantic.pharosscan.xyz/address/0xe318dd0af236c292e6a1c21e0c98bd6088dac47f",
+        "https://atlantic.pharosscan.xyz/address/0xb1ba9e2dc1c03e39d6896ecb07c063cf2a8b6a37",
+        "https://atlantic.pharosscan.xyz/address/0x04effe58f393349714ff6a5badeff5780d2c30cc",
+        "https://atlantic.pharosscan.xyz/address/0xe160ca25fd76966a867fd36b761c08831ad54ed3",
+        "https://atlantic.pharosscan.xyz/address/0xe51e3e9b7fb93d9232d092725eedd6aac6d6d8f3"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -1379,9 +1383,25 @@
         "https://atlantic.pharosscan.xyz/tx/0x609b2b06be22646c82d7b6bcacbac8170a38edbd0e9d53ff3675832e4c8bf0b6",
         "https://atlantic.pharosscan.xyz/tx/0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f04881f55ab0273db9c4e5cc62",
         "https://atlantic.pharosscan.xyz/tx/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
         "https://atlantic.pharosscan.xyz/address/0x1F3fb438824140b7E1125502f80B686D95072939",
-        "https://atlantic.pharosscan.xyz/address/0x29bf11Cd948CE845687A21819b2844d5321432Cf"
+        "https://atlantic.pharosscan.xyz/address/0x29bf11Cd948CE845687A21819b2844d5321432Cf",
+        "https://atlantic.pharosscan.xyz/address/0x980d72167fea7733d6da0f372718ac578f2cdd1c",
+        "https://atlantic.pharosscan.xyz/address/0x63e814e827e57b23bc0f4e6951d7b60188256f58",
+        "https://atlantic.pharosscan.xyz/address/0x30183882c8021b6daa017b03d5eecca595bf7faa",
+        "https://atlantic.pharosscan.xyz/address/0xe46a8c40db9656ecb37baf933f1d6044a0e13a03",
+        "https://atlantic.pharosscan.xyz/address/0x9c2598384dfdbfd688bbd42e4006308decd455a1",
+        "https://atlantic.pharosscan.xyz/address/0xa13311d24cd0aff5eb91c389f14b22e9be8f9cab",
+        "https://atlantic.pharosscan.xyz/address/0xf0cd0b23720490f95e870e5b43799c748f47a338",
+        "https://atlantic.pharosscan.xyz/address/0xcba5e834fb142d4151fb59b80baeb0d7e83d18e9",
+        "https://atlantic.pharosscan.xyz/address/0x452acae1ec4335ecd0842672c97383b5671e1ad9",
+        "https://atlantic.pharosscan.xyz/address/0x0371814a1739f58698722db4915da1b718512c9b",
+        "https://atlantic.pharosscan.xyz/address/0x91f7e02125434e3f29a56ed086f440a283ac0005",
+        "https://atlantic.pharosscan.xyz/address/0xe6cac3114397487f6d1b1efec721af968ee8868e",
+        "https://atlantic.pharosscan.xyz/address/0x0e80719119b7fb8781020e5a7fa0fcec01eeec16",
+        "https://atlantic.pharosscan.xyz/address/0x96d304d53c427e155d157a0234297f63b494c18f",
+        "https://atlantic.pharosscan.xyz/address/0x609b2b06be22646c82d7b6bcacbac8170a38edbd",
+        "https://atlantic.pharosscan.xyz/address/0xd9e4fb6dc7c8d998ec0c532cb73211bd2ab927f0",
+        "https://atlantic.pharosscan.xyz/address/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -1845,12 +1865,32 @@
         "https://atlantic.pharosscan.xyz/tx/0x6b9b8d9ec3b57793b5e7a284b9bd7cf356639ace1bc24fd109c891be49624489",
         "https://atlantic.pharosscan.xyz/tx/0xa5affcde830d7a44fd74d7a3dd9f902534dfce20801ad3d7a7a475ecb70cfd19",
         "https://atlantic.pharosscan.xyz/tx/0xfb2ab4a0b3ad3055c6a77a929a329d32add7594c57c5279dd5ef33bd02b833a9",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
         "https://atlantic.pharosscan.xyz/address/0x8a81455a477deeA986ca48cE83ca89C5331Da793",
         "https://atlantic.pharosscan.xyz/address/0x8BAa4fD0329dbf77c9fBFC44448B5669D356bfe1",
         "https://atlantic.pharosscan.xyz/address/0x8683C6D6EeAA57B03688f43Ad0cbCA0af26Cf464",
         "https://atlantic.pharosscan.xyz/address/0x432BCd7bc6944Def44015bF00C82Eb50aA18A3F6",
-        "https://atlantic.pharosscan.xyz/address/0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D"
+        "https://atlantic.pharosscan.xyz/address/0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D",
+        "https://atlantic.pharosscan.xyz/address/0x3e20e826fd4f9453fad588364ecb6749384e04b4",
+        "https://atlantic.pharosscan.xyz/address/0x7d554b83d9e93d70dc3f94f5e496f96764128512",
+        "https://atlantic.pharosscan.xyz/address/0x8280c398e7eeea1c5e1cac2530bd108f1376dee1",
+        "https://atlantic.pharosscan.xyz/address/0x0592a0075a8a48848c3b32240f4ee05bda954d0f",
+        "https://atlantic.pharosscan.xyz/address/0x3a0bc2631f958f13a016f3608eb98157a9e9b50e",
+        "https://atlantic.pharosscan.xyz/address/0xf44fa64b569bc10061e8b61ca44a194672527d5c",
+        "https://atlantic.pharosscan.xyz/address/0x469add8fb736291d0df875b65b13503d28beea69",
+        "https://atlantic.pharosscan.xyz/address/0x20184ab3b8b3db6cb54e0e05c0541656e9e760a4",
+        "https://atlantic.pharosscan.xyz/address/0xb852b827d6fecc9a2dd582299320e586e64192c9",
+        "https://atlantic.pharosscan.xyz/address/0x4edf8f0be6fe7405a9d22896526cd72d9612dc85",
+        "https://atlantic.pharosscan.xyz/address/0x79402e4332d572f2ba0fc5602c1d38468850b222",
+        "https://atlantic.pharosscan.xyz/address/0x67d69373b45e4fcf048808db660547041418b514",
+        "https://atlantic.pharosscan.xyz/address/0x64e8003e145469e8538fd62e21543fe6e553d8c5",
+        "https://atlantic.pharosscan.xyz/address/0x0358cd6c96a7b09446bf1615c986ce3168177b21",
+        "https://atlantic.pharosscan.xyz/address/0x8930f5f9afc801ce405a09b4851fc4969c23245b",
+        "https://atlantic.pharosscan.xyz/address/0x9f7fd60ccbdcb5dac69e9352bbfe952c48592c0d",
+        "https://atlantic.pharosscan.xyz/address/0x39fe2154abde86a58418d85667dbec826207b373",
+        "https://atlantic.pharosscan.xyz/address/0xdcd894bb8bd2f981f2af78425bb58623f26c7245",
+        "https://atlantic.pharosscan.xyz/address/0x6b9b8d9ec3b57793b5e7a284b9bd7cf356639ace",
+        "https://atlantic.pharosscan.xyz/address/0xa5affcde830d7a44fd74d7a3dd9f902534dfce20",
+        "https://atlantic.pharosscan.xyz/address/0xfb2ab4a0b3ad3055c6a77a929a329d32add7594c"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -2064,7 +2104,9 @@
         "https://atlantic.pharosscan.xyz/tx/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee",
         "https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03",
         "https://atlantic.pharosscan.xyz/address/0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+        "https://atlantic.pharosscan.xyz/address/0xbb5facf81cd46d97cdb706ef2ecf6ecda70cd7cb",
+        "https://atlantic.pharosscan.xyz/address/0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2df",
+        "https://atlantic.pharosscan.xyz/address/0xd294bb5c03c55d7ffdd750b0a20384aa393e490d"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -2512,10 +2554,7 @@
         "https://atlantic.pharosscan.xyz/tx/0x067109a9609ad0ea7cfb3e865da30929ef7c5decb96f050e16e01d669df0ae0c",
         "https://atlantic.pharosscan.xyz/tx/0x0d5a9c779fa35812cf8335888500e7c9cc9ede815a4af3e21541b5e24780ef35",
         "https://atlantic.pharosscan.xyz/address/0xec0aeCf6c778f44AEa12Ee17afB38f4E0af0a2a4",
-        "https://atlantic.pharosscan.xyz/address/0x49b26d4685262e7756cbE623f134cFa97d142B94",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
-        "https://atlantic.pharosscan.xyz/address/0x174CFa52Eb47368A74Aa194471ADC745B6b248cA",
-        "https://atlantic.pharosscan.xyz/address/0x107DCf4CdDCB1a092f728D46A900D7e474C224BE"
+        "https://atlantic.pharosscan.xyz/address/0x49b26d4685262e7756cbE623f134cFa97d142B94"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -2689,7 +2728,9 @@
       ],
       "explorer_links": [
         "https://atlantic.pharosscan.xyz/tx/0xc471c8f7aa4d8cb0963f80335d190607a883ab749d2058f0d047d476678159bb",
-        "https://atlantic.pharosscan.xyz/tx/0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329"
+        "https://atlantic.pharosscan.xyz/tx/0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06a99349cf9ac86f98e05b6329",
+        "https://atlantic.pharosscan.xyz/address/0xc471c8f7aa4d8cb0963f80335d190607a883ab74",
+        "https://atlantic.pharosscan.xyz/address/0x42c4a35d024c2bfc16807d04f2f3478ac96b3d06"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -2784,8 +2825,8 @@
       },
       "txs": [],
       "explorer_links": [
-        "https://atlantic.pharosscan.xyz/address/0x936564245b69f5a293b42cbd752e0ee3bb68b470",
-        "https://atlantic.pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815"
+        "https://pharosscan.xyz/address/0x936564245b69f5a293b42cbd752e0ee3bb68b470",
+        "https://pharosscan.xyz/address/0xc879c018db60520f4355c26ed1a6d572cdac1815"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -2865,8 +2906,9 @@
       "explorer_links": [
         "https://atlantic.pharosscan.xyz/tx/0x36564924532bfe15be4871f40bf533c0ceecbc045592dc348d60fad5faabf16b",
         "https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
-        "https://atlantic.pharosscan.xyz/address/0x838800b758277CC111B2d48Ab01e5E164f8E9471"
+        "https://atlantic.pharosscan.xyz/address/0x838800b758277CC111B2d48Ab01e5E164f8E9471",
+        "https://atlantic.pharosscan.xyz/address/0x36564924532bfe15be4871f40bf533c0ceecbc04",
+        "https://atlantic.pharosscan.xyz/address/0xf7f35529e142acf7dfe2a07225a68e7411182121"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -3170,15 +3212,12 @@
         "https://atlantic.pharosscan.xyz/tx/0x4974632705a0d1ccc9e81b16e29b390ba9629a5d8bbfeebd64bbaca3eab0b05c",
         "https://atlantic.pharosscan.xyz/tx/0xc52873bba706c287672cea1c2410d46ef81bcc008ebf1c842e1112ae90477b9e",
         "https://atlantic.pharosscan.xyz/tx/0xf7f35529e142acf7dfe2a07225a68e7411182121445d51dc2b5395a56e2da0a7",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
         "https://atlantic.pharosscan.xyz/address/0xcfC8330f4BCAB529c625D12781b1C19466A9Fc8B",
         "https://atlantic.pharosscan.xyz/address/0xE7E84B8B4f39C507499c40B4ac199B050e2882d5",
         "https://atlantic.pharosscan.xyz/address/0x0c64F03EEa5c30946D5c55B4b532D08ad74638a4",
         "https://atlantic.pharosscan.xyz/address/0x7d211F77525ea39A0592794f793cC1036eEaccD5",
         "https://atlantic.pharosscan.xyz/address/0x838800b758277CC111B2d48Ab01e5E164f8E9471",
-        "https://atlantic.pharosscan.xyz/address/0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9",
-        "https://atlantic.pharosscan.xyz/address/0x0000000000000000000000000000000000000000",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6b0920e9332ff4410f6dd53f01722abc71a3"
+        "https://atlantic.pharosscan.xyz/address/0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -3415,9 +3454,16 @@
         "https://atlantic.pharosscan.xyz/tx/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343fbfd7d084770d244eeec6e32",
         "https://atlantic.pharosscan.xyz/tx/0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66a8b0180a16db617b1240feb9",
         "https://atlantic.pharosscan.xyz/tx/0x1d01194b335186295860624f6f94f6d6af19c856a9ffcd29d009deaa2601edbd",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "https://atlantic.pharosscan.xyz/address/0x6452e916d88b5eb7ace2513f0cc49d61df927bfb",
+        "https://atlantic.pharosscan.xyz/address/0x6decfa5ca770bd7cab1ae08425a6f726032b794f",
+        "https://atlantic.pharosscan.xyz/address/0x67784abb03a93435cb9d818c390ee6542454050d",
+        "https://atlantic.pharosscan.xyz/address/0x01e6ce14c573c0f5493f222e05c13cb69f8aae47",
+        "https://atlantic.pharosscan.xyz/address/0x11714e6f6b1cbe8686b6a5ee2d6830a55873b5c6",
+        "https://atlantic.pharosscan.xyz/address/0x3dc2ac6890497f640ac6aecda7be65d1f8c6b343",
         "https://atlantic.pharosscan.xyz/address/0xe3212234B17A90cCBC36b0B44845394b62838b08",
-        "https://atlantic.pharosscan.xyz/address/0xDC3D4a3f47BB479692239ECC362a16CE3485B283"
+        "https://atlantic.pharosscan.xyz/address/0x91c13f9cb3e4df65c7d7b23218bb04241ee0cc66",
+        "https://atlantic.pharosscan.xyz/address/0xDC3D4a3f47BB479692239ECC362a16CE3485B283",
+        "https://atlantic.pharosscan.xyz/address/0x1d01194b335186295860624f6f94f6d6af19c856"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",
@@ -3593,7 +3639,11 @@
         "https://atlantic.pharosscan.xyz/tx/0x6a9a22d43b00eab59a6e26f007bce35249f7796a9688f716d47c49984d084861",
         "https://atlantic.pharosscan.xyz/tx/0x434f9b5a75c7a6ff7ce83533d848748bdada393023c0b7ee1d72c20a2bb6bea4",
         "https://atlantic.pharosscan.xyz/address/0x108989a165a446e1d89CEe3C9936344ea7ADbf4a",
-        "https://atlantic.pharosscan.xyz/address/0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3"
+        "https://atlantic.pharosscan.xyz/address/0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf",
+        "https://atlantic.pharosscan.xyz/address/0x3798b3e3604a9c358fe6e8b8d271f2663b2814b4",
+        "https://atlantic.pharosscan.xyz/address/0xfa4674f23632226406fc24f264be85d10c14eb5d",
+        "https://atlantic.pharosscan.xyz/address/0x6a9a22d43b00eab59a6e26f007bce35249f7796a",
+        "https://atlantic.pharosscan.xyz/address/0x434f9b5a75c7a6ff7ce83533d848748bdada3930"
       ],
       "has_submission": true,
       "submission_status": "written — founder submits",

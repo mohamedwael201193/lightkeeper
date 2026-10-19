@@ -1,14 +1,14 @@
 {
   "one_liner": "Reads 8 typed values from a live contract, all pinned to one block, with an independently verified storage-slot proof.",
-  "what_it_does": "This lamp reads real values straight out of a live contract on the Atlantic testnet — no copying, no guessing. Every read is pinned to a single block so nothing shifts mid-report, and the key balance was double-checked by reading raw contract storage independently. Proven by 1 real on-chain transaction plus free live reads, all linked below.",
+  "what_it_does": "This lamp reads real values straight out of a live contract on Pharos mainnet (the Chain MCP serves mainnet only) — no copying, no guessing. Every read is pinned to a single block so nothing shifts mid-report, and the key balance was double-checked by reading raw contract storage independently. Proven by 1 real on-chain transaction on the Atlantic testnet plus free live reads, all linked below.",
   "config_plain": [
     {
       "label": "Network",
-      "value": "Atlantic testnet"
+      "value": "Pharos mainnet"
     },
     {
       "label": "Chain ID",
-      "value": "688689"
+      "value": "1672"
     },
     {
       "label": "Values read",

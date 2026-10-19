@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowLeft, ExternalLink, Flame } from "lucide-react";
 import type { Lamp } from "../types";
-import { explorerAddress, explorerTx, shortenAddress } from "../types";
+import { explorerTx, shortenAddress } from "../types";
 import TryPanel from "./TryPanel";
 import FounderPanel from "./FounderPanel";
 
@@ -47,6 +47,44 @@ interface RunRow {
   explorer: string | null;
 }
 
+/** Network each row belongs to, derived from the task's own evidence.
+ *  Chain ID 1672 = Pharos mainnet (pharosscan.xyz); everything else defaults
+ *  to the Atlantic testnet (atlantic.pharosscan.xyz). Never a blanket claim. */
+const MAINNET_EXPLORER = "https://pharosscan.xyz";
+const ATLANTIC_EXPLORER = "https://atlantic.pharosscan.xyz";
+
+function evidenceNetwork(ev: Record<string, unknown> | null): {
+  label: string;
+  base: string;
+} {
+  const net = (ev?.network ?? {}) as Record<string, unknown>;
+  const cid =
+    (ev?.chainId as number | undefined) ??
+    (ev?.chain_id as number | undefined) ??
+    (net.chain_id as number | undefined);
+  if (cid === 1672) return { label: "Pharos mainnet", base: MAINNET_EXPLORER };
+  return { label: "Atlantic testnet", base: ATLANTIC_EXPLORER };
+}
+
+/** Explicit per-hash explorer URLs from the evidence tree win over the
+ *  network default (e.g. T01's v1 Atlantic deploy tx lives under mainnet
+ *  evidence — its link must stay on atlantic.pharosscan.xyz). */
+function txExplorerMap(ev: Record<string, unknown> | null): Record<string, string> {
+  const map: Record<string, string> = {};
+  const walk = (n: unknown) => {
+    if (typeof n === "string") {
+      const m = n.match(/^https?:\/\/((?:[a-z0-9-]+\.)?)pharosscan\.xyz\/(tx|address)\/(0x[0-9a-fA-F]{64})/);
+      if (m) map[m[3].toLowerCase()] = `https://${m[1]}pharosscan.xyz/${m[2]}/${m[3]}`;
+    } else if (Array.isArray(n)) {
+      for (const v of n) walk(v);
+    } else if (n && typeof n === "object") {
+      for (const v of Object.values(n as Record<string, unknown>)) walk(v);
+    }
+  };
+  walk(ev);
+  return map;
+}
+
 /** Runs table — outcomes only. No log fragments, no tails, no raw text dumps. */
 function evidenceRuns(ev: Record<string, unknown> | null): RunRow[] {
   if (!ev) return [];
@@ -90,6 +128,9 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
   const contracts = evidenceContracts(ev);
   const copy = taskCopy(lamp);
   const hasProof = contracts.length > 0 || runs.length > 0 || lamp.txs.length > 0;
+  const net = evidenceNetwork(ev);
+  const txMap = txExplorerMap(ev);
+  const receiptUrl = (hash: string) => txMap[hash.toLowerCase()] ?? explorerTx(hash);
 
   const decisionChip = (d: string) => {
     const up = d.toUpperCase();
@@ -140,7 +181,8 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
       <section className="mb-2 rounded-2xl border border-hairline bg-paper p-6 md:p-8">
         <SectionLabel title="On-chain proof" />
         <p className="mb-5 text-xs text-slate">
-          Everything below happened on the Atlantic testnet and is clickable on the explorer.
+          Every link below opens the explorer for the network its row belongs to — Atlantic
+          testnet or Pharos mainnet — never a blanket claim.
         </p>
 
         {contracts.length > 0 && (
@@ -153,6 +195,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
                 <tr>
                   <th>Name</th>
                   <th>Address</th>
+                  <th>Network</th>
                 </tr>
               </thead>
               <tbody>
@@ -161,7 +204,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
                     <td className="font-semibold text-ink">{name}</td>
                     <td>
                       <a
-                        href={explorerAddress(addr)}
+                        href={`${net.base}/address/${addr}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 font-mono text-[13px] text-accent hover:underline"
@@ -169,6 +212,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
                         {shortenAddress(addr)} <ExternalLink size={12} />
                       </a>
                     </td>
+                    <td className="text-xs text-slate">{net.label}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,7 +248,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
                     <td>
                       {r.tx_hash ? (
                         <a
-                          href={explorerTx(r.tx_hash)}
+                          href={r.explorer || receiptUrl(r.tx_hash)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1.5 font-mono text-[13px] text-accent hover:underline"
@@ -240,7 +284,7 @@ export default function TaskDetail({ lamp }: { lamp: Lamp }) {
               {lamp.txs.map((t) => (
                 <li key={t}>
                   <a
-                    href={explorerTx(t)}
+                    href={receiptUrl(t)}
                     target="_blank"
                     rel="noreferrer"
                     className="group flex items-center justify-between gap-3 rounded-xl border border-hairline bg-porcelain px-4 py-3 font-mono text-xs text-ink transition-colors hover:border-accent"

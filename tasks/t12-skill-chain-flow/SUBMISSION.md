@@ -6,6 +6,9 @@
 **Title:**
 T12 — Skill + Chain MCP Flow ("Spend Readiness Check")
 
+> "SkillEngine" here = the task's own local skill module following the
+> SkillEngine SKILL.md pattern; it does not call the hosted Skill Engine service.
+
 **One-liner:**
 One end-to-end composition flow: live Chain MCP reads (by tool name, mainnet)
 feed a SkillEngine preflight skill whose ALLOW/BLOCK verdict depends on nothing

@@ -1,6 +1,6 @@
 {
-  "one_liner": "Ask a question, get a cited answer from the real docs — then watch the answered procedure execute live on the Atlantic testnet.",
-  "what_it_does": "Ask it how to do something and it answers straight from the official documentation, labeling every claim by its source. Then it actually runs the procedure it described on the live testnet — dust amounts — so you can watch the answer become action. Proven by 2 real transactions on the Atlantic testnet, all linked below.",
+  "one_liner": "Ask a question, get a cited answer from the real docs — then watch the answered procedure execute live on-chain.",
+  "what_it_does": "Ask it how to do something and it answers straight from the official documentation, labeling every claim by its source. The interactive panel then executes the answered procedure live on Pharos mainnet via the Chain MCP — read-only calls, no broadcasts. Separately, the agent's own prior run executed 2 real dust transactions on the Atlantic testnet, all linked below.",
   "config_plain": [
     {
       "label": "Answer labels",

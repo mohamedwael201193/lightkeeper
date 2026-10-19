@@ -27,8 +27,9 @@ export default function TryPanel({ lamp }: { lamp: Lamp }) {
           <h2 className="smallcaps !text-ink">Try it live — with your own wallet</h2>
         </div>
         <p className="mb-5 max-w-3xl text-xs leading-relaxed text-slate">
-          Live reads run against the public Atlantic RPC and cost nothing. Anything that moves
-          funds is only ever <span className="font-semibold text-ink">proposed</span> here — you
+          Live reads run against the public Atlantic RPC and cost nothing — except where a panel
+          says it reads via the Chain MCP (Pharos mainnet), which is mainnet-only by the Arena's
+          requirement. Anything that moves funds is only ever <span className="font-semibold text-ink">proposed</span> here — you
           review it, then sign it in <span className="font-semibold text-ink">your own wallet</span>{" "}
           with <span className="font-semibold text-ink">your own testnet PHRS</span>. LIGHTKEEPER
           never sees, holds, or asks for private keys.

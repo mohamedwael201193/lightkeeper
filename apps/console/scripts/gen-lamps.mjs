@@ -115,17 +115,54 @@ function isTxHash(s) {
 
 const EXPLORER = "https://atlantic.pharosscan.xyz";
 
+// Tx hashes are harvested ONLY from keys that name a transaction or from
+// explicit explorer URLs — never by regex over arbitrary strings. An ERC-20
+// Transfer event topic or a bytes32 log payload is also 64 hex and must not
+// be presented as a "Receipt" (T02). Likewise, contract addresses are
+// harvested ONLY from keys that name a contract — never EOAs (deployer, from,
+// to, sender, wallet…).
+const TX_KEY = /^(tx|tx_hash|txHash|hash|deploy_tx|deployTx|forced_failure_tx|leg\d+_tx|compensation_txs?|execution_tx_hashes?)$/i;
+const CONTRACT_KEY =
+  /^(address|contract|contractAddress|contract_address|emitter_contract|probeContract|probe_contract|token)$/i;
+
 // Recursively harvest tx hashes, contract addresses and URLs from the
-// wildly-shaped evidence.json files the task builders produce.
-function harvestEvidence(node, out) {
+// wildly-shaped evidence.json files the task builders produce. Key-aware:
+// the parent key decides whether a bare hex string qualifies. `paths` also
+// records the full key path of every harvested tx, so link generation can
+// attribute the right network (e.g. T01's v1History deploy tx is Atlantic
+// even though the task's primary evidence is mainnet).
+function harvestEvidence(node, out, key = "", path = "") {
+  const leaf = key.replace(/\[\d+\]$/, "");
+  const here = path ? `${path}/${leaf}` : leaf;
   if (typeof node === "string") {
-    if (/^0x[0-9a-fA-F]{64}$/.test(node)) out.txs.add(node);
-    else if (/^0x[0-9a-fA-F]{40}$/.test(node)) out.contracts.add(node);
-    else if (/^https?:\/\//.test(node)) out.urls.add(node);
+    if (/^https?:\/\//.test(node)) {
+      out.urls.add(node);
+      for (const h of node.match(/0x[0-9a-fA-F]{64}/g) ?? []) {
+        out.txs.add(h);
+        const m = node.match(/^https?:\/\/((?:[a-z0-9-]+\.)?)pharosscan\.xyz\//);
+        if (m) out.txHosts.set(h.toLowerCase(), `https://${m[1]}pharosscan.xyz`);
+      }
+      for (const a of node.match(/0x[0-9a-fA-F]{40}/g) ?? []) {
+        out.contracts.add(a);
+        const m = node.match(/^https?:\/\/((?:[a-z0-9-]+\.)?)pharosscan\.xyz\//);
+        if (m) out.addrHosts.set(a.toLowerCase(), `https://${m[1]}pharosscan.xyz`);
+        else out.addrPaths.set(a.toLowerCase(), here);
+      }
+    } else if (/^0x[0-9a-fA-F]{64}$/.test(node)) {
+      if (TX_KEY.test(leaf)) {
+        out.txs.add(node);
+        out.txPaths.set(node.toLowerCase(), here);
+      }
+    } else if (/^0x[0-9a-fA-F]{40}$/.test(node)) {
+      if (CONTRACT_KEY.test(leaf)) {
+        out.contracts.add(node);
+        out.addrPaths.set(node.toLowerCase(), here);
+      }
+    }
   } else if (Array.isArray(node)) {
-    for (const v of node) harvestEvidence(v, out);
+    for (const v of node) harvestEvidence(v, out, key, path);
   } else if (node && typeof node === "object") {
-    for (const v of Object.values(node)) harvestEvidence(v, out);
+    for (const [k, v] of Object.entries(node)) harvestEvidence(v, out, k, here);
   }
 }
 
@@ -255,12 +292,38 @@ const lamps = MATRIX.map(([id, name, tier, points, toolkit]) => {
     try {
       const ev = JSON.parse(readFileSync(evPath, "utf8"));
       lamp.evidence = ev;
-      const harvested = { txs: new Set(), contracts: new Set(), urls: new Set() };
+      const harvested = {
+        txs: new Set(),
+        contracts: new Set(),
+        urls: new Set(),
+        txHosts: new Map(),
+        addrHosts: new Map(),
+        txPaths: new Map(),
+        addrPaths: new Map(),
+      };
       harvestEvidence(ev, harvested);
       lamp.txs = [...harvested.txs];
+      // Explorer base follows the task's own evidence network — mainnet rows
+      // must not be presented as Atlantic explorer links (dead pages).
+      // Per-hash precedence: an explicit explorer URL in evidence wins; a tx
+      // under a v1/history path is Atlantic (the v1 builds were Atlantic);
+      // otherwise the task network decides.
+      const net = ev.network ?? {};
+      const chainId = ev.chainId ?? ev.chain_id ?? net.chain_id;
+      const base = chainId === 1672 ? "https://pharosscan.xyz" : EXPLORER;
+      const txBase = (t) =>
+        harvested.txHosts.get(t.toLowerCase()) ??
+        (/v1|history/i.test(harvested.txPaths.get(t.toLowerCase()) ?? "")
+          ? EXPLORER
+          : base);
+      const addrBase = (a) =>
+        harvested.addrHosts.get(a.toLowerCase()) ??
+        (/v1|history/i.test(harvested.addrPaths.get(a.toLowerCase()) ?? "")
+          ? EXPLORER
+          : base);
       lamp.explorer_links = [
-        ...lamp.txs.map((t) => `${EXPLORER}/tx/${t}`),
-        ...[...harvested.contracts].map((c) => `${EXPLORER}/address/${c}`),
+        ...lamp.txs.map((t) => `${txBase(t)}/tx/${t}`),
+        ...[...harvested.contracts].map((c) => `${addrBase(c)}/address/${c}`),
       ];
       const shippedFlag = ev.shipped === true || ev.status === "shipped";
       // HARD RULE: shipped only with real tx evidence or an explicit shipped flag.
