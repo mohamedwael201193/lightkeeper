@@ -41,6 +41,8 @@ const MATRIX = [
   ["T26", "Weekly Digest Agent", "Medium", 100, "Support / Reporting"],
   ["T27", "Doc-Grounded Builder Agent", "Hard", 200, "Cross-tool / Advanced"],
   ["T28", "Multi-Protocol Aggregator", "Hard", 200, "Cross-tool / Advanced"],
+  ["T29", "x402 Paywalled API", "Medium", 100, "Payments"],
+  ["T30", "x402 Agent Buyer", "Hard", 200, "Payments"],
 ];
 
 // Minimal top-level YAML reader (only `key: value` lines; enough for task.yaml).
