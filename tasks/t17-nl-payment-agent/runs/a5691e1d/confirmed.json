@@ -1,0 +1,13 @@
+{
+  "plan_id": "47c05e79377fe743",
+  "plan": {
+    "action": "send",
+    "token": "PHRS",
+    "amount_phrs": "0.002",
+    "amount_wei": 2000000000000000,
+    "to": "0x66dc06035c2b1bc169af46c2cc6c235c3773c9fc",
+    "chain_id": 688689
+  },
+  "phrase": "CONFIRM 47c05e79377fe743",
+  "confirmed_at": "2026-10-16T07:02:39Z"
+}

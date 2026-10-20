@@ -1,0 +1,110 @@
+{
+  "budget_max_phrs": 0.15,
+  "budget_remaining_phrs": 0.122937,
+  "chain": "Pharos Atlantic testnet",
+  "chain_id": 688689,
+  "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "explorer": "https://atlantic.pharosscan.xyz",
+  "name": "Natural-Language Payment Agent",
+  "notes": [
+    "Recipients are unspendable test fixtures (random addresses, no keys); dust only, testnet only.",
+    "Key material: never in repo, never in logs, never in transcripts; broadcasts used ATLANTIC_DEPLOYER_KEY from env via flock /tmp/lk-nonce.lock nonce-safe pattern.",
+    "No secrets appear in this file or any committed file.",
+    "Tier B browser surface added 2026-10-16 (console try/nl-payment-agent.tsx): exact parser grammar client-side (deepened: 10 verbs, comma/word-amount/percentage/injection traps), structured intent chips, mandatory review with amber dust warning, visitor signs in own wallet; console never holds keys; no new spend.",
+    "HARDEN 2026-10-16: parser converged 1:1 CLI<->console (10 verbs, comma/negative/malformed-decimal/percent traps, positional word-amount rule); negative-amount sign-flip misfire fixed; every outcome carries a rule tag; plan hash (SHA-256 canonical) identical on both surfaces \u2014 verified d99af277ae49df62."
+  ],
+  "runs": [
+    {
+      "amount_phrs": "0.01",
+      "block_number": "0x1e05fd7",
+      "effective_gas_price_wei": "0x3b9aca01",
+      "gas_used": "0x5208",
+      "input": "send 0.01 PHRS to 0x0b0da9286706fa44be3d845b1ecf2cdd8df93625",
+      "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt",
+      "plan_id": "ce4ba5f352f56718",
+      "receipt_status": "0x1",
+      "recipient": "0x0b0Da9286706fa44Be3d845b1eCf2cDD8df93625",
+      "run_id": "27845082",
+      "tx_hash": "0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+      "tx_url": "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+      "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+    },
+    {
+      "input": "send 0.01 PHRS or 0.02 PHRS to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+      "outcome": "REFUSED at parse: multiple PHRS amounts, will not pick one; review aborts; no broadcast; no tx",
+      "plan_id": null,
+      "run_id": "f8e7894d",
+      "tx_hash": null,
+      "verification": "n/a \u2014 nothing broadcast"
+    },
+    {
+      "amount_phrs": "0.015",
+      "block_number": "0x1e060b1",
+      "effective_gas_price_wei": "0x3b9aca01",
+      "gas_used": "0x5208",
+      "input": "pay 0.015 phrs to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+      "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt",
+      "plan_id": "ac03460074cdc321",
+      "receipt_status": "0x1",
+      "recipient": "0x709d6964E15D52b392Ad17e7fFF848C9733FA329",
+      "run_id": "4cd4dfc6",
+      "tx_hash": "0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+      "tx_url": "https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+      "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+    },
+    {
+      "run_id": "a5691e1d",
+      "input": "transfer 0.002 PHRS to 0x66dc06035c2b1bc169af46c2cc6c235c3773c9fc",
+      "plan_id": "47c05e79377fe743",
+      "amount_phrs": "0.002",
+      "recipient": "0x66Dc06035C2B1BC169aF46c2CC6c235C3773C9fc",
+      "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt (deepened 'transfer' verb phrasing, hardened parser)",
+      "tx_hash": "0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723",
+      "tx_url": "https://atlantic.pharosscan.xyz/tx/0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723",
+      "receipt_status": "0x1",
+      "block_number": "0x1e075d7",
+      "gas_used": "0x5208",
+      "effective_gas_price_wei": "0x3b9aca01",
+      "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+    }
+  ],
+  "spend_log": [
+    {
+      "item": "run 27845082 dust transfer",
+      "phrs": 0.01
+    },
+    {
+      "item": "run 27845082 gas (21000 @ 1000000001 wei)",
+      "phrs": 2.1e-05
+    },
+    {
+      "item": "run 4cd4dfc6 dust transfer",
+      "phrs": 0.015
+    },
+    {
+      "item": "run 4cd4dfc6 gas (21000 @ 1000000001 wei)",
+      "phrs": 2.1e-05
+    },
+    {
+      "item": "run f8e7894d (refused, no broadcast)",
+      "phrs": 0.0
+    },
+    {
+      "item": "run a5691e1d dust transfer",
+      "phrs": 0.002
+    },
+    {
+      "item": "run a5691e1d gas (21000 @ 1000000001 wei)",
+      "phrs": 2.1000000021e-05
+    }
+  ],
+  "task": "T17",
+  "total_spent_phrs": 0.027063,
+  "transcripts": [
+    "runs/27845082/transcript.log",
+    "runs/f8e7894d/transcript.log",
+    "runs/4cd4dfc6/transcript.log",
+    "runs/a5691e1d/transcript.log"
+  ],
+  "unit_tests": "34/34 PASS (tests/test_parser.py: valid, invalid, ambiguous, prompt-injection, notation traps, word-amount positional rule, rule tags, no-signing-code grep)"
+}

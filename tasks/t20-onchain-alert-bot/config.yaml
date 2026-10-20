@@ -1,0 +1,33 @@
+# T20 On-Chain Alert Bot — watcher configuration
+# Secrets are NEVER stored here. Telegram token + chat id come from env:
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+
+network:
+  name: atlantic-testnet
+  chainId: 688689
+  explorerTx: https://atlantic.pharosscan.xyz/tx
+
+watch:
+  # native-transfer watch list (incoming-transfer / large-transfer conditions)
+  addresses:
+    - 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+  # contract-interaction watch list (any tx whose recipient is one of these).
+  # Empty on this run: no contract is watched; the matcher still supports it
+  # (see unit tests). Add 0x... entries here to watch contracts.
+  contracts: []
+
+conditions:
+  incoming-transfer:
+    enabled: true
+    description: "any native PHRS transfer into a watched address"
+  large-transfer:
+    enabled: true
+    minValuePHRS: "0.5"
+    description: "incoming native transfer >= threshold"
+  contract-interaction:
+    enabled: true
+    description: "any transaction sent to a watched contract address"
+
+poller:
+  intervalSeconds: 8
+  confirmBlocks: 2

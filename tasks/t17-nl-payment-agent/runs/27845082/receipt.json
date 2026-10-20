@@ -1,0 +1,39 @@
+{
+  "plan_id": "ce4ba5f352f56718",
+  "tx_hash": "0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+  "chain_id": 688689,
+  "gas_price_wei": "10000000000",
+  "executed_at": "2026-10-16T04:16:41Z",
+  "verification": {
+    "ok": true,
+    "tx_hash": "0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+    "block_number": "0x1e05fd7",
+    "gas_used": "0x5208",
+    "effective_gas_price": "0x3b9aca01",
+    "explorer": "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+    "checks": [
+      {
+        "check": "receipt.status == 1",
+        "observed": "0x1",
+        "pass": true
+      },
+      {
+        "check": "tx.to == plan recipient",
+        "observed": "0x0b0da9286706fa44be3d845b1ecf2cdd8df93625",
+        "expected": "0x0b0da9286706fa44be3d845b1ecf2cdd8df93625",
+        "pass": true
+      },
+      {
+        "check": "tx.value == plan amount (wei)",
+        "observed": "10000000000000000",
+        "expected": "10000000000000000",
+        "pass": true
+      },
+      {
+        "check": "receipt has blockNumber (mined)",
+        "observed": "0x1e05fd7",
+        "pass": true
+      }
+    ]
+  }
+}

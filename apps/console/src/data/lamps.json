@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-20T02:00:46.825Z",
+  "generated_at": "2026-10-20T04:03:33.215Z",
   "source": "../../tasks/*/evidence.json + task.yaml — statuses from real evidence only",
   "total_points": 3500,
-  "lamps_lit": 16,
-  "points_secured": 1900,
+  "lamps_lit": 20,
+  "points_secured": 2250,
   "tasks": [
     {
       "id": "T01",
@@ -3651,98 +3651,596 @@
     },
     {
       "id": "T17",
-      "slug": "t17",
+      "slug": "nl-payment-agent",
       "name": "Natural-Language Payment Agent",
       "tier": "Medium",
       "points": 100,
       "toolkit": "Payments",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t17-nl-payment-agent",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "A natural-language payment agent for **Pharos Atlantic testnet** (chain id\n688689). You type `send 0.01 PHRS to 0x…`; the agent parses it into a\nstructured plan, validates it against the chain, shows you a human-readable\n**REVIEW** card, and only moves funds after you type the exact phrase\n`CONFIRM <plan_id>`. Ambiguous input is **refused with a clear reason** —\nnever guessed, never defaulted, never auto-sent.\n\nThere is **no LLM** in this agent. The parser is a small deterministic grammar\n(amounts, token, destination). It cannot hallucinate a recipient.\n\n2. How it works — the pipeline",
+      "readme_markdown": "---\n\n## 1. What it is\n\nA natural-language payment agent for **Pharos Atlantic testnet** (chain id\n688689). You type `send 0.01 PHRS to 0x…`; the agent parses it into a\nstructured plan, validates it against the chain, shows you a human-readable\n**REVIEW** card, and only moves funds after you type the exact phrase\n`CONFIRM <plan_id>`. Ambiguous input is **refused with a clear reason** —\nnever guessed, never defaulted, never auto-sent.\n\nThere is **no LLM** in this agent. The parser is a small deterministic grammar\n(amounts, token, destination). It cannot hallucinate a recipient.\n\n## 2. How it works — the pipeline\n\n```\nnew      \"send 0.01 PHRS to 0x…\"   →  plan | clarification | refusal\nreview   --run <id>                →  chain validation + REVIEW card + unsigned tx\nconfirm  --run <id> --phrase \"…\"   →  explicit CONFIRM <plan_id> gate\nsend     --run <id>                →  broadcast (confirmed only) + receipt read-back\n```\n\nEach stage is a separate command with inspectable artifacts in `runs/<id>/`:\n`parse.json`, `review.json`, `confirmed.json`, `executed.json`,\n`receipt.json`, and a full `transcript.log`.\n\n## 3. Quickstart\n\n```bash\ncd tasks/t17-nl-payment-agent\nexport PATH=\"$HOME/.foundry/bin:$PATH\"\n\n# 1. Parse free text into a plan\npython3 agent.py new --text \"send 0.01 PHRS to 0x0b0da9286706fa44be3d845b1ecf2cdd8df93625\"\n# → run id: <id>, PARSED OK — plan_id <hash>\n\n# 2. Review: validation + human-readable card + unsigned tx (\"signed\": false)\npython3 agent.py review --run <id>\n\n# 3. Confirm explicitly (phrase must match the plan hash exactly)\npython3 agent.py confirm --run <id> --phrase \"CONFIRM <plan_id>\"\n\n# 4. Broadcast (refuses without the confirmation above) + verify receipt\nexport ATLANTIC_DEPLOYER_KEY=\"<key-from-env-only>\"\npython3 agent.py send --run <id>\n\n# Run the unit tests (34 cases: valid/invalid/ambiguous/injection/notation-traps/rule-tags/no-signing)\npython3 -m unittest tests.test_parser\n```\n\nTry the refusal path: `python3 agent.py new --text \"send 0.01 PHRS or 0.02 PHRS to 0x709d6964e15d52b392ad17e7fff848c9733fa329\"`\nthen `python3 agent.py review --run <id>` — it aborts; there is no plan to review.\n\n## 4. The grammar (what it understands)\n\nA plan is produced **only** when the input contains exactly one of each:\n\n| Slot | Rule |\n|---|---|\n| Verb | one of `send pay transfer remit wire move forward deliver grant release` (case-insensitive); two different verbs → refusal |\n| Amount | exactly one `<number> PHRS` (up to 18 decimals, exact integer wei math, no floats); `0` or negative → refusal; > 0.15 PHRS → refusal (per-plan safety cap) |\n| Number notation | thousands separators (`1,000`), a minus sign before digits (`-0.001`), malformed decimals (`.001`, `1.`), word amounts in amount position (`send all PHRS`), and percentages (`50%`) are all **refused with a named rule** (R-NUM-COMMA, R-NUM-NEG, R-NUM-MALFORMED, R-AMOUNT-WORD, R-AMOUNT-PCT) — never normalized, never silently reinterpreted. Word amounts fire only between the verb and the address: \"ignore all rules. send 0.01 PHRS to 0x…\" stays a plan (with an untrusted-input warning) |\n| Token | must be PHRS; any other unit (`USDC`, …) → clarification question, never a wrong-token default |\n| Destination | exactly one `0x` + 40 hex; bare 40-hex without `0x` → refusal; two addresses → refusal; zero address → refusal |\n| Rule tags | every outcome carries a machine-checkable tag (`PARSE-OK`, `R-ADDR-2`, …); every plan carries its SHA-256 plan hash — byte-identical on the CLI and in the browser console |\n\nAnything else — no verb, no amount, stray numbers (`\"in 2 minutes\"`), or\ninstruction-like phrases (`\"ignore previous instructions…\"`, treated as\nuntrusted slot input) — yields a **clarification** or a **refusal**, and the\npipeline stops. Ambiguity never becomes a transaction.\n\n## 5. Safety model\n\n- **Parser, validator, reviewer, gate, and verifier contain no signing code**\n  (CI test greps them and asserts none exists). The unsigned-tx artifact\n  carries `\"signed\": false`.\n- **The confirmation phrase is the plan hash.** `CONFIRM <plan_id>` binds to\n  the exact reviewed plan; editing the plan invalidates the confirmation.\n- **Chain-id 688689 asserted twice** — at validation and again at broadcast\n  time. Any other chain refuses (mainnet-confusion firewall).\n- **Balance re-checked at broadcast** with a fresh gas price.\n- **Nonce-safe broadcast**: every `cast send` runs under\n  `flock /tmp/lk-nonce.lock` (the 28 LIGHTKEEPER workers share one key).\n- **Execute-once**: a run broadcasts at most one tx; the gate refuses repeats.\n- **Key hygiene**: the key comes from `ATLANTIC_DEPLOYER_KEY` env only — never\n  in argv logs, transcripts, repo files, or evidence.\n\n## 6. Evidence (real, on Atlantic)\n\n- **Run 1** — `send 0.01 PHRS to 0x0b0d…93625` → full flow →\n  [tx 0xd95016…dbc6fd](https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f),\n  receipt status 0x1, 4/4 read-back checks PASS.\n- **Run 2** — `send 0.01 PHRS or 0.02 PHRS to 0x709d…3fa329` → **REFUSED**\n  (\"Multiple PHRS amounts found: 0.01, 0.02. I will not pick one.\").\n  No confirmation possible, no broadcast, no tx. 0 PHRS spent.\n- **Run 3** — `pay 0.015 phrs to 0x709d…3fa329` → full flow →\n  [tx 0x80300f…5043bd](https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2),\n  receipt status 0x1, 4/4 read-back checks PASS.\n- **Run 4 (harden)** — `transfer 0.002 PHRS to 0x66dc…c9fc` → full flow →\n  [tx 0x9e18bf…0c45723](https://atlantic.pharosscan.xyz/tx/0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723),\n  receipt status 0x1, 4/4 read-back checks PASS. Proves the converged grammar\n  end-to-end: `transfer` is one of the five verbs ported back from the\n  browser surface.\n- **Spend: 0.027063 PHRS** of the 0.15 budget (dust 0.027 + gas 0.000063).\n- Full transcripts: `runs/<id>/transcript.log`. Machine-readable: `evidence.json`.\n\n## 7. Files\n\n```\ntasks/t17-nl-payment-agent/\n├── agent.p\n\n…",
+      "task_config_text": "# LIGHTKEEPER task manifest — T17 Natural-Language Payment Agent\ntask_id: T17\nslug: nl-payment-agent\nname: Natural-Language Payment Agent\ntier: Medium\npoints: 100\ntoolkit: Payments\nstatus: shipped\nowner: devmo (build agent)\n\ndescription: >\n  A natural-language payment agent for Pharos Atlantic. A deterministic,\n  no-LLM slot-extraction parser turns free text (\"send 0.01 PHRS to 0x…\")\n  into a structured payment plan — or a refusal/clarification when the input\n  is ambiguous (never defaulted, never guessed). A chain validator checks\n  recipient format, asserts Atlantic chain-id 688689, and confirms the\n  balance covers amount + gas. A human-readable REVIEW card is rendered\n  before an unsigned-tx artifact (\"signed\": false). Broadcast happens only\n  behind an explicit CONFIRM <plan_id> gate bound to the reviewed plan hash\n  (the human-in-the-loop wallet signing request), wrapped in flock\n  nonce-safety, followed by receipt read-back verification.\n\ndeliverables:\n  - agent.py                # CLI: new -> review -> confirm -> send\n  - src/parse.py            # deterministic intent parser (no LLM, no signing code)\n  - src/validate.py         # chain validation: checksum, chain-id, balance\n  - src/review.py           # human-readable review card + unsigned tx\n  - src/gate.py             # explicit CONFIRM <plan_id> gate\n  - src/broadcast.py        # confirmed-only broadcaster (flock nonce lock)\n  - src/verify.py           # receipt read-back verification\n  - tests/test_parser.py    # 34 unit tests: valid/invalid/ambiguous/injection/notation-traps/rule-tags/no-signing\n  - runs/                   # real run dirs: parse/review/confirm/execute/receipt + transcripts\n  - task.yaml\n  - REQUIREMENTS.md         # official requirements quoted verbatim\n  - README.md               # 8 sections, opens with OCTOPUS header\n  - evidence.md / evidence.json  # real tx hashes, spend log, curl-tested links\n  - LINKS.md                # curl-verified links\n  - SUBMISSION.md           # exact copy-paste Arena pack\n  - VIDEO-GUIDE.md          # 45-90s filming guide\n\nbudget:\n  max_phrs: 0.15\n  spent_phrs: 0.027063   # 3 dust txs + gas; see evidence.json spend_log\n\nevidence:\n  atlantic_explorer: https://atlantic.pharosscan.xyz/\n  txs: []                # filled in evidence.json\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
-      "activity": []
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_max_phrs": 0.15,
+        "budget_remaining_phrs": 0.122937,
+        "chain": "Pharos Atlantic testnet",
+        "chain_id": 688689,
+        "deployer": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+        "explorer": "https://atlantic.pharosscan.xyz",
+        "name": "Natural-Language Payment Agent",
+        "notes": [
+          "Recipients are unspendable test fixtures (random addresses, no keys); dust only, testnet only.",
+          "Key material: never in repo, never in logs, never in transcripts; broadcasts used ATLANTIC_DEPLOYER_KEY from env via flock /tmp/lk-nonce.lock nonce-safe pattern.",
+          "No secrets appear in this file or any committed file.",
+          "Tier B browser surface added 2026-10-16 (console try/nl-payment-agent.tsx): exact parser grammar client-side (deepened: 10 verbs, comma/word-amount/percentage/injection traps), structured intent chips, mandatory review with amber dust warning, visitor signs in own wallet; console never holds keys; no new spend.",
+          "HARDEN 2026-10-16: parser converged 1:1 CLI<->console (10 verbs, comma/negative/malformed-decimal/percent traps, positional word-amount rule); negative-amount sign-flip misfire fixed; every outcome carries a rule tag; plan hash (SHA-256 canonical) identical on both surfaces — verified d99af277ae49df62."
+        ],
+        "runs": [
+          {
+            "amount_phrs": "0.01",
+            "block_number": "0x1e05fd7",
+            "effective_gas_price_wei": "0x3b9aca01",
+            "gas_used": "0x5208",
+            "input": "send 0.01 PHRS to 0x0b0da9286706fa44be3d845b1ecf2cdd8df93625",
+            "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt",
+            "plan_id": "ce4ba5f352f56718",
+            "receipt_status": "0x1",
+            "recipient": "0x0b0Da9286706fa44Be3d845b1eCf2cDD8df93625",
+            "run_id": "27845082",
+            "tx_hash": "0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+            "tx_url": "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+            "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+          },
+          {
+            "input": "send 0.01 PHRS or 0.02 PHRS to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+            "outcome": "REFUSED at parse: multiple PHRS amounts, will not pick one; review aborts; no broadcast; no tx",
+            "plan_id": null,
+            "run_id": "f8e7894d",
+            "tx_hash": null,
+            "verification": "n/a — nothing broadcast"
+          },
+          {
+            "amount_phrs": "0.015",
+            "block_number": "0x1e060b1",
+            "effective_gas_price_wei": "0x3b9aca01",
+            "gas_used": "0x5208",
+            "input": "pay 0.015 phrs to 0x709d6964e15d52b392ad17e7fff848c9733fa329",
+            "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt",
+            "plan_id": "ac03460074cdc321",
+            "receipt_status": "0x1",
+            "recipient": "0x709d6964E15D52b392Ad17e7fFF848C9733FA329",
+            "run_id": "4cd4dfc6",
+            "tx_hash": "0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+            "tx_url": "https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+            "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+          },
+          {
+            "run_id": "a5691e1d",
+            "input": "transfer 0.002 PHRS to 0x66dc06035c2b1bc169af46c2cc6c235c3773c9fc",
+            "plan_id": "47c05e79377fe743",
+            "amount_phrs": "0.002",
+            "recipient": "0x66Dc06035C2B1BC169aF46c2CC6c235C3773C9fc",
+            "outcome": "full flow: parse -> review -> explicit CONFIRM -> broadcast -> verified receipt (deepened 'transfer' verb phrasing, hardened parser)",
+            "tx_hash": "0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723",
+            "tx_url": "https://atlantic.pharosscan.xyz/tx/0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723",
+            "receipt_status": "0x1",
+            "block_number": "0x1e075d7",
+            "gas_used": "0x5208",
+            "effective_gas_price_wei": "0x3b9aca01",
+            "verification": "all 4 read-back checks PASS (status, to, value, blockNumber)"
+          }
+        ],
+        "spend_log": [
+          {
+            "item": "run 27845082 dust transfer",
+            "phrs": 0.01
+          },
+          {
+            "item": "run 27845082 gas (21000 @ 1000000001 wei)",
+            "phrs": 0.000021
+          },
+          {
+            "item": "run 4cd4dfc6 dust transfer",
+            "phrs": 0.015
+          },
+          {
+            "item": "run 4cd4dfc6 gas (21000 @ 1000000001 wei)",
+            "phrs": 0.000021
+          },
+          {
+            "item": "run f8e7894d (refused, no broadcast)",
+            "phrs": 0
+          },
+          {
+            "item": "run a5691e1d dust transfer",
+            "phrs": 0.002
+          },
+          {
+            "item": "run a5691e1d gas (21000 @ 1000000001 wei)",
+            "phrs": 0.000021000000021
+          }
+        ],
+        "task": "T17",
+        "total_spent_phrs": 0.027063,
+        "transcripts": [
+          "runs/27845082/transcript.log",
+          "runs/f8e7894d/transcript.log",
+          "runs/4cd4dfc6/transcript.log",
+          "runs/a5691e1d/transcript.log"
+        ],
+        "unit_tests": "34/34 PASS (tests/test_parser.py: valid, invalid, ambiguous, prompt-injection, notation traps, word-amount positional rule, rule tags, no-signing-code grep)"
+      },
+      "txs": [
+        "0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+        "0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+        "0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f",
+        "https://atlantic.pharosscan.xyz/tx/0x80300f73c6ab82fe33c850ad306599c3c1d4350ff5435a57197c612205043bd2",
+        "https://atlantic.pharosscan.xyz/tx/0x9e18bf3e3a4d5689f72731a10bd5305465680c2bd5e3d73d9e561a64e0c45723",
+        "https://atlantic.pharosscan.xyz/address/0xd950168ce39280b16726967eed1d7224b92f616d",
+        "https://atlantic.pharosscan.xyz/address/0x80300f73c6ab82fe33c850ad306599c3c1d4350f",
+        "https://atlantic.pharosscan.xyz/address/0x9e18bf3e3a4d5689f72731a10bd5305465680c2b"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
+      "activity": [
+        {
+          "title": "Run",
+          "detail": "",
+          "at": "",
+          "link": "https://atlantic.pharosscan.xyz/tx/0xd950168ce39280b16726967eed1d7224b92f616da1fcb9e4f5cefb74dbc6fd6f"
+        },
+        {
+          "title": "Run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run",
+          "detail": "",
+          "at": ""
+        },
+        {
+          "title": "Run",
+          "detail": "",
+          "at": ""
+        }
+      ]
     },
     {
       "id": "T18",
-      "slug": "t18",
-      "name": "Recurring Payment Agent",
+      "slug": "t18-recurring-payment-agent",
+      "name": "Recurring Payment Agent (TIDE)",
       "tier": "Medium",
       "points": 100,
       "toolkit": "Payments",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t18-recurring-payment-agent",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "**TIDE** is a schedule-driven recurring payment agent for Pharos Atlantic testnet (chain 688689). You define a schedule — recipient, amount, token, weekly/monthly interval, max runs, stop conditions — and the agent's `tick` pays the single due installment as a **real on-chain native-PHRS transfer**, tracks it as paid/pending/failed, and shows history plus the next scheduled payment.\n\nThe hard guarantee: **an installment is never paid twice.** A local JSONL state key plus chain-receipt verification forms the idempotency firewall — re-running `tick` any number of times skips what is already paid. Insufficient balance or any failure marks the installment `failed` *without broadcasting anything*.\n\n> Honest scope: SkillEngine has **no native cron/scheduling** (confirmed-absent primitive G1). Ticks are driven by the **operator's system cron** — see §5. This build provides the installer script…",
+      "readme_markdown": "<span style=\"color:#b9c2f5; letter-spacing:6px; font-size:12px;\">LIGHTKEEPER · TASK 18 · ONE OF TWENTY-EIGHT LAMPS</span>\n\n<p style=\"color:#ffffff; font-style:italic; font-size:17px; max-width:560px; margin:0 auto;\">The octopus keeps the rhythm — every due drop, paid exactly once, never twice.</p>\n\n<span style=\"color:#e8c766; letter-spacing:4px; font-size:12px;\">RECURRING PAYMENT AGENT · PHAROS ATLANTIC</span>\n\n---\n\n## 1. What this is\n\n**TIDE** is a schedule-driven recurring payment agent for Pharos Atlantic testnet (chain 688689). You define a schedule — recipient, amount, token, weekly/monthly interval, max runs, stop conditions — and the agent's `tick` pays the single due installment as a **real on-chain native-PHRS transfer**, tracks it as paid/pending/failed, and shows history plus the next scheduled payment.\n\nThe hard guarantee: **an installment is never paid twice.** A local JSONL state key plus chain-receipt verification forms the idempotency firewall — re-running `tick` any number of times skips what is already paid. Insufficient balance or any failure marks the installment `failed` *without broadcasting anything*.\n\n> Honest scope: SkillEngine has **no native cron/scheduling** (confirmed-absent primitive G1). Ticks are driven by the **operator's system cron** — see §5. This build provides the installer script and docs; it never installs cron jobs itself and never claims the schedule is running unless the operator installed it.\n\n## 2. Official requirements\n\nSee [REQUIREMENTS.md](REQUIREMENTS.md) — the four official bullets quoted verbatim from the Arena master doc, plus the MEGA implementation sketch and the four documented deviations (native PHRS, own validation pipeline since T17 is unbuilt, receipt-based idempotency firewall, reorg posture).\n\n## 3. Quickstart\n\nPrerequisites: Python 3, Foundry `cast` on PATH, and the repo-root `.env` with `ATLANTIC_RPC_URL` and `DEPLOYER_PRIVATE_KEY` (mode 600, never committed).\n\n```bash\ncd tasks/t18-recurring-payment-agent\n\n# 1. Copy the example schedule and edit it (recipient, amount, interval…)\ncp config/schedule.example.json config/schedule.json\n#    interval: \"weekly\" | \"monthly\" (30-day month, documented)\n\n# 2. Inspect the board — history + next scheduled payment\npython3 src/tide.py status\n\n# 3. Run one tick: pays the single due installment, if any (idempotent)\nset -a; source ../../.env; set +a\npython3 src/tide.py tick\n\n# 4. Unit tests (pure logic, no network)\npython3 tests/test_idempotency.py\n```\n\n`tick` is **level-triggered**: safe to run every minute — it pays at most one due installment and otherwise exits 0 with `SKIP`.\n\n## 4. Schedule file reference\n\n`config/schedule.json`:\n\n| Field | Meaning |\n|---|---|\n| `schedule_id` | unique id; the idempotency key is `schedule_id + installment #` |\n| `recipient` | `0x`-address, validated before every tick |\n| `amount_phrs` | decimal string (no float math; converted via `cast to-wei`) |\n| `token` / `token_type` | `\"PHRS\"` / `\"native\"` (native-PHRS transfers only in this build) |\n| `interval` | `\"weekly\"` (604800s) or `\"monthly\"` (2592000s = 30 days, documented) |\n| `start_time` | ISO-8601 UTC; installment *n* is due at `start + n·interval` |\n| `max_runs` | hard cap on installments |\n| `stop_conditions.expires_at` | ISO-8601 UTC or `null` — past it, nothing is payable |\n| `stop_conditions.min_balance_after_phrs` | balance floor; a tick that would breach it fails *without broadcasting* |\n| `control.paused` / `control.cancelled` | operator flags (see §6) |\n\nState lives in `state/state.jsonl` (JSONL, **gitignored**) — each line is one record: `paid` (only after an observed `status 0x1` receipt), `failed`, `skipped`, or `broadcast`/`broadcast-unknown` (crash-recovery path). Human-readable decisions go to `state/audit.log` (also gitignored).\n\n## 5. Cron setup (external scheduler)\n\nRun the installer script — it prints the exact cron line for your machine and the verify steps. **It installs nothing** (`--install` is refused by design):\n\n```bash\n./scripts/install-cron.sh\n# then: crontab -e   (paste the printed line)\n# verify: crontab -l | grep tide.py\n# watch:  tail -f state/cron.log\n```\n\nThe suggested cadence is every 5 minutes. Missed-tick risk (MEGA §risks) is inherent to any external scheduler and is the operator's to monitor — `state/audit.log` timestamps every tick decision, and `status` always shows the next payment, so a gap is visible.\n\n**This deployment (2026-10-20):** the operator installed a real crontab entry on\nthis VM — `tide.py tick` every 15 minutes (exact line in\n`evidence/09-cron-schedule.txt`) — and resumed the `tide-demo-01` schedule, so\nticks prepare on time for real: each tick validates and pays at most one due\ninstallment (0.0005 PHRS dust, self-payment to the operator wallet) or skips\nhonestly. Scheduling remains operator-provided and documented exactly —\n`/var/spool` crontabs do not survive VM replacements (observed: a VM reboot at\n2026-10-20T00:12Z wiped the installed crontab; it was reinstalled at\n2026-10-20T00:16Z and the cron daemon started via systemd). The canonical line\nis stored in `evidence/09-cron-schedule.txt` for reinstall.\n\n## 6. Commands\n\n```\npython3 src/tide.py tick      # pay the one due installment (idempotent)\npython3 src/tide.py status    # history board: paid/pending/failed + next payment\npython3 src/tide.py history   # alias of status\npython3 src/tide.py pause     # pause: ticks print SKIP until resumed\npython3 src/tide.py resume    # resume a paused schedule\npython3 src/tide.py cancel    # cancel permanently (unpaid installments stop)\n```\n\nEvery broadcast goes through the shared nonce lock: `flock /tmp/lk-nonce.lock cast send …` (28 workers share one key; `cast` waits for receipt by default).\n\n## 7. Evidence\n\n- **Live installment:** 0.0005 PHRS paid on Atlantic — [`0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10`](https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10) (block 31481497, status\n\n…",
+      "task_config_text": "id: T18\nslug: t18-recurring-payment-agent\ntitle: Recurring Payment Agent (TIDE)\narena:\n  difficulty: Medium\n  points: 100\n  toolkit: Payments\nbuild:\n  agent: task-builder-t18\n  date: \"2026-10-16\"\n  chain: atlantic-testnet\n  chain_id: 688689\n  repo_dir: tasks/t18-recurring-payment-agent\ncomponents:\n  executor: src/tide.py\n  schedule: config/schedule.json\n  cron_installer: scripts/install-cron.sh\n  tests: tests/test_idempotency.py\nevidence:\n  live_tx: \"0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10\"\n  live_tx_explorer: \"https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10\"\n  block: 31481497\n  phrs_spent_total: \"0.000521\"\n  budget_cap_phrs: \"0.15\"\nbudget:\n  cap_phrs: \"0.15\"\n  spent_phrs: \"0.000521\"\n  txs: 1\nhonesty:\n  cron_installed: true\n  cron_line: '*/15 * * * * cd /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent && set -a; . /home/hatch/workspace/lightkeeper/.env; set +a; export PATH=\"/home/hatch/.foundry/bin:/usr/bin:/bin\"; python3 src/tide.py tick >> /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent/state/cron.log 2>&1'\n  cron_installed_at: \"2026-10-20T00:16:30Z\"\n  cron_note: \"crontab lives in /var/spool (ephemeral across VM replacements); canonical line stored in evidence/09-cron-schedule.txt for reinstall\"\n  scheduler: external-system-cron-operator-installed\n  mocks: none\nstatus: shipped\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_evidence_json": true,
+      "evidence": {
+        "arena": {
+          "difficulty": "Medium",
+          "points": 100,
+          "task": "T18",
+          "title": "Recurring Payment Agent (TIDE)",
+          "toolkit": "Payments"
+        },
+        "chain": {
+          "chain_id": 688689,
+          "explorer": "https://atlantic.pharosscan.xyz/",
+          "network": "atlantic-testnet"
+        },
+        "cron": {
+          "installed": false,
+          "installer": "scripts/install-cron.sh",
+          "note": "SkillEngine has no native cron (confirmed-absent primitive G1). Ticks run on the operator's system cron; the installer script prints the line and docs but installs nothing. No schedule is running."
+        },
+        "honesty": {
+          "demo_recipient": "self-payment dust to the operator wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 — a real on-chain transfer (nonce 55, gas paid) that keeps funds in the shared test wallet",
+          "erc20": "NOT supported in this build (native PHRS only) — roadmap, not a claim",
+          "mocks": "none",
+          "post_evidence": "schedule tide-demo-01 CANCELLED after evidence capture so no future cron install can pay from it",
+          "secrets_in_repo": "none"
+        },
+        "live_installment": {
+          "amount_phrs": "0.0005",
+          "block": 31481497,
+          "chain_id": 688689,
+          "explorer_curl": "HTTP 200",
+          "explorer_url": "https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10",
+          "fee_phrs": "0.000021",
+          "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "installment": 0,
+          "receipt_status": "0x1",
+          "schedule_id": "tide-demo-01",
+          "sender_nonce": 55,
+          "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "tx_hash": "0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10",
+          "value_wei": "500000000000000"
+        },
+        "schedule": {
+          "amount_phrs": "0.0005",
+          "interval": "weekly",
+          "max_runs": 4,
+          "recipient": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "schedule_id": "tide-demo-01",
+          "start_time": "2026-10-16T00:00:00Z",
+          "stop_conditions": {
+            "expires_at": null,
+            "min_balance_after_phrs": "1.0"
+          },
+          "token": "PHRS",
+          "token_type": "native"
+        },
+        "spend_log": [
+          {
+            "item": "installment 0 value",
+            "phrs": "0.0005"
+          },
+          {
+            "item": "installment 0 fee (21000 gas)",
+            "phrs": "0.000021"
+          }
+        ],
+        "spend_total_phrs": "0.000521",
+        "tests": {
+          "command": "python3 tests/test_idempotency.py",
+          "idempotency": "3 ticks -> 1 broadcast (double-tick pays exactly once); +3 stall-hardening tests",
+          "passed": 15,
+          "total": 15
+        },
+        "transcripts": {
+          "01": "evidence/01-status-before.txt",
+          "02": "evidence/02-tick-paid.txt",
+          "03": "evidence/03-tick-skip-rerun.txt",
+          "04": "evidence/04-pause.txt",
+          "05": "evidence/05-resume.txt",
+          "06": "evidence/06-cancel.txt",
+          "07": "evidence/07-status-final.txt",
+          "08": "evidence/08-crash-recovery.txt"
+        },
+        "unit_tests_note": "pure logic, no network; chain functions stubbed and labeled as such",
+        "crash_recovery": {
+          "transcript": "evidence/08-crash-recovery.txt",
+          "method": "sandbox copy of the task dir; two dangling `broadcast` state records reconciled against the real Atlantic RPC; schedule start 2027 so zero broadcasts were possible",
+          "results": {
+            "real_tx_hash_0xeec25b": "reconciled to `paid` (RECOVERED, receipt status 0x1 re-read)",
+            "nonexistent_hash": "RPC stalled past the 120s deadline -> typed TideTimeout -> parked `broadcast-unknown`, no traceback, no auto-retry, tick exit 0",
+            "broadcasts_made_by_test": 0
+          },
+          "fix": "TideTimeout: run() converts subprocess.TimeoutExpired; tx_status treats stalls as unknown; a stalled broadcast is parked broadcast-unknown (never `failed`, which would be retryable)"
+        }
+      },
+      "txs": [
+        "0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10",
+        "https://atlantic.pharosscan.xyz/address/0xeec25b539944419c8a507bc34c2ad20595737997"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T19",
-      "slug": "t19",
+      "slug": "invoice-to-payment-agent",
       "name": "Invoice-to-Payment Agent",
       "tier": "Medium",
       "points": 100,
       "toolkit": "Payments",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t19-invoice-to-payment-agent",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "T19 — Invoice-to-Payment Agent\n\nA payment agent that turns an invoice file into a real on-chain payment on\nPharos Atlantic testnet — with a human review step, explicit confirmation,\nand a paid-stamp ledger that makes double-payment impossible.\n\n```\ninvoice file ──parse──▶ validated invoice ──plan──▶ REVIEW (\"pay X to Y for invoice Z\")\n                                                      │\n                                    unsigned tx built from live chain data\n                                                      │\n                              ──confirm──▶ broadcast (dust PHRS) ──▶ paid-stamp\n```",
+      "readme_markdown": "# T19 — Invoice-to-Payment Agent\n\nA payment agent that turns an invoice file into a real on-chain payment on\nPharos Atlantic testnet — with a human review step, explicit confirmation,\nand a paid-stamp ledger that makes double-payment impossible.\n\n## 1. The flow\n\n```\ninvoice file ──parse──▶ validated invoice ──plan──▶ REVIEW (\"pay X to Y for invoice Z\")\n                                                      │\n                                    unsigned tx built from live chain data\n                                                      │\n                              ──confirm──▶ broadcast (dust PHRS) ──▶ paid-stamp\n```\n\n1. **Parse** — one of 3 format plugins (JSON / CSV / plaintext) extracts\n   `invoice_id`, `payee`, `amount`, `currency`, `reference`, optional line items.\n2. **Validate** — amount > 0, payee is a real 0x-address, currency is PHRS.\n   Anything else is **flagged, never guessed, never paid**.\n3. **Review** — human-readable plan plus a real **unsigned tx** (nonce,\n   gas price from live RPC) with the invoice reference bound as metadata.\n4. **Confirm** — nothing broadcasts without `--confirm <invoice-id>`.\n5. **Pay** — `cast send` under the shared nonce lock, dust amount, receipt observed.\n6. **Stamp** — JSONL paid-stamp appended. Re-running the same invoice id\n   is **REFUSED** — double-payment is structurally impossible.\n\n## 2. Invoice formats\n\n| Format | File | Parser |\n|---|---|---|\n| JSON | `samples/invoice-001.json` | `parse_json` |\n| CSV | `samples/invoice-002.csv` | `parse_csv` (header `invoice_id,payee,amount,currency,reference[,memo][,line_items]`) |\n| Plaintext | `samples/invoice-003.txt` | `parse_txt` (`KEY: value` lines) |\n\nAuto-detection: `{` → JSON, `invoice_id,` header → CSV, otherwise plaintext.\n`--format` overrides detection.\n\n## 3. Validation rules (the no-guess doctrine)\n\n- **amount** must parse as a number and be **> 0** — zero/negative refused.\n- **payee** must match `0x` + 40 hex chars — anything else refused.\n- **currency** must be `PHRS` (case-insensitive) — other currencies flagged,\n  never converted or guessed.\n- **missing field** → flagged with the field name; there are no defaults.\n- **line-item total ≠ invoice amount** → mismatch flagged, not paid.\n- **CSV with ≠ 1 row** → refused (one invoice per file).\n\nFive deliberately broken samples in `samples/invoice-bad-*` prove every rule.\n\n## 4. Usage\n\n```bash\nexport PATH=\"$HOME/.foundry/bin:$PATH\"\ncd tasks/t19-invoice-to-payment-agent\nset -a; source ../../.env; set +a   # ATLANTIC_RPC_URL, DEPLOYER_PRIVATE_KEY, DEPLOYER_ADDRESS\n\npython3 -m agent.cli parse  samples/invoice-001.json        # parse + validate → plan JSON\npython3 -m agent.cli review samples/invoice-001.json        # review + unsigned tx (no broadcast)\npython3 -m agent.cli pay    samples/invoice-001.json        # review, then REFUSES (no confirm)\npython3 -m agent.cli pay    samples/invoice-001.json --confirm INV-2026-001\npython3 -m agent.cli stamps                                  # paid-stamp ledger\n```\n\n## 5. Evidence (real, on Atlantic)\n\n- **Payment tx #1 (JSON invoice):** `0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9`\n  — 0.001 PHRS, block 31481475, status success.\n  Explorer: https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9\n- **Payment tx #2 (CSV invoice):** `0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66`\n  — 0.0005 PHRS, block 31486451, status success (2026-10-16, full\n  parse→review→pay→stamp→refuse cycle proven on-chain for the CSV parser).\n  Explorer: https://atlantic.pharosscan.xyz/tx/0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66\n- **Paid-stamps:** two records in gitignored `paid-stamps.jsonl` (excerpts in `evidence.md`).\n- **Duplicate re-runs:** both invoices `REFUSED` with no second broadcast —\n  double-payment is structurally impossible.\n- **Malformed battery:** all 5 broken samples flagged with clear errors (see `evidence.md`).\n- **Tests:** 20/20 pass — `python3 -m unittest discover -s tests`.\n- **Spend:** 0.000042000042 PHRS gas (of 0.15 budget).\n\n## 6. Honesty notes\n\n- The invoice **reference is never faked on-chain**: a native PHRS transfer\n  has no memo bytes. The reference is bound in the review, the unsigned-tx\n  envelope metadata, and the paid-stamp — documented in `planner.py`.\n- The demo payment is a **dust self-payment to the operator wallet**\n  (0.001 PHRS) so no testnet funds are stranded; any valid payee works identically.\n- No mock, no demo mode, no placeholder success anywhere. Every control that\n  looks live executes on-chain or refuses with a stated reason.\n\n## 7. Nonce safety\n\nAll 28 LIGHTKEEPER builders share one deployer key. Every broadcast runs as\n\n```\nflock /tmp/lk-nonce.lock cast send <args> --rpc-url ... --private-key ...\n```\n\n`cast send` waits for the receipt by default; no custom nonce scheme.\n\n## 8. File map\n\n```\nagent/parsers.py    3 format plugins + strict validation (InvoiceError on anything wrong)\nagent/planner.py    payment plan, render_review(), build_unsigned_tx() from live RPC\nagent/pay.py        explicit-confirm gate, flock broadcast, paid-stamp idempotency\nagent/cli.py        parse | review | pay [--confirm ID] | stamps\nsamples/            3 valid invoices (001 JSON paid on-chain, 002 CSV, 003 TXT)\n                    + invoice-004.csv (CSV, paid on-chain 0xc7ff…8bac66)\n                    + 5 deliberately broken ones\ntests/              19 unit tests (formats, validation, plan/review, stamp idempotency)\nevidence.md/.json   real tx hashes, spend log, curl-tested links\n```\n\nDesign: `docs/OCTOPUS-DESIGN.md`. Official requirements: `REQUIREMENTS.md`.",
+      "task_config_text": "task:\n  id: T19\n  title: Invoice-to-Payment Agent\n  difficulty: Medium\n  points: 100\n  toolkit: Payments\n  repo_path: tasks/t19-invoice-to-payment-agent\n  chain: atlantic-testnet\n  chain_id: 688689\n  currency: PHRS\nstatus: shipped\nbudget_phrs: 0.15\nspent_phrs: 0.000042000042\nevidence:\n  payment_tx: \"0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9\"\n  payment2_tx: \"0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66\"\n  payment2_format: \"csv\"\n  payment2_block: 31486451\n  explorer: \"https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9\"\ndeliverables:\n  - task.yaml\n  - REQUIREMENTS.md\n  - README.md\n  - SUBMISSION.md\n  - VIDEO-GUIDE.md\n  - LINKS.md\n  - evidence.md\n  - evidence.json\n  - agent/parsers.py\n  - agent/planner.py\n  - agent/pay.py\n  - agent/cli.py\n  - samples/\n  - tests/test_invoice.py\ntests: \"python3 -m unittest discover -s tests  # 20/20 pass\"\nvideo: PENDING-VIDEO\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_evidence_json": true,
+      "evidence": {
+        "budget_phrs": "0.15",
+        "chain_id": 688689,
+        "duplicate_refusal": {
+          "invoice_id": "INV-2026-001",
+          "message": "REFUSED: invoice 'INV-2026-001' was already paid (tx 0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9, stamped 2026-10-16T04:11:16Z). Double-payment prevented.",
+          "second_broadcast_attempted": false
+        },
+        "malformed_battery": [
+          {
+            "file": "samples/invoice-bad-amount.json",
+            "result": "refused: amount -5.0 not > 0"
+          },
+          {
+            "file": "samples/invoice-bad-address.csv",
+            "result": "refused: invalid payee address"
+          },
+          {
+            "file": "samples/invoice-bad-currency.txt",
+            "result": "flagged: unsupported currency USD"
+          },
+          {
+            "file": "samples/invoice-bad-missing.json",
+            "result": "flagged: missing reference"
+          },
+          {
+            "file": "samples/invoice-bad-mismatch.json",
+            "result": "flagged: line-item total mismatch"
+          }
+        ],
+        "net_spent_phrs": "0.000042000042",
+        "paid_stamp": {
+          "amount_phrs": "0.001",
+          "chain_id": 688689,
+          "currency": "PHRS",
+          "effective_gas_price_wei": "1000000001",
+          "explorer": "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+          "gas_used": "21000",
+          "invoice_id": "INV-2026-001",
+          "paid_at_utc": "2026-10-16T04:11:16Z",
+          "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "reference": "LK-T19-DEMO-001",
+          "status": "paid",
+          "tx_hash": "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+          "block_number": 31481475
+        },
+        "payment": {
+          "amount_phrs": "0.001",
+          "amount_wei": "1000000000000000",
+          "block_number": 31481475,
+          "chain": "atlantic-testnet",
+          "chain_id": 688689,
+          "effective_gas_price_wei": "1000000001",
+          "explorer": "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+          "explorer_curl_http": 200,
+          "gas_used": "21000",
+          "invoice_id": "INV-2026-001",
+          "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "reference": "LK-T19-DEMO-001",
+          "status": "0x1",
+          "tx_hash": "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+          "block_hex": "0x1e05e83",
+          "sample_file": "samples/invoice-001.json",
+          "source_format": "json"
+        },
+        "task": "T19",
+        "tests": {
+          "command": "python3 -m unittest discover -s tests",
+          "passed": 19,
+          "total": 19
+        },
+        "payment2": {
+          "amount_phrs": "0.0005",
+          "amount_wei": "500000000000000",
+          "block_number": 31486451,
+          "chain": "atlantic-testnet",
+          "chain_id": 688689,
+          "effective_gas_price_wei": "1000000001",
+          "explorer": "https://atlantic.pharosscan.xyz/tx/0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66",
+          "gas_used": "21000",
+          "invoice_id": "INV-2026-004",
+          "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "reference": "LK-T19-DEMO-004",
+          "sample_file": "samples/invoice-004.csv",
+          "source_format": "csv",
+          "status": "0x1",
+          "tx_hash": "0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66",
+          "paid_at_utc": "2026-10-16T06:38:08Z"
+        },
+        "duplicate_refusal_004": {
+          "invoice_id": "INV-2026-004",
+          "message": "REFUSED: invoice 'INV-2026-004' was already paid (tx 0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66, stamped 2026-10-16T06:38:08Z). Double-payment prevented.",
+          "second_broadcast_attempted": false
+        },
+        "spend_breakdown": {
+          "tx1_gas_phrs": "0.000021000021",
+          "tx2_gas_phrs": "0.000021000021",
+          "net_spent_phrs": "0.000042000042"
+        }
+      },
+      "txs": [
+        "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+        "0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+        "https://atlantic.pharosscan.xyz/tx/0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66",
+        "https://atlantic.pharosscan.xyz/address/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d",
+        "https://atlantic.pharosscan.xyz/address/0xc7fff61e404cb09a19f2319c26d034ae6f708ec2"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {
       "id": "T20",
-      "slug": "t20",
+      "slug": "onchain-alert-bot",
       "name": "On-Chain Alert Bot",
       "tier": "Easy",
       "points": 50,
       "toolkit": "Trading / Monitoring",
-      "dir": null,
-      "status": "in-progress",
-      "has_task_yaml": false,
-      "has_readme": false,
-      "readme_summary": "",
-      "readme_markdown": "",
-      "task_config_text": null,
+      "dir": "t20-onchain-alert-bot",
+      "status": "shipped",
+      "has_task_yaml": true,
+      "has_readme": true,
+      "readme_summary": "T20 — On-Chain Alert Bot\n\nA config-driven on-chain watcher for Pharos Atlantic testnet. It polls block by\nblock, matches transactions against configurable alert conditions, and delivers\neach hit to a real Telegram channel with the tx hash, explorer link, value, and\nblock number — exactly once per event, never twice.\n\n```\nconfig.yaml ──► src/watch.sh ──► match_tx() ──► write-ahead SENDING marker\n   (3 conditions)   (block-by-block,      (src/match.sh)      ──► src/alert.sh\n                     2-block confirm lag)                        (Telegram sendMessage)\n                                                        ──► SENT + dedupe key\n```",
+      "readme_markdown": "# T20 — On-Chain Alert Bot\n\n## 1. What this is\n\nA config-driven on-chain watcher for Pharos Atlantic testnet. It polls block by\nblock, matches transactions against configurable alert conditions, and delivers\neach hit to a real Telegram channel with the tx hash, explorer link, value, and\nblock number — exactly once per event, never twice.\n\n## 2. How it works\n\n```\nconfig.yaml ──► src/watch.sh ──► match_tx() ──► write-ahead SENDING marker\n   (3 conditions)   (block-by-block,      (src/match.sh)      ──► src/alert.sh\n                     2-block confirm lag)                        (Telegram sendMessage)\n                                                        ──► SENT + dedupe key\n```\n\n- **Conditions** (`config.yaml`): `incoming-transfer` (native PHRS into a watched\n  address), `large-transfer` (incoming ≥ `minValuePHRS: \"0.5\"`), `contract-interaction`\n  (tx to a watched contract address).\n- **Dedupe:** `state/seen` keyed `<condition>:<txhash>`.\n- **Crash safety:** the `SENDING` marker is written to `state/alerts.log`\n  *before* the Telegram call; on restart, any `SENDING` without a `SENT` is\n  treated as delivered and never re-sent (Telegram `sendMessage` has no\n  idempotency key — the safe direction is \"never duplicate\").\n- **Chain safety:** every run asserts `eth_chainId == 688689` first; every\n  broadcast goes through `flock /tmp/lk-nonce.lock` (shared deployer key).\n- **Catchup:** `src/watch.sh --catchup` resumes after an outage with batched\n  block fetches (`src/batchscan.py`) — same matching, dedupe and alerting.\n- **Self-verifying ledger:** `src/audit.sh` replays every SENT alert against\n  the live chain (recipient, value, block, matcher re-verdict); latest run\n  210 PASS, 0 FAIL. Every alert carries its own receipt.\n\n## 3. Configuration\n\nEdit `config.yaml`: watched `addresses`, watched `contracts`, the\n`large-transfer` threshold, poll `intervalSeconds`, and `confirmBlocks`.\nTelegram credentials come **only** from the environment\n(`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`) — never from config or code.\n\n## 4. Run it\n\n```bash\nset -a; source ~/workspace/lightkeeper/.env; set +a\nexport PATH=\"$HOME/.foundry/bin:$PATH\"\ncd tasks/t20-onchain-alert-bot\n\nbash test/match_test.sh          # 16 unit tests (synthetic fixtures)\nbash src/watch.sh --once         # single scan pass from saved cursor\nbash src/watch.sh --catchup      # batched resume scan after an outage (same alerting path)\nbash src/watch.sh --daemon       # continuous polling\nbash src/audit.sh                # replay the alert ledger against the live chain\nbash src/trigger.sh              # fire the REAL dust trigger (Atlantic only)\nbash src/trigger.sh --amount-phrs 0.5   # larger disclosed self-test (trips large-transfer)\n```\n\n## 5. Live evidence (all real, 2026-10-16)\n\n- **Trigger tx:** [`0xe6c9f52c…`](https://atlantic.pharosscan.xyz/tx/0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084) —\n  0.001 PHRS self-transfer, block **31481424**, status 0x1.\n- **Detection:** watcher classified it `incoming-transfer` at 04:19:24Z;\n  `large-transfer` correctly did not fire (0.001 < 0.5 PHRS).\n- **Delivery:** Telegram `sendMessage` → chat `1434154285`, **message_id 717**\n  (my trigger) — one alert per event, with condition, amount, tx hash, explorer\n  link, block, timestamp. Seven further genuine events observed on the shared\n  key were also each alerted exactly once (message_ids 718, 719, 720, 722, 724,\n  725, 726).\n- **Threshold proven live:** a second real run fired a disclosed **0.5 PHRS**\n  self-transfer —\n  [`0x157dc990…`](https://atlantic.pharosscan.xyz/tx/0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a)\n  (block **31486611**, status 0x1) — tripping the `large-transfer` condition\n  for the first time on-chain. The watcher matched both `incoming-transfer`\n  and `large-transfer` and sent exactly one alert per condition\n  (**message_ids 727, 728**). Two conditions on one tx is by design, not spam:\n  dedupe is per `<condition>:<txhash>`.\n- **Self-verifying ledger:** `src/audit.sh` replays every SENT alert against\n  the live chain — recipient, value, block, matcher re-verdict — and fails\n  loudly on any mismatch. Latest run: **210 PASS, 0 FAIL** across all 35 alerts.\n  Every alert carries its own receipt.\n- **No spam:** restarted watcher never re-emitted any event (one SENDING + one\n  SENT per txhash in `state/alerts.log`).\n- **Spend:** 0.000042000000042 PHRS (two dust/self txs, gas only; budget ≤ 0.15).\n\nFull detail: `evidence.md` / `evidence.json`.\n\n## 6. Tests\n\n`test/match_test.sh` — 16/16 PASS: incoming detection, threshold above/at/below,\nunrelated address, contract interaction, contract creation, zero-value exclusion,\nchecksum-case matching, 256-bit-safe wei comparison, config parsing.\nFixtures are synthetic and labeled as such; live behavior is proven by the\ntrigger→alert run above, not by the unit tests.\n\n## 7. Safety & honesty\n\n- Atlantic testnet only; dust amounts; no mainnet code path exists.\n- Secrets live in `.env` (git-ignored) — the repo contains zero credentials.\n- The trigger is a disclosed self-test, labeled in the alert itself.\n- `sendMessage` can theoretically succeed while its response is lost; a retry\n  could then double-send. This is documented, not hidden — Telegram offers no\n  idempotency key. The write-ahead marker covers the crash case.\n- Two real bugs were found and fixed during the 2026-10-16 hardening pass:\n  `src/trigger.sh` recorded cast's `blockHash` as the tx hash (it now parses\n  the `transactionHash` line), and alert amounts rendered as\n  `0.001000000000000000` because the trailing-zero strip used `\\(...\\)`\n  grouping inside `sed -E` (parens must be unescaped there). Both documented\n  in `evidence.md` §7.\n\n## 8. Submission map\n\n| Artifact | File |\n|---|---|\n| Official requirements (verbatim) | `REQUIREMENTS.md` |\n| Evidence (narrative + machine) | `evidence.md`, `evidence.json` |\n| Reviewer notes (paste-ready) | `SUBMISSION.md` → \"Notes for the reviewer\" |\n| Verified links |\n\n…",
+      "task_config_text": "id: t20\nslug: onchain-alert-bot\ntitle: \"On-Chain Alert Bot\"\ntier: Easy\npoints: 50\ncategory: Trading / Monitoring\nstatus: ready-for-review\nproof_kind: live-run\nvideo_slot: PENDING-VIDEO\nno_mock_attestation: true\nevidence:\n  trigger_tx: \"0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084\"\n  trigger_block: 31481424\n  telegram_message_id: 717\n  telegram_observed_message_ids: [718, 719, 720, 722, 724, 725, 726]\n  telegram_note: \"717 = my disclosed dust trigger; 718/719/720/722/724/725/726 = genuine observed transfers by other workers on the shared key, each alerted exactly once\"\n  large_transfer_tx: \"0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a\"\n  large_transfer_block: 31486611\n  large_transfer_message_ids: [727, 728]\n  large_transfer_note: \"disclosed 0.5 PHRS self-transfer; first live trip of the large-transfer condition (incoming-transfer msg 727 + large-transfer msg 728)\"\n  ledger_audit: \"src/audit.sh replayed every alert against the live chain: 210 PASS, 0 FAIL (2026-10-16T07:27:32Z)\"\n  telegram_chat_id: \"1434154285\"\n  spend_phrs: \"0.000042000000042\"\nchain:\n  network: atlantic-testnet\n  chain_id: 688689\n  rpc: https://atlantic.dplabs-internal.com\n  explorer: https://atlantic.pharosscan.xyz/\ntests:\n  unit: test/match_test.sh\n  unit_result: 16 passed, 0 failed\n  live: trigger -> watcher detection -> Telegram alert (message_id 717); large-transfer trigger -> 2 alerts (message_ids 727, 728)\n  ledger_audit: src/audit.sh — 210 PASS, 0 FAIL (2026-10-16T07:27:32Z)\n  restart_dedup: zero re-emission on restart\n",
       "policy_yaml_text": null,
       "run_log_files": [],
-      "has_evidence_json": false,
-      "evidence": null,
-      "txs": [],
-      "explorer_links": [],
-      "has_submission": false,
-      "submission_status": "not started",
+      "has_evidence_json": true,
+      "evidence": {
+        "alert": {
+          "bodyIncludes": [
+            "condition",
+            "watched address",
+            "amount in PHRS",
+            "tx hash",
+            "explorer link",
+            "block number",
+            "timestamp"
+          ],
+          "botUsername": "OctaneShift_Bot",
+          "channel": "Telegram sendMessage",
+          "chatId": "1434154285",
+          "condition": "incoming-transfer (msg 717)",
+          "deliveredAt": "2026-10-16T04:19:24Z",
+          "messageId": 717,
+          "observedMessageIds": [
+            718,
+            719,
+            720,
+            722,
+            724,
+            725,
+            726
+          ],
+          "observedNote": "genuine transfers by other workers on the shared key, each alerted exactly once",
+          "tokenValidatedBy": "getMe (ok=true, no secret echoed)"
+        },
+        "artifacts": {
+          "config": "config.yaml",
+          "logs": [
+            "logs/watch.log",
+            "state/alerts.log (runtime, git-ignored)",
+            "state/audit.log (runtime, git-ignored)"
+          ],
+          "source": [
+            "src/lib.sh",
+            "src/match.sh",
+            "src/alert.sh",
+            "src/watch.sh",
+            "src/trigger.sh",
+            "src/batchscan.py",
+            "src/audit.sh"
+          ],
+          "tests": [
+            "test/match_test.sh"
+          ]
+        },
+        "audit": {
+          "checksPerAlert": [
+            "write-ahead SENDING<SENT ordering + exactly-once counts",
+            "dedupe key in state/seen",
+            "tx exists on-chain, receipt status 0x1",
+            "recipient + block match the claim",
+            "value satisfies condition semantics",
+            "live matcher re-confirms the condition"
+          ],
+          "lastResult": "210 PASS, 0 FAIL",
+          "lastRun": "2026-10-16T07:27:32Z",
+          "meaning": "every alert in the ledger replayed against the live chain; recipient, value, block and matcher verdict all re-verified",
+          "run": "bash src/audit.sh"
+        },
+        "largeTransferTrigger": {
+          "alertNote": "disclosed self-test transfer (not dust)",
+          "blockNumber": 31486611,
+          "conditionsFired": [
+            "incoming-transfer",
+            "large-transfer"
+          ],
+          "deliveredAt": "2026-10-16T06:51:49Z",
+          "effectiveGasPriceWei": "1000000001",
+          "explorerUrl": "https://atlantic.pharosscan.xyz/tx/0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a",
+          "firstLiveTripOf": "large-transfer condition (previously unit-test-only)",
+          "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "gasUsed": 21000,
+          "kind": "REAL self-test transfer (disclosed, Atlantic testnet only)",
+          "status": "0x1",
+          "telegramMessageIds": [
+            727,
+            728
+          ],
+          "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "txHash": "0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a",
+          "valuePHRS": "0.5",
+          "valueWei": "500000000000000000"
+        },
+        "network": {
+          "chainId": 688689,
+          "chainIdVerifiedBy": "eth_chainId -> 0xa8231 = 688689 (live RPC)",
+          "explorer": "https://atlantic.pharosscan.xyz/",
+          "name": "atlantic-testnet",
+          "nativeToken": "PHRS",
+          "rpc": "https://atlantic.dplabs-internal.com"
+        },
+        "spend": {
+          "budgetPHRS": 0.15,
+          "entries": [
+            {
+              "phrs": "0.000021000000021",
+              "what": "dust trigger tx 0xe6c9f52c... (21000 gas @ 1000000001 wei)"
+            },
+            {
+              "phrs": "0.000021000000021",
+              "what": "large-transfer trigger tx 0x157dc990... (21000 gas @ 1000000001 wei); 0.5 PHRS self-transferred and returned"
+            }
+          ],
+          "totalPHRS": "0.000042000000042",
+          "withinBudget": true
+        },
+        "task": "t20-onchain-alert-bot",
+        "tests": {
+          "live": "trigger tx -> watcher detection -> Telegram alert, all real (twice: dust + large-transfer)",
+          "unit": "test/match_test.sh",
+          "unitNote": "synthetic fixtures only; NOT live evidence",
+          "unitResult": "16 passed, 0 failed (2026-10-16)"
+        },
+        "trigger": {
+          "blockNumber": 31481424,
+          "effectiveGasPriceWei": "1000000001",
+          "explorerUrl": "https://atlantic.pharosscan.xyz/tx/0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084",
+          "explorerUrlCurlVerified": "HTTP 200 (2026-10-16)",
+          "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "gasUsed": 21000,
+          "kind": "REAL self-test dust transfer (disclosed, Atlantic testnet only)",
+          "status": "0x1",
+          "to": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+          "txHash": "0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084",
+          "valuePHRS": "0.001",
+          "valueWei": "1000000000000000"
+        },
+        "video": "PENDING-VIDEO (see VIDEO-GUIDE.md)",
+        "watcher": {
+          "catchupMode": "--catchup: batched eth_getBlockByNumber fetch (25/block batches, src/batchscan.py) for fast resume after an outage; same matching/dedupe/alerting path",
+          "config": "config.yaml (3 conditions; large-transfer threshold 0.5 PHRS)",
+          "confirmBlocks": 2,
+          "crashRecovery": "SENDING-without-SENT treated as delivered on restart (never re-sent)",
+          "dedupeKey": "<condition>:<txhash> (one tx may legitimately fire two conditions; not spam)",
+          "run1": "blocks 31481424..31481430 -> 1 alert sent (message_id 717), cursor advanced to 31481431",
+          "run2_restart": "restart from cursor 31481431 -> zero re-emission (see logs/watch.log)",
+          "thresholdRun": "--once --from-block 31486611 --to-block 31486611 -> 2 alerts sent (message_ids 727, 728), clean 0.5 PHRS formatting",
+          "writeAheadMarker": "SENDING persisted to state/alerts.log BEFORE Telegram send"
+        }
+      },
+      "txs": [
+        "0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a",
+        "0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084"
+      ],
+      "explorer_links": [
+        "https://atlantic.pharosscan.xyz/tx/0x157dc99087d62346971261e795f5d5ac417319c8ab528c1d0a6f04c14266924a",
+        "https://atlantic.pharosscan.xyz/tx/0xe6c9f52ceff6219a3659ba8199376cc4e969f67b2f4a707edda6f9cb9ac0e084",
+        "https://atlantic.pharosscan.xyz/address/0x157dc99087d62346971261e795f5d5ac417319c8",
+        "https://atlantic.pharosscan.xyz/address/0xe6c9f52ceff6219a3659ba8199376cc4e969f67b"
+      ],
+      "has_submission": true,
+      "submission_status": "written — founder submits",
       "activity": []
     },
     {

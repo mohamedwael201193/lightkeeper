@@ -1,0 +1,19 @@
+{
+  "amount_phrs": "0.0005",
+  "control": {
+    "cancelled": false,
+    "paused": false
+  },
+  "interval": "weekly",
+  "label": "T18 evidence schedule \u2014 weekly 0.0005 PHRS to the operator wallet (self-payment dust; funds stay in the shared test wallet)",
+  "max_runs": 4,
+  "recipient": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "schedule_id": "tide-demo-01",
+  "start_time": "2026-10-16T00:00:00Z",
+  "stop_conditions": {
+    "expires_at": null,
+    "min_balance_after_phrs": "1.0"
+  },
+  "token": "PHRS",
+  "token_type": "native"
+}

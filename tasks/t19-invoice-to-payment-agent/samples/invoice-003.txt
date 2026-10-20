@@ -1,0 +1,7 @@
+# Plaintext invoice — SAMPLE (payee is the operator testnet wallet; nothing is stranded)
+INVOICE: INV-2026-003
+PAYEE: 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+AMOUNT: 0.0005
+CURRENCY: PHRS
+REFERENCE: LK-T19-DEMO-003
+MEMO: Sample plaintext invoice

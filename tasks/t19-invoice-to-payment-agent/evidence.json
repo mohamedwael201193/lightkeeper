@@ -1,0 +1,100 @@
+{
+ "budget_phrs": "0.15",
+ "chain_id": 688689,
+ "duplicate_refusal": {
+  "invoice_id": "INV-2026-001",
+  "message": "REFUSED: invoice 'INV-2026-001' was already paid (tx 0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9, stamped 2026-10-16T04:11:16Z). Double-payment prevented.",
+  "second_broadcast_attempted": false
+ },
+ "malformed_battery": [
+  {
+   "file": "samples/invoice-bad-amount.json",
+   "result": "refused: amount -5.0 not > 0"
+  },
+  {
+   "file": "samples/invoice-bad-address.csv",
+   "result": "refused: invalid payee address"
+  },
+  {
+   "file": "samples/invoice-bad-currency.txt",
+   "result": "flagged: unsupported currency USD"
+  },
+  {
+   "file": "samples/invoice-bad-missing.json",
+   "result": "flagged: missing reference"
+  },
+  {
+   "file": "samples/invoice-bad-mismatch.json",
+   "result": "flagged: line-item total mismatch"
+  }
+ ],
+ "net_spent_phrs": "0.000042000042",
+ "paid_stamp": {
+  "amount_phrs": "0.001",
+  "chain_id": 688689,
+  "currency": "PHRS",
+  "effective_gas_price_wei": "1000000001",
+  "explorer": "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+  "gas_used": "21000",
+  "invoice_id": "INV-2026-001",
+  "paid_at_utc": "2026-10-16T04:11:16Z",
+  "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "reference": "LK-T19-DEMO-001",
+  "status": "paid",
+  "tx_hash": "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+  "block_number": 31481475
+ },
+ "payment": {
+  "amount_phrs": "0.001",
+  "amount_wei": "1000000000000000",
+  "block_number": 31481475,
+  "chain": "atlantic-testnet",
+  "chain_id": 688689,
+  "effective_gas_price_wei": "1000000001",
+  "explorer": "https://atlantic.pharosscan.xyz/tx/0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+  "explorer_curl_http": 200,
+  "gas_used": "21000",
+  "invoice_id": "INV-2026-001",
+  "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "reference": "LK-T19-DEMO-001",
+  "status": "0x1",
+  "tx_hash": "0xc9270686464dcfe86ec94bce292b48be6e1f7d6d8b4f7b68a4e0a8a43b9cc4f9",
+  "block_hex": "0x1e05e83",
+  "sample_file": "samples/invoice-001.json",
+  "source_format": "json"
+ },
+ "task": "T19",
+ "tests": {
+  "command": "python3 -m unittest discover -s tests",
+  "passed": 19,
+  "total": 19
+ },
+ "payment2": {
+  "amount_phrs": "0.0005",
+  "amount_wei": "500000000000000",
+  "block_number": 31486451,
+  "chain": "atlantic-testnet",
+  "chain_id": 688689,
+  "effective_gas_price_wei": "1000000001",
+  "explorer": "https://atlantic.pharosscan.xyz/tx/0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66",
+  "gas_used": "21000",
+  "invoice_id": "INV-2026-004",
+  "payee": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+  "reference": "LK-T19-DEMO-004",
+  "sample_file": "samples/invoice-004.csv",
+  "source_format": "csv",
+  "status": "0x1",
+  "tx_hash": "0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66",
+  "paid_at_utc": "2026-10-16T06:38:08Z"
+ },
+ "duplicate_refusal_004": {
+  "invoice_id": "INV-2026-004",
+  "message": "REFUSED: invoice 'INV-2026-004' was already paid (tx 0xc7fff61e404cb09a19f2319c26d034ae6f708ec2a98de81d229433226b8bac66, stamped 2026-10-16T06:38:08Z). Double-payment prevented.",
+  "second_broadcast_attempted": false
+ },
+ "spend_breakdown": {
+  "tx1_gas_phrs": "0.000021000021",
+  "tx2_gas_phrs": "0.000021000021",
+  "net_spent_phrs": "0.000042000042"
+ }
+}

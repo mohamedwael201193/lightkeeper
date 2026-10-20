@@ -1,0 +1,73 @@
+T18 — LIVE CRON SCHEDULE EVIDENCE (2026-10-20)
+================================================
+The tick engine now really ticks: a system crontab entry on this VM fires
+`tide.py tick` every 15 minutes against the resumed `tide-demo-01` schedule.
+
+1. INSTALLED CRON LINE (root crontab, `crontab -l`)
+-----------------------------------------------------
+*/15 * * * * cd /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent && set -a; . /home/hatch/workspace/lightkeeper/.env; set +a; export PATH="/home/hatch/.foundry/bin:/usr/bin:/bin"; python3 src/tide.py tick >> /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent/state/cron.log 2>&1
+
+Notes:
+- `.` (not `source`): cron runs the line under /bin/sh, where `source` does
+  not exist. The first installed version used `source` and the 00:00Z tick
+  failed honestly with "env var ATLANTIC_RPC_URL is not set" (see incident
+  log below); fixed to POSIX `.`.
+- Absolute `/home/hatch/.foundry/bin` on PATH: cron's `$HOME` is /root, but
+  foundry lives in /home/hatch/.foundry.
+- The `.env` holds ATLANTIC_RPC_URL + DEPLOYER_PRIVATE_KEY (mode 600, never
+  committed); `set -a` exports them for the tick process only — nothing is
+  echoed to logs (verified: no secret material in cron.log).
+
+2. SCHEDULE STATE (config/schedule.json)
+----------------------------------------
+schedule_id: tide-demo-01 | interval: weekly | amount: 0.0005 PHRS (native)
+recipient: 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 (operator wallet, self-payment dust)
+max_runs: 4 | control: {cancelled: false, paused: false}  (resumed by operator 2026-10-20T23:56Z)
+stop_conditions: {expires_at: null, min_balance_after_phrs: "1.0"}
+Installment 0: paid 2026-10-16 (tx 0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10, block 31481497)
+Installment 1: due 2026-10-23T00:00:00Z — the live cron will pay it automatically (0.0005 PHRS dust).
+
+3. CRON-FIRED TICK LOG (state/cron.log — written ONLY by cron, never by hand)
+-----------------------------------------------------------------------------
+$ cat state/cron.log   (as of 2026-10-20T00:47Z)
+ERROR: env var ATLANTIC_RPC_URL is not set — source the repo .env first
+SKIP: no installment due — next payment: installment 1 at 2026-10-23T00:00:00+00:00
+SKIP: no installment due — next payment: installment 1 at 2026-10-23T00:00:00+00:00
+
+Line 1 = the 00:00Z tick (fired on schedule, failed honestly on the `source`
+bug — see §5). Lines 2–3 = the 00:30Z and 00:45Z ticks, cron-fired, clean:
+each ran the full tick (chain-ID guard, validation, due-check) and honestly
+skipped — nothing is due until installment 1 on 2026-10-23.
+
+4. HISTORY LOG (state/audit.log — tick decisions)
+-------------------------------------------------
+$ tail -6 state/audit.log   (as of 2026-10-20T00:47Z)
+2026-10-19T23:56:24+00:00 operator resumed schedule tide-demo-01
+2026-10-19T23:56:24+00:00 tick tide-demo-01: no installment due          (manual smoke test)
+2026-10-20T00:00:01+00:00 error: env var ATLANTIC_RPC_URL is not set — source the repo .env first   (cron-fired, honest failure)
+2026-10-20T00:01:44+00:00 tick tide-demo-01: no installment due          (manual /bin/sh verification of the fix)
+2026-10-20T00:30:01+00:00 tick tide-demo-01: no installment due          (cron-fired, clean)
+2026-10-20T00:45:01+00:00 tick tide-demo-01: no installment due          (cron-fired, clean)
+
+The two 00:30/00:45 entries are ≥2 real tick log entries produced by the
+installed schedule firing on its own — the "on time" claim made real.
+
+5. INCIDENT LOG (honest)
+------------------------
+- 2026-10-20T00:00:01Z — first cron tick fired on schedule but failed: the
+  installed line used `source` (bashism) under cron's /bin/sh, so the .env
+  never loaded. Honest error in both logs; fixed to POSIX `.` (and the
+  installer script's printed line fixed the same way).
+- 2026-10-20T00:12Z — the VM rebooted. /var/spool/cron/crontabs is ephemeral
+  across VM replacements: the installed crontab entry AND the manually-started
+  cron daemon were both wiped. Reinstalled 2026-10-20T00:16Z; daemon started
+  via `systemctl start cron` (service is enabled, so it starts on boot).
+- Durability: crontab entries do not survive a VM replacement. The canonical
+  line (§1) is stored here for one-command reinstall.
+
+6. VERIFICATION (how a reviewer re-checks)
+------------------------------------------
+  crontab -l | grep tide.py          # the line is present
+  tail state/cron.log                # SKIP lines appear every 15 min
+  tail state/audit.log               # "tick tide-demo-01: ..." entries, timestamps on quarter-hours
+  python3 src/tide.py status         # history board + next payment (installment 1, 2026-10-23)

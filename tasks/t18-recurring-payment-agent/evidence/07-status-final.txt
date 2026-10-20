@@ -1,0 +1,17 @@
+== TIDE schedule 'tide-demo-01' ==
+  label      : T18 evidence schedule — weekly 0.0005 PHRS to the operator wallet (self-payment dust; funds stay in the shared test wallet)
+  recipient  : 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+  amount     : 0.0005 PHRS (native)
+  interval   : weekly (604800s)
+  max_runs   : 4
+  control    : paused=False cancelled=True
+  stop conds : {"expires_at": null, "min_balance_after_phrs": "1.0"}
+
+  # | due_at (UTC)           | status            | tx / note
+  --+------------------------+-------------------+----------
+  0 | 2026-10-16T00:00:00+00:00 | paid              | https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10
+  1 | 2026-10-23T00:00:00+00:00 | CANCELLED         | 
+  2 | 2026-10-30T00:00:00+00:00 | CANCELLED         | 
+  3 | 2026-11-06T00:00:00+00:00 | CANCELLED         | 
+
+  NEXT PAYMENT: none (schedule cancelled)

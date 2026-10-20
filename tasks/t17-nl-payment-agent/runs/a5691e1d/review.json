@@ -1,0 +1,45 @@
+{
+  "run_id": "a5691e1d",
+  "plan": {
+    "action": "send",
+    "token": "PHRS",
+    "amount_phrs": "0.002",
+    "amount_wei": 2000000000000000,
+    "to": "0x66dc06035c2b1bc169af46c2cc6c235c3773c9fc",
+    "chain_id": 688689
+  },
+  "plan_id": "47c05e79377fe743",
+  "validation": {
+    "ok": true,
+    "chain_id": 688689,
+    "recipient": "0x66dc06035c2b1bc169af46c2cc6c235c3773c9fc",
+    "recipient_checksummed": "0x66Dc06035C2B1BC169aF46c2CC6c235C3773C9fc",
+    "balance_wei": "5840403885311092881",
+    "gas_price_wei": "10000000000",
+    "gas_limit": 21000,
+    "max_fee_wei": "210000000000000",
+    "amount_wei": "2000000000000000",
+    "total_cost_wei": "2210000000000000",
+    "findings": [
+      "chain-id OK: 688689 (Atlantic testnet)",
+      "recipient OK: 0x66Dc06035C2B1BC169aF46c2CC6c235C3773C9fc",
+      "balance: 5840403885311092881 wei (5.840404 PHRS); amount 2000000000000000 wei + est. fee 210000000000000 wei = 2210000000000000 wei",
+      "balance OK: amount + estimated fee covered"
+    ]
+  },
+  "unsigned_tx": {
+    "signed": false,
+    "plan_id": "47c05e79377fe743",
+    "chainId": 688689,
+    "from": "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3",
+    "to": "0x66Dc06035C2B1BC169aF46c2CC6c235C3773C9fc",
+    "value": "0x71afd498d0000",
+    "value_wei": "2000000000000000",
+    "gas": 21000,
+    "gasPrice": "10000000000",
+    "nonce": "179",
+    "data": "0x",
+    "note": "unsigned: produced for human review; requires explicit CONFIRM <plan_id> before any broadcast"
+  },
+  "reviewed_at": "2026-10-16T07:02:36Z"
+}

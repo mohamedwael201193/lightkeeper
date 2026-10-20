@@ -1,0 +1,1 @@
+{"amount":"0.001","currency":"PHRS","invoice_id":"INV-BAD-MISMATCH","line_items":[{"amount":"0.0007","description":"Part A"},{"amount":"0.0007","description":"Part B"}],"payee":"0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3","reference":"LK-T19-MALFORMED-05"}

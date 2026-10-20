@@ -27,6 +27,10 @@ export const PUBLICLY_OPEN_TASK_IDS: string[] = [
   "T14",
   "T15",
   "T16",
+  "T17",
+  "T18",
+  "T19",
+  "T20",
 ];
 
 export function isTaskPubliclyOpen(taskId: string): boolean {
