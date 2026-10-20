@@ -1,0 +1,1 @@
+{"allowed_destinations":[],"deny_all":true,"max_amount_usdc":0,"note":"KILL-TEST policy: denies every action. The composed pipeline MUST halt at the gate stage and the dry-run stage must never execute. The saved halt record is the proof.","policy_id":"t12v3-deny-all-kill-test"}

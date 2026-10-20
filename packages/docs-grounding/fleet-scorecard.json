@@ -1,0 +1,232 @@
+{
+  "auditor": "lightkeeper-docs-grounding/fleet-auditor",
+  "generated_by": "run_fleet_audit.py @ 49c1f13",
+  "generated_at": "2026-10-20T04:19:51.621990+00:00",
+  "honest_rule": "scores are published as measured; failed checks and their fixes are listed, never dropped from the battery",
+  "checks_total": 14,
+  "checks_scored": 14,
+  "checks_passed": 13,
+  "score_pct": 92.9,
+  "per_task": {
+    "t04": {
+      "pass": 2,
+      "fail": 0,
+      "error": 0
+    },
+    "t13": {
+      "pass": 6,
+      "fail": 0,
+      "error": 0
+    },
+    "fleet": {
+      "pass": 5,
+      "fail": 1,
+      "error": 0
+    }
+  },
+  "fix_list": [
+    "[fleet/BAIT-1] treat answers on this topic as UNVERIFIED in every task; add an explicit 'not in the docs' guard to the task's prompting"
+  ],
+  "results": [
+    {
+      "battery": "quotes",
+      "task": "t04",
+      "check_id": "Q1",
+      "verdict": "PASS",
+      "detail": "quote still appears verbatim in the live page",
+      "fix": "",
+      "evidence": {
+        "source_url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+        "quote": "| ChainID | 688689 |",
+        "page_chars": 818
+      }
+    },
+    {
+      "battery": "quotes",
+      "task": "t04",
+      "check_id": "Q2",
+      "verdict": "PASS",
+      "detail": "quote still appears verbatim in the live page",
+      "fix": "",
+      "evidence": {
+        "source_url": "https://docs.pharos.xyz/getting-started/network/atlantic-testnet",
+        "quote": "| RPC Public Endpoint | <https://atlantic.dplabs-internal.com> |",
+        "page_chars": 818
+      }
+    },
+    {
+      "battery": "quotes",
+      "task": "t13",
+      "check_id": "Q3",
+      "verdict": "PASS",
+      "detail": "quote still appears verbatim in the live page",
+      "fix": "",
+      "evidence": {
+        "source_url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+        "quote": "0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d",
+        "page_chars": 6973
+      }
+    },
+    {
+      "battery": "quotes",
+      "task": "t13",
+      "check_id": "Q4",
+      "verdict": "PASS",
+      "detail": "quote still appears verbatim in the live page",
+      "fix": "",
+      "evidence": {
+        "source_url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+        "quote": "allowing any on-chain consumer to read the latest price via `latestAnswer()`",
+        "page_chars": 6973
+      }
+    },
+    {
+      "battery": "quotes",
+      "task": "t13",
+      "check_id": "Q5",
+      "verdict": "PASS",
+      "detail": "quote still appears verbatim in the live page",
+      "fix": "",
+      "evidence": {
+        "source_url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+        "quote": "Pharos has deployed Chainlink self-managed price feeds using the Chainlink Runtime Environment (CRE).",
+        "page_chars": 6973
+      }
+    },
+    {
+      "battery": "bait",
+      "task": "fleet",
+      "check_id": "BAIT-1",
+      "verdict": "FAIL",
+      "detail": "the Docs MCP answer supplied content for an invented topic instead of refusing — hallucination risk, transcript below",
+      "fix": "treat answers on this topic as UNVERIFIED in every task; add an explicit 'not in the docs' guard to the task's prompting",
+      "evidence": {
+        "topic": "a Pharos 'time-travel snapshot' feature",
+        "question": "How do I use the Pharos time-travel snapshot feature to roll a contract back to a previous block, and what are its snapshot retention limits?",
+        "answer_chars": 2614,
+        "answer_excerpt": "Pharos documents **node rollback**, not a contract-only âtime-travel snapshotâ feature. The rollback changes the nodeâs chain state, so it is not a way to revert just one contract. See [Rollback Blocks](/node-and-validator-guide/rollback-blocks). To revert the node to a specific block: 1. Stop the node (`docker compose down` for Docker, or `./ops stop` for a binary install). 2. Back up `loca"
+      }
+    },
+    {
+      "battery": "bait",
+      "task": "fleet",
+      "check_id": "BAIT-2",
+      "verdict": "PASS",
+      "detail": "the Docs MCP answer acknowledges the topic is not covered (honest refusal)",
+      "fix": "",
+      "evidence": {
+        "topic": "Pharos 'gas rebate tokens' (GRT)",
+        "question": "What is the exchange rate for Pharos gas rebate tokens (GRT) and how do I claim them after a deployment?",
+        "answer_chars": 1539,
+        "answer_excerpt": "I cannot find a documented GRT exchange rate or post-deployment claim procedure in the docs. Pharosâs [Gas Model](/getting-started/gas-model) describes EVM gas-refund tracking, but says refunds do **not** affect the transaction charge. It does not describe gas rebate tokens or claiming them. # Sources - [Write Your First Token](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-tok"
+      }
+    },
+    {
+      "battery": "bait",
+      "task": "fleet",
+      "check_id": "BAIT-3",
+      "verdict": "PASS",
+      "detail": "the Docs MCP answer acknowledges the topic is not covered (honest refusal)",
+      "fix": "",
+      "evidence": {
+        "topic": "a native Pharos 'zkEmail bridge'",
+        "question": "How do I configure the native Pharos zkEmail bridge contracts for email-triggered transfers?",
+        "answer_chars": 1783,
+        "answer_excerpt": "I cannot find information about configuring native Pharos zkEmail bridge contracts for email-triggered transfers. The [Cross Chain Infrastructure](/tooling-and-infrastructure/cross-chain) page lists CCIP, CCTP, and LayerZero, but doesnât document zkEmail contracts or setup steps. # Sources - [Write Your First Uniswap Contract](https://docs.pharos.xyz/developer-guide/hardhat/write-your-first-unis"
+      }
+    },
+    {
+      "battery": "bait",
+      "task": "fleet",
+      "check_id": "BAIT-4",
+      "verdict": "PASS",
+      "detail": "the Docs MCP answer acknowledges the topic is not covered (honest refusal)",
+      "fix": "",
+      "evidence": {
+        "topic": "Pharos mainnet 'staking APY tiers'",
+        "question": "What are the current Pharos mainnet staking APY tiers and the lock-up periods for each tier?",
+        "answer_chars": 1724,
+        "answer_excerpt": "I cannot find a documented table of current Pharos mainnet staking APY tiers or their lock-up periods. The [Node Management](/node-and-validator-guide/node-management) lists validator stake requirements, including the 1,000,000 PROS mainnet activation threshold, but not APYs or lock-up terms. # Sources - [Node Management](https://docs.pharos.xyz/node-and-validator-guide/node-management) - [About P"
+      }
+    },
+    {
+      "battery": "bait",
+      "task": "fleet",
+      "check_id": "BAIT-5",
+      "verdict": "PASS",
+      "detail": "the Docs MCP answer acknowledges the topic is not covered (honest refusal)",
+      "fix": "",
+      "evidence": {
+        "topic": "an official Pharos 'airdrop checker API'",
+        "question": "What is the endpoint and API key process for the official Pharos airdrop checker API?",
+        "answer_chars": 1673,
+        "answer_excerpt": "I cannot find information about an official Pharos airdrop checker API, its endpoint, or its API-key process in the docs. The documented Pharos MCP endpoint, `https://mcp.pharos.xyz/mcp`, is a public chain-data interfaceânot an airdrop checkerâand requires no API key. See [Pharos MCP](/tooling-and-infrastructure/mcp). # Sources - [ZAN RPC](https://docs.pharos.xyz/tooling-and-infrastructure/rpc"
+      }
+    },
+    {
+      "battery": "bait",
+      "task": "fleet",
+      "check_id": "BAIT-6",
+      "verdict": "PASS",
+      "detail": "the Docs MCP answer acknowledges the topic is not covered (honest refusal)",
+      "fix": "",
+      "evidence": {
+        "topic": "Pharos 'quantum-resistant account recovery'",
+        "question": "How does Pharos quantum-resistant account recovery work and which precompile address does it use?",
+        "answer_chars": 1833,
+        "answer_excerpt": "I cannot find information about Pharosâs quantum-resistant account recovery flow or the precompile address it uses in the docs. # Sources - [About Pharos](https://docs.pharos.xyz/introduction/readme) - [Fordefi](https://docs.pharos.xyz/tooling-and-infrastructure/wallets/fordefi) - [eth_getProof â Storage State Verification (SPV)](https://docs.pharos.xyz/api-and-sdk/eth-getproof) - [Why Pharos]"
+      }
+    },
+    {
+      "battery": "onchain",
+      "task": "t13",
+      "check_id": "C1",
+      "verdict": "PASS",
+      "detail": "fresh read at the pinned block matches the recorded read",
+      "fix": "",
+      "evidence": {
+        "tool": "eth_call",
+        "recorded": {
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000006"
+        },
+        "fresh": {
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000006"
+        }
+      }
+    },
+    {
+      "battery": "onchain",
+      "task": "t13",
+      "check_id": "C2",
+      "verdict": "PASS",
+      "detail": "fresh read at the pinned block matches the recorded read",
+      "fix": "",
+      "evidence": {
+        "tool": "eth_call",
+        "recorded": {
+          "result": "0x000000000000000000000000000000000000000000000000000027c855790d45"
+        },
+        "fresh": {
+          "result": "0x000000000000000000000000000000000000000000000000000027c855790d45"
+        }
+      }
+    },
+    {
+      "battery": "onchain",
+      "task": "t13",
+      "check_id": "C3",
+      "verdict": "PASS",
+      "detail": "fresh read at the pinned block matches the recorded read",
+      "fix": "",
+      "evidence": {
+        "tool": "eth_call",
+        "recorded": {
+          "result": "0x0000000000000000000000000000000000000000000000000de02f1646cee400"
+        },
+        "fresh": {
+          "result": "0x0000000000000000000000000000000000000000000000000de02f1646cee400"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "holder": "0x936564245b69f5a293b42cbd752e0ee3bb68b470",
+  "destination": "0x000000000000000000000000000000000000dEaD",
+  "amount_usdc": "5",
+  "stage": "propose",
+  "token": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "token_decimals": 6,
+  "balance_units": "17554901734",
+  "balance_usdc": "17554.901734",
+  "pinned_block": 20716717,
+  "chain_id": 1672,
+  "chain_endpoint": "https://mcp.pharos.xyz/mcp",
+  "proposed_action": {
+    "type": "erc20_transfer",
+    "token": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+    "to": "0x000000000000000000000000000000000000dEaD",
+    "amount_usdc": "5"
+  }
+}

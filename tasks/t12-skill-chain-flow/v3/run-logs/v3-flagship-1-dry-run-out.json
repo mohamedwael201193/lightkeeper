@@ -1,0 +1,87 @@
+{
+  "holder": "0x936564245b69f5a293b42cbd752e0ee3bb68b470",
+  "destination": "0x000000000000000000000000000000000000dEaD",
+  "amount_usdc": "5",
+  "stage": "dry-run",
+  "token": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "token_decimals": 6,
+  "balance_units": "17594005525",
+  "balance_usdc": "17594.005525",
+  "pinned_block": 20716689,
+  "chain_id": 1672,
+  "chain_endpoint": "https://mcp.pharos.xyz/mcp",
+  "proposed_action": {
+    "type": "erc20_transfer",
+    "token": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+    "to": "0x000000000000000000000000000000000000dEaD",
+    "amount_usdc": "5"
+  },
+  "grounded": true,
+  "grounding_verdict": "grounded",
+  "citations": [
+    {
+      "source_url": "https://docs.pharos.xyz/~gitbook/mcp (askQuestion)",
+      "quote": "Pharos\u00e2\u0080\u0099s token examples expose these ERC-20 functions:"
+    },
+    {
+      "source_url": "https://docs.pharos.xyz/tooling-and-infrastructure/oracles/chainlink-pe",
+      "quote": "Each price pair has a dedicated proxy contract that exposes the standard Chainlink Data Feeds interface, allowing any on-chain consumer to read the latest price via `latestAnswer()`."
+    }
+  ],
+  "docs_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "docs_server": {
+    "name": "docs.pharos.xyz/~gitbook/mcp",
+    "title": "docs.pharos.xyz MCP Server",
+    "version": "0.27.2"
+  },
+  "decision": "ALLOW",
+  "rules": [
+    {
+      "rule": "GROUNDED-REQUIRED",
+      "verdict": "PASS",
+      "detail": "docs grounding verdict=grounded"
+    },
+    {
+      "rule": "AMOUNT-UNDER-CAP",
+      "verdict": "PASS",
+      "detail": "proposed 5 USDC <= cap 100 USDC"
+    },
+    {
+      "rule": "BALANCE-COVERS",
+      "verdict": "PASS",
+      "detail": "holder balance 17594.005525 USDC vs proposed 5 USDC"
+    },
+    {
+      "rule": "CHAIN-IDENTITY",
+      "verdict": "PASS",
+      "detail": "chain_id=1672 (expected 1672, live from Chain MCP)"
+    },
+    {
+      "rule": "DESTINATION-ALLOWLISTED",
+      "verdict": "PASS",
+      "detail": "destination 0x000000000000000000000000000000000000dEaD in allowlist"
+    }
+  ],
+  "blocked": [],
+  "policy_id": "t12v3-grounded-portfolio-action",
+  "halt": false,
+  "halt_reason": "policy gate ALLOW",
+  "dry_run": {
+    "tool": "estimate_gas",
+    "estimate": {
+      "gas": "58353",
+      "gasHex": "0xe3f1"
+    },
+    "note": "simulation only \u2014 no signature, no broadcast"
+  },
+  "tier_b_sign_yourself": {
+    "instruction": "Review and sign this exact transaction in YOUR own wallet (Tier B). The agent never signs.",
+    "unsigned_tx": {
+      "chain_id": 1672,
+      "to": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+      "from": "0x936564245b69f5a293b42cbd752e0ee3bb68b470",
+      "value": "0x0",
+      "data": "0xa9059cbb000000000000000000000000000000000000000000000000000000000000dead00000000000000000000000000000000000000000000000000000000004c4b40"
+    }
+  }
+}

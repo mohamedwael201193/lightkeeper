@@ -1,0 +1,55 @@
+name: LIGHTKEEPER CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/console/package-lock.json
+      - run: npm ci
+        working-directory: apps/console
+      - name: Real TypeScript check (root tsconfig checks NOTHING — use tsconfig.app.json)
+        run: npx tsc -p tsconfig.app.json --noEmit
+        working-directory: apps/console
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install requests (the only non-stdlib dep)
+        run: pip install requests
+      - name: Run every package test suite (offline)
+        run: |
+          set -euo pipefail
+          for p in chain-data docs-grounding skill-adapter policy workflow persistence notifications evidence; do
+            for t in packages/$p/tests/test_*.py; do
+              echo "== $t"
+              python3 "$t"
+            done
+          done
+
+  live-mainnet-dry-run:
+    runs-on: ubuntu-latest
+    needs: [typecheck, python-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install requests
+        run: pip install requests
+      - name: Live read-only dry-run (nothing signed, nothing broadcast)
+        run: python3 scripts/ci_live_dryrun.py

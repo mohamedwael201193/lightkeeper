@@ -1,0 +1,1 @@
+{"allowed_destinations":["0x000000000000000000000000000000000000dEaD"],"deny_all":false,"max_amount_usdc":100,"note":"Normal policy for the flagship composed run: caps each proposal at 100 USDC, destination must be allowlisted, docs grounding and live balance coverage are required by the gate rules.","policy_id":"t12v3-grounded-portfolio-action"}
