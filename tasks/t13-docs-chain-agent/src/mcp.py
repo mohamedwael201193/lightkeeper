@@ -73,14 +73,22 @@ class _BaseMCP:
 
     def _post_with_retry(self, payload: dict, expect_sse: bool = True,
                          attempts: int = 4) -> dict:
+        # The Docs MCP drops ~40% of streams mid-JSON (2026-10-20 flake
+        # class): retry transport errors AND parse-level truncations
+        # ("no SSE data frame"). Genuine protocol rejections (initialize /
+        # tools-call errors) are raised immediately and never retried.
         last: Exception | None = None
         for i in range(attempts):
             try:
                 return self._post(payload, expect_sse=expect_sse)
             except requests.exceptions.RequestException as e:
                 last = e
-                if i < attempts - 1:
-                    time.sleep(2 * (i + 1))
+            except MCPError as e:
+                if not str(e).startswith("no SSE data frame"):
+                    raise
+                last = e
+            if i < attempts - 1:
+                time.sleep(2 * (i + 1))
         raise MCPError(f"MCP transport error after {attempts} attempts: {last}")
 
     def connect(self) -> "_BaseMCP":
