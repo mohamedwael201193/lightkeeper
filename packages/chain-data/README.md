@@ -25,3 +25,12 @@ Consolidates the previously duplicated per-task `mcp_client.py` copies
 
 `python3 tests/test_chain_data.py` — 23 tests, offline (live MCP smoke test
 behind `LK_LIVE_TESTS=1`).
+
+## Pacing + Retry-After (WS3 task 5)
+
+`ChainMCP` is paced client-side: a `TokenBucket` (default 2 req/s
+sustained, burst 5) gates every request, and HTTP 429/503 responses honor
+the server's `Retry-After` header (seconds or HTTP-date form, bounded) for
+up to 3 honored retries before `RateLimited` is raised — no hammering.
+`parse_retry_after(value)` and `TokenBucket` are unit-tested offline with
+a fake clock; `test_chain_data.py` is now 31 tests.
