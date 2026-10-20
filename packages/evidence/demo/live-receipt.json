@@ -1,0 +1,60 @@
+{
+  "version": "lk-receipt/1",
+  "body": {
+    "version": "lk-receipt/1",
+    "task": "t-ws3-receipt-demo",
+    "inputs": {
+      "intent": "demo: live-receipt end-to-end, chain identity read"
+    },
+    "mcp_payloads": [
+      {
+        "tool": "get_chain_info",
+        "arguments": {},
+        "result": {
+          "name": "Pharos",
+          "chainId": 1672,
+          "chainIdHex": "0x688",
+          "expectedChainId": 1672,
+          "chainIdMatches": true,
+          "latestBlock": "20715832",
+          "latestBlockHex": "0x13c1938",
+          "nativeSymbol": "PROS",
+          "clientVersion": "portal/1.0.0",
+          "rpcUrl": "https://rpc.pharos.xyz"
+        }
+      },
+      {
+        "tool": "get_block_number",
+        "arguments": {},
+        "result": {
+          "blockNumber": "0x13c1939"
+        }
+      }
+    ],
+    "pinned_block": 20715833,
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "server_version": "pharos-mcp-server 0.1.0",
+    "commit": "de5666a",
+    "notes": "signed with a throwaway demo key (env-injected); anchor ABSENT — no funded keypair approved by the founder"
+  },
+  "receipt_hash": "abddab13bb45033b3bd86fe41afac9082698fcf05e822585df312f2e674e8eea",
+  "signature": {
+    "r": "0x263fb4eca6d3360cdbb52ac6e981b46912a3a7707e18744173bcb4955d6f0870",
+    "s": "0x6f394257a6d11d550b21e74dd6a43f48508d3a286ec934cc54b0f5e47123e3a0",
+    "v": 28,
+    "signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+  },
+  "anchor": {
+    "status": "PENDING",
+    "reason": "key present; broadcast awaiting first founder-approved funding — tx not submitted yet",
+    "unsigned_tx": {
+      "chain_id": 688689,
+      "to": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "from": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "value": "0x0",
+      "data": "0xb759b32c11acacbd53c1c12a99a9aef20da27f1a6e27147ad6b3d58aab21a52d",
+      "receipt_hash": "0xabddab13bb45033b3bd86fe41afac9082698fcf05e822585df312f2e674e8eea",
+      "note": "anchor carries receipt hash; broadcast requires LK_EVIDENCE_KEY and founder approval (Atlantic testnet only)"
+    }
+  }
+}
