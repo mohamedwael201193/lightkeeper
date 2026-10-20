@@ -1,0 +1,640 @@
+{
+ "capturedAtUtc": "2026-10-20T04:09:51Z",
+ "note": "Baseline for scripts/mcp-watch.py \u2014 drift = tool add/remove/rename, inputSchema change, protocolVersion change, server version bump, or frozen block.",
+ "chain": {
+  "url": "https://mcp.pharos.xyz/mcp",
+  "serverInfo": {
+   "name": "pharos-mcp-server",
+   "version": "0.1.0"
+  },
+  "protocolVersion": "2025-03-26",
+  "blockNumberAtCapture": 20716280,
+  "tools": [
+   {
+    "name": "estimate_gas",
+    "description": "Estimate gas for a transaction without sending it",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "transaction": {
+       "type": "object",
+       "properties": {
+        "from": {
+         "type": "string"
+        },
+        "to": {
+         "type": "string"
+        },
+        "data": {
+         "type": "string"
+        },
+        "value": {
+         "type": "string"
+        },
+        "gas": {
+         "type": "string"
+        },
+        "gasPrice": {
+         "type": "string"
+        },
+        "maxFeePerGas": {
+         "type": "string"
+        },
+        "maxPriorityFeePerGas": {
+         "type": "string"
+        },
+        "nonce": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "required": [
+      "transaction"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": false,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "eth_call",
+    "description": "Execute a read-only EVM contract call",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "transaction": {
+       "type": "object",
+       "properties": {
+        "from": {
+         "type": "string"
+        },
+        "to": {
+         "type": "string"
+        },
+        "data": {
+         "type": "string"
+        },
+        "value": {
+         "type": "string"
+        },
+        "gas": {
+         "type": "string"
+        },
+        "gasPrice": {
+         "type": "string"
+        },
+        "maxFeePerGas": {
+         "type": "string"
+        },
+        "maxPriorityFeePerGas": {
+         "type": "string"
+        },
+        "nonce": {
+         "type": "string"
+        }
+       }
+      },
+      "block": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      }
+     },
+     "required": [
+      "transaction"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_balance",
+    "description": "Get the native PROS balance of an EVM address",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "address": {
+       "type": "string",
+       "description": "EVM address"
+      },
+      "block": {
+       "description": "Block tag or number; defaults to latest",
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      }
+     },
+     "required": [
+      "address"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_block",
+    "description": "Get a Pharos block by tag or number",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "block": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      },
+      "includeTransactions": {
+       "default": false,
+       "type": "boolean"
+      }
+     }
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_block_number",
+    "description": "Get the latest Pharos block number",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {}
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": false,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_chain_info",
+    "description": "Get Pharos chain ID, client version, latest block and configured RPC endpoint",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {}
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_code",
+    "description": "Get contract bytecode at an address",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "address": {
+       "type": "string"
+      },
+      "block": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      }
+     },
+     "required": [
+      "address"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_gas_price",
+    "description": "Get current Pharos gas price and priority fee",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {}
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": false,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_logs",
+    "description": "Get EVM logs. The fromBlock/toBlock window is limited to 1000 blocks inclusive (the upstream RPC limit); page through larger ranges.",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "address": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        }
+       ]
+      },
+      "topics": {
+       "type": "array",
+       "items": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "fromBlock": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      },
+      "toBlock": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      }
+     }
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_storage_at",
+    "description": "Read a contract storage slot",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "address": {
+       "type": "string"
+      },
+      "position": {
+       "type": "string"
+      },
+      "block": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      }
+     },
+     "required": [
+      "address",
+      "position"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_transaction",
+    "description": "Get a transaction by hash",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "hash": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "hash"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_transaction_count",
+    "description": "Get an address transaction count (nonce)",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "address": {
+       "type": "string"
+      },
+      "block": {
+       "description": "Usually latest or pending",
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "number"
+        }
+       ]
+      }
+     },
+     "required": [
+      "address"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": false,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "get_transaction_receipt",
+    "description": "Get a transaction receipt by hash",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "hash": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "hash"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   },
+   {
+    "name": "send_raw_transaction",
+    "description": "Broadcast an already-signed raw EVM transaction. This server never receives a private key.",
+    "inputSchema": {
+     "$schema": "http://json-schema.org/draft-07/schema#",
+     "type": "object",
+     "properties": {
+      "rawTransaction": {
+       "type": "string",
+       "description": "0x-prefixed signed transaction bytes"
+      }
+     },
+     "required": [
+      "rawTransaction"
+     ]
+    },
+    "annotations": {
+     "readOnlyHint": false,
+     "destructiveHint": true,
+     "idempotentHint": false,
+     "openWorldHint": true
+    },
+    "execution": {
+     "taskSupport": "forbidden"
+    }
+   }
+  ]
+ },
+ "docs": {
+  "url": "https://docs.pharos.xyz/~gitbook/mcp",
+  "serverInfo": {
+   "name": "docs.pharos.xyz/~gitbook/mcp",
+   "title": "docs.pharos.xyz MCP Server",
+   "version": "0.27.2"
+  },
+  "protocolVersion": "2024-11-05",
+  "tools": [
+   {
+    "name": "askQuestion",
+    "description": "Ask a natural-language question about docs.pharos.xyz and get a synthesized answer, with links to the source pages. Prefer this over `searchDocumentation` when you want a direct answer to a question rather than a list of matching pages; use `searchDocumentation`/`getPage` when you need to browse or read full pages yourself.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "question": {
+       "type": "string",
+       "description": "The natural-language question to answer about docs.pharos.xyz."
+      },
+      "goal": {
+       "type": "string",
+       "description": "The broader end goal you are ultimately trying to accomplish (as/on behalf of the user). Used to tailor the answer to be most useful for your goal. Optional."
+      }
+     },
+     "required": [
+      "question"
+     ],
+     "additionalProperties": false,
+     "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+     "title": "Ask a question",
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": false,
+     "openWorldHint": true
+    }
+   },
+   {
+    "name": "getPage",
+    "description": "Fetch the full markdown content of a specific documentation page from docs.pharos.xyz. Use this when you have a page URL and want to read its content. Accepts full URLs (e.g. https://docs.pharos.xyz//getting-started). Since `searchDocumentation` returns partial content, use `getPage` to retrieve the complete page when you need more details. The content includes links you can follow to navigate to related pages.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "url": {
+       "type": "string",
+       "description": "The URL of the page to fetch"
+      }
+     },
+     "required": [
+      "url"
+     ],
+     "additionalProperties": false,
+     "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+     "title": "Get page content",
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    }
+   },
+   {
+    "name": "searchDocumentation",
+    "description": "Search across the documentation to find relevant information, code examples, API references, and guides. Use this tool when you need to answer questions about docs.pharos.xyz, find specific documentation, understand how features work, or locate implementation details. The search returns contextual content with titles and direct links to the documentation pages.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "query": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "additionalProperties": false,
+     "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+     "title": "Search documentation",
+     "readOnlyHint": true,
+     "destructiveHint": false,
+     "idempotentHint": true,
+     "openWorldHint": true
+    }
+   },
+   {
+    "name": "sendFeedback",
+    "description": "Report an issue in the documentation of docs.pharos.xyz so the team can fix it. Use it whenever, while helping a user, you come across content that is outdated, contradictory, missing information, or otherwise unhelpful. Also use it when the user themselves reports a problem with the docs, even if you could not verify it yourself. If it's your own observation, do a quick sanity check that the issue is real before reporting \u2014 no need to exhaustively re-read the page. Send one call per distinct issue and do not report the same issue twice in a conversation. Do not use this tool to confirm that a page is accurate; it is for reporting problems only.",
+    "inputSchema": {
+     "type": "object",
+     "properties": {
+      "content": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 2048,
+       "description": "Explain the issue in full, as if writing to a documentation maintainer who never saw this conversation. Describe what is wrong, where on the page it appears (quote the exact sentence or section title when possible), what the user was trying to do, and, when relevant, what the correct or expected information should be. Write a few clear, specific sentences in English. Never include personal or confidential information from the conversation. Up to 2048 characters."
+      },
+      "pageUrl": {
+       "type": "string",
+       "description": "The full URL of the page the issue is about (e.g. https://docs.pharos.xyz//getting-started), so the finding is linked to the exact page."
+      },
+      "goal": {
+       "type": "string",
+       "maxLength": 1024,
+       "description": "The broader end goal you were ultimately trying to accomplish (as/on behalf of the user) when you hit this issue. Gives the team the context you were working towards. Optional."
+      }
+     },
+     "required": [
+      "content",
+      "pageUrl"
+     ],
+     "additionalProperties": false,
+     "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "annotations": {
+     "title": "Send feedback",
+     "readOnlyHint": false,
+     "destructiveHint": false,
+     "idempotentHint": false,
+     "openWorldHint": true
+    }
+   }
+  ]
+ }
+}
