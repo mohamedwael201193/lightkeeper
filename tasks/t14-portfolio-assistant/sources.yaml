@@ -71,6 +71,34 @@ valuation:
   policy: token-units-only
   label: "testnet — no market value"
 
+# Protocol / vault / lending positions. Every entry below was verified
+# on-chain (eth_getCode non-empty) at the verifiedAt block, and the position
+# view was read for the operator wallet before being listed here.
+# All three are LIGHTKEEPER builder-deployed test contracts — disclosed as
+# such, never presented as third-party DeFi.
+protocols:
+  - name: MiniLend
+    kind: lending
+    address: 0x108989a165a446e1d89CEe3C9936344ea7ADbf4a
+    deployedBy: T16 (LIGHTKEEPER liquidation watchdog)
+    deployTx: 0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de
+    verifiedAtBlock: 31638738
+    note: builder-deployed minimal lending pool (T16). Operator wallet holds a LIVE position (created by the T16 evidence run: 0.002 PHRS collateral deposited, USD-denominated debt borrowed, partially repaid).
+
+  - name: Kelp
+    kind: staking-vault
+    address: 0xe3212234B17A90cCBC36b0B44845394b62838b08
+    deployedBy: T15 (LIGHTKEEPER yield optimizer)
+    verifiedAtBlock: 31638738
+    note: builder-deployed staking vault (T15). Operator stake was fully claimed during the T15 evidence run — current position reads zero, reported as zero, never hidden.
+
+  - name: Kraken
+    kind: staking-vault
+    address: 0xDC3D4a3f47BB479692239ECC362a16CE3485B283
+    deployedBy: T15 (LIGHTKEEPER yield optimizer)
+    verifiedAtBlock: 31638738
+    note: builder-deployed staking vault (T15). Operator stake was fully claimed during the T15 evidence run — current position reads zero, reported as zero, never hidden.
+
 # Activity scan window (getLogs capped at 1000 blocks/call by the node).
 activity:
   windowBlocks: 10000

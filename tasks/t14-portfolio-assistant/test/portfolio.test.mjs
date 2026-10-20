@@ -15,25 +15,37 @@ import {
   PortfolioReader,
   routeIntent,
   extractTokenMention,
+  extractProtocolMention,
   formatUnits,
   cite,
   assertCited,
   summarizeSnapshot,
+  decodeWords,
   DONT_KNOW,
   ATLANTIC_CHAIN_ID,
 } from "../../../packages/portfolio/src/portfolio.mjs";
-import { loadRegistry, snapshot, answer } from "../src/index.mjs";
+import { loadRegistry, snapshot, answer, readProtocolPosition } from "../src/index.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RPC = process.env.ATLANTIC_RPC_URL || "https://atlantic.dplabs-internal.com";
 const WALLET = "0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3";
 const LPK = "0x7d9C06353DdfeBC078A3a834A672CBF10aa06Ab9";
 const USDC = "0xcfC8330f4BCAB529c625D12781b1C19466A9Fc8B";
+const MINILEND = "0x108989a165a446e1d89CEe3C9936344ea7ADbf4a";
+const KELP = "0xe3212234B17A90cCBC36b0B44845394b62838b08";
+const KRAKEN = "0xDC3D4a3f47BB479692239ECC362a16CE3485B283";
 
 function cast(...args) {
   const castBin = process.env.HOME + "/.foundry/bin/cast";
   const out = execFileSync(castBin, [...args, "--rpc-url", RPC], { encoding: "utf8", timeout: 60000 }).trim();
   return out.split(/\s/)[0]; // cast appends "[1.85e7]"-style annotations; first token is the value
+}
+
+/** cast, one output word per line -> array of first-tokens (for multi-return views). */
+function castWords(...args) {
+  const castBin = process.env.HOME + "/.foundry/bin/cast";
+  const out = execFileSync(castBin, [...args, "--rpc-url", RPC], { encoding: "utf8", timeout: 60000 }).trim();
+  return out.split("\n").map((l) => l.split(/\s/)[0]);
 }
 
 describe("unit: formatting and citations", () => {
@@ -70,6 +82,28 @@ describe("unit: formatting and citations", () => {
     assert.equal(extractTokenMention("my LPK balance", reg.assets).symbol, "LPK");
     assert.equal(extractTokenMention("balance at " + USDC, reg.assets).symbol, "USDC");
     assert.equal(extractTokenMention("my FOO balance", reg.assets), null);
+  });
+
+  it("registry lists 3 tracked protocols (MiniLend, Kelp, Kraken)", () => {
+    const reg = loadRegistry();
+    assert.equal(reg.protocols.length, 3);
+    assert.deepEqual(reg.protocols.map((p) => p.name), ["MiniLend", "Kelp", "Kraken"]);
+    assert.equal(reg.protocols[0].kind, "lending");
+    assert.equal(reg.protocols[0].address, MINILEND);
+  });
+
+  it("extractProtocolMention finds tracked protocols by name or address", () => {
+    const reg = loadRegistry();
+    assert.equal(extractProtocolMention("my MiniLend vault position", reg.protocols).name, "MiniLend");
+    assert.equal(extractProtocolMention("staked in kelp?", reg.protocols).name, "Kelp");
+    assert.equal(extractProtocolMention("position at " + KRAKEN, reg.protocols).name, "Kraken");
+    assert.equal(extractProtocolMention("my AquaLend vault position", reg.protocols), null);
+  });
+
+  it("decodeWords splits eth_call output into BigInt words", () => {
+    const words = decodeWords("0x" + "00".repeat(31) + "01" + "00".repeat(31) + "02");
+    assert.deepEqual(words, [1n, 2n]);
+    assert.throws(() => decodeWords("0x1234"), /bad word length/);
   });
 });
 
@@ -119,6 +153,78 @@ describe("live: Atlantic reads match direct cast queries", () => {
     const reader = new PortfolioReader(RPC);
     assert.equal(await reader.codePresent(LPK), true);
   });
+});
+
+describe("live: protocol positions match direct cast queries", () => {
+  it("MiniLend lending position equals cast at the same pinned block", async () => {
+    const reader = new PortfolioReader(RPC);
+    const registry = loadRegistry();
+    const snap = await snapshot(WALLET, reader, registry, { activity: false });
+    const ml = snap.positions.find((p) => p.name === "MiniLend");
+    assert.ok(ml && ml.position, "MiniLend position missing from snapshot");
+
+    const blk = snap.block.toString();
+    const pos = castWords("call", MINILEND, "positions(address)(uint256,uint256)", WALLET, "--block", blk);
+    assert.equal(ml.position.collateral.raw, pos[0], "collateralWei mismatch");
+    assert.equal(ml.position.debtUsd.raw, pos[1], "debtUsd mismatch");
+
+    const acct = castWords("call", MINILEND, "getUserAccountData(address)(uint256,uint256,uint256,int256,uint256)", WALLET, "--block", blk);
+    assert.equal(ml.position.healthFactor.raw, acct[2], "healthFactor mismatch");
+    assert.equal(ml.position.oraclePriceUsd.raw, acct[3], "oracle price mismatch");
+    assert.equal(ml.position.liquidationThresholdBps.raw, acct[4], "threshold mismatch");
+
+    // the operator wallet really holds a position here (created by the T16 run)
+    assert.ok(BigInt(ml.position.collateral.raw) > 0n, "expected live collateral");
+  }, { timeout: 120000 });
+
+  it("T15 staking vaults read the operator wallet live (reported as-is, never hidden)", async () => {
+    const reader = new PortfolioReader(RPC);
+    const registry = loadRegistry();
+    const snap = await snapshot(WALLET, reader, registry, { activity: false });
+    const blk = snap.block.toString();
+    for (const [name, addr] of [["Kelp", KELP], ["Kraken", KRAKEN]]) {
+      const v = snap.positions.find((p) => p.name === name);
+      assert.ok(v && v.position, `${name} position missing from snapshot`);
+      const direct = cast("call", addr, "staked(address)(uint256)", WALLET, "--block", blk);
+      assert.equal(v.position.staked.raw, direct, `${name} staked mismatch vs cast`);
+    }
+  }, { timeout: 120000 });
+
+  it("every protocol position number carries a source contract and block", async () => {
+    const reader = new PortfolioReader(RPC);
+    const registry = loadRegistry();
+    const snap = await snapshot(WALLET, reader, registry, { activity: false });
+    assert.equal(snap.positions.length, 3);
+    const cited = [];
+    for (const p of snap.positions) {
+      assert.ok(p.block, `${p.name}: missing block pin`);
+      assert.ok(p.address, `${p.name}: missing contract address`);
+      if (p.position) for (const v of Object.values(p.position)) cited.push({ value: v.value, source: v.source, block: v.block });
+    }
+    assertCited({ positions: cited });
+  }, { timeout: 120000 });
+
+  it("named tracked protocol question returns the cited on-chain position", async () => {
+    const reader = new PortfolioReader(RPC);
+    const registry = loadRegistry();
+    const snap = await snapshot(WALLET, reader, registry, { activity: false });
+    const r = answer("what is my position in the MiniLend vault?", snap, registry);
+    assert.equal(r.intent, "position");
+    assert.match(r.text, /Health factor/);
+    assert.match(r.text, new RegExp(MINILEND));
+    assert.match(r.text, /builder-deployed test contract/);
+    assert.doesNotThrow(() => assertCited(r));
+  }, { timeout: 120000 });
+
+  it("zero-stake vault question reports zero honestly", async () => {
+    const reader = new PortfolioReader(RPC);
+    const registry = loadRegistry();
+    const snap = await snapshot(WALLET, reader, registry, { activity: false });
+    const r = answer("how much do I have staked in Kelp?", snap, registry);
+    assert.equal(r.intent, "position");
+    assert.match(r.text, /0 PHRS/);
+    assert.doesNotThrow(() => assertCited(r));
+  }, { timeout: 120000 });
 });
 
 describe("live: honest I-don't-know paths", () => {

@@ -13,10 +13,13 @@ import {
   PortfolioReader,
   routeIntent,
   extractTokenMention,
+  extractProtocolMention,
   formatUnits,
   cite,
   assertCited,
   summarizeSnapshot,
+  decodeWords,
+  PROTOCOL_VIEWS,
   DONT_KNOW,
   NO_MARKET_VALUE,
   ATLANTIC_CHAIN_ID,
@@ -32,6 +35,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export function parseSourcesYaml(text) {
   const chain = {};
   const assets = [];
+  const protocols = [];
   let activity = {};
   let mode = null;
   let cur = null;
@@ -40,6 +44,7 @@ export function parseSourcesYaml(text) {
     if (!line.trim()) continue;
     if (/^chain:/.test(line)) { mode = "chain"; continue; }
     if (/^assets:/.test(line)) { mode = "assets"; continue; }
+    if (/^protocols:/.test(line)) { mode = "protocols"; continue; }
     if (/^valuation:/.test(line)) { mode = "valuation"; continue; }
     if (/^activity:/.test(line)) { mode = "activity"; continue; }
     if (mode === "assets") {
@@ -47,6 +52,14 @@ export function parseSourcesYaml(text) {
       if (item) {
         cur = { symbol: item[1] };
         assets.push(cur);
+        continue;
+      }
+    }
+    if (mode === "protocols") {
+      const item = /^-\s*name:\s*(\S+)/.exec(line.trim());
+      if (item) {
+        cur = { name: item[1] };
+        protocols.push(cur);
         continue;
       }
     }
@@ -59,13 +72,85 @@ export function parseSourcesYaml(text) {
     else if (mode === "assets" && cur && indent.length >= 4) {
       cur[key] = val === "null" ? null : (/^\d+$/.test(val) ? Number(val) : val);
     }
+    else if (mode === "protocols" && cur && indent.length >= 4) {
+      cur[key] = /^\d+$/.test(val) ? Number(val) : val;
+    }
   }
-  return { chain, assets, activity };
+  return { chain, assets, protocols, activity };
 }
 
 export function loadRegistry() {
   const text = readFileSync(join(HERE, "..", "sources.yaml"), "utf8");
   return parseSourcesYaml(text);
+}
+
+// ---------- protocol / vault / lending positions ----------
+
+/**
+ * Read one tracked protocol's position for the wallet, block-pinned.
+ * Every number is cited (contract :: view + block). A contract with no code
+ * is reported as unknown, never zero. All three registry protocols are
+ * LIGHTKEEPER builder-deployed test contracts — disclosed in sources.yaml.
+ */
+export async function readProtocolPosition(reader, protocol, wallet, blockHex, block) {
+  const base = {
+    name: protocol.name,
+    kind: protocol.kind,
+    address: protocol.address,
+    deployedBy: protocol.deployedBy,
+    verifiedAtBlock: protocol.verifiedAtBlock,
+    note: protocol.note,
+    block,
+  };
+  const codeOk = await reader.codePresent(protocol.address);
+  if (!codeOk) {
+    return {
+      ...base,
+      unknown: "contract has no code at this address — position unreadable; reported as unknown, not zero",
+      source: "eth_getCode",
+    };
+  }
+  const views = PROTOCOL_VIEWS[protocol.kind];
+  if (!views) {
+    return { ...base, unknown: `no read views defined for protocol kind '${protocol.kind}' — reported as unknown, not zero` };
+  }
+  const src = (view) => `${protocol.address} :: ${view}(${wallet})`;
+
+  if (protocol.kind === "lending") {
+    // MiniLend: positions() -> (collateralWei, debtUsd8dp);
+    // getUserAccountData() -> (collateralUsd8dp, debtUsd8dp, hf1e18, price8dp, thresholdBps).
+    // Debt is natively USD-denominated ON-CHAIN (8dp) and the price is the
+    // contract's own operator-set oracle — both are stored contract values
+    // being read, not a market valuation invented by the assistant.
+    const [collateralWei] = decodeWords(await reader.viewCall(protocol.address, views.position, [wallet], blockHex));
+    const [, debtUsd8, hf1e18, price8, thresholdBps] = decodeWords(
+      await reader.viewCall(protocol.address, views.account, [wallet], blockHex));
+    const hf = debtUsd8 === 0n
+      ? cite({ value: "∞ (debt-free)", raw: hf1e18.toString(), unit: "health factor", source: src(views.account), block })
+      : cite({ value: formatUnits(hf1e18, 18), raw: hf1e18.toString(), unit: "health factor (1.0 = 1e18)", source: src(views.account), block });
+    return {
+      ...base,
+      position: {
+        collateral: cite({ value: formatUnits(collateralWei, 18), raw: collateralWei.toString(), unit: "PHRS", source: src(views.position), block }),
+        debtUsd: cite({ value: formatUnits(debtUsd8, 8), raw: debtUsd8.toString(), unit: "USD, contract-denominated (8dp)", source: src(views.account), block }),
+        healthFactor: hf,
+        oraclePriceUsd: cite({ value: formatUnits(price8, 8), raw: price8.toString(), unit: "USD/PHRS, contract oracle (8dp)", source: src(views.account), block }),
+        liquidationThresholdBps: cite({ value: thresholdBps.toString(), raw: thresholdBps.toString(), unit: "bps", source: src(views.account), block }),
+      },
+    };
+  }
+
+  if (protocol.kind === "staking-vault") {
+    const [stakedWei] = decodeWords(await reader.viewCall(protocol.address, views.stake, [wallet], blockHex));
+    return {
+      ...base,
+      position: {
+        staked: cite({ value: formatUnits(stakedWei, 18), raw: stakedWei.toString(), unit: "PHRS", source: src(views.stake), block }),
+      },
+    };
+  }
+
+  return { ...base, unknown: `unsupported protocol kind '${protocol.kind}'` };
 }
 
 // ---------- snapshot ----------
@@ -113,6 +198,12 @@ export async function snapshot(wallet, reader, registry, opts = {}) {
   const txCountRaw = await reader.txCount(wallet, blockHex);
   const txCount = cite({ value: String(txCountRaw), raw: String(txCountRaw), unit: "txs", source: "eth_getTransactionCount", block });
 
+  // Protocol / vault / lending positions — each a live on-chain read at the
+  // pinned block, cited with contract AND block, same as token balances.
+  const positions = await Promise.all(
+    (registry.protocols || []).map((p) => readProtocolPosition(reader, p, wallet, blockHex, block))
+  );
+
   const windowBlocks = registry.activity.windowBlocks || 10000;
   const activity = withActivity
     ? (await Promise.all(
@@ -149,10 +240,74 @@ export async function snapshot(wallet, reader, registry, opts = {}) {
 
   return {
     wallet, chainId: ATLANTIC_CHAIN_ID, rpc: ATLANTIC_RPC_URL, block,
-    balances, txCount, activity,
+    balances, txCount, positions, activity,
     activityWindow,
     gasHeadroom, valuation: NO_MARKET_VALUE,
   };
+}
+
+/**
+ * Answer for a NAMED tracked protocol/vault: the real on-chain position,
+ * every number cited (source contract AND pinned block). Builder-deployed
+ * test contracts are labeled as such, never as third-party DeFi.
+ */
+export function positionAnswer(question, snap, protocol, block, chainId) {
+  const pos = (snap.positions || []).find((p) => p.name === protocol.name);
+  const header =
+    `${protocol.name} (${protocol.kind}) position for ${snap.wallet} — ` +
+    `builder-deployed test contract (${protocol.deployedBy}), disclosed as such.`;
+  const num = (b) => ({ value: b.value, raw: b.raw, unit: b.unit, source: b.source, block: b.block ?? block });
+
+  if (!pos || pos.unknown) {
+    const res = {
+      intent: "position", question,
+      protocol: {
+        name: protocol.name, kind: protocol.kind, address: protocol.address,
+        unknown: (pos && pos.unknown) || "no position read in this snapshot",
+      },
+      text:
+        header + `\nUNKNOWN — ${((pos && pos.unknown) || "no position read in this snapshot")} ` +
+        `[source: ${(pos && pos.source) || "eth_getCode"}, block ${block}]. ` +
+        `Reported as unknown, never as zero.`,
+      block, chainId,
+    };
+    return res;
+  }
+
+  const lines = [header];
+  const out = { name: pos.name, kind: pos.kind, address: pos.address, position: {} };
+  if (pos.kind === "lending") {
+    const p = pos.position;
+    out.position = {
+      collateral: num(p.collateral), debtUsd: num(p.debtUsd), healthFactor: num(p.healthFactor),
+      oraclePriceUsd: num(p.oraclePriceUsd), liquidationThresholdBps: num(p.liquidationThresholdBps),
+    };
+    lines.push(
+      `• Collateral: ${p.collateral.value} ${p.collateral.unit} [source: ${p.collateral.source}, block ${p.collateral.block}]`,
+      `• Debt: ${p.debtUsd.value} ${p.debtUsd.unit} [source: ${p.debtUsd.source}, block ${p.debtUsd.block}]`,
+      `• Health factor: ${p.healthFactor.value} (liquidation below 1.0) [source: ${p.healthFactor.source}, block ${p.healthFactor.block}]`,
+      `• Oracle price: ${p.oraclePriceUsd.value} ${p.oraclePriceUsd.unit} — the contract's own on-chain oracle, operator-set on testnet, not a market price [source: ${p.oraclePriceUsd.source}, block ${p.oraclePriceUsd.block}]`,
+      `• Liquidation threshold: ${p.liquidationThresholdBps.value} ${p.liquidationThresholdBps.unit} [source: ${p.liquidationThresholdBps.source}, block ${p.liquidationThresholdBps.block}]`,
+      ``,
+      `Note: the USD figures above are the contract's own stored units (debt is natively USD-denominated on-chain; the price is the contract's own oracle). The assistant queries no market price feed and performs no USD valuation of token balances. Valuation: ${NO_MARKET_VALUE}.`
+    );
+  } else if (pos.kind === "staking-vault") {
+    const s = pos.position.staked;
+    out.position = { staked: num(s) };
+    lines.push(
+      `• Staked: ${s.value} ${s.unit} [source: ${s.source}, block ${s.block}]`
+    );
+    if (s.raw === "0") {
+      lines.push(`The operator's stake was fully claimed — the contract reads zero, reported as zero, never hidden.`);
+    }
+    lines.push(``, `Valuation: ${NO_MARKET_VALUE}.`);
+  } else {
+    lines.push(`Position kind '${pos.kind}' has no renderer — reported without guessing.`);
+  }
+
+  const res = { intent: "position", question, protocol: out, text: lines.join("\n"), block, chainId };
+  assertCited(res);
+  return res;
 }
 
 // ---------- NL answering ----------
@@ -166,14 +321,22 @@ export function answer(question, snap, registry) {
   const mention = extractTokenMention(question, registry.assets);
   const { block, chainId } = citationsOf(snap);
 
+  // A NAMED tracked protocol/vault gets its real on-chain position —
+  // this is the second data class (protocol positions), cited like balances.
+  const protoMention = extractProtocolMention(question, registry.protocols);
+  if (protoMention) {
+    return positionAnswer(question, snap, protoMention, block, chainId);
+  }
+
   // Explicit "I don't know" for protocol-position questions naming nothing tracked.
   if (/\b(vault|lending|stake|staking|pool|protocol|position in)\b/i.test(String(question)) && !mention) {
+    const trackedTokens = (registry.assets || []).map((a) => a.symbol).join(", ");
+    const trackedProtos = (registry.protocols || []).map((p) => p.name).join(", ");
     return {
       answer:
         DONT_KNOW.untrackedProtocol +
-        " Tracked sources: " +
-        registry.assets.map((a) => a.symbol).join(", ") +
-        ".",
+        " Tracked token sources: " + trackedTokens +
+        ". Tracked protocols: " + trackedProtos + ".",
       intent: "untracked",
       block,
       chainId,

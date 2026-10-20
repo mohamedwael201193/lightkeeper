@@ -24,7 +24,7 @@ Usage:
   bin/run.mjs --wallet <address> --probes            # negative-probe log (I-don't-know paths)
 
 Supported question types: balance, holdings, transaction count, recent activity,
-gas headroom, token info. Valuations are ALWAYS "${"testnet — no market value"}".
+gas headroom, token info, protocol positions. Valuations are ALWAYS "${"testnet — no market value"}".
 READ-ONLY: this tool cannot initiate transactions.`);
   process.exit(0);
 }
@@ -56,6 +56,7 @@ if (has("--snapshot")) {
     "What is my recent activity?",
     "How much gas can I afford?",
     "What is USDC?",
+    "What is my position in the MiniLend vault?",
   ];
   for (const q of questions) {
     const r = answer(q, snap, registry);

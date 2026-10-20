@@ -6,7 +6,7 @@
   },
   {
     "name": "untracked-protocol",
-    "result": "I don't know: that protocol/asset is not in my verified on-chain registry. I only report positions I can read from verified contracts at a pinned block — I won't guess. Tracked sources: PHRS, USDC, USDT, WBTC, WETH, WPHRS, LPK.",
+    "result": "I don't know: that protocol/asset is not in my verified on-chain registry. I only report positions I can read from verified contracts at a pinned block — I won't guess. Tracked token sources: PHRS, USDC, USDT, WBTC, WETH, WPHRS, LPK. Tracked protocols: MiniLend, Kelp, Kraken.",
     "honest": true
   },
   {

@@ -4,9 +4,9 @@
 
 A read-only portfolio assistant for Pharos Atlantic testnet (chain 688689). Given a
 wallet address and a natural-language question, it answers from live on-chain reads,
-with every number citing its source contract and block. Six question types are
+with every number citing its source contract and block. Seven question types are
 supported (balance, holdings, transaction count, recent activity, gas headroom,
-token info), routed by local code — no LLM, no guessing. A natural-language summary
+token info, protocol positions), routed by local code — no LLM, no guessing. A natural-language summary
 generator composes the full portfolio report from the snapshot.
 
 The core reading logic lives in the task's own library
@@ -42,6 +42,36 @@ Pharos Atlantic Token Registry
 code-present on-chain via `eth_getCode` at block ~31481175 before being trusted.
 LPK is the test token deployed by this task (see below).
 
+## Protocol / vault search (2026-10-20) — a real position was found
+
+The original build honestly reported "no live lending/vault protocols with
+positions for this wallet". A follow-up search of Atlantic for real protocol
+contracts the operator wallet has touched found three LIGHTKEEPER
+builder-deployed contracts — all code-verified on-chain, all disclosed as
+builder-deployed test contracts, never as third-party DeFi:
+
+| Protocol | Kind | Contract | Position for `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3` @ block 31638738 |
+|---|---|---|---|
+| MiniLend | lending | `0x108989a165a446e1d89CEe3C9936344ea7ADbf4a` (deployed by T16, deploy tx `0xc4da78490b2b0b2b501b5d0eb944878ed1d9f5cf47d5a3813e2d46a263a2c0de`) | **LIVE**: collateral 0.002 PHRS (`positions()` → 2000000000000000 wei); debt 0.0016 USD, contract-denominated 8dp (`160000`); health factor **1.5** (`1500000000000000000`); oracle price 1.5 USD/PHRS, 8dp (`150000000`); liquidation threshold 8000 bps — all via `getUserAccountData(address)` |
+| Kelp | staking-vault | `0xe3212234B17A90cCBC36b0B44845394b62838b08` (deployed by T15) | `staked()` → **0** (stake fully claimed during the T15 run; reported as zero) |
+| Kraken | staking-vault | `0xDC3D4a3f47BB479692239ECC362a16CE3485B283` (deployed by T15) | `staked()` → **0** (stake fully claimed during the T15 run; reported as zero) |
+
+How it was searched: the LIGHTKEEPER task tree was inventoried for deployed
+Atlantic contracts (T16's MiniLend lending pool, T15's Kelp/Kraken staking
+vaults); each contract's position view was called for the operator wallet with
+`cast call` at a pinned block (31638738, chain 688689) and cross-checked by the
+assistant's own block-pinned reads in the test suite. No other lending/vault
+contracts with operator-wallet positions were found. The MiniLend position was
+created by the T16 evidence run (0.002 PHRS deposited, USD-denominated debt
+borrowed, partially repaid) — it is a real on-chain position, and the
+assistant now reads it as a second data class (protocol positions), every
+number cited with contract AND block, exactly like token balances.
+
+On the USD figures: MiniLend denominates debt in USD (8dp) natively on-chain
+and carries its own operator-set oracle — the assistant READS these stored
+contract values; it still queries no market price feed and performs no USD
+valuation of token balances ("testnet — no market value" stands).
+
 ## The deployment (real, on-chain)
 
 `contracts/KeeperToken.sol` — a minimal ERC20 ("Lightkeeper Test Token", LPK,
@@ -70,11 +100,15 @@ and 1,000,000 LPK across verified contracts.
 
 ## What was refused (honest limits)
 
-- **USD valuations.** Testnet assets have no market value and no price feed is
-  queried. Every answer carries the label instead of a price.
-- **"Vault positions".** Atlantic testnet has no live lending/vault protocols with
-  positions for this wallet, so the assistant reports wallet balances across 7
-  verified sources and calls them exactly that.
+- **USD valuations of token balances.** Testnet assets have no market value and no
+  price feed is queried. Every answer carries the label instead of a price. (The
+  MiniLend debt/oracle USD figures are the contract's own stored units, read
+  on-chain and cited — not a valuation the assistant performed.)
+- **"Vault positions" outside the registry.** The assistant reads 3 verified
+  protocol contracts live (MiniLend lending pool with a real operator position;
+  Kelp/Kraken staking vaults reading zero after their stakes were claimed) and
+  reports exactly that. Anything else — e.g. "my AquaLend vault position" — gets
+  an explicit "I don't know", never a guess.
 - **Full history.** `eth_getLogs` is capped at 1,000 blocks per call on this node;
   the assistant pages the latest 10,000 blocks and prints the window. The 18.5 USDC
   predates the window — out of scope, not invented.
@@ -85,10 +119,10 @@ and 1,000,000 LPK across verified contracts.
 
 ## Verification
 
-- `node --test test/portfolio.test.mjs` — **15/15 pass**, including live tests that
-  assert the assistant's PHRS/USDC/LPK balances and tx count equal independent
-  `cast` queries at the same pinned block.
-- `sample-output/demo-output.txt` — the full 6-question demo run, real terminal output.
-- `sample-output/snapshot.json` — the machine-readable snapshot (block 31483013).
+- `node --test test/portfolio.test.mjs` — **23/23 pass**, including live tests that
+  assert the assistant's PHRS/USDC/LPK balances, tx count, and MiniLend/Kelp/Kraken
+  positions equal independent `cast` queries at the same pinned block.
+- `sample-output/demo-output.txt` — the full 7-question demo run, real terminal output.
+- `sample-output/snapshot.json` — the machine-readable snapshot (includes `positions`).
 - `sample-output/negative-probes.json` — the probe log.
 - All links in `LINKS.md` curl-verified (HTTP 200) on 2026-10-16.

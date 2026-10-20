@@ -13,11 +13,19 @@ and it says "I don't know" instead of guessing.
 ## Description
 
 A read-only portfolio assistant for Pharos Atlantic testnet (chain 688689).
-It answers 6 natural-language question types — balance, holdings, transaction
-count, recent activity, gas headroom, token info — from a block-pinned snapshot
-across 7 verified on-chain sources (native PHRS + USDC/USDT/WBTC/WETH/WPHRS from
-the official Pharos Token Registry, each code-verified on-chain, plus a test ERC20
-deployed by this task so the portfolio is non-trivial).
+It answers 7 natural-language question types — balance, holdings, transaction
+count, recent activity, gas headroom, token info, protocol positions — from a
+block-pinned snapshot across 7 verified token sources (native PHRS +
+USDC/USDT/WBTC/WETH/WPHRS from the official Pharos Token Registry, each
+code-verified on-chain, plus a test ERC20 deployed by this task so the portfolio
+is non-trivial) plus 3 live protocol reads: the MiniLend lending pool
+(0x108989a165a446e1d89CEe3C9936344ea7ADbf4a), where the operator wallet holds a
+real position (0.002 PHRS collateral, 0.0016 USD contract-denominated debt,
+health factor 1.5), and the Kelp/Kraken staking vaults
+(0xe3212234B17A90cCBC36b0B44845394b62838b08,
+0xDC3D4a3f47BB479692239ECC362a16CE3485B283), whose operator stakes were fully
+claimed and read zero. All three protocols are LIGHTKEEPER builder-deployed test
+contracts — disclosed as such, never as third-party DeFi.
 
 Every number carries a citation (source contract AND block), enforced in code —
 the citation validator throws on naked numbers. First-class "I don't know" paths
@@ -27,13 +35,18 @@ queried, no price is ever invented), and no-code addresses (reported as unknown,
 never zero).
 
 READ-ONLY by construction: no private key anywhere, chain-ID assertion runs before
-any read, and the test suite (15/15 green) asserts the assistant's balances and
-tx count equal independent `cast` queries at the same pinned block.
+any read, and the test suite (23/23 green) asserts the assistant's balances,
+tx count, and protocol positions equal independent `cast` queries at the same
+pinned block.
 
 Live evidence: real portfolio snapshot of the LIGHTKEEPER wallet at block 31483013
 (5.865657109313757106 PHRS, 18.5 USDC, 0.0025 WPHRS, 1,000,000 LPK, 139 txs),
 LPK deployment tx 0xbf309a965b0546c9464189a976d81fa77010cc59b02e54ba0578a310b555dc23
-(block 31481364), 4 passing negative probes. Zero mock/demo/placeholder data.
+(block 31481364), 4 passing negative probes. Protocol-position evidence
+(2026-10-20, block 31638738): MiniLend `getUserAccountData` → collateral
+0.002 PHRS, debt 0.0016 USD (contract-denominated, 8dp), health factor 1.5,
+oracle 1.5 USD/PHRS, threshold 8000 bps; Kelp/Kraken `staked()` → 0.
+Zero mock/demo/placeholder data.
 
 ## Repo link (commit-pinned)
 
@@ -76,5 +89,9 @@ LPK, 139 txs) — clearly labeled historical, never confused with the live read.
 30-second test: run `node bin/run.mjs --wallet 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 --demo`
 and check every number carries a `[source: …, block …]` citation. What to check:
 the citations resolve on the Atlantic explorer at the pinned block. What we will
-not claim: USD prices (no price feed — refused, never invented), or positions in
-protocols with no verified contract for this wallet.
+not claim: USD valuations of token balances (no market price feed — refused,
+never invented; the MiniLend USD-denominated debt and 1.5 USD/PHRS oracle figures
+are the contract's own stored units, read on-chain and cited, not a valuation we
+performed), or positions in protocols outside the verified registry
+(MiniLend/Kelp/Kraken are in-registry and read live — anything else gets an
+explicit "I don't know").
