@@ -2,12 +2,18 @@
 /**
  * t09-trend-watcher — CLI entry.
  *
- * CHAIN-ID ASSERTION FIRST: every command below aborts unless the RPC
- * reports chain 688689 (Atlantic testnet). Read-only: no keys, no signing,
- * no broadcasting — this tool spends 0 gas.
+ * CHAIN-ID ASSERTION FIRST: every chain-touching command aborts unless the
+ * Chain MCP reports chain 1672 (Pharos mainnet — the only chain the hosted
+ * Chain MCP serves). Read-only: no keys, no signing, no broadcasting —
+ * this tool spends 0 gas.
+ *
+ * ALL chain reads go through the REAL Pharos Chain MCP (named tools
+ * get_chain_info / get_block_number / get_gas_price / get_block via
+ * src/mcp.mjs). There is no `cast` and no raw JSON-RPC path anywhere:
+ * rawRpcCalls is 0 by construction (reported per observe cycle).
  *
  * Commands:
- *   observe         live cycle: feeHistory window + gas spot polls -> evaluate -> persist -> report
+ *   observe         live cycle: get_block fee window + get_gas_price spot polls -> evaluate -> persist -> report
  *   report          summary of observations + why acted/not (official req 5)
  *   spike-demo      CONTROLLED SYNTHETIC single-spike series -> proves NO fire (official req 4)
  *   sustained-demo  CONTROLLED SYNTHETIC sustained rise -> proves confirmed FIRE
@@ -21,27 +27,27 @@ process.chdir(ROOT);
 
 const cfg = parseYaml(readFileSync(join(ROOT, "config.yaml"), "utf8"));
 
-const { assertChainId, getFeeHistory, getGasPriceWei, getBlockNumber } = await import("../src/observe.mjs");
+const { assertChainId, getFeeHistory, getGasPriceWei, getBlockNumber, transportStats } = await import("../src/observe.mjs");
 const { evaluateSeries } = await import("../src/trend.mjs");
 const store = await import("../src/store.mjs");
 
 const cmd = process.argv[2] || "help";
 
 // --- chain-ID assertion: only for commands that touch the chain ---
-// `observe` reads live chain data, so it aborts unless the RPC reports
-// chain 688689 (Atlantic testnet). `report`, `spike-demo`, and
-// `sustained-demo` never touch the chain (local state / pure math), so
-// they run without Foundry or network access.
+// `observe` reads live chain data, so it aborts unless the Chain MCP
+// reports chain 1672 (Pharos mainnet — the only chain the MCP serves).
+// `report`, `spike-demo`, and `sustained-demo` never touch the chain
+// (local state / pure math), so they run without any network access.
 let chainId;
 if (cmd === "observe") {
   try {
-    chainId = assertChainId();
+    chainId = await assertChainId();
   } catch (e) {
     console.error("FATAL:", e.message);
     process.exit(2);
   }
 } else {
-  chainId = 688689; // documented Atlantic chain for reports/demos; no chain read performed
+  chainId = cfg.expectedChainId; // documented Pharos mainnet chain for reports/demos; no chain read performed
 }
 
 const paths = store.statePaths(cfg);
@@ -57,17 +63,17 @@ else {
 }
 
 async function observe() {
-  console.log(`t09-trend-watcher :: observe — chain ${chainId} (Atlantic), metric ${cfg.metric}`);
+  console.log(`t09-trend-watcher :: observe — chain ${chainId} (Pharos mainnet via Chain MCP), metric ${cfg.metric}`);
   const params = cfg.trend;
   const priors = store.loadPriors(paths);
 
   let samples;
   try {
-    const { samples: feeSamples } = getFeeHistory(cfg.window.historyBlocks);
-    samples = feeSamples.map((s) => ({ blockNumber: s.blockNumber, value: s.baseFeeWei, ts: s.ts, source: "eth_feeHistory/baseFeePerGas" }));
+    const { samples: feeSamples } = await getFeeHistory(cfg.window.historyBlocks);
+    samples = feeSamples.map((s) => ({ blockNumber: s.blockNumber, value: s.baseFeeWei, ts: s.ts, source: "chain-mcp:get_block/baseFeePerGas" }));
   } catch (e) {
     // fail-closed: record the observer error as an observation, HOLD, streak untouched
-    const blk = safeBlockNumber();
+    const blk = await safeBlockNumber();
     const row = { ts: now(), blockNumber: blk, metric: cfg.metric, chainId, mode: "LIVE", error: e.message, decision: "HOLD", reason: "OBSERVER_ERROR" };
     store.appendObservation(paths, row);
     store.appendAudit(paths, { ts: now(), blockNumber: blk, decision: "HOLD", reason: "OBSERVER_ERROR", detail: e.message });
@@ -75,11 +81,12 @@ async function observe() {
     return;
   }
 
-  // Live eth_gasPrice spot polls (context; NOT fed into the MA math — the MA series is baseFeePerGas)
+  // Live get_gas_price spot polls via Chain MCP (context; NOT fed into the
+  // MA math — the MA series is baseFeePerGas from get_block headers)
   const spot = [];
   for (let i = 0; i < cfg.poll.liveSamples; i++) {
     try {
-      spot.push({ block: getBlockNumber(), gasPriceWei: getGasPriceWei().toString() });
+      spot.push({ block: await getBlockNumber(), gasPriceWei: (await getGasPriceWei()).toString() });
     } catch { spot.push({ block: null, gasPriceWei: null, error: "spot poll failed" }); }
     if (i < cfg.poll.liveSamples - 1) await sleep(cfg.poll.intervalSec * 1000);
   }
@@ -106,7 +113,9 @@ async function observe() {
   store.saveRuntime(paths, runtime);
 
   printReport(rows, spot, fired, runtime);
-  console.log(`\nPersisted ${rows.length} observations -> ${paths.observations} | priors -> ${paths.runtime}`);
+  const ts = transportStats();
+  console.log(`transport:     Chain MCP ${ts.endpoint} | ${ts.mcpCalls} MCP tool calls (${ts.toolsCalled.join(", ")}) | rawRpcCalls ${ts.rawRpcCalls}`);
+  console.log(`\nPersisted ${rows.length} observations -> ${paths.observations} | priors -> ${paths.runtime} (atomic write)`);
 }
 
 async function report() {
@@ -190,7 +199,7 @@ function gwei(weiStr) {
 function pad(s, n) { return String(s).padStart(n); }
 function now() { return Math.floor(Date.now() / 1000); }
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
-function safeBlockNumber() { try { return getBlockNumber(); } catch { return null; } }
+async function safeBlockNumber() { try { return await getBlockNumber(); } catch { return null; } }
 
 /** Minimal YAML reader for our flat config (no dependency). */
 function parseYaml(text) {

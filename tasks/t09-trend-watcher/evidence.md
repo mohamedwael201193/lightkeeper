@@ -1,5 +1,35 @@
 # T09 Trend Watcher (Swell Line) — Evidence
 
+## Margin build 2026-10-20 — Chain MCP migration + atomic store (CURRENT)
+
+**Chain:** Pharos mainnet · chainId **1672** via the REAL Pharos Chain MCP
+(`https://mcp.pharos.xyz/mcp`) — asserted via `get_chain_info` before every run.
+**Metric:** `baseFeePerGas` per block. The Chain MCP exposes no feeHistory tool,
+so each point is read with a named `get_block` call (block-header value, verified
+block number per call). Spot context via `get_gas_price`. **No `cast`, no raw
+JSON-RPC anywhere: rawRpcCalls = 0 by construction** (transport line printed per
+run; see `sample-output/live-report-mcp.txt`).
+
+Live run 2026-10-20 (real): blocks **20716110..20716139**, 30 samples, base fee
+flat at 10 gwei → fastMA(5) = slowMA(15) = 10 gwei, trend FLAT, decision HOLD
+(`FLAT_INSIDE_BAND_STREAK_RESET`) — the honest answer for a flat market; the
+signal math (fastMA 5 / slowMA 15 / 0.5% band / 3 confirmations / 20-block
+cooldown) is UNCHANGED from the Atlantic build below.
+Transport line from the run: `42 MCP tool calls (get_block, get_block_number,
+get_chain_info, get_gas_price) | rawRpcCalls 0`.
+
+**Atomic state:** `state/runtime.json` writes replaced with tmp + fsync +
+rename (`src/store.mjs`); JSONL appends fsync before close.
+**Crash test (real, run 2026-10-20):** `test/atomic-store.test.mjs` — writer
+child SIGKILLed mid-stream in 6 rounds after being observed at gen >= 3;
+highest complete generation observed = 191; **torn writes = 0** (every
+post-kill snapshot parsed and checksum-verified). Full suite: **15/15 PASS**.
+
+The Atlantic-era evidence below is the historical record of the original build
+(chain 688689 via `cast`/`eth_feeHistory`) and is retained unedited.
+
+---
+
 **Chain:** Atlantic testnet · chainId **688689** (asserted before every run; abort on mismatch)
 **Metric:** `baseFeePerGas` per block via `eth_feeHistory` — every data point below is a real
 on-chain value at its block number. Live `eth_gasPrice` spot polls are recorded as context

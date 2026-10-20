@@ -1,13 +1,15 @@
-# t09-trend-watcher — operational parameters (no secrets; RPC comes from env)
-# Metric: baseFeePerGas per block, read live from eth_feeHistory on Atlantic (688689).
+# t09-trend-watcher — operational parameters (no secrets; chain reads via the Chain MCP)
+# Metric: baseFeePerGas per block, read LIVE from Pharos mainnet (1672) via the
+# Chain MCP tools get_block_number / get_block (one named MCP call per block;
+# the MCP exposes no feeHistory tool — each point is a real block-header value).
 # The trend math is defined in src/trend.mjs; these are the explicit parameters.
 
-metric: baseFeePerGas            # per-block series via eth_feeHistory (real on-chain values)
-rpcEnv: ATLANTIC_RPC_URL        # never hardcode an endpoint here
-expectedChainId: 688689         # Atlantic testnet; abort on any other chain
+metric: baseFeePerGas            # per-block series via Chain MCP get_block (real on-chain values)
+mcpEndpoint: https://mcp.pharos.xyz/mcp   # the ONLY chain transport; rawRpcCalls = 0 by construction
+expectedChainId: 1672           # Pharos mainnet — the only chain the hosted Chain MCP serves; abort on any other chain
 
 window:
-  historyBlocks: 30             # eth_feeHistory lookback per observe cycle
+  historyBlocks: 30             # get_block lookback per observe cycle
 
 trend:
   fastWindow: 5                 # samples for the fast moving average
@@ -17,8 +19,8 @@ trend:
   cooldownBlocks: 20            # after a FIRE, no new FIRE within this many blocks
 
 poll:
-  intervalSec: 6                # live-run cadence between eth_gasPrice spot polls (~1 block)
-  liveSamples: 5                # eth_gasPrice spot polls per observe cycle (context only, not in MA math)
+  intervalSec: 6                # live-run cadence between get_gas_price spot polls (~1 block)
+  liveSamples: 5                # get_gas_price spot polls per observe cycle (context only, not in MA math)
 
 report:
   contextUnit: gwei            # display unit for the human report (math stays in wei BigInt)

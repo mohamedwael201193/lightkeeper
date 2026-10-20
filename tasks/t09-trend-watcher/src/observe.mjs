@@ -1,106 +1,105 @@
 /**
- * t09-trend-watcher — live chain reads via `cast` (Foundry).
+ * t09-trend-watcher — live chain reads via the REAL Pharos Chain MCP.
  *
- * Read-only. No signing, no broadcasting, no private key needed.
- * Chain-ID assertion runs before ANY read: abort unless chainId == 688689 (Atlantic).
+ * EVERY read is a named Chain MCP tool call (src/mcp.mjs):
+ *   chain gate     -> get_chain_info
+ *   block number   -> get_block_number
+ *   gas spot       -> get_gas_price
+ *   fee series     -> get_block (one call per block; baseFeePerGas field)
+ * There is NO `cast`, NO eth_* JSON-RPC, NO RPC URL anywhere in this task:
+ * rawRpcCalls is 0 by construction (see mcpStats in src/mcp.mjs).
+ *
+ * The hosted Chain MCP serves Pharos mainnet ONLY (chain 1672), so the
+ * chain-ID assertion aborts unless the MCP reports chainId == 1672.
+ * Read-only: no signing, no broadcasting, no private key needed.
  */
-import { execFileSync } from "node:child_process";
-import { homedir } from "node:os";
-import { join, delimiter } from "node:path";
-import { existsSync } from "node:fs";
+import { mcpCall, mcpStats } from "./mcp.mjs";
 
-const EXPECTED_CHAIN_ID = 688689;
+export const EXPECTED_CHAIN_ID = 1672; // Pharos mainnet — the only chain the Chain MCP serves
 
-/**
- * Foundry installs to ~/.foundry/bin by default, which is often absent from a
- * non-interactive PATH. Add it before spawning so `cast` resolves without the
- * caller having to pre-export PATH (the video guide did that manually).
- */
-function envWithFoundry() {
-  const foundryBin = join(homedir(), ".foundry", "bin");
-  if (existsSync(join(foundryBin, "cast")) && !(process.env.PATH ?? "").split(delimiter).includes(foundryBin)) {
-    return { ...process.env, PATH: `${foundryBin}${delimiter}${process.env.PATH}` };
-  }
-  return process.env;
+function toInt(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return v.startsWith("0x") ? parseInt(v, 16) : Number(v);
+  throw new Error(`cannot parse integer from ${JSON.stringify(v)}`);
 }
 
-function rpcUrl() {
-  const url = process.env.ATLANTIC_RPC_URL;
-  if (!url) throw new Error("ATLANTIC_RPC_URL is not set in the environment");
-  return url;
+function toBigInt(v) {
+  if (typeof v === "bigint") return v;
+  if (typeof v === "number") return BigInt(v);
+  if (typeof v === "string") return BigInt(v); // handles 0x-prefixed and decimal
+  throw new Error(`cannot parse BigInt from ${JSON.stringify(v)}`);
 }
 
-function cast(...args) {
-  try {
-    const out = execFileSync("cast", [...args, "--rpc-url", rpcUrl()], {
-      encoding: "utf8",
-      timeout: 30000,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: envWithFoundry(),
-    });
-    return out.trim();
-  } catch (err) {
-    if (err.code === "ENOENT" || (err.message ?? "").includes("spawnSync cast ENOENT")) {
-      throw new Error(
-        "Foundry 'cast' is not installed or not on PATH. Install it (https://book.getfoundry.sh/getting-started/installation) or add ~/.foundry/bin to PATH, then retry."
-      );
-    }
-    throw err;
-  }
-}
-
-/** Assert chain ID first — aborts with a loud error on mismatch. */
-export function assertChainId() {
-  const id = cast("chain-id");
-  const n = Number(id);
+/** Assert chain ID first (Chain MCP get_chain_info) — aborts on mismatch. */
+export async function assertChainId() {
+  const info = await mcpCall("get_chain_info", {});
+  const n = toInt(info.chainId ?? info.chain_id);
   if (n !== EXPECTED_CHAIN_ID) {
-    throw new Error(`CHAIN-ID MISMATCH: expected ${EXPECTED_CHAIN_ID} (Atlantic), got ${n}. Aborting.`);
+    throw new Error(
+      `CHAIN-ID MISMATCH: expected ${EXPECTED_CHAIN_ID} (Pharos mainnet via Chain MCP), got ${n}. Aborting.`
+    );
   }
   return n;
 }
 
-export function getBlockNumber() {
-  return Number(cast("block-number"));
+/** Latest block number via Chain MCP get_block_number. */
+export async function getBlockNumber() {
+  const r = await mcpCall("get_block_number", {});
+  return toInt(r.blockNumber ?? r.blockNumberHex);
 }
 
-/** Live spot gas price (eth_gasPrice), wei as BigInt. */
-export function getGasPriceWei() {
-  return BigInt(cast("gas-price"));
+/** Live spot gas price via Chain MCP get_gas_price, wei as BigInt. */
+export async function getGasPriceWei() {
+  const r = await mcpCall("get_gas_price", {});
+  return toBigInt(r.gasPriceWei ?? r.gasPriceHex);
+}
+
+/** One block via Chain MCP get_block; asserts the returned number matches. */
+export async function getBlock(blockNumber) {
+  const blk = await mcpCall("get_block", { block: blockNumber });
+  const n = toInt(blk.number);
+  if (n !== blockNumber) {
+    throw new Error(`get_block(${blockNumber}) returned block ${n} — refusing mismatched data`);
+  }
+  return blk;
 }
 
 /**
- * Per-block baseFeePerGas series via eth_feeHistory.
- * Returns { oldestBlock:number, samples:[{blockNumber, baseFeeWei:bigint}] }.
- * Each point is a REAL on-chain value at its block number.
+ * Per-block baseFeePerGas series via Chain MCP get_block (one named MCP
+ * call per block — the MCP exposes no feeHistory tool; each point is a
+ * REAL on-chain value read from that block's header).
+ * Returns { oldestBlock:number, samples:[{blockNumber, baseFeeWei:bigint, ts}] }.
  */
-export function getFeeHistory(blocks) {
-  let raw;
-  try {
-    raw = execFileSync(
-      "cast",
-      ["rpc", "eth_feeHistory", String(blocks), "latest", "--rpc-url", rpcUrl()],
-      { encoding: "utf8", timeout: 30000, stdio: ["ignore", "pipe", "pipe"], env: envWithFoundry() }
-    );
-  } catch (err) {
-    if (err.code === "ENOENT" || (err.message ?? "").includes("spawnSync cast ENOENT")) {
-      throw new Error(
-        "Foundry 'cast' is not installed or not on PATH. Install it (https://book.getfoundry.sh/getting-started/installation) or add ~/.foundry/bin to PATH, then retry."
-      );
+export async function getFeeHistory(blocks) {
+  const latest = await getBlockNumber();
+  const oldest = latest - blocks + 1;
+  const samples = [];
+  for (let n = oldest; n <= latest; n++) {
+    const blk = await getBlock(n);
+    if (blk.baseFeePerGas === undefined || blk.baseFeePerGas === null) {
+      throw new Error(`block ${n} from Chain MCP has no baseFeePerGas field`);
     }
-    throw err;
+    samples.push({
+      blockNumber: n,
+      baseFeeWei: toBigInt(blk.baseFeePerGas),
+      ts: toInt(blk.timestamp),
+    });
   }
-  const d = JSON.parse(raw);
-  const oldest = Number(d.oldestBlock); // hex string -> number
-  const fees = d.baseFeePerGas; // hex strings, length = blocks + 1 (includes pending)
-  const samples = fees.slice(0, blocks).map((hex, i) => ({
-    blockNumber: oldest + i,
-    baseFeeWei: BigInt(hex),
-    ts: Math.floor(Date.now() / 1000),
-  }));
   return { oldestBlock: oldest, samples };
 }
 
-/** Block timestamp (for report context). */
-export function getBlockTimestamp(blockNumber) {
-  return Number(cast("block", String(blockNumber), "--field", "timestamp"));
+/** Block timestamp via Chain MCP get_block (for report context). */
+export async function getBlockTimestamp(blockNumber) {
+  const blk = await getBlock(blockNumber);
+  return toInt(blk.timestamp);
+}
+
+/** Transport accounting for reports/evidence: MCP calls made, raw RPC = 0. */
+export function transportStats() {
+  return {
+    endpoint: mcpStats.endpoint,
+    mcpCalls: mcpStats.mcpCalls,
+    toolsCalled: [...mcpStats.toolsCalled].sort(),
+    rawRpcCalls: mcpStats.rawRpcCalls,
+  };
 }

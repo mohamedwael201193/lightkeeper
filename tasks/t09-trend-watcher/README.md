@@ -52,15 +52,14 @@ cd tasks/t09-trend-watcher
 export PATH="$HOME/.foundry/bin:$PATH"
 set -a; source ../../.env; set +a   # ATLANTIC_RPC_URL only; no private key needed (read-only)
 
-node bin/run.mjs observe          # live cycle: feeHistory window + gas spot polls -> evaluate -> persist -> report
+node bin/run.mjs observe          # live cycle: Chain MCP get_block fee window + get_gas_price spot polls -> evaluate -> persist -> report
 node bin/run.mjs report           # summary of observations + why acted/not (official req 5)
 node bin/run.mjs spike-demo       # CONTROLLED SYNTHETIC: single spike -> proves NO fire (official req 4)
 node bin/run.mjs sustained-demo  # CONTROLLED SYNTHETIC: sustained rise -> proves confirmed FIRE
-npm test                          # 12 unit tests, synthetic series only (math verification)
+npm test                          # 15 tests: trend math (synthetic series only) + SIGKILL atomic-store crash test
 ```
 
-Every command **asserts chain ID 688689 first** and aborts on mismatch. Read-only:
-no signing, no broadcasting, 0 gas spent.
+Every chain-touching command **asserts chain ID 1672 (Pharos mainnet) first** — read live via the Chain MCP `get_chain_info` — and aborts on mismatch. All chain reads are named Chain MCP tool calls (get_chain_info / get_block_number / get_block / get_gas_price); there is no `cast` and no raw-RPC path (rawRpcCalls = 0). Read-only: no signing, no broadcasting, 0 gas spent.
 
 ## 4. Evidence & verification
 
@@ -100,12 +99,12 @@ fill the gap.
 
 SkillEngine provides no scheduling primitive, so Swell Line is driven by the
 operator's own scheduler. It is idempotent per cycle and safe to run every few
-minutes (Atlantic rate limit: 500 req / 5 min; one cycle ≈ 8 RPC calls).
+minutes (one cycle ≈ 42 Chain MCP tool calls: 30 get_block + spot polls).
 
 Example system cron (provided for the operator — **not installed by this build**):
 
 ```cron
-# Swell Line — sample Atlantic fee market every 5 minutes
+# Swell Line — sample Pharos mainnet fee market (via Chain MCP) every 5 minutes
 */5 * * * * cd /path/to/lightkeeper/tasks/t09-trend-watcher && /usr/bin/env node bin/run.mjs observe >> logs/cron.log 2>&1
 ```
 
