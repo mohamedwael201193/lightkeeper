@@ -28,7 +28,7 @@ budget:
   txs: 1
 honesty:
   cron_installed: true
-  cron_line: '*/15 * * * * cd /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent && set -a; . /home/hatch/workspace/lightkeeper/.env; set +a; export PATH="/home/hatch/.foundry/bin:/usr/bin:/bin"; python3 src/tide.py tick >> /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent/state/cron.log 2>&1'
+  cron_line: '*/15 * * * * cd ~/workspace/lightkeeper-hidden/t18-recurring-payment-agent && set -a; . ~/workspace/lightkeeper/.env; set +a; export PATH="<home>/.foundry/bin:/usr/bin:/bin"; python3 src/tide.py tick >> ~/workspace/lightkeeper-hidden/t18-recurring-payment-agent/state/cron.log 2>&1'
   cron_installed_at: "2026-10-20T00:16:30Z"
   cron_note: "crontab lives in /var/spool (ephemeral across VM replacements); canonical line stored in evidence/09-cron-schedule.txt for reinstall"
   scheduler: external-system-cron-operator-installed

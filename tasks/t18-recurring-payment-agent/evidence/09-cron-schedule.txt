@@ -5,15 +5,15 @@ The tick engine now really ticks: a system crontab entry on this VM fires
 
 1. INSTALLED CRON LINE (root crontab, `crontab -l`)
 -----------------------------------------------------
-*/15 * * * * cd /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent && set -a; . /home/hatch/workspace/lightkeeper/.env; set +a; export PATH="/home/hatch/.foundry/bin:/usr/bin:/bin"; python3 src/tide.py tick >> /home/hatch/workspace/lightkeeper-hidden/t18-recurring-payment-agent/state/cron.log 2>&1
+*/15 * * * * cd ~/workspace/lightkeeper-hidden/t18-recurring-payment-agent && set -a; . ~/workspace/lightkeeper/.env; set +a; export PATH="<home>/.foundry/bin:/usr/bin:/bin"; python3 src/tide.py tick >> ~/workspace/lightkeeper-hidden/t18-recurring-payment-agent/state/cron.log 2>&1
 
 Notes:
 - `.` (not `source`): cron runs the line under /bin/sh, where `source` does
   not exist. The first installed version used `source` and the 00:00Z tick
   failed honestly with "env var ATLANTIC_RPC_URL is not set" (see incident
   log below); fixed to POSIX `.`.
-- Absolute `/home/hatch/.foundry/bin` on PATH: cron's `$HOME` is /root, but
-  foundry lives in /home/hatch/.foundry.
+- Absolute `<home>/.foundry/bin` on PATH: cron's `$HOME` is /root, but
+  foundry lives in <home>/.foundry.
 - The `.env` holds ATLANTIC_RPC_URL + DEPLOYER_PRIVATE_KEY (mode 600, never
   committed); `set -a` exports them for the tick process only — nothing is
   echoed to logs (verified: no secret material in cron.log).
