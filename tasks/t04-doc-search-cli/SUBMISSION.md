@@ -67,10 +67,34 @@ REPLACE_WITH_NEW_VIDEO_LINK
   type a question, get the matched verbatim docs answer pattern with its doc-page
   citation plus the exact `./pharos-docs` CLI command that produces it via the live
   Docs MCP, copy-paste ready — with the same honest UNVERIFIED refusal when nothing
-  matches. Nothing executes in the browser; the visitor runs the CLI in their own
-  terminal, where every query is a real Docs MCP `tools/call`.
+  matches. The panel also ships an "Ask live" mode: a real `searchDocumentation` +
+  `getPage` round-trip against the live Developer Docs MCP through the console's
+  `/api/mcp` proxy, rendered verbatim with the doc URL — no local index, no cache,
+  failures shown loudly. Nothing executes in the visitor's terminal for either
+  mode; the shipped `./pharos-docs` CLI is the same live-MCP path for terminal use.
+
+## Accuracy audit (added 2026-10-20)
+
+Beyond quoting the docs faithfully (the evidence battery), we independently
+*checked the cited claims by executing them* — our own original implementation,
+not the task's CLI:
+
+- **A1** The live Docs MCP still returns the cited `forge script … --broadcast`
+  deploy guidance (fresh `searchDocumentation`; 10 hits, 2 match — no doc drift)
+- **A2** The Atlantic Testnet docs page still claims ChainID 688689 and RPC
+  `https://atlantic.dplabs-internal.com` (fresh `getPage`)
+- **A3** The chain-ID claim verified **on the wire**: direct `eth_chainId` to the
+  docs-claimed RPC returns `0xa8231` = **688689**
+- **A4** The docs-claimed RPC endpoint is live (`eth_blockNumber` = 31,638,947)
+- **A5** The cited deploy example's `--chain-id 688689` matches the live chain ID
+
+**Verdict: 5/5 PASS.** Report: `tasks/t04-doc-search-cli/accuracy-audit/accuracy-audit.md`;
+machine-readable: `accuracy-audit/audit.json`; machine-check:
+`python3 -m unittest tests.test_accuracy_audit` (offline); re-run:
+`python3 accuracy-audit/run_audit.py` (real network checks).
 
 ---
 
 *Rebuilt 2026-10-19 by the LIGHTKEEPER resubmission op (task builder T04).
-Toolkit: Developer Docs MCP — wrapped directly, per the reviewer's verdict.*
+Toolkit: Developer Docs MCP — wrapped directly, per the reviewer's verdict.
+Accuracy audit + live console demo added 2026-10-20.*

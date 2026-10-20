@@ -27,3 +27,29 @@ T13 is the genuine Docs-MCP + Chain-MCP composition loop. For each question the 
 REPLACE_WITH_NEW_VIDEO_LINK
 <!-- Suggested shots: question → Docs MCP answer with sources → same function
      called on-chain → interpreted result → second function/contract. -->
+
+## Accuracy audit (added 2026-10-20)
+
+Beyond the composition loop (docs name it, chain proves it), we independently
+re-verified every cited docs claim with an original implementation — fresh MCP
+round-trips, not the task's scripts or pinned figures:
+
+- **B1** The Docs MCP really does name `0x18160ddd` as the `totalSupply()`
+  selector (fresh `askQuestion`, verbatim answer assertion)
+- **B2** Every docs-cited selector **recomputed with a real keccak** (`cast`):
+  `totalSupply()`→`0x18160ddd`, `decimals()`→`0x313ce567`,
+  `balanceOf(address)`→`0x70a08231`, `latestAnswer()`→`0x50d25bcd` — all match
+  the docs-cited values, so a docs typo would fail here
+- **B3** Fresh Chain MCP `eth_call decimals()` on the docs-cited USDC
+  `0xc879c018db60520f4355c26ed1a6d572cdac1815` returns exactly **6**
+- **B4** Fresh `eth_call totalSupply()` = **43,481,279.246573 USDC** — the
+  pinned 2026-10-20 figure to the last base unit (no drift)
+- **B5** The docs-named USDC/USD feed `0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d`
+  exists on-chain (4,088 chars of deployed bytecode via `get_code`)
+- **B6** Fresh `eth_call latestAnswer()` with the independently computed
+  selector reads **$0.999852** (pinned 2026-10-20: $0.99987)
+
+**Verdict: 6/6 PASS.** Report: `tasks/t13-docs-chain-agent/accuracy-audit/accuracy-audit.md`;
+machine-readable: `accuracy-audit/audit.json`; machine-check:
+`python3 -m unittest tests.test_accuracy_audit` (offline); re-run:
+`python3 accuracy-audit/run_audit.py` (real network checks).

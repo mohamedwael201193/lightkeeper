@@ -1,0 +1,88 @@
+{
+  "task": "T13",
+  "audit": "accuracy-audit",
+  "generated_at": "2026-10-20T00:06:31.502136+00:00",
+  "duration_s": 69.4,
+  "docs_mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "chain_mcp_endpoint": "https://mcp.pharos.xyz/mcp",
+  "method": "Independent re-verification of the docs claims T13 cites: one fresh Docs MCP askQuestion + real keccak selector recomputation (cast) + fresh Chain MCP reads from an independent client at the current block. No mocks; the task's scripts and pinned figures were not reused.",
+  "checks": [
+    {
+      "check": "B1",
+      "claim": "The Docs MCP names 0x18160ddd as the totalSupply() selector.",
+      "method": "Fresh askQuestion round-trip (independent client); verbatim substring assertion on the answer.",
+      "evidence": {
+        "pass": true,
+        "summary": "'0x18160ddd' in verbatim answer: True (answer 1772 chars)",
+        "answer_chars": 1772
+      },
+      "verdict": "PASS"
+    },
+    {
+      "check": "B2",
+      "claim": "Docs-cited selectors equal independently computed keccak selectors.",
+      "method": "Real cast keccak256 of each canonical signature; decimals claim cross-read from the committed verbatim transcript.",
+      "evidence": {
+        "pass": true,
+        "summary": "computed: {'totalSupply()': '0x18160ddd', 'decimals()': '0x313ce567', 'balanceOf(address)': '0x70a08231', 'latestAnswer()': '0x50d25bcd'}",
+        "computed": {
+          "totalSupply()": "0x18160ddd",
+          "decimals()": "0x313ce567",
+          "balanceOf(address)": "0x70a08231",
+          "latestAnswer()": "0x50d25bcd"
+        },
+        "docs_claimed_decimals_selector_in_transcript": true
+      },
+      "verdict": "PASS"
+    },
+    {
+      "check": "B3",
+      "claim": "USDC 0xc879c018db60520f4355c26ed1a6d572cdac1815 has 6 decimals (docs claim), verified by a fresh Chain MCP eth_call.",
+      "method": "Independent Chain MCP client, current block \u2014 not the task's pinned figure.",
+      "evidence": {
+        "pass": true,
+        "summary": "eth_call decimals() -> 0x0000000000000000000000000000000000000000000000000000000000000006 = 6",
+        "contract": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+        "decimals": 6
+      },
+      "verdict": "PASS"
+    },
+    {
+      "check": "B4",
+      "claim": "Live totalSupply() is a positive sane figure near the 2026-10-20 pinned value (drift-allowed).",
+      "method": "Fresh Chain MCP eth_call at the current block; \u00b15% tolerance for legitimate supply drift.",
+      "evidence": {
+        "pass": true,
+        "summary": "totalSupply() = 43,481,279.246573 USDC (pinned 43,481,279.246573)",
+        "supply_usdc": 43481279.246573,
+        "pinned_usdc_2026_10_20": 43481279.246573
+      },
+      "verdict": "PASS"
+    },
+    {
+      "check": "B5",
+      "claim": "The docs-named USDC/USD feed 0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d exists on-chain.",
+      "method": "Fresh Chain MCP get_code; non-empty bytecode assertion.",
+      "evidence": {
+        "pass": true,
+        "summary": "get_code -> 4088 chars of bytecode",
+        "feed": "0x3f882C4F2836b1e5C5278ff2B9FccE2502A35C5d",
+        "bytecode_chars": 4088
+      },
+      "verdict": "PASS"
+    },
+    {
+      "check": "B6",
+      "claim": "Live latestAnswer() on the docs-named feed reads a sane stablecoin price.",
+      "method": "Fresh Chain MCP eth_call with the independently computed selector; \u00b12% band around $1.00.",
+      "evidence": {
+        "pass": true,
+        "summary": "latestAnswer() = $0.999852",
+        "price_usd": 0.99985221,
+        "selector_used": "0x50d25bcd"
+      },
+      "verdict": "PASS"
+    }
+  ],
+  "all_pass": true
+}
