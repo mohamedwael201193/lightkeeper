@@ -1,0 +1,43 @@
+{
+ "tier": "A \u2014 live Chain MCP tools/call (no raw RPC)",
+ "task": "t01-read-contract-state",
+ "purpose": "get_storage_at \u2014 raw contract state the typed client does not decode, via the live Chain MCP (mainnet 1672).",
+ "chainId": 1672,
+ "capturedAtUtc": "2026-10-20T04:05:15Z",
+ "endpoint": "https://mcp.pharos.xyz/mcp",
+ "serverInfo": {
+  "name": "pharos-mcp-server",
+  "version": "0.1.0"
+ },
+ "protocolVersion": "2025-03-26",
+ "rows": [
+  {
+   "tool": "get_block_number",
+   "args": {},
+   "result": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\n  \"blockNumber\": \"20715977\",\n  \"blockNumberHex\": \"0x13c19c9\"\n}"
+     }
+    ]
+   }
+  },
+  {
+   "tool": "get_storage_at",
+   "args": {
+    "address": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+    "position": "0x0"
+   },
+   "result": {
+    "content": [
+     {
+      "type": "text",
+      "text": "{\n  \"value\": \"0x0000000000000000000000009f8ea09770dc38fc61f5a62031b3be0526d54d92\"\n}"
+     }
+    ]
+   },
+   "note": "raw 32-byte value at slot 0; not decoded by the client"
+  }
+ ]
+}
