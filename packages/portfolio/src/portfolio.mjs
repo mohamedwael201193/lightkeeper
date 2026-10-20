@@ -1,5 +1,7 @@
 /**
- * @lightkeeper/portfolio — L8 Portfolio library.
+ * @lightkeeper/portfolio — L8 Portfolio library (canonical shared package).
+ *
+ * Consumed by T14 (tasks/t14-portfolio-assistant) via a real import.
  *
  * Read-only on-chain portfolio reader for Pharos Atlantic testnet (chain ID 688689).
  *
@@ -139,6 +141,15 @@ export class PortfolioReader {
     return out;
   }
 
+  /**
+   * Block-pinned read-only contract view call. Returns the raw hex output;
+   * decode with decodeWords(). Used for protocol/vault position views.
+   */
+  async viewCall(address, sig, args = [], block = "latest") {
+    const data = encodeCall(sig, args);
+    return this.rpc("eth_call", [{ to: address, data }, block]);
+  }
+
   async tokenBalance(address, token, block = "latest") {
     const data = encodeCall(ERC20.balanceOf, [address]);
     const out = await this.rpc("eth_call", [{ to: token.address, data }, block]);
@@ -230,6 +241,22 @@ const SIGS = {
   "symbol()(string)": "95d89b41",
   "name()(string)": "06fdde03",
   "totalSupply()(uint256)": "18160ddd",
+  // Protocol position views (read-only). Verified selectors via `cast sig` on
+  // the deployed contracts; each is called block-pinned like every other read.
+  "positions(address)(uint256,uint256)": "55f57510", // MiniLend: (collateralWei, debtUsd8dp)
+  "getUserAccountData(address)(uint256,uint256,uint256,int256,uint256)": "bf92857c", // MiniLend: (collateralUsd8dp, debtUsd8dp, hf1e18, price8dp, thresholdBps)
+  "staked(address)(uint256)": "98807d84", // T15 staking vaults: staked wei
+};
+
+/** Protocol view signatures keyed by registry `kind`. Read-only, block-pinned. */
+export const PROTOCOL_VIEWS = {
+  lending: {
+    account: "getUserAccountData(address)(uint256,uint256,uint256,int256,uint256)",
+    position: "positions(address)(uint256,uint256)",
+  },
+  "staking-vault": {
+    stake: "staked(address)(uint256)",
+  },
 };
 
 function encodeCall(sig, args = []) {
@@ -251,6 +278,16 @@ function decodeString(hex) {
   } catch {
     return "";
   }
+}
+
+/** Decode eth_call output into 32-byte words (BigInt each). All our protocol
+ *  views return non-negative values, so two's-complement handling is unneeded. */
+export function decodeWords(hex) {
+  const h = String(hex).replace(/^0x/, "");
+  if (!h || h.length % 64 !== 0) throw new Error(`decodeWords: bad word length on ${String(hex).slice(0, 18)}…`);
+  const words = [];
+  for (let i = 0; i < h.length; i += 64) words.push(BigInt("0x" + h.slice(i, i + 64)));
+  return words;
 }
 
 // ---- NL intent router (local code; no LLM, no guessing) ----
@@ -280,6 +317,16 @@ export function extractTokenMention(question, registry) {
   return null;
 }
 
+/** Find a tracked protocol/vault by name or address mention in the question. */
+export function extractProtocolMention(question, protocols) {
+  const q = String(question || "").toLowerCase();
+  for (const p of protocols || []) {
+    if (p.name && q.includes(p.name.toLowerCase())) return p;
+    if (p.address && q.includes(p.address.toLowerCase())) return p;
+  }
+  return null;
+}
+
 // ---- NL summary generator (local template code; no LLM) ----
 
 export function summarizeSnapshot(snapshot) {
@@ -304,6 +351,26 @@ export function summarizeSnapshot(snapshot) {
   lines.push(
     `Transaction count: ${snapshot.txCount.value} (source: eth_getTransactionCount, block ${snapshot.txCount.block}).`
   );
+  if (snapshot.positions && snapshot.positions.length) {
+    const parts = snapshot.positions.map((p) => {
+      if (p.unknown)
+        return `${p.name} (${p.kind}, ${p.address}): UNKNOWN — ${p.unknown} (block ${p.block})`;
+      if (p.kind === "lending") {
+        const q = p.position;
+        return (
+          `${p.name} (${p.kind}, ${p.address}): collateral ${q.collateral.value} ${q.collateral.unit}, ` +
+          `debt ${q.debtUsd.value} ${q.debtUsd.unit}, health factor ${q.healthFactor.value} ` +
+          `(read at block ${q.collateral.block}; builder-deployed test contract, disclosed as such)`
+        );
+      }
+      if (p.kind === "staking-vault") {
+        const s = p.position.staked;
+        return `${p.name} (${p.kind}, ${p.address}): ${s.value} ${s.unit} staked (read at block ${s.block}; builder-deployed test contract, disclosed as such)`;
+      }
+      return `${p.name} (${p.kind}): position kind has no renderer`;
+    });
+    lines.push(`Protocol positions (${snapshot.positions.length} tracked): ` + parts.join("; ") + ".");
+  }
   if (snapshot.activity.length) {
     lines.push(
       `Recent on-chain activity (ERC20 Transfer events involving this wallet, blocks ${snapshot.activityWindow.from}–${snapshot.activityWindow.to}): ` +

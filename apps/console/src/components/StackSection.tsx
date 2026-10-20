@@ -9,69 +9,71 @@ interface Lib {
   status: string;
 }
 
-// Honest status: the 10 packages are spec'd in the shared-libs spec
-// (pharos-arena/shards/a4-shared-libs.md); the scaffolds exist under
-// packages/*/ with title-only READMEs and empty src/ — not implemented yet.
+// Honest status (2026-10-20): all 10 packages are IMPLEMENTED under
+// packages/*/ with real exported functions, their own passing tests, and at
+// least one real runtime consumer each (see packages/README.md for the
+// consumer map). "usedBy" below names only actual importers — verified by
+// grep, not aspirational.
 const LIBS: Lib[] = [
   {
     name: "@lightkeeper/chain-data",
-    what: "The only package that touches RPC/Chain MCP — canonical Atlantic network table, balances, contract reads, logs, receipts, gas.",
-    usedBy: "T01, T02, T05, T06, T12…",
-    status: "spec'd",
+    what: "The only package that touches RPC/Chain MCP — canonical Chain MCP client, Atlantic network table, fail-on-mismatch chain assertions, ≤1,000-block log chunking.",
+    usedBy: "T01, T02, T12",
+    status: "live",
   },
   {
     name: "@lightkeeper/docs-grounding",
-    what: "Every technical assertion cites a canonical doc URL — doc-source types and citation helpers.",
-    usedBy: "T03, T04, T13, T27",
-    status: "spec'd",
+    what: "Every technical assertion cites a canonical doc URL — citation objects, grounded/partial/unknown verdicts, refuses to improvise.",
+    usedBy: "T03",
+    status: "live",
   },
   {
     name: "@lightkeeper/skill-adapter",
-    what: "Typed boundary for invoking SkillEngine skills — captures tool errors instead of masking them.",
-    usedBy: "T05–T12, T17–T19, T28",
-    status: "spec'd",
+    what: "Typed boundary for invoking skills — captures tool errors instead of masking them; write paths need a confirmation token.",
+    usedBy: "T12",
+    status: "live",
   },
   {
     name: "@lightkeeper/value-format",
-    what: "Human formatting for amounts/addresses — every formatted value keeps its raw form alongside for evidence.",
-    usedBy: "nearly all tasks",
-    status: "spec'd",
+    what: "Human formatting for amounts/addresses — bigint-only math, decimals are a parameter, every formatted value keeps its raw form alongside for evidence.",
+    usedBy: "console (useAtlantic)",
+    status: "live",
   },
   {
     name: "@lightkeeper/policy",
-    what: "Pre-execution gate. Fail-closed: missing policy, unknown destination, or stale data ⇒ BLOCK.",
-    usedBy: "T05, T07, T08, T11",
-    status: "spec'd",
+    what: "Pre-execution gate. Fail-closed: missing policy ⇒ REFUSE, no rules ⇒ BLOCK, failing rule ⇒ BLOCK with per-rule reasons; hash-chained audit log.",
+    usedBy: "T12",
+    status: "live",
   },
   {
     name: "@lightkeeper/workflow",
-    what: "Durable multi-step state machine — retries, idempotency, and explicit compensating actions (not rollbacks).",
-    usedBy: "T06, T28",
-    status: "spec'd",
+    what: "Durable multi-step state machine — failure taxonomy, retry policy, idempotent resume, and explicit forward compensating actions (not rollbacks).",
+    usedBy: "T06",
+    status: "live",
   },
   {
     name: "@lightkeeper/persistence",
-    what: "Durable state between runs — observations, watchlists, checkpoints, digests. SQLite file backend, no server.",
-    usedBy: "T02, T07, T09, T20…",
-    status: "spec'd",
+    what: "Durable state between runs — atomic JSON document store + SQLite backend (cursors, dedup sets, kv). Restart-safe, no server.",
+    usedBy: "T02",
+    status: "live",
   },
   {
     name: "@lightkeeper/portfolio",
-    what: "Normalized balances, positions, and yields across protocols. Read-only.",
-    usedBy: "T14, T15, T28",
-    status: "spec'd",
+    what: "Read-only on-chain portfolio reader — normalized balances and protocol positions; every number cited (contract + block), never invents prices.",
+    usedBy: "T14",
+    status: "live",
   },
   {
     name: "@lightkeeper/notifications",
-    what: "Alert/report delivery (Telegram, Discord, email, console) — every send evidence-logged.",
-    usedBy: "T02, T09, T16, T20, T21",
-    status: "spec'd",
+    what: "Alert/report delivery — alert = what+value+link+action; file-backed dedup; real Telegram delivery that fails loudly without creds.",
+    usedBy: "T02",
+    status: "live",
   },
   {
     name: "@lightkeeper/evidence",
-    what: "The proof pipeline — every run emits records; evidence.md is rendered from them, never hand-written.",
-    usedBy: "all tasks",
-    status: "spec'd",
+    what: "The proof pipeline — every run emits records; records without source identifiers are refused; secrets-redaction scan; evidence.md rendered from records, never hand-written.",
+    usedBy: "T04",
+    status: "live",
   },
 ];
 
@@ -113,10 +115,11 @@ export default function StackSection({ lamps }: { lamps: Lamp[] }) {
           </p>
           <p className="mt-3 text-[15px] leading-relaxed text-slate">
             The shared <code className="font-mono text-accentdeep">@lightkeeper/*</code> libraries
-            every task builds on — and the 28-skill build matrix grouped by toolkit. Library
-            status comes from the repo itself: the specs exist under{" "}
-            <code className="font-mono text-accentdeep">packages/</code>, implementation is still
-            landing.
+            tasks build on — and the 28-skill build matrix grouped by toolkit. Library
+            status comes from the repo itself: all ten are implemented under{" "}
+            <code className="font-mono text-accentdeep">packages/</code>, each with passing
+            tests and at least one real runtime consumer (consumer names are the
+            actual importers).
           </p>
         </div>
 

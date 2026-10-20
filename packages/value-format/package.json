@@ -1,0 +1,9 @@
+{
+  "name": "@lightkeeper/value-format",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LIGHTKEEPER shared library L4: human formatting for amounts/addresses (TypeScript)",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}

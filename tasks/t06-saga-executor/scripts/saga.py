@@ -58,15 +58,17 @@ GAS_BUMP = 1.20                  # +20% gas price per retry
 RUNS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "runs")
 
 # ------------------------------------------------------------- exceptions ----
+# Failure taxonomy + retry policy live in @lightkeeper/workflow (L6).
+# The names below are the canonical lib classes — kept as module-level
+# names so every existing raise/catch site is unchanged.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.join(REPO_ROOT, "packages", "workflow", "py"))
+from lightkeeper_workflow import (  # noqa: E402
+    TransientFailure, PermanentFailure, GateFailure, RetryPolicy,
+)
 
-class TransientFailure(Exception):
-    """Receipt missing/dropped or RPC error — safe to retry."""
-
-class PermanentFailure(Exception):
-    """Mined 0x0 revert or failed precheck — never retried, compensate."""
-
-class GateFailure(Exception):
-    """Receipt is 0x1 but the post-state gate disagrees — compensate."""
+_RETRY_POLICY = RetryPolicy(max_retries=MAX_RETRIES,
+                            backoff_s=tuple(BACKOFF_S), gas_bump=GAS_BUMP)
 
 # -------------------------------------------------------------- primitives ----
 
@@ -159,14 +161,9 @@ def classify_status(status_hex):
 
 def retry_decision(failure_kind, attempt):
     """Pure retry-policy decision (unit-tested).
-    Returns ('retry', backoff_s, gas_bump_mult) or ('give_up',) / ('compensate',)."""
-    if failure_kind == "permanent":
-        return ("compensate",)
-    if failure_kind == "transient":
-        if attempt < MAX_RETRIES:
-            return ("retry", BACKOFF_S[attempt], GAS_BUMP ** (attempt + 1))
-        return ("give_up",)
-    raise ValueError(failure_kind)
+    Returns ('retry', backoff_s, gas_bump_mult) or ('give_up',) / ('compensate',).
+    Delegates to @lightkeeper/workflow's RetryPolicy — same table."""
+    return _RETRY_POLICY.decide(failure_kind, attempt)
 
 # --------------------------------------------------------------- executor ----
 

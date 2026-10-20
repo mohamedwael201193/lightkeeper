@@ -21,7 +21,7 @@ import {
   summarizeSnapshot,
   DONT_KNOW,
   ATLANTIC_CHAIN_ID,
-} from "../src/lib/portfolio.mjs";
+} from "../../../packages/portfolio/src/portfolio.mjs";
 import { loadRegistry, snapshot, answer } from "../src/index.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));

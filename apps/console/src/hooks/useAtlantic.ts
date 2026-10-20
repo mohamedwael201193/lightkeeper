@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+// @lightkeeper/value-format (L4): exact bigint amount math — the hook keeps
+// its own UX error messages, the library owns the conversion.
+import { parseDecimalToBigint } from "../../../../packages/value-format/src/index";
 
 /**
  * Shared Atlantic hooks — the contract every per-task "try" module codes against.
@@ -257,9 +260,7 @@ export function phrsToWeiHex(phrs: string): string {
   if (!/^\d+(\.\d{1,18})?$/.test(s)) {
     throw new Error(`"${phrs}" is not a valid PHRS amount (up to 18 decimals).`);
   }
-  const [intPart, fracPart = ""] = s.split(".");
-  const wei = BigInt(intPart) * 10n ** 18n + BigInt((fracPart + "0".repeat(18)).slice(0, 18));
-  return "0x" + wei.toString(16);
+  return "0x" + parseDecimalToBigint(s, 18).toString(16);
 }
 
 /** True when the amount exceeds the dust threshold — review UI must warn (not block). */
@@ -267,8 +268,7 @@ export function isDustWarning(valuePhrs: string): boolean {
   try {
     const s = valuePhrs.trim();
     if (!/^\d+(\.\d{1,18})?$/.test(s)) return false;
-    const [intPart, fracPart = ""] = s.split(".");
-    const wei = BigInt(intPart) * 10n ** 18n + BigInt((fracPart + "0".repeat(18)).slice(0, 18));
+    const wei = parseDecimalToBigint(s, 18);
     return wei > BigInt(Math.floor(DUST_LIMIT_PHRS * 1e18));
   } catch {
     return false;

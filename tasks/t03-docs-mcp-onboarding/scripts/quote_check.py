@@ -12,26 +12,24 @@ TASK = os.path.dirname(HERE)
 EVIDENCE_MD = os.path.join(TASK, "evidence.md")
 TRANSCRIPT_DIR = os.path.join(TASK, "evidence", "transcripts")
 
+REPO_ROOT = os.path.dirname(os.path.dirname(TASK))
+# @lightkeeper/docs-grounding (L2): quote-block extraction + verbatim
+# verification live here, not in per-task copies.
+sys.path.insert(0, os.path.join(REPO_ROOT, "packages", "docs-grounding", "py"))
+from lightkeeper_docs_grounding import (  # noqa: E402
+    extract_quote_blocks, normalize_quote, quote_verified,
+)
+
 
 def norm(s):
-    return re.sub(r"\s+", " ", s).strip()
+    return normalize_quote(s)
 
 
 def main():
     with open(EVIDENCE_MD) as f:
         md = f.read()
-    # Collect `>` quote blocks (consecutive > lines form one block)
-    quotes = []
-    current = []
-    for line in md.splitlines():
-        if line.lstrip().startswith(">"):
-            current.append(line.lstrip()[1:].lstrip())
-        else:
-            if current:
-                quotes.append("\n".join(current))
-                current = []
-    if current:
-        quotes.append("\n".join(current))
+    # `>` quote blocks, extracted by @lightkeeper/docs-grounding
+    quotes = extract_quote_blocks(md)
     # Skip the top-of-file correction blockquote (meta-commentary, not an MCP answer)
     quotes = [q for q in quotes if "Correction (2026-10-19)" not in q]
 
@@ -56,7 +54,7 @@ def main():
             nq = nq[1:-1].strip()
         if len(nq) < 20:
             continue
-        if not any(nq in a for a in answers):
+        if not quote_verified(nq, answers):
             failures.append(nq[:120])
 
     print(f"quotes_checked={len([q for q in quotes if len(norm(q)) >= 20])} "

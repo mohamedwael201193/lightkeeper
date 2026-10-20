@@ -35,8 +35,14 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "src"))
-from mcp_client import ChainMCP, MCPError  # noqa: E402
+REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
+# @lightkeeper/* shared libs (L1 chain-data, L3 skill-adapter, L5 policy).
+# Documented path mechanism: <repo>/packages/<lib>/py on sys.path.
+for _lib in ("chain-data", "skill-adapter", "policy"):
+    sys.path.insert(0, os.path.join(REPO_ROOT, "packages", _lib, "py"))
+from lightkeeper_chain_data import ChainMCP, MCPError, assert_chain_id  # noqa: E402
+from lightkeeper_skill_adapter import invoke_skill  # noqa: E402
+from lightkeeper_policy import Rule, evaluate_rules  # noqa: E402
 
 POLICY_PATH = os.path.join(HERE, "policy.yaml")
 AUDIT_LOG = os.path.join(HERE, "run-logs", "flow-transcript.jsonl")
@@ -113,36 +119,39 @@ def git_state():
 # Pure function — unit-tested in tests/test_policy.py. The verdict depends
 # on NOTHING but `live` (all values returned by MCP tools).
 # --------------------------------------------------------------------------
+# The T12 preflight rules, expressed as @lightkeeper/policy (L5) Rules.
+# evaluate() below keeps its exact historical return shape
+# (verdict, [rule-dicts], blocked) — see tests/test_policy.py.
+_T12_RULES = [
+    Rule("RULE-NETWORK",
+         lambda p, l: l["chain_id"] == int(p["network"]["allowed_chain_id"]),
+         lambda p, l: f"live chainId={l['chain_id']} vs allowed={p['network']['allowed_chain_id']} "
+                      f"(Chain MCP serves mainnet only)"),
+    Rule("RULE-BALANCE",
+         lambda p, l: l["usdc_balance"] >= l["amount_base"],
+         lambda p, l: f"live USDC balance={l['usdc_balance']} base units "
+                      f"({l['usdc_balance_human']} USDC) vs proposed {l['amount_base']} "
+                      f"({l['amount_human']} USDC)"),
+    Rule("RULE-GAS",
+         lambda p, l: l["gas_price_wei"] <= int(Decimal(p["limits"]["max_gas_price_gwei"]) * 10**9),
+         lambda p, l: f"live gas {l['gas_price_wei']} wei <= max "
+                      f"{int(Decimal(p['limits']['max_gas_price_gwei']) * 10**9)} wei "
+                      f"({p['limits']['max_gas_price_gwei']} gwei)"),
+    Rule("RULE-FRESHNESS",
+         lambda p, l: l["verify_block"] - l["read_block"] <= int(p["limits"]["max_stale_blocks"]),
+         lambda p, l: f"verify@{l['verify_block']} - read@{l['read_block']} <= "
+                      f"{int(p['limits']['max_stale_blocks'])} blocks"),
+]
+
+
 def evaluate(policy, live):
-    rules = []
-    lim = policy["limits"]
-    max_gas_wei = int(Decimal(lim["max_gas_price_gwei"]) * 10**9)
-    max_stale = int(lim["max_stale_blocks"])
+    """Preflight skill engine. Fail-closed via @lightkeeper/policy.
 
-    def rule(name, passed, detail):
-        rules.append({"rule": name, "verdict": "PASS" if passed else "FAIL",
-                      "detail": detail})
-        return passed
-
-    ok = True
-    ok &= rule("RULE-NETWORK",
-               live["chain_id"] == int(policy["network"]["allowed_chain_id"]),
-               f"live chainId={live['chain_id']} vs allowed={policy['network']['allowed_chain_id']} "
-               f"(Chain MCP serves mainnet only)")
-    ok &= rule("RULE-BALANCE",
-               live["usdc_balance"] >= live["amount_base"],
-               f"live USDC balance={live['usdc_balance']} base units "
-               f"({live['usdc_balance_human']} USDC) vs proposed {live['amount_base']} "
-               f"({live['amount_human']} USDC)")
-    ok &= rule("RULE-GAS",
-               live["gas_price_wei"] <= max_gas_wei,
-               f"live gas {live['gas_price_wei']} wei <= max {max_gas_wei} wei "
-               f"({lim['max_gas_price_gwei']} gwei)")
-    ok &= rule("RULE-FRESHNESS",
-               live["verify_block"] - live["read_block"] <= max_stale,
-               f"verify@{live['verify_block']} - read@{live['read_block']} <= {max_stale} blocks")
-    blocked = [r["rule"] for r in rules if r["verdict"] == "FAIL"]
-    return ("ALLOW" if ok else "BLOCK"), rules, blocked
+    Returns the historical (verdict, rules, blocked) tuple.
+    """
+    decision = evaluate_rules(policy, live, _T12_RULES,
+                              require_sections=("network", "limits"))
+    return decision.to_legacy()
 
 
 def main():
@@ -175,7 +184,7 @@ def main():
     if args.amount_usdc is None:
         fail("--amount-usdc is required")
 
-    mcp = ChainMCP().connect()
+    mcp = ChainMCP(client_name="lightkeeper-t12").connect()
     print(f"== T12 composition flow [{run_id}]  watch={watch} amount={args.amount_usdc} USDC")
     print(f"   chain-mcp: {mcp.url} (session {mcp._session_id[:8]}...)")
 
@@ -223,7 +232,9 @@ def main():
     # ---- PHASE 2: SKILL (preflight evaluation on the live MCP values) ------
     # Freshness is enforced here against read_block AND re-checked at VERIFY
     # (defense in depth). The skill sees ONLY the values above.
-    verdict, rules, blocked = evaluate(policy, {
+    # Invoked through @lightkeeper/skill-adapter (L3): the typed boundary
+    # captures skill errors instead of masking them.
+    live_values = {
         "chain_id": chain_id,
         "usdc_balance": usdc_balance,
         "usdc_balance_human": bal_human,
@@ -232,8 +243,15 @@ def main():
         "gas_price_wei": gas_wei,
         "read_block": read_block,
         "verify_block": read_block,
-    })
-    log_phase(run_id, "SKILL", {"verdict": verdict, "rules": rules, "blocked_by": blocked})
+    }
+    skill = invoke_skill(
+        "t12-preflight", {"policy": policy, "live": live_values},
+        lambda _name, a: evaluate(a["policy"], a["live"]))
+    if not skill.ok:
+        fail(f"preflight skill crashed (captured, not masked): {skill.error}")
+    verdict, rules, blocked = skill.unwrap()
+    log_phase(run_id, "SKILL", {"verdict": verdict, "rules": rules, "blocked_by": blocked,
+                                "skill_duration_s": round(skill.duration_s, 3)})
     for r in rules:
         mark = "PASS" if r["verdict"] == "PASS" else "FAIL"
         print(f"[SKILL] {r['rule']}: {mark} — {r['detail']}")

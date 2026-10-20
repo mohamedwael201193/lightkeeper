@@ -27,7 +27,27 @@ CLI = os.path.join(BASE, "pharos-docs")
 OUT = os.path.join(BASE, "evidence", "evidence.json")
 RAW_DIR = os.path.join(BASE, "evidence", "raw")
 
+REPO_ROOT = os.path.dirname(os.path.dirname(BASE))
+# @lightkeeper/evidence (L10): proof records refuse missing source
+# identifiers; secrets are scanned before anything is written.
+sys.path.insert(0, os.path.join(REPO_ROOT, "packages", "evidence", "py"))
+from lightkeeper_evidence import Record, secrets_scan  # noqa: E402
+
 MCP_ENDPOINT = "https://docs.pharos.xyz/~gitbook/mcp"
+
+
+def make_record(fields: dict, sources: dict) -> dict:
+    """Build one evidence record through the shared proof pipeline.
+
+    The record is refused unless ``sources`` carries at least one source
+    identifier; captured CLI output is secrets-scanned first. The returned
+    dict keeps the historical evidence.json schema.
+    """
+    for text_field in ("stdout", "stderr"):
+        findings = secrets_scan(fields.get(text_field) or "")
+        if findings:
+            raise SystemExit(f"refusing to write evidence: secrets scan hit: {findings}")
+    return Record(fields=fields, sources=sources).to_dict()
 
 # (id, query, mode, expectation) -- mode "search" is the CLI default path;
 # "ask"/"page" exercise the other wrapped MCP tools.
@@ -66,39 +86,45 @@ def run_one(qid, query, mode, expect):
         r, raw_log = run_cli(qid, query, mode)
     except subprocess.TimeoutExpired:
         print(f"  TIMEOUT -- marking FAILED", flush=True)
-        return {"id": qid, "query": query, "mode": mode,
-                "expected": expect, "label": "TIMEOUT",
-                "expectation_check": "FAIL-EXPECTATION",
-                "exit_code": None, "note": "CLI timed out (MCP unreachable)"}
+        return make_record(
+            {"id": qid, "query": query, "mode": mode,
+             "expected": expect, "label": "TIMEOUT",
+             "expectation_check": "FAIL-EXPECTATION",
+             "exit_code": None, "note": "CLI timed out (MCP unreachable)"},
+            # the attempted source is the source identifier here
+            {"mcp_endpoint": MCP_ENDPOINT, "mcp_tool": None})
     try:
         d = json.loads(r.stdout)
     except json.JSONDecodeError:
         print(f"  BAD JSON (exit={r.returncode}) stderr={r.stderr[:200]}", flush=True)
-        return {"id": qid, "query": query, "mode": mode,
-                "expected": expect, "label": "BAD-JSON",
-                "expectation_check": "FAIL-EXPECTATION",
-                "exit_code": r.returncode, "stderr": r.stderr[:500],
-                "raw_log": os.path.relpath(raw_log, BASE)}
+        return make_record(
+            {"id": qid, "query": query, "mode": mode,
+             "expected": expect, "label": "BAD-JSON",
+             "expectation_check": "FAIL-EXPECTATION",
+             "exit_code": r.returncode, "stderr": r.stderr[:500],
+             "raw_log": os.path.relpath(raw_log, BASE)},
+            {"mcp_endpoint": MCP_ENDPOINT, "mcp_tool": None})
     got = d["label"]
     status = "PASS" if got == expect else "FAIL-EXPECTATION"
     print(f"  exit={r.returncode} label={got} expected={expect} -> {status}", flush=True)
-    return {
-        "id": qid,
-        "query": query,
-        "mode": mode,
-        "expected": expect,
-        "label": got,
-        "expectation_check": status,
-        "exit_code": r.returncode,
-        "mcp_endpoint": d.get("mcp_endpoint", MCP_ENDPOINT),
-        "mcp_tool": d.get("mcp_tool"),
-        "retrieved": d.get("retrieved"),
-        "citations": d.get("citations", []),
-        "closest_pages": d.get("closest_pages", []),
-        "note": d.get("note"),
-        "raw_log": os.path.relpath(raw_log, BASE),
-        "stdout": r.stdout,
-    }
+    return make_record(
+        {
+            "id": qid,
+            "query": query,
+            "mode": mode,
+            "expected": expect,
+            "label": got,
+            "expectation_check": status,
+            "exit_code": r.returncode,
+            "retrieved": d.get("retrieved"),
+            "citations": d.get("citations", []),
+            "closest_pages": d.get("closest_pages", []),
+            "note": d.get("note"),
+            "raw_log": os.path.relpath(raw_log, BASE),
+            "stdout": r.stdout,
+        },
+        {"mcp_endpoint": d.get("mcp_endpoint", MCP_ENDPOINT),
+         "mcp_tool": d.get("mcp_tool")})
 
 
 def main():

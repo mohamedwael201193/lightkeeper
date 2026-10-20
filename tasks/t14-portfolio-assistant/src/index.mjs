@@ -21,7 +21,7 @@ import {
   NO_MARKET_VALUE,
   ATLANTIC_CHAIN_ID,
   ATLANTIC_RPC_URL,
-} from "./lib/portfolio.mjs";
+} from "../../../packages/portfolio/src/portfolio.mjs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

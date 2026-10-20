@@ -33,6 +33,15 @@ import urllib.error
 
 from Crypto.Hash import keccak  # pycryptodome — Ethereum keccak256
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# @lightkeeper/* shared libs (L1 chain-data, L7 persistence, L9 notifications).
+# Documented path mechanism: <repo>/packages/<lib>/py on sys.path.
+for _lib in ("chain-data", "persistence", "notifications"):
+    sys.path.insert(0, os.path.join(REPO_ROOT, "packages", _lib, "py"))
+from lightkeeper_chain_data import chunk_ranges  # noqa: E402
+from lightkeeper_persistence import JsonFileStore  # noqa: E402
+from lightkeeper_notifications import Alert, format_alert  # noqa: E402
+
 # ---------------------------------------------------------------- constants ---
 MCP_URL = "https://mcp.pharos.xyz/mcp"
 MCP_PROTOCOL = "2025-03-26"
@@ -215,24 +224,25 @@ def block_num(log):
 
 
 # ------------------------------------------------------------------ state ---
+# Durable monitor state lives in @lightkeeper/persistence (L7): atomic
+# JsonFileStore. The state.json SCHEMA is unchanged (chain_id/cursor/seen).
+_state_store = JsonFileStore(STATE_FILE)
+
+
 def load_state():
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE) as f:
-            st = json.load(f)
-        if st.get("chain_id") != CHAIN_ID:
-            raise SystemExit(
-                f"state.json is for chain {st.get('chain_id')}; this build targets "
-                f"{CHAIN_ID}. Move it aside and start fresh."
-            )
-        return st
-    return {"chain_id": CHAIN_ID, "cursor": None, "seen": []}
+    st = _state_store.load()
+    if not st:
+        return {"chain_id": CHAIN_ID, "cursor": None, "seen": []}
+    if st.get("chain_id") != CHAIN_ID:
+        raise SystemExit(
+            f"state.json is for chain {st.get('chain_id')}; this build targets "
+            f"{CHAIN_ID}. Move it aside and start fresh."
+        )
+    return st
 
 
 def save_state(state):
-    tmp = STATE_FILE + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(state, f, indent=2)
-    os.replace(tmp, STATE_FILE)  # atomic persist-before-emit
+    _state_store.save(state)  # atomic persist-before-emit
 
 
 def logline(msg):
@@ -260,33 +270,42 @@ def tip_block(mcp):
 
 
 def emit_alert(fields, log):
-    alert = {
-        "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+    # The alert is built as a @lightkeeper/notifications (L9) Alert:
+    # what + value + link + action, then serialized to the historical
+    # alerts.jsonl schema (unchanged).
+    alert = Alert(
+        id=f"{block_num(log)}:{log['logIndex']}",
+        what="Transfer",
+        value=f"{fields['value_usdc']} USDC",
+        link=f"https://pharosscan.xyz/tx/{log['transactionHash']}",
+        action="informational — no action required",
+        extra={"block": block_num(log), "tx": log["transactionHash"],
+               "from": fields["from"], "to": fields["to"]},
+    )
+    record = {
+        "ts": alert.ts,
         "chain_id": CHAIN_ID,
         "via": "chain-mcp:get_logs",
-        "event": "Transfer",
+        "event": alert.what,
         "contract": USDC,
         "fields": fields,
-        "blockNumber": block_num(log),
+        "blockNumber": alert.extra["block"],
         "blockTimestamp": log.get("blockTimestamp"),
         "txHash": log["transactionHash"],
         "logIndex": log["logIndex"],
     }
     with open(ALERTS_FILE, "a") as f:
-        f.write(json.dumps(alert) + "\n")
-    logline(
-        f"ALERT Transfer block={alert['blockNumber']} tx={alert['txHash']} "
-        f"from={fields['from']} to={fields['to']} value={fields['value_usdc']} USDC"
-    )
-    return alert
+        f.write(json.dumps(record) + "\n")
+    logline(f"ALERT {format_alert(alert)}")
+    return record
 
 
 def scan_range(mcp, frm, to, state, emit=True):
     """Scan [frm, to] inclusive via MCP get_logs in <=1000-block chunks."""
     found = []
-    cur = frm
-    while cur <= to:
-        end = min(cur + CHUNK - 1, to)
+    # Chunking owned by @lightkeeper/chain-data (L1): same <=1000-block
+    # inclusive ranges the manual loop produced.
+    for cur, end in chunk_ranges(frm, to, CHUNK):
         logs = get_logs(mcp, cur, end)
         if isinstance(logs, dict) and "logs" in logs:
             logs = logs["logs"]
@@ -300,7 +319,6 @@ def scan_range(mcp, frm, to, state, emit=True):
                 save_state(state)      # persist cursor+seen before the alert goes out
                 emit_alert(fields, lg)
             found.append((fields, lg))
-        cur = end + 1
     return found
 
 

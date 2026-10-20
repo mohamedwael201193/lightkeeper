@@ -1,0 +1,10 @@
+{
+  "name": "@lightkeeper/persistence",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LIGHTKEEPER shared library L: persistence (Python implementation)",
+  "lightkeeper": {
+    "pythonPackage": "lightkeeper_persistence",
+    "pythonPath": "py"
+  }
+}

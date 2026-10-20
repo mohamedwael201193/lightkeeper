@@ -1,0 +1,10 @@
+{
+  "name": "@lightkeeper/docs-grounding",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LIGHTKEEPER shared library L: docs-grounding (Python implementation)",
+  "lightkeeper": {
+    "pythonPackage": "lightkeeper_docs_grounding",
+    "pythonPath": "py"
+  }
+}

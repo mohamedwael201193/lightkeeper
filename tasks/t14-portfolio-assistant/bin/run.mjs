@@ -4,7 +4,7 @@
  * CHAIN-ID ASSERTION FIRST: refuses to run on anything but Atlantic (688689).
  * READ-ONLY: no keys, no signers, no broadcasts. Ever.
  */
-import { PortfolioReader, ATLANTIC_CHAIN_ID, ATLANTIC_RPC_URL, summarizeSnapshot, routeIntent } from "../src/lib/portfolio.mjs";
+import { PortfolioReader, ATLANTIC_CHAIN_ID, ATLANTIC_RPC_URL, summarizeSnapshot, routeIntent } from "../../../packages/portfolio/src/portfolio.mjs";
 import { loadRegistry, snapshot, answer, negativeProbes } from "../src/index.mjs";
 
 const args = process.argv.slice(2);

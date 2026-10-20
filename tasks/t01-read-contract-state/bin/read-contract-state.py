@@ -29,10 +29,13 @@ import subprocess
 import sys
 
 TASK_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(TASK_DIR, "src"))
-from mcp_client import ChainMCP, MCPError  # noqa: E402
-
-MCP_URL = "https://mcp.pharos.xyz/mcp"
+REPO_ROOT = os.path.dirname(os.path.dirname(TASK_DIR))
+# @lightkeeper/chain-data (L1): the canonical Chain MCP client + network table.
+# Documented shared-lib path mechanism: <repo>/packages/<lib>/py on sys.path.
+sys.path.insert(0, os.path.join(REPO_ROOT, "packages", "chain-data", "py"))
+from lightkeeper_chain_data import (  # noqa: E402
+    MCP_URL, ChainMCP, MCPError, assert_chain_id,
+)
 USDC_MAINNET = "0xc879c018db60520f4355c26ed1a6d572cdac1815"
 BURN_ADDR = "0x000000000000000000000000000000000000dEaD"  # code-less
 
@@ -121,10 +124,10 @@ def main() -> int:
 
     # ── Gate 1: chain-id assertion ─────────────────────────────────────────
     info = call("get_chain_info", {})
-    chain_id = int(info["chainId"])
-    if chain_id != expect_chain:
-        return err(f"chain-id mismatch: MCP reports {chain_id}, expected "
-                   f"{expect_chain} — refusing to read the wrong network.")
+    try:
+        chain_id = assert_chain_id(info["chainId"], expect_chain, what="chain")
+    except MCPError as e:
+        return err(str(e))
     print(f"chain            {chain_id} (Pharos mainnet) — asserted via get_chain_info")
 
     # ── Gate 2: bytecode check ─────────────────────────────────────────────

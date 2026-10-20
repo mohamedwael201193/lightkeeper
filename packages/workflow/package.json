@@ -1,0 +1,10 @@
+{
+  "name": "@lightkeeper/workflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LIGHTKEEPER shared library L: workflow (Python implementation)",
+  "lightkeeper": {
+    "pythonPackage": "lightkeeper_workflow",
+    "pythonPath": "py"
+  }
+}
