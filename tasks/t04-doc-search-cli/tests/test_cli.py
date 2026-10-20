@@ -108,6 +108,52 @@ class TestSourceHygiene(unittest.TestCase):
 
 
 @unittest.skipUnless(os.environ.get("T04_LIVE"), "live MCP tests need T04_LIVE=1")
+class TestNearMissBattery(unittest.TestCase):
+    """Adversarial miss battery: 10 near-miss questions.
+
+    Each question is worded to LOOK like a documented Pharos topic (real
+    product vocabulary, plausible feature names) while asking about
+    something the Pharos docs do not cover at all. A CLI that improvises —
+    or that grounds an answer in an adjacent-but-different page — fails
+    here. For EVERY question the CLI must:
+      - exit 2
+      - label the result UNVERIFIED
+      - attach ZERO citations
+      - smuggle no content: no DOC-GROUNDED label, no answer body, no
+        invented steps/numbers/addresses in the output
+    """
+
+    NEAR_MISSES = [
+        "how do I stake PROS tokens in the Pharos mobile app wallet",
+        "what is the APY for lending USDC on the Pharos lending protocol",
+        "how do I mine PHRS tokens with a graphics card at home",
+        "how do I buy Pharos gift cards with a credit card",
+        "what is the monthly salary of a Pharos core developer",
+        "how do I recover a lost seed phrase through Pharos customer support",
+        "which Pharos NFT collection currently has the highest floor price",
+        "how do I short PROS tokens on the Pharos perpetuals exchange",
+        "what is the street address of the Pharos foundation headquarters",
+        "how do I enable two-factor authentication on the validator dashboard",
+    ]
+
+    def test_ten_near_misses_all_refuse(self):
+        self.assertEqual(len(self.NEAR_MISSES), 10)
+        for q in self.NEAR_MISSES:
+            with self.subTest(question=q):
+                code, out, _err = run("--json", q)
+                self.assertEqual(code, 2, f"near-miss must exit 2: {q!r} -> {out[:200]}")
+                d = json.loads(out)
+                self.assertEqual(d["label"], "UNVERIFIED", q)
+                self.assertEqual(d["citations"], [], q)
+                # no smuggled content: nothing that reads as an answer
+                self.assertNotIn("DOC-GROUNDED", out)
+                body = (d.get("answer") or "").strip()
+                self.assertTrue(
+                    body == "" or "will not improvise" in body or "UNVERIFIED" in body,
+                    f"near-miss carried smuggled answer content: {body[:160]!r}")
+
+
+@unittest.skipUnless(os.environ.get("T04_LIVE"), "live MCP tests need T04_LIVE=1")
 class Live(unittest.TestCase):
     """Live: real queries against the real Docs MCP. Slow/flaky by nature
     (the endpoint drops connections; the client retries)."""
