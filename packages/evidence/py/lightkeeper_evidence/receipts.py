@@ -41,6 +41,7 @@ from . import redact  # noqa: F401  (re-exported for callers)
 RECEIPT_VERSION = "lk-receipt/1"
 ANCHOR_CHAIN_ID = 688689  # Atlantic testnet — never mainnet without founder word
 ANCHOR_LABEL_ABSENT = "ABSENT"
+ATLANTIC_RPC_URL = "https://atlantic.dplabs-internal.com"
 
 
 # --------------------------------------------------------------------------
@@ -355,13 +356,17 @@ def sign_receipt(receipt: Receipt, privkey: bytes) -> Receipt:
 def anchor_receipt_tx(receipt_hash_hex: str, sender: str) -> dict:
     """Build the anchor transaction (Atlantic testnet) — unsigned, honest.
 
-    The tx carries the receipt hash in its data field; sending 0 value to
-    the sender's own address is the minimal dust anchor. This returns the
-    UNSIGNED transaction object only. Broadcasting happens only when a key
-    is configured AND the founder has approved funding — ``broadcast_anchor``
-    enforces that by refusing without ``LK_EVIDENCE_KEY``.
+    The tx carries the raw receipt hash in its data field, prefixed with an
+    ASCII tag (``LK-RECEIPT-ANCHOR:``) so the hash is findable in the
+    calldata — that is exactly what the dependency-free verifier checks.
+    Sending 0 value to the sender's own address is the minimal dust anchor.
+    This returns the UNSIGNED transaction object only. Broadcasting happens
+    only when a key is configured AND the founder has approved funding —
+    ``broadcast_anchor`` enforces that by refusing without
+    ``LK_EVIDENCE_KEY``.
     """
-    data = "0x" + keccak256(b"LK-RECEIPT-ANCHOR:" + bytes.fromhex(receipt_hash_hex)).hex()
+    data = "0x" + (b"LK-RECEIPT-ANCHOR:"
+                   + bytes.fromhex(receipt_hash_hex)).hex()
     return {
         "chain_id": ANCHOR_CHAIN_ID,
         "to": sender,
@@ -374,13 +379,18 @@ def anchor_receipt_tx(receipt_hash_hex: str, sender: str) -> dict:
     }
 
 
-def broadcast_anchor(receipt: Receipt) -> Receipt:
-    """Sign + (someday) broadcast the anchor tx. FOUNDER-GATED.
+def broadcast_anchor(receipt: Receipt, rpc_url: str = ATLANTIC_RPC_URL,
+                     wait_timeout_s: int = 300) -> Receipt:
+    """Sign and broadcast the anchor tx on the Atlantic testnet. FOUNDER-GATED.
 
     Without ``LK_EVIDENCE_KEY`` this is a documented no-op: the receipt keeps
-    anchor.status == "ABSENT". It NEVER invents a tx hash. When the founder
-    approves a funded keypair, this is the one place that builds, signs and
-    submits the dust tx on the Atlantic testnet.
+    anchor.status == "ABSENT". It NEVER invents a tx hash. With a key
+    configured (founder approved + funded), this builds the dust tx, signs
+    it (legacy EIP-155, chain 688689, pure Python), submits it via
+    ``eth_sendRawTransaction``, waits for the receipt, and records
+    anchor.status == "ANCHORED" with the real tx hash and block. Any
+    broadcast failure raises — the receipt keeps its previous state and no
+    fake ANCHORED record is written.
     """
     key = load_evidence_key()
     if key is None:
@@ -390,18 +400,153 @@ def broadcast_anchor(receipt: Receipt) -> Receipt:
                       "keypair; receipt is complete and verifiable without the anchor",
         }
         return receipt
-    # Key present: sign the anchor tx locally; the broadcast step is stubbed
-    # to Atlantic-testnet submission via the standard JSON-RPC path (to be
-    # exercised for the first time with the founder watching).
-    sender = receipt.signature["signer"] if receipt.signature else address_from_privkey(key)
-    tx = anchor_receipt_tx(receipt.receipt_hash.removeprefix("0x"), sender)
+    sender = (receipt.signature["signer"] if receipt.signature
+              else address_from_privkey(key))
+    unsigned = anchor_receipt_tx(receipt.receipt_hash.removeprefix("0x"), sender)
+    tx_hash, block = _submit_anchor_tx(unsigned, key, rpc_url=rpc_url,
+                                       wait_timeout_s=wait_timeout_s)
     receipt.anchor = {
-        "status": "PENDING",
-        "reason": "key present; broadcast awaiting first founder-approved funding — "
-                  "tx not submitted yet",
-        "unsigned_tx": tx,
+        "status": "ANCHORED",
+        "tx_hash": tx_hash,
+        "chain_id": ANCHOR_CHAIN_ID,
+        "block": block,
+        "rpc_url": rpc_url,
+        "data": unsigned["data"],
+        "note": "receipt hash embedded in calldata; independently checkable on "
+                "the Atlantic explorer",
     }
     return receipt
+
+
+# --------------------------------------------------------------------------
+# Raw transaction broadcast (stdlib only): RLP + EIP-155 signing + JSON-RPC
+# --------------------------------------------------------------------------
+
+def _rlp_encode(item) -> bytes:
+    if isinstance(item, int):
+        if item < 0:
+            raise ValueError("negative int in RLP")
+        item = b"" if item == 0 else item.to_bytes((item.bit_length() + 7) // 8, "big")
+    elif isinstance(item, str):
+        item = bytes.fromhex(item[2:] if item.startswith("0x") else item)
+    if isinstance(item, bytes):
+        if len(item) == 1 and item[0] < 0x80:
+            return item
+        return _rlp_len(len(item), 0x80) + item
+    if isinstance(item, (list, tuple)):
+        payload = b"".join(_rlp_encode(x) for x in item)
+        return _rlp_len(len(payload), 0xC0) + payload
+    raise TypeError(f"cannot RLP-encode {type(item)}")
+
+
+def _rlp_len(length: int, offset: int) -> bytes:
+    if length <= 55:
+        return bytes([offset + length])
+    len_bytes = length.to_bytes((length.bit_length() + 7) // 8, "big")
+    return bytes([offset + 55 + len(len_bytes)]) + len_bytes
+
+
+def _sign_tx_155(fields: list, chain_id: int, privkey: bytes) -> bytes:
+    """Sign a legacy transaction with EIP-155 replay protection (v = recid
+    + chainId*2 + 35). ``fields`` = [nonce, gasPrice, gasLimit, to, value,
+    data]; returns the RLP of the signed transaction, ready for
+    eth_sendRawTransaction."""
+    sig_hash = keccak256(_rlp_encode(fields + [chain_id, 0, 0]))
+    d = int.from_bytes(privkey, "big")
+    e = int.from_bytes(sig_hash, "big")
+    k = _rfc6979_nonce(privkey, sig_hash)  # deterministic per RFC 6979
+    r_point = _point_mul(k)
+    r = r_point[0] % _SECP256K1_N
+    if r == 0:
+        raise RuntimeError("degenerate nonce (r=0)")
+    s = (_inv_mod(k, _SECP256K1_N) * (e + d * r)) % _SECP256K1_N
+    if s == 0:
+        raise RuntimeError("degenerate nonce (s=0)")
+    if s > _SECP256K1_N // 2:  # canonical low-s
+        s = _SECP256K1_N - s
+    sender = address_from_privkey(privkey)
+    for recid in (0, 1):
+        # recover on the EIP-191 wrap would be wrong here; verify by checking
+        # that recid produces the sender via the raw ECDSA recovery path
+        # (recompute pubkey from (r, recid) the same way recover_address does
+        # but over sig_hash instead of the EIP-191 wrap)
+        q = _recover_pubkey_raw(sig_hash, r, s, recid)
+        if q is not None and _pubkey_to_address(q) == sender:
+            v = recid + chain_id * 2 + 35
+            return _rlp_encode(fields + [v, r, s])
+    raise RuntimeError("could not find valid recovery id for tx signature")
+
+
+def _recover_pubkey_raw(sig_hash: bytes, r: int, s: int, recid: int):
+    """Recover the public key point for a raw (non-EIP-191) ECDSA signature."""
+    e = int.from_bytes(sig_hash, "big")
+    x = r + (recid // 2) * _SECP256K1_N
+    if x >= _SECP256K1_P:
+        return None
+    r_point = _decompress_point(x, recid % 2)
+    r_inv = _inv_mod(r, _SECP256K1_N)
+    u1 = (_SECP256K1_N - e % _SECP256K1_N) * r_inv % _SECP256K1_N
+    u2 = s * r_inv % _SECP256K1_N
+    return _point_add(_point_mul(u1), _point_mul(u2, r_point))
+
+
+def _rpc(rpc_url: str, method: str, params, timeout: int = 60):
+    import urllib.request
+    import urllib.error
+    payload = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method,
+                          "params": params}).encode("utf-8")
+    req = urllib.request.Request(rpc_url, data=payload,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"RPC {method} HTTP {exc.code}: "
+                           f"{exc.read()[:300]!r}")
+    if body.get("error"):
+        raise RuntimeError(f"RPC {method} error: {body['error']}")
+    return body.get("result")
+
+
+def _submit_anchor_tx(unsigned: dict, privkey: bytes, rpc_url: str,
+                      wait_timeout_s: int) -> tuple[str, int]:
+    """Submit the unsigned anchor tx and wait for its receipt.
+
+    Returns (tx_hash, block_number). Raises on any failure — callers must
+    not record ANCHORED unless this returns cleanly.
+    """
+    sender = address_from_privkey(privkey)
+    data_bytes = bytes.fromhex(unsigned["data"].removeprefix("0x"))
+    nonce = int(_rpc(rpc_url, "eth_getTransactionCount", [sender, "pending"]), 16)
+    gas_price = int(_rpc(rpc_url, "eth_gasPrice", []), 16)
+    try:
+        gas_limit = int(_rpc(rpc_url, "eth_estimateGas",
+                             [{"from": sender, "to": sender,
+                               "value": "0x0",
+                               "data": unsigned["data"]}]), 16)
+    except Exception:
+        gas_limit = 100_000  # fallback; unused gas is refunded
+    gas_limit = max(gas_limit, 100_000)
+    fields = [nonce, gas_price, gas_limit, sender, 0, unsigned["data"]]
+    raw = _sign_tx_155(fields, ANCHOR_CHAIN_ID, privkey)
+    tx_hash = "0x" + keccak256(raw).hex()
+    submitted = _rpc(rpc_url, "eth_sendRawTransaction",
+                     ["0x" + raw.hex()])
+    if not isinstance(submitted, str) or submitted.lower() != tx_hash.lower():
+        raise RuntimeError(f"node returned unexpected tx hash: {submitted!r} "
+                           f"(expected {tx_hash})")
+    import time
+    deadline = time.time() + wait_timeout_s
+    while time.time() < deadline:
+        receipt = _rpc(rpc_url, "eth_getTransactionReceipt", [tx_hash])
+        if receipt:
+            status = receipt.get("status")
+            block = int(receipt.get("blockNumber", "0x0"), 16)
+            if status not in ("0x1", 1):
+                raise RuntimeError(f"anchor tx mined with failing status: {status}")
+            return tx_hash, block
+        time.sleep(5)
+    raise TimeoutError(f"anchor tx {tx_hash} not mined within {wait_timeout_s}s")
 
 
 __all__ = [

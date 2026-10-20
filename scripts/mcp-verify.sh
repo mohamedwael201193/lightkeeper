@@ -190,15 +190,25 @@ def main():
               f"required={schema.get('required', [])}")
 
     # --- 4. Production proxy: every allowlisted tool answers, blocked ones 400
-    def proxy(mcp, tool, args):
-        req = urllib.request.Request(PROXY,
-            data=json.dumps({"mcp": mcp, "tool": tool, "arguments": args}).encode(),
-            headers={"Content-Type": "application/json"}, method="POST")
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                return r.status, json.loads(r.read())
-        except urllib.error.HTTPError as e:
-            return e.code, json.loads(e.read() or b"{}")
+    def proxy(mcp, tool, args, attempts=3):
+        # Retry transport-level drops ONLY (the upstreams drop ~30-40% of
+        # connections — see T03 evidence; the project's MCP clients all
+        # retry-with-backoff). Semantic answers (HTTP status/body) are never
+        # retried: a 400 or an ok body on any attempt is the verdict.
+        last_err = None
+        for k in range(attempts):
+            req = urllib.request.Request(PROXY,
+                data=json.dumps({"mcp": mcp, "tool": tool, "arguments": args}).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            try:
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    return r.status, json.loads(r.read())
+            except urllib.error.HTTPError as e:
+                return e.code, json.loads(e.read() or b"{}")
+            except Exception as e:  # RemoteDisconnected / URLError: retry
+                last_err = e
+                time.sleep(2 * (k + 1))
+        raise RuntimeError(f"proxy unreachable after {attempts} attempts: {last_err}")
 
     smoke = [("chain", "get_block_number", {}), ("chain", "get_chain_info", {}),
              ("chain", "get_gas_price", {}),

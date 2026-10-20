@@ -1,0 +1,57 @@
+{
+  "version": "lk-receipt/1",
+  "body": {
+    "version": "lk-receipt/1",
+    "task": "ws3-verifiable-receipts",
+    "inputs": {
+      "intent": "canonical anchored receipt: chain identity read, hash pinned on Atlantic"
+    },
+    "mcp_payloads": [
+      {
+        "tool": "get_chain_info",
+        "arguments": {},
+        "result": {
+          "name": "Pharos",
+          "chainId": 1672,
+          "chainIdHex": "0x688",
+          "expectedChainId": 1672,
+          "chainIdMatches": true,
+          "latestBlock": "20719427",
+          "latestBlockHex": "0x13c2743",
+          "nativeSymbol": "PROS",
+          "clientVersion": "portal/1.0.0",
+          "rpcUrl": "https://rpc.pharos.xyz"
+        }
+      },
+      {
+        "tool": "get_block_number",
+        "arguments": {},
+        "result": {
+          "blockNumber": "0x13c2744"
+        }
+      }
+    ],
+    "pinned_block": 20719428,
+    "endpoint": "https://mcp.pharos.xyz/mcp",
+    "server_version": "pharos-mcp-server 0.1.0",
+    "commit": "83f352f",
+    "notes": "signed with the founder-approved evidence key (env-injected, never committed); anchor broadcast on Atlantic testnet (688689) once funded — tx hash recorded in the anchor block"
+  },
+  "receipt_hash": "4618d01119f0e1d2abeeaf76143ef5846139d00bb7c0f4d413158e09761ccdd6",
+  "signature": {
+    "r": "0xb9873cb9b81c3f802320128ddab7b889b3e067368d34bcff0f7274810519889b",
+    "s": "0x6b33759a23824024cb53f83112b8b96271ffc900574b6c81e75414dc14ad8bcd",
+    "v": 27,
+    "signer": "0xd81a77d7becb7dd16c412c9dafac511c7dcd65bb"
+  },
+  "anchor": {
+    "status": "ANCHORED",
+    "tx_hash": "0x567e1775066afc4a9819436763fe29502e095226d220f5e465c2c003fdd69168",
+    "chain_id": 688689,
+    "block": 31648678,
+    "rpc_url": "https://atlantic.dplabs-internal.com",
+    "data": "0x4c4b2d524543454950542d414e43484f523a4618d01119f0e1d2abeeaf76143ef5846139d00bb7c0f4d413158e09761ccdd6",
+    "note": "receipt hash embedded in calldata; independently checkable on the Atlantic explorer",
+    "recovery_note": "the original broadcast response was dropped by the RPC mid-submit; the tx was recovered on-chain by sender+nonce scan and the receipt body reconstructed byte-identically (hash match proves it)"
+  }
+}

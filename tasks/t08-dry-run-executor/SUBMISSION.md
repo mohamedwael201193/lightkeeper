@@ -77,7 +77,14 @@ not assumed: the prediction ledger (`runs/prediction-ledger.jsonl`) records
 58,219→45,470 and 37,379→28,370 across the two gated broadcasts; the 1.2×
 factor absorbs that drift with margin. The Atlantic RPC rejects some Foundry
 request shapes (disclosed root-cause in `REVIEWER_NOTES.md`; worked around with
-a local request normalizer, all data still live from Atlantic).
+a local request normalizer, all data still live from Atlantic). One open
+item, stated plainly: a prediction→receipt pair through the current
+Chain-MCP `--reconcile` path has not been produced yet — that path serves
+mainnet (1672) only, so closing it needs a Pharos mainnet key funded with
+PROS dust (~0.01 PROS for one small tx), which has not been founder-approved;
+until then the recorded pairs are the two Atlantic gated broadcasts above,
+and the one mainnet post-mortem (`runs/reconcile-live-86fd.json`) is of an
+organic third-party tx with `prediction: null`, recorded as-is.
 
 ## Live interactive demo (LIGHTKEEPER console)
 

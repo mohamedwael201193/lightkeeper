@@ -32,8 +32,21 @@ pure-Python secp256k1/RFC-6979 implementation (cross-checked against
 - `python3 verify_receipt.py <receipt.json>` — dependency-free verifier:
   recomputes the hash, recovers the signer, opens the anchor tx when one
   exists, and RE-ISSUES the recorded MCP payloads (pinned where pinnable).
-- Anchor: Atlantic testnet machinery is built; without a founder-approved
-  funded keypair the anchor is honestly `ABSENT`/`PENDING` — never a
-  placeholder tx hash. Live demo: `demo/live_receipt_demo.py` (throwaway
-  demo key, env-injected) → `demo/live-receipt.json`, verifier PASS.
+- Anchor: **ANCHORED (2026-10-20).** The canonical receipt
+  `anchor-receipt.json` (body pinned to Pharos mainnet block 20719428,
+  built from live Chain MCP `get_chain_info`/`get_block_number` calls) is
+  signed by the founder-approved evidence key
+  (`0xd81a77d7becb7dd16c412c9dafac511c7dcd65bb`) and its hash is embedded
+  in the calldata of Atlantic tx
+  `0x567e1775066afc4a9819436763fe29502e095226d220f5e465c2c003fdd69168`
+  (block 31648678, status success, chain 688689). One honest footnote:
+  the RPC dropped the broadcast response mid-submit; the transaction
+  itself mined, and was recovered on-chain by a sender+nonce block scan,
+  with the receipt body reconstructed byte-identically — the hash match
+  is the proof. `verify_receipt.py anchor-receipt.json` → PASS on all
+  four checks (hash, signer, anchor tx, MCP payloads re-issued).
+  Without a configured key the machinery still reports honestly:
+  `ABSENT`/`PENDING` — never a placeholder tx hash. Live demo:
+  `demo/live_receipt_demo.py` (throwaway demo key, env-injected) →
+  `demo/live-receipt.json`, verifier PASS.
 - `python3 tests/test_receipts.py` — 15 tests, offline.

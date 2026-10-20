@@ -175,10 +175,17 @@ def main():
             with urllib.request.urlopen(req, timeout=60) as resp:
                 tx = json.loads(resp.read().decode("utf-8", errors="replace")).get("result") or {}
             data = (tx.get("input") or tx.get("data") or "").lower()
-            if expected in data and str(tx.get("chainId", "")).lower() in ("0xa4d11", "688689", ""):
+            raw_cid = tx.get("chainId")
+            try:
+                cid = int(raw_cid, 16) if isinstance(raw_cid, str) and \
+                    raw_cid.startswith("0x") else int(raw_cid)
+            except (TypeError, ValueError):
+                cid = None
+            if expected in data and cid in (688689, None):
                 info(f"PASS anchor tx {tx_hash} found; receipt hash present in tx data")
             else:
-                print(f"  FAIL anchor tx data does not carry the receipt hash")
+                print(f"  FAIL anchor tx data does not carry the receipt hash "
+                      f"(chainId={raw_cid!r})")
                 failures += 1
         except Exception as e:
             print(f"  FAIL could not open anchor tx {tx_hash}: {e}")
