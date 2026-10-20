@@ -42,36 +42,39 @@ MCP could not answer, the log says so with the exact query.
 | S2 | `askQuestion` trial: *"What is the Pharos Atlantic testnet chain ID?"* | MCP-ANSWER: "The Pharos Atlantic testnet chain ID is **688689**." + source links — the surface is live |
 | S3 | Reliability observation across the 9-query run | ~30–40% of calls dropped mid-stream (`RemoteDisconnected`/`IncompleteRead`); the server is stateless, so retry-with-backoff recovered every call. No rate-limit contract is published — see G4 |
 
-### 1.1 The 9 onboarding queries (all via Docs MCP `askQuestion`, 2026-10-19)
+### 1.1 The 10 onboarding queries (all via Docs MCP `askQuestion`, 2026-10-20 rerun)
 
-**Q1 — sign-in** · MCP-ANSWER (19.5 s):
-> "I cannot find information about signing in to the Pharos AI Agent Arena or submitting tasks at `ai.pharos.xyz` in the docs."
+**Q1 — sign-in** · MCP-ANSWER (10.39 s):
+> "I cannot find sign-in or task-submission instructions for the Pharos AI Agent Arena in the docs."
 
-**Q2 — network identity** · MCP-ANSWER (10.31 s):
-> "* **Chain ID:** `688689` * **RPC URL:** `https://atlantic.dplabs-internal.com` * **Native currency:** `PHRS` (18 decimals)"
+**Q2 — network identity** · MCP-ANSWER (6.02 s):
+> "* **Chain ID:** `688689` * **RPC URL:** `https://atlantic.dplabs-internal.com` * **Native currency:** PHRS (`PHRS`, 18 decimals)"
 
-**Q3 — faucet** · MCP-ANSWER (14.02 s):
-> "The setup guide says to get testnet PHRS from the **Pharos faucet** or directly from the team, but it doesn’t provide the faucet’s URL."
+**Q3 — faucet** · MCP-ANSWER (12.16 s):
+> "The docs mention the Pharos faucet as a source for Atlantic testnet PHRS, but they don’t provide its URL."
 
-**Q4 — Chain MCP reads** · MCP-ANSWER (27.61 s):
-> "The **Pharos Chain MCP** connects MCP-compatible AI clients to Pharos chain data and operations through natural-language requests. Its hosted endpoint is `https://mcp.pharos.xyz/mcp` using Streamable HTTP; it requires no API key and targets chain ID `1672` (`0x688`)."
+**Q4 — Chain MCP reads** · MCP-ANSWER (25.65 s):
+> "The [Pharos MCP](/tooling-and-infrastructure/mcp) is a public Model Context Protocol server that lets AI agents query Pharos chain data through natural-language requests."
 
-**Q5 — get_logs limits** · MCP-ANSWER (76.21 s):
-> "For direct Pharos JSON-RPC `eth_getLogs`, the range limit is **100 blocks when rate limiting is enabled**, or **10,000 blocks as a fallback cap**."
+**Q5 — get_logs limits** · MCP-ANSWER (48.11 s):
+> "For direct Pharos JSON-RPC `eth_getLogs`, the documented range is **100 blocks when rate limiting is enabled**, with a **10,000-block fallback cap**."
 
-**Q6 — SkillEngine install** · MCP-ANSWER (71.18 s):
-> "The workflow has two parts: build and test the Pharos Skill, then upload it as a Service Agent on Anvita Flow."
+**Q6 — SkillEngine install** · MCP-ANSWER (21.39 s):
+> "Install the Skill Engine locally, add your capability, then upload the Skill package to Anvita Flow for review."
 
-**Q7 — submission mechanics** · MCP-ANSWER (17.58 s):
+**Q7 — submission mechanics** · MCP-ANSWER (39.33 s):
 > "I cannot find information about submitting solutions to **Agent Arena** tasks in the docs."
 
-**Q8 — chain-ID ambiguity** · MCP-ANSWER (40.95 s):
-> "For **Pharos Atlantic Testnet**, use **chain ID `688689`** and native token symbol **`PHRS`**. **`1672`** and **`PROS`** are for **Pacific Mainnet**."
+**Q8 — chain-ID ambiguity** · MCP-ANSWER (8.75 s):
+> "For **Pharos Atlantic Testnet**, use **chain ID `688689`** and native token symbol **`PHRS`**. The **`1672` / `PROS`** settings belong to **Pacific Mainnet**."
 
-**Q9 — share links** · MCP-ANSWER (13.74 s):
-> "I cannot find instructions in the docs for creating or sharing agent session links on [ai.pharos.xyz](https://ai.pharos.xyz/)."
+**Q9 — share links** · MCP-ANSWER (12.64 s):
+> "I cannot find information about creating or sharing session links on **ai.pharos.xyz** in the docs."
 
-Full verbatim answers (with source-link lists): `evidence/transcripts/transcript-20261019T200816Z.md`.
+**Q10 — explorer verification** · MCP-ANSWER (36.4 s):
+> "Use the [Hemera SocialScan explorer](https://pharos.socialscan.io/), listed as Pharos’s official explorer in the [Hemera SocialScan](/tooling-and-infrastructure/block-explorer/hemera-socialscan)."
+
+Full verbatim answers (with source-link lists): `evidence/transcripts/transcript-20261020T042645Z.md`.
 
 ---
 

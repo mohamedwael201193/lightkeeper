@@ -1,0 +1,21 @@
+{
+  "task": "t03-docs-mcp-onboarding",
+  "run_at": "2026-10-20T04:26:45Z",
+  "mcp_endpoint": "https://docs.pharos.xyz/~gitbook/mcp",
+  "mcp_server": "docs.pharos.xyz/~gitbook/mcp",
+  "mcp_server_version": "0.27.2",
+  "tool": "askQuestion",
+  "command": "python3 scripts/query_log.py run",
+  "git_commit": "999f65f9ad4c2e38f95dbc76ccea125f1f1e4bfa",
+  "git_dirty": true,
+  "queries_total": 10,
+  "queries_answered": 10,
+  "latency_p50_s": 21.39,
+  "latency_p90_s": 48.11,
+  "artifacts": {
+    "raw_run": "run-mcp-20261020T042645Z.json",
+    "transcript_jsonl": "transcript-20261020T042645Z.jsonl",
+    "transcript_md": "transcript-20261020T042645Z.md"
+  },
+  "claim": "All onboarding queries were made through the Developer Docs MCP (public GitBook MCP endpoint, no auth) via the askQuestion tool; Q&A logged verbatim."
+}
