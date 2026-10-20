@@ -1,6 +1,6 @@
 <div align="center" style="background:#1414c8;padding:56px 24px;border-radius:14px;">
   <div style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:44px;letter-spacing:14px;">LIGHTKEEPER</div>
-  <div style="color:#f4f6ff;font-size:15px;font-style:italic;margin-top:14px;">One lighthouse. Twenty-eight lamps. This arm watches the chain — and calls out when it moves.</div>
+  <div style="color:#f4f6ff;font-size:15px;font-style:italic;margin-top:14px;">One lighthouse. Thirty lamps. This arm watches the chain — and calls out when it moves.</div>
   <div style="color:#b9c2f5;font-size:12px;letter-spacing:6px;margin-top:18px;">T20 · ON-CHAIN ALERT BOT · 50 PTS</div>
 </div>
 

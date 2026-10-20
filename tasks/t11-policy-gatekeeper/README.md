@@ -1,6 +1,6 @@
 <div style="background:#1414c8;padding:48px 32px;text-align:center;border-radius:4px">
 <div style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:44px;letter-spacing:10px">POLICY GATEKEEPER</div>
-<div style="color:#f4f6ff;font-family:Georgia,serif;font-style:italic;font-size:17px;margin-top:14px">One lighthouse. Twenty-eight lamps. — <b>T11</b>, the arm that says <i>no</i>.</div>
+<div style="color:#f4f6ff;font-family:Georgia,serif;font-style:italic;font-size:17px;margin-top:14px">One lighthouse. Thirty lamps. — <b>T11</b>, the arm that says <i>no</i>.</div>
 <div style="color:#b9c2f5;font-size:13px;margin-top:10px;letter-spacing:2px">LIGHTKEEPER · PHAROS AGENT ARENA · TASK 11 · 100 PTS</div>
 </div>
 

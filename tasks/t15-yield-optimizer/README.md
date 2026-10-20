@@ -2,7 +2,7 @@
 
 # ⚱️ T15 · YIELD OPTIMIZER
 
-**One lighthouse. Twenty-eight lamps — this one finds where the light pays.**
+**One lighthouse. Thirty lamps — this one finds where the light pays.**
 
 *The honest yield-seeker of the LIGHTKEEPER fleet: it surveys every lamp in the
 harbor, measures the true flame against wind and wax, and tells you plainly

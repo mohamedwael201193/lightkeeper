@@ -1,7 +1,7 @@
 <div align="center" style="background:#1414c8;padding:56px 24px;border-radius:8px;">
   <p style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:52px;letter-spacing:0.35em;margin:0;">PORTFOLIO</p>
   <p style="font-family:Georgia,'Times New Roman',serif;color:#e8c766;font-size:20px;letter-spacing:0.5em;margin:12px 0 0;">T14 · THE KEEPER'S LEDGER</p>
-  <p style="color:#ffffff;font-size:15px;font-style:italic;margin:24px 0 0;">One lighthouse. Twenty-eight lamps. — <span style="color:#b9c2f5;">this lamp counts what the keeper holds, and never counts what it cannot see.</span></p>
+  <p style="color:#ffffff;font-size:15px;font-style:italic;margin:24px 0 0;">One lighthouse. Thirty lamps. — <span style="color:#b9c2f5;">this lamp counts what the keeper holds, and never counts what it cannot see.</span></p>
 </div>
 
 # T14 — Portfolio Assistant

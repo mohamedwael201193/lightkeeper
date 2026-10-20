@@ -1,16 +1,16 @@
 # LIGHTKEEPER
 
-**One lighthouse. Twenty-eight lamps.**
+**One lighthouse. Thirty lamps.**
 
-LIGHTKEEPER is a single unified agent system built for the **Pharos Season of AI Agent Arena** — one monorepo, one shared console, and sixteen shipped agent tasks (with twelve more on the way), each proven against real chain state and real MCP servers. No mocks. No demo data. Every number traces to a live read.
+LIGHTKEEPER is a single unified agent system built for the **Pharos Season of AI Agent Arena** — one monorepo, one shared console, and twenty publicly open agent tasks (thirty built in total; the remaining ten open on a staged schedule), each proven against real chain state and real MCP servers. No mocks. No demo data. Every number traces to a live read.
 
-- **16 lamps lit · 1,900 / 3,200 base points**
+- **20 lamps lit · 2,250 / 3,500 base points**
 - **Live console:** https://lightkeeper-console.vercel.app
-- **Status:** T01–T16 publicly open and tryable in the browser — no wallet required for live reads
+- **Status:** T01–T20 publicly open and tryable in the browser — no wallet required for live reads
 
 ---
 
-## The sixteen lamps
+## The twenty lamps
 
 | Lamp | Agent | Pts | What it proves |
 |------|-------|-----|----------------|
@@ -21,7 +21,7 @@ LIGHTKEEPER is a single unified agent system built for the **Pharos Season of AI
 | T05 | Threshold Guardian | 100 | Live balance/price threshold alerts with real Telegram delivery |
 | T06 | Saga Executor | 200 | Multi-step saga with compensation — proven live: one success run, one forced failure with automatic rollback |
 | T07 | Arbitrage Scanner | 200 | Cross-venue price scanning with real on-chain quotes |
-| T08 | Dry-Run Executor | 100 | Fork-based dry-run of transactions before signing |
+| T08 | Dry-Run Executor | 100 | `eth_call` + gas-estimate dry-run of transactions before signing — never broadcasts without a PASS ticket |
 | T09 | Trend Watcher | 200 | Fee-market trend detection on Atlantic: 3-confirmation rule, single-spike rejection proven live |
 | T10 | Flotilla — Batch Executor | 100 | 12 transfers in one transaction (11 succeed, 1 isolated failure), 12.5% gas saved vs individual sends |
 | T11 | Policy Gatekeeper | 100 | Pre-execution policy engine: 8 checks, hash-chained audit log, forged-stamp and mainnet refusal proven |
@@ -30,8 +30,12 @@ LIGHTKEEPER is a single unified agent system built for the **Pharos Season of AI
 | T14 | Portfolio Assistant | 200 | Natural-language portfolio Q&A where every number cites its source contract and block; honest "I don't know" on 4 negative probes |
 | T15 | Yield Optimizer | 200 | Live on-chain rate cards → net-of-fees optimizer (ALLOCATE vs STAY PUT), unsigned-tx execution for user signature only |
 | T16 | Liquidation Watchdog | 100 | Health-factor monitoring with real Telegram alerts and exact restore math per alert |
+| T17 | Natural-Language Payment Agent | 100 | Turns a typed instruction ("send 0.01 PHRS to 0x…") into a validated payment plan, shown for human review before any broadcast |
+| T18 | Recurring Payment Agent (TIDE) | 100 | Schedule-driven recurring payments on Atlantic — a real cron tick pays the due installment exactly once (receipt-verified idempotency) |
+| T19 | Invoice-to-Payment Agent | 100 | Turns an invoice file into a real on-chain payment — human review, explicit confirmation, paid-stamp ledger against double-paying |
+| T20 | On-Chain Alert Bot | 50 | Config-driven on-chain watcher: polls block by block, matches transactions against alert conditions, delivers hits to a real Telegram channel |
 
-Twelve more lamps (T17–T28) are built and open on a staged schedule.
+Ten more lamps (T21–T30) are built and open on a staged schedule.
 
 ## Real integrations, not simulations
 
@@ -56,7 +60,7 @@ apps/console/          # the public console (Vercel) — try modules, MCP proxy,
   api/mcp.ts           # same-origin proxy to the Chain MCP (read-only tools; browsers can't call the MCPs directly)
   src/components/try/  # one flagship try module per lamp
   src/data/launch.ts   # staged launch: which lamps are publicly open
-tasks/t01-…-t16-…/     # one folder per lamp: REQUIREMENTS.md, README.md, SUBMISSION.md,
+tasks/t01-…-t20-…, t25-…/     # one folder per lamp: REQUIREMENTS.md, README.md, SUBMISSION.md,
                        # evidence (tx hashes, run manifests, transcripts), runnable code, tests
 packages/              # shared libraries used across lamps
 ```
@@ -86,4 +90,4 @@ cd tasks/t09-trend-watcher && node --test                               # 12/12
 
 ---
 
-*Built for the Pharos Season of AI Agent Arena. One lighthouse, twenty-eight lamps — sixteen lit.*
+*Built for the Pharos Season of AI Agent Arena. One lighthouse, thirty lamps — twenty lit.*

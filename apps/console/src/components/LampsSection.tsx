@@ -5,7 +5,7 @@ import LampCard from "./LampCard";
 
 type Filter = "all" | "lit" | "dim";
 
-/** Twenty-eight lamps — filterable, searchable, honestly lit/dim. */
+/** Thirty lamps — filterable, searchable, honestly lit/dim. */
 export default function LampsSection({ lamps }: { lamps: Lamp[] }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -39,7 +39,7 @@ export default function LampsSection({ lamps }: { lamps: Lamp[] }) {
     <section id="lamps" className="mx-auto max-w-[1440px] scroll-mt-32 px-5 py-16 lg:px-10">
       <div className="mb-8 max-w-2xl">
         <h2 className="smallcaps mb-3">The lamps</h2>
-        <p className="wordmark text-[clamp(1.5rem,3vw,2.2rem)]">Twenty-eight lamps</p>
+        <p className="wordmark text-[clamp(1.5rem,3vw,2.2rem)]">Thirty lamps</p>
         <p className="mt-3 text-[15px] leading-relaxed text-slate">
           Each lamp is an Arena task. A lamp burns <span className="font-semibold text-golddeep">gold</span> only
           when its task lands real on-chain evidence — anything else stays dim, honestly in progress.

@@ -1,6 +1,6 @@
 <div align="center" style="background:#1414c8; padding:48px 24px; border-radius:12px;">
 
-<span style="color:#b9c2f5; letter-spacing:6px; font-size:12px;">LIGHTKEEPER · TASK 18 · ONE OF TWENTY-EIGHT LAMPS</span>
+<span style="color:#b9c2f5; letter-spacing:6px; font-size:12px;">LIGHTKEEPER · TASK 18 · ONE OF THIRTY LAMPS</span>
 
 <h1 style="font-family:Georgia,'Times New Roman',serif; color:#d9a821; letter-spacing:10px; font-size:52px; margin:16px 0;">TIDE</h1>
 

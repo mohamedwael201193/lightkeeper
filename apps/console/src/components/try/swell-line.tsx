@@ -1031,6 +1031,15 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                 ]}
               />
 
+              <p className="max-w-2xl text-[13px] leading-relaxed text-slate">
+                Honest note on the uniform column: Atlantic&apos;s base fee is
+                protocol-flat at exactly 1 gwei — verified against
+                eth_feeHistory, where 30 consecutive blocks all returned
+                0x3b9aca00 (1,000,000,000 wei). The identical readings are the
+                chain&apos;s real state, not a display artifact; on a flat-fee
+                chain the honest verdict is Hold.
+              </p>
+
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}

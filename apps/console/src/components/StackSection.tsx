@@ -111,11 +111,11 @@ export default function StackSection({ lamps }: { lamps: Lamp[] }) {
         <div className="mb-10 max-w-2xl">
           <h2 className="smallcaps mb-3">The Stack</h2>
           <p className="wordmark text-[clamp(1.5rem,3vw,2.2rem)]">
-            Ten libraries. Twenty-eight skills.
+            Ten libraries. Thirty skills.
           </p>
           <p className="mt-3 text-[15px] leading-relaxed text-slate">
             The shared <code className="font-mono text-accentdeep">@lightkeeper/*</code> libraries
-            tasks build on — and the 28-skill build matrix grouped by toolkit. Library
+            tasks build on — and the 30-skill build matrix grouped by toolkit. Library
             status comes from the repo itself: all ten are implemented under{" "}
             <code className="font-mono text-accentdeep">packages/</code>, each with passing
             tests and at least one real runtime consumer (consumer names are the

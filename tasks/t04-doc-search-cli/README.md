@@ -1,6 +1,6 @@
 <div align="center" style="background:#1414c8; padding:48px 24px; border-radius:8px;">
   <div style="font-family:Georgia,'Times New Roman',serif; color:#d9a821; font-size:42px; letter-spacing:8px; font-weight:bold;">T04 · DOC-SEARCH CLI</div>
-  <div style="color:#f4f6ff; font-size:15px; margin-top:16px; font-style:italic;">One keeper, twenty-eight lamps — this arm holds the one that asks the Docs MCP, and never invents.</div>
+  <div style="color:#f4f6ff; font-size:15px; margin-top:16px; font-style:italic;">One keeper, thirty lamps — this arm holds the one that asks the Docs MCP, and never invents.</div>
   <div style="color:#b9c2f5; font-size:12px; margin-top:8px; letter-spacing:2px;">LIGHTKEEPER · PHAROS AGENT ARENA · EASY · 50 PTS</div>
 </div>
 

@@ -1,6 +1,6 @@
 <div align="center" style="background:#1414c8;padding:48px 24px;border-radius:12px;">
 <h1 style="font-family:Georgia,serif;color:#d9a821;letter-spacing:0.35em;">LIGHTKEEPER</h1>
-<p style="font-family:Georgia,serif;color:#e8c766;font-style:italic;">One lighthouse. Twenty-eight lamps. One octopus to tend them.</p>
+<p style="font-family:Georgia,serif;color:#e8c766;font-style:italic;">One lighthouse. Thirty lamps. One octopus to tend them.</p>
 <p style="color:#b9c2f5;">T02 · Event/Log Monitor · the second lamp is lit</p>
 </div>
 

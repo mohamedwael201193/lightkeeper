@@ -13,7 +13,7 @@ per event, proven on real self-fired transfers (dust + a 0.5 PHRS threshold trip
 ## Description
 
 T20 "On-Chain Alert Bot" (Easy, 50 pts) from the LIGHTKEEPER monorepo
-("One lighthouse. Twenty-eight lamps.").
+("One lighthouse. Thirty lamps.").
 
 What it does:
 - Watches configurable addresses on Atlantic testnet (chain 688689) with three

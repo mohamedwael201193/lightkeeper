@@ -3,7 +3,7 @@
 # <span style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;letter-spacing:0.18em;">DRY-RUN EXECUTOR</span>
 
 <p style="font-family:Georgia,serif;color:#f4f6ff;font-style:italic;font-size:18px;">
-One lighthouse. Twenty-eight lamps.<br/>
+One lighthouse. Thirty lamps.<br/>
 <i>This arm holds the sounding line — it tastes the water before the ship commits.</i>
 </p>
 

@@ -388,7 +388,7 @@ export const SAMPLE_JSON = `{
   "amount": "0.001",
   "currency": "PHRS",
   "reference": "LK-T19-DEMO-001",
-  "memo": "Testnet demo invoice — dust self-payment to operator wallet",
+  "memo": "Testnet sample invoice — dust self-payment to operator wallet",
   "line_items": [
     {"description": "Consulting services fee", "amount": "0.0007"},
     {"description": "Testnet gas reimbursement", "amount": "0.0003"}

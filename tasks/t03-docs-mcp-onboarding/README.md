@@ -2,7 +2,7 @@
 
 # <span style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;letter-spacing:0.35em;">DOCS&nbsp;MCP&nbsp;ONBOARDING</span>
 
-<span style="color:#f4f6ff;font-style:italic;">"One lighthouse. Twenty-eight lamps — and the keeper reads the manual first."</span>
+<span style="color:#f4f6ff;font-style:italic;">"One lighthouse. Thirty lamps — and the keeper reads the manual first."</span>
 
 <span style="color:#b9c2f5;">T03 · Pharos Season of AI Agent Arena · Easy · 50 pts · Developer Docs MCP</span>
 

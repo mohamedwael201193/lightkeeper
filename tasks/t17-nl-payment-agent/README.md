@@ -1,7 +1,7 @@
 <div align="center" style="background:#1414c8;padding:48px 24px;border-radius:8px;">
   <div style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:42px;letter-spacing:14px;">T17</div>
   <div style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:20px;letter-spacing:6px;margin-top:12px;">NATURAL-LANGUAGE PAYMENT AGENT</div>
-  <div style="color:#f4f6ff;font-size:14px;margin-top:16px;font-style:italic;">One lamp of twenty-eight — the octopus reads your words, and never moves a coin it was not told to move.</div>
+  <div style="color:#f4f6ff;font-size:14px;margin-top:16px;font-style:italic;">One lamp of thirty — the octopus reads your words, and never moves a coin it was not told to move.</div>
 </div>
 
 ---

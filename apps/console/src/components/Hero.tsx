@@ -35,7 +35,7 @@ export default function Hero({ data }: { data: LampsData }) {
           transition={{ duration: 0.5 }}
           className="mb-6 text-[11px] font-bold uppercase tracking-[0.28em] text-white/70 sm:tracking-[0.45em]"
         >
-          Lightkeeper · 28 autonomous agent skills
+          Lightkeeper · 30 autonomous agent skills
         </motion.p>
 
         <motion.img
@@ -66,7 +66,7 @@ export default function Hero({ data }: { data: LampsData }) {
           className="mx-auto mt-3 max-w-xl text-[clamp(1.05rem,2.4vw,1.5rem)] italic leading-snug text-white/90"
           style={{ fontFamily: '"Playfair Display", Didot, Georgia, serif' }}
         >
-          One lighthouse. Twenty-eight lamps.
+          One lighthouse. Thirty lamps.
         </motion.p>
 
         <motion.p
@@ -75,9 +75,9 @@ export default function Hero({ data }: { data: LampsData }) {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mx-auto mt-4 max-w-xl text-[14px] leading-relaxed text-white/65"
         >
-          One lighthouse, twenty-eight lamps — and all of them are lit. Each lamp burns
-          gold only because its task landed real on-chain evidence. Nothing simulated,
-          nothing mocked.
+          One lighthouse, thirty lamps — {data.lamps_lit} of them lit, the rest
+          honestly in progress. Each lamp burns gold only because its task landed
+          real on-chain evidence. Nothing simulated, nothing mocked.
         </motion.p>
 
         <motion.p
@@ -96,7 +96,7 @@ export default function Hero({ data }: { data: LampsData }) {
           className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
           <span className="chip chip-lit tabular">
-            <Flame size={12} /> {data.lamps_lit}/28 lamps lit
+            <Flame size={12} /> {data.lamps_lit}/{data.tasks.length} lamps lit
           </span>
           <span
             className="chip tabular"

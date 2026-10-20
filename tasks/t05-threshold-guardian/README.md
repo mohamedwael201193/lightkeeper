@@ -1,6 +1,6 @@
 <div align="center" style="background:#1414c8;padding:48px 24px;border-radius:12px;">
   <div style="font-family:Georgia,'Times New Roman',serif;color:#d9a821;font-size:42px;letter-spacing:0.18em;">THRESHOLD GUARDIAN</div>
-  <div style="color:#f4f6ff;font-size:14px;margin-top:12px;letter-spacing:0.06em;">LIGHTKEEPER · T05 · lamp five of twenty-eight</div>
+  <div style="color:#f4f6ff;font-size:14px;margin-top:12px;letter-spacing:0.06em;">LIGHTKEEPER · T05 · lamp five of thirty</div>
 </div>
 
 *The keeper's hand stays the lamp it cannot vouch for — every transfer passes

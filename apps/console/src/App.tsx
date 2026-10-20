@@ -59,7 +59,7 @@ function Footer() {
         />
         <p className="wordmark text-lg">Lightkeeper</p>
         <p className="max-w-md text-xs leading-relaxed text-slate">
-          One lighthouse. Twenty-eight lamps. One octopus to tend them.
+          One lighthouse. Thirty lamps. One octopus to tend them.
           <br />
           Lamp statuses are generated from{" "}
           <code className="font-mono text-accentdeep">tasks/*/evidence.json</code> at{" "}
@@ -67,7 +67,7 @@ function Footer() {
           missing evidence file means in progress, never shipped, never mocked.
         </p>
         <p className="tabular text-[11px] font-bold tracking-[0.3em] text-slate">
-          {data.lamps_lit}/28 LAMPS LIT · {data.points_secured.toLocaleString()}/
+          {data.lamps_lit}/{data.tasks.length} LAMPS LIT · {data.points_secured.toLocaleString()}/
           {data.total_points.toLocaleString()} PTS
         </p>
         {/* discreet founder entry — local-only mode, never indexed, never advertised */}
@@ -102,7 +102,7 @@ export default function App() {
   useEffect(() => {
     document.title = task
       ? `${task.id} ${task.name} · LIGHTKEEPER`
-      : "LIGHTKEEPER — One lighthouse. Twenty-eight lamps.";
+      : "LIGHTKEEPER — One lighthouse. Thirty lamps.";
   }, [task]);
 
   return (

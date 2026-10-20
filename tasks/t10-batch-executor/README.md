@@ -1,5 +1,5 @@
 <div align="center" style="background:#1414c8;padding:48px 24px;border-radius:12px;">
-  <p style="color:#b9c2f5;letter-spacing:6px;font-size:12px;margin:0 0 8px 0;">LIGHTKEEPER · TWENTY-EIGHT LAMPS</p>
+  <p style="color:#b9c2f5;letter-spacing:6px;font-size:12px;margin:0 0 8px 0;">LIGHTKEEPER · THIRTY LAMPS</p>
   <h1 style="color:#d9a821;font-family:Georgia,'Times New Roman',serif;font-size:52px;letter-spacing:10px;margin:0;">FLOTILLA</h1>
   <p style="color:#ffffff;font-size:15px;margin:16px 0 0 0;font-style:italic;">One signature launches the fleet — every ship accounted for, even the one that sinks.</p>
 </div>
