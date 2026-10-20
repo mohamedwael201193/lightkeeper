@@ -1,0 +1,43 @@
+{
+ "tier": "A \u2014 live Chain MCP tools/call (no raw RPC)",
+ "task": "t06-saga-executor",
+ "purpose": "get_transaction + get_transaction_receipt on the saga's canonical forced-failure tx. The hosted Chain MCP serves Pharos mainnet (1672) only; the T06 saga executed on Atlantic testnet (688689), so the live MCP result for this hash is null \u2014 recorded verbatim; the judge-verifiable receipt lives on the Atlantic explorer (see .md).",
+ "chainId": 1672,
+ "capturedAtUtc": "2026-10-20T04:05:24Z",
+ "endpoint": "https://mcp.pharos.xyz/mcp",
+ "serverInfo": {
+  "name": "pharos-mcp-server",
+  "version": "0.1.0"
+ },
+ "protocolVersion": "2025-03-26",
+ "rows": [
+  {
+   "tool": "get_transaction",
+   "args": {
+    "hash": "0x91f7e02125434e3f29a56ed086f440a283ac000575fb1ff3369bbf269f819b05"
+   },
+   "result": {
+    "content": [
+     {
+      "type": "text",
+      "text": "null"
+     }
+    ]
+   }
+  },
+  {
+   "tool": "get_transaction_receipt",
+   "args": {
+    "hash": "0x91f7e02125434e3f29a56ed086f440a283ac000575fb1ff3369bbf269f819b05"
+   },
+   "result": {
+    "content": [
+     {
+      "type": "text",
+      "text": "null"
+     }
+    ]
+   }
+  }
+ ]
+}
