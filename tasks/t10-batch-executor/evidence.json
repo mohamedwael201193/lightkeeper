@@ -203,5 +203,21 @@
     "node_mode_selection": "9/9 passed"
   },
   "video_slot": "PENDING-VIDEO",
-  "balance_note": "throwaway balances verified on-chain (spot-checked) and by receipt arithmetic; deployer balance is the live on-chain value \u2014 the delta since the last record includes other agents' concurrent broadcasts from the shared key, not only this task's 0.0295 PHRS"
+  "balance_note": "throwaway balances verified on-chain (spot-checked) and by receipt arithmetic; deployer balance is the live on-chain value \u2014 the delta since the last record includes other agents' concurrent broadcasts from the shared key, not only this task's 0.0295 PHRS",
+  "postBatchReadback20261020": {
+    "tool": "node bin/verify.mjs <txhash> (also: node bin/run.mjs verify <txhash>)",
+    "tx": "0x3daa4e7dd323e17a0d3e81758709d2497b0c6522ef6f6f9d0e1a95d2fa9a274b",
+    "block": 31481710,
+    "receiptStatus": "0x1",
+    "distributedEvents": 12,
+    "verdicts": {
+      "APPLIED": 11,
+      "NOT APPLIED (reverted)": 1,
+      "MISMATCH": 0
+    },
+    "method": "each Distributed(recipient,amount,success) receipt event (logIndex order) is re-checked with live cast balance --block at the receipt block vs the block before; verdict APPLIED iff delta == event amount; NOT APPLIED (reverted) iff !success and delta == 0. The sender (also recipient #12) is accounted exactly: expected = ownReceived + refund - gas - txValue with a documented 1-gwei materiality bound on the residual; the live residual is -595 wei (chain-fee dust), disclosed in senderAccounting.",
+    "batchExecutedCrossCheck": "succeeded=11 failed=1 total=12 MATCHES the 12 Distributed events",
+    "report": "runs/verify-3daa4e7d.json",
+    "unitTests": "test/verify.test.mjs + test/mode.test.mjs = 20/20 PASS (node --test)"
+  }
 }

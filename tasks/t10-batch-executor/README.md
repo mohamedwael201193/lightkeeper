@@ -77,6 +77,26 @@ Partial-failure proof (tx 6, decoded from receipt logs): **11×
 `BatchExecuted(total=12, succeeded=11, failed=1)`, tx status `0x1`.
 The refuser's 0.001 PHRS was refunded to the caller inside the same tx.
 
+## 4b. Post-batch on-chain readback (2026-10-20 — `bin/verify.mjs`)
+
+Every batch action is re-proven after the fact, recipient by recipient.
+`node bin/run.mjs verify <txhash>` (or `node bin/verify.mjs <txhash>`) reads
+the transaction receipt, decodes EVERY `Distributed(recipient, amount,
+success)` event in logIndex order, and for each event re-checks the
+recipient's LIVE balance at the receipt block vs the block before:
+`APPLIED` iff the balance delta equals the event amount,
+`NOT APPLIED (reverted)` iff the event failed and the delta is 0, else
+`MISMATCH` (printed, never hidden). The `BatchExecuted` totals in the same
+receipt are cross-checked against the event counts. The sender (also a
+recipient in the flagship batch) is accounted exactly — expected delta =
+own receipt + refund − gas − value — with a documented 1-gwei materiality
+bound on the residual and the residual always disclosed.
+
+Live proof (runs/verify-3daa4e7d.json): tx `0x3daa4e7d…` @ block 31481710 —
+12 events → **11 APPLIED, 1 NOT APPLIED (reverted)** (the RevertingReceiver
+fixture), 0 MISMATCH; BatchExecuted cross-check MATCH; sender residual
+−595 wei (chain-fee dust, itemized in the report). 20/20 node --test pass.
+
 ## 5. Gas-saving report (real numbers, no estimates-as-facts)
 
 - **Individual baseline (measured, not assumed):** 3 live sequential sends on

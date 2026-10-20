@@ -62,9 +62,23 @@ if (cmd === "plan" && file) {
   plan(file, chunkArg ? Number(chunkArg) : null);
 } else if (cmd === "mode" && file) {
   console.log(selectMode(Number(file)));
+} else if (cmd === "verify" && file) {
+  // Per-action on-chain readback lives in bin/verify.mjs (self-executing):
+  // for every Distributed receipt event it re-checks the recipient's live
+  // balance at the receipt block vs the block before -> APPLIED /
+  // NOT APPLIED (reverted) / MISMATCH, tied 1:1 to receipt logs.
+  const { spawnSync } = await import("node:child_process");
+  const { dirname, join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const here = dirname(fileURLToPath(import.meta.url));
+  const r = spawnSync(process.execPath,
+    [join(here, "verify.mjs"), file, ...process.argv.slice(4)],
+    { stdio: "inherit" });
+  process.exit(r.status ?? 1);
 } else {
   console.log("usage:");
   console.log("  node bin/run.mjs plan <recipients.csv> [demoChunkSize]  # DRY-RUN plan");
   console.log("  node bin/run.mjs mode <count>                           # mode for a count");
+  console.log("  node bin/run.mjs verify <txhash> [--out report.json]    # post-batch on-chain readback");
   process.exit(1);
 }
