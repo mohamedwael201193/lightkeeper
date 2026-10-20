@@ -12,7 +12,10 @@ BY NAME. No raw eth_* JSON-RPC is issued anywhere in this task.
 
 Engineering (carried over from the Atlantic build, re-proven on mainnet):
   - Chunked get_logs, <= 1000 blocks per call (MCP server cap, enforced server-side).
-  - Persistent cursor + seen-set (blockNumber:logIndex) in state.json.
+  - Persistent cursor + seen-set (txHash:logIndex) in state.json. The dedupe
+    key is the transaction hash, NOT the block number: if a block is reorged
+    and the same transaction lands in a different block, its key is
+    unchanged and it is still emitted exactly once.
   - Atomic persist-before-emit: state is written BEFORE any alert goes out —
     survives kill -9 with zero re-emission and zero skipped blocks.
   - 2-block confirmation lag for reorg tolerance.
@@ -310,7 +313,10 @@ def scan_range(mcp, frm, to, state, emit=True):
         if isinstance(logs, dict) and "logs" in logs:
             logs = logs["logs"]
         for lg in logs or []:
-            key = f"{block_num(lg)}:{lg['logIndex']}"
+            # Dedupe identity = txHash:logIndex. Block number is deliberately
+            # NOT part of the key: the same tx re-included at another block
+            # after a reorg must still dedupe to exactly one alert.
+            key = f"{lg['transactionHash']}:{lg['logIndex']}"
             if key in state["seen"]:
                 continue
             state["seen"].append(key)  # mark seen BEFORE any emit
