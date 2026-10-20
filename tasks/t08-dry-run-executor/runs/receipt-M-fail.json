@@ -1,0 +1,50 @@
+{
+  "tool": "t08-dry-run-executor",
+  "schema": "SimulationReceipt/1",
+  "startedUtc": "2026-10-20T04:17:02Z",
+  "from": "0x0000000000000000000000000000000000000001",
+  "to": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "sig": "transfer(address,uint256)",
+  "sigArgs": [
+    "0x0000000000000000000000000000000000000002",
+    "100"
+  ],
+  "valueWei": "0",
+  "gasSafetyFactor": 1.2,
+  "chainModified": false,
+  "transport": "chain-mcp",
+  "mcpEndpoint": "https://mcp.pharos.xyz/mcp",
+  "rawRpcCalls": 0,
+  "nativeSymbol": "PROS",
+  "chainId": 1672,
+  "blockNumber": 20716715,
+  "calldata": "0xa9059cbb00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000064",
+  "callOk": false,
+  "callError": "ERC20: transfer amount exceeds balance",
+  "callStdout": "",
+  "stateBefore": {
+    "count": "n/a",
+    "balanceWei": "0"
+  },
+  "stateBeforeNote": "on-chain read via Chain MCP; chain unmodified by dry-run",
+  "status": "FAIL",
+  "gasEstimate": null,
+  "gasLimit": null,
+  "gasPriceWei": null,
+  "predictedCostWei": null,
+  "predictedCostPHRS": null,
+  "revertReason": "ERC20: transfer amount exceeds balance",
+  "stateAfterProjected": {
+    "count": "n/a",
+    "balanceWei": "0",
+    "note": "projected: revert -> state unchanged"
+  },
+  "stateAfterNote": "projection only; chain unmodified by dry-run",
+  "mcpToolsCalled": [
+    "estimate_gas",
+    "eth_call",
+    "get_balance",
+    "get_block_number",
+    "get_chain_info"
+  ]
+}

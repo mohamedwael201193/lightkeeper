@@ -1,0 +1,47 @@
+{
+  "tool": "t08-dry-run-executor",
+  "schema": "SimulationReceipt/1",
+  "startedUtc": "2026-10-20T04:16:55Z",
+  "from": "0x0000000000000000000000000000000000000001",
+  "to": "0xc879c018db60520f4355c26ed1a6d572cdac1815",
+  "sig": "totalSupply()(uint256)",
+  "sigArgs": [],
+  "valueWei": "0",
+  "gasSafetyFactor": 1.2,
+  "chainModified": false,
+  "transport": "chain-mcp",
+  "mcpEndpoint": "https://mcp.pharos.xyz/mcp",
+  "rawRpcCalls": 0,
+  "nativeSymbol": "PROS",
+  "chainId": 1672,
+  "blockNumber": 20716707,
+  "calldata": "0x18160ddd",
+  "callOk": true,
+  "callStdout": "0x000000000000000000000000000000000000000000000000000027c855790d45",
+  "stateBefore": {
+    "count": "n/a",
+    "balanceWei": "0"
+  },
+  "stateBeforeNote": "on-chain read via Chain MCP; chain unmodified by dry-run",
+  "status": "PASS",
+  "gasEstimate": 40770,
+  "gasLimit": 48924,
+  "gasPriceWei": 10000000000,
+  "predictedCostWei": 489240000000000,
+  "predictedCostPHRS": 0.00048924,
+  "revertReason": null,
+  "stateAfterProjected": {
+    "count": "n/a",
+    "balanceWei": "0",
+    "note": "projected from the dry-run call semantics; the chain itself is unmodified"
+  },
+  "stateAfterNote": "projection only; chain unmodified by dry-run",
+  "mcpToolsCalled": [
+    "estimate_gas",
+    "eth_call",
+    "get_balance",
+    "get_block_number",
+    "get_chain_info",
+    "get_gas_price"
+  ]
+}

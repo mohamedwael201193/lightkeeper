@@ -62,6 +62,17 @@ def main() -> int:
             f"revertReason={receipt.get('revertReason')}",
             log_path,
         )
+    # Migration guard (2026-10-20): dryrun.py now issues Chain MCP tickets on
+    # Pharos mainnet (chainId 1672). This broadcast path is the Atlantic
+    # `cast send` path (chain 688689) — refusing a mainnet ticket here rather
+    # than sending it to the wrong chain.
+    if receipt.get("chainId") not in (None, 688689):
+        return refuse(
+            a.receipt,
+            f"ticket chainId is {receipt.get('chainId')} (Pharos mainnet via Chain MCP); "
+            "this broadcaster only sends on Atlantic (688689) — refusing",
+            log_path,
+        )
     for field in ("to", "sig", "gasLimit"):
         if receipt.get(field) in (None, ""):
             return refuse(a.receipt, f"PASS ticket missing field '{field}'", log_path)
@@ -99,7 +110,7 @@ def main() -> int:
         ledger_py = Path(__file__).resolve().parent.parent / "tools" / "ledger.py"
         lr = subprocess.run(
             [sys.executable, str(ledger_py), "--receipt", a.receipt,
-             "--tx-hash", tx_hash, "--rpc-url", a.rpc_url],
+             "--tx-hash", tx_hash],
             capture_output=True, text=True, timeout=180,
         )
         if lr.stdout.strip():

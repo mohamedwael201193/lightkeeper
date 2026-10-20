@@ -8,7 +8,7 @@ One lighthouse. Twenty-eight lamps.<br/>
 </p>
 
 <p style="color:#b9c2f5;font-size:13px;letter-spacing:0.08em;">
-T08 · MEDIUM · 100 PTS · SKILLENGINE · ATLANTIC TESTNET (688689)
+T08 · MEDIUM · 100 PTS · SKILLENGINE · ATLANTIC TESTNET (688689) — dry-run reads migrated to the CHAIN MCP on Pharos mainnet (1672) 2026-10-20; see §3A
 </p>
 
 </div>
@@ -25,13 +25,13 @@ Execution is **structurally gated**: the dry-run module cannot broadcast (no sig
 
 ```
 proposed tx
-  │  1. VALIDATE   address/sig sanity + chain-id MUST be Atlantic (688689), else REFUSED
+  │  1. VALIDATE   address/sig sanity + MCP get_chain_info chain-id MUST be 1672, else REFUSED
   ▼
-  │  2. eth_call   `cast call` — surfaces the revert reason, zero broadcast
+  │  2. eth_call   MCP eth_call — surfaces the revert reason, zero broadcast
   ▼
-  │  3. estimate   `cast estimate` — success → gas number; failure → exact revert reason
+  │  3. estimate   MCP estimate_gas — success → gas number; failure → exact revert reason
   ▼
-  │  4. gas price  `cast gas-price` → predicted cost = ceil(estimate × 1.2) × price
+  │  4. gas price  MCP get_gas_price → predicted cost = ceil(estimate × 1.2) × price
   ▼
   │  5. project    before/after state snapshots ("chain unmodified")
   ▼
@@ -40,6 +40,33 @@ proposed tx
 ```
 
 Revert decoding (`src/revert_decode.py`) handles `Error(string)`, `Panic(uint256)` (with the Solidity panic-code table), and custom errors — reported as selector hex, **never invented**.
+
+## 3A. Margin build 2026-10-20 — Chain MCP migration + prediction-vs-receipt post-mortem
+
+All chain reads in `src/dryrun.py` and `tools/ledger.py` migrated from `cast`
+to the REAL Chain MCP (named tools `get_chain_info` / `get_block_number` /
+`eth_call` / `estimate_gas` / `get_gas_price` / `get_balance` /
+`get_transaction_receipt` / `get_transaction`). No `cast`, no raw eth_*
+JSON-RPC: every new receipt records `rawRpcCalls: 0`. The hosted MCP serves
+Pharos mainnet (1672) only, so dry-run tickets are now mainnet tickets;
+`broadcast.py` keeps its Atlantic `cast send` path for the historical
+Atlantic tickets and REFUSES a mainnet (1672) ticket rather than sending it
+to the wrong chain.
+
+New: `--reconcile <txhash>` — our own prediction-vs-receipt post-mortem.
+It fetches the real receipt via the MCP, computes actual cost
+(gasUsed × effectiveGasPrice), pairs it with any prediction recorded in
+`runs/prediction-ledger.jsonl` for that tx (error % on gas and cost), and
+decodes per-asset balance deltas from the receipt's own ERC-20 Transfer
+logs. Live proof (2026-10-20, `runs/reconcile-live-86fd.json`): tx
+0x86fd78cf… (block 20715527) — gasUsed 145,438 × 15,555,332,165 wei =
+0.00226234 PROS; USDC delta −39,335,834 / +39,335,834 raw units across the
+swap legs; prediction: none recorded for this external tx (reported
+plainly, nothing invented). Live dry-runs: PASS on USDC `totalSupply()`
+(block 20716707, gas 40,770 → limit 48,924, predicted 0.00048924 PROS,
+`runs/receipt-M-pass.json`); FAIL on an underfunded `transfer` with the
+exact MCP-decoded reason `ERC20: transfer amount exceeds balance`
+(`runs/receipt-M-fail.json`). Tests: 28/28 unittest PASS.
 
 ## 3. Live proof (Atlantic testnet, real transactions)
 

@@ -8,53 +8,72 @@ runs/prediction-ledger.jsonl pairing the dry-run's PREDICTION (gas estimate,
 
 This is the honest version of "simulate before you sign": the executor does
 not claim accuracy — it measures it, broadcast after broadcast, and the drift
-is public. All data is live from Atlantic; nothing is mocked.
+is public. All data is live via the REAL Chain MCP (named tools
+get_transaction_receipt / eth_call); nothing is mocked, rawRpcCalls = 0.
+
+Note on scope: the Chain MCP serves Pharos mainnet (1672) ONLY, so ledger
+entries can only be appended for mainnet txs. Atlantic-era broadcasts (the
+two historical entries in the ledger) predate this migration.
 
 Usage:
-    python3 tools/ledger.py --receipt runs/receipt-C.json --tx-hash 0x... \\
-        --rpc-url "$ATLANTIC_RPC_URL"
+    python3 tools/ledger.py --receipt runs/receipt-C.json --tx-hash 0x...
 
-Called automatically by src/broadcast.py after a successful broadcast.
+Called by src/broadcast.py after a successful broadcast (best effort).
 """
 
 import argparse
 import json
-import subprocess
 import sys
 import time
 from pathlib import Path
 
-WEI_PER_PHRS = 10**18
+WEI_PER_NATIVE = 10**18
 ROOT = Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "runs" / "prediction-ledger.jsonl"
 
+sys.path.insert(0, str(ROOT / "src"))
+from mcp import ChainMCP  # noqa: E402
+from dryrun import encode_calldata, decode_uint256  # noqa: E402
 
-def run(cmd: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+def _to_int(v) -> int:
+    if isinstance(v, int):
+        return v
+    return int(str(v), 16) if str(v).startswith("0x") else int(str(v))
 
 
-def append_ledger(receipt_path: str, tx_hash: str, rpc: str) -> dict:
+def append_ledger(receipt_path: str, tx_hash: str) -> dict:
     receipt = json.loads(Path(receipt_path).read_text())
 
-    # Reality: the mined receipt, straight from the chain.
-    r = run(["cast", "receipt", tx_hash, "--rpc-url", rpc, "--json"])
-    if r.returncode != 0:
-        raise RuntimeError(f"could not fetch on-chain receipt for {tx_hash}: {r.stderr.strip()}")
-    onchain = json.loads(r.stdout)
+    mcp = ChainMCP(client_name="lightkeeper-t08-ledger").connect()
+    try:
+        # Reality: the mined receipt, straight from the Chain MCP.
+        onchain = mcp.call("get_transaction_receipt", {"hash": tx_hash})
+        if not onchain or "gasUsed" not in onchain:
+            raise RuntimeError(
+                f"no on-chain receipt for {tx_hash} via the Chain MCP "
+                "(mainnet 1672 only)"
+            )
+        gas_used = _to_int(onchain["gasUsed"])
+        price_wei = _to_int(onchain.get("effectiveGasPrice") or "0x0")
+        status = onchain.get("status")
+        status_ok = status in (1, "1", "0x1")
 
-    gas_used = int(onchain["gasUsed"], 16) if isinstance(onchain["gasUsed"], str) else int(onchain["gasUsed"])
-    price_field = onchain.get("effectiveGasPrice") or onchain.get("gasPrice", "0x0")
-    price_wei = int(price_field, 16) if isinstance(price_field, str) else int(price_field)
-    status = onchain.get("status")
-    status_ok = status in (1, "1", "0x1")
-
-    # Probe-specific actual state (count), read live.
-    actual_state = {}
-    c = run(["cast", "call", receipt["to"], "count()(uint256)", "--rpc-url", rpc])
-    actual_state["count"] = c.stdout.strip() if c.returncode == 0 else "n/a"
+        # Probe-style actual state (count), read live via MCP eth_call.
+        res = mcp.call("eth_call", {
+            "transaction": {"to": receipt["to"],
+                            "data": encode_calldata("count()", [])},
+            "block": "latest",
+        })
+        actual_state = {
+            "count": ("n/a" if "error" in res
+                      else decode_uint256(res.get("result", "0x0")))
+        }
+    finally:
+        mcp.close()
 
     predicted_cost = float(receipt.get("predictedCostPHRS") or 0)
-    actual_cost = (gas_used * price_wei) / WEI_PER_PHRS
+    actual_cost = (gas_used * price_wei) / WEI_PER_NATIVE
     gas_limit = int(receipt["gasLimit"])
 
     entry = {
@@ -62,6 +81,8 @@ def append_ledger(receipt_path: str, tx_hash: str, rpc: str) -> dict:
         "txHash": tx_hash,
         "to": receipt["to"],
         "sig": receipt["sig"],
+        "via": "chain-mcp",
+        "rawRpcCalls": 0,
         "prediction": {
             "gasEstimate": receipt["gasEstimate"],
             "gasLimit": gas_limit,
@@ -91,13 +112,12 @@ def append_ledger(receipt_path: str, tx_hash: str, rpc: str) -> dict:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="T08 prediction ledger")
+    ap = argparse.ArgumentParser(description="T08 prediction ledger (Chain MCP)")
     ap.add_argument("--receipt", required=True)
     ap.add_argument("--tx-hash", required=True)
-    ap.add_argument("--rpc-url", required=True)
     a = ap.parse_args()
     try:
-        e = append_ledger(a.receipt, a.tx_hash, a.rpc_url)
+        e = append_ledger(a.receipt, a.tx_hash)
     except Exception as exc:  # noqa: BLE001
         print(f"[ledger] FAILED: {exc}", file=sys.stderr)
         return 1

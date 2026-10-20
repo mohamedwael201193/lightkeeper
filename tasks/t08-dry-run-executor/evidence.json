@@ -177,5 +177,47 @@
       }
     ],
     "driftReading": "estimates over-predict ~30% on Atlantic; 1.2x factor covers it with margin"
+  },
+  "mcpMigration20261020": {
+    "note": "All chain reads migrated from cast to the real Chain MCP (https://mcp.pharos.xyz/mcp, Pharos mainnet 1672); rawRpcCalls=0 in every new receipt",
+    "transport": "chain-mcp",
+    "mcpToolsCalled": [
+      "get_chain_info",
+      "get_block_number",
+      "eth_call",
+      "estimate_gas",
+      "get_gas_price",
+      "get_balance",
+      "get_transaction_receipt",
+      "get_transaction"
+    ],
+    "scenarioM_pass_live": {
+      "command": "python3 src/dryrun.py --from 0x0000000000000000000000000000000000000001 --to 0xc879c018db60520f4355c26ed1a6d572cdac1815 --sig \"totalSupply()(uint256)\" --out runs/receipt-M-pass.json",
+      "block": 20716707,
+      "status": "PASS",
+      "gasEstimate": 40770,
+      "gasLimit": 48924,
+      "predictedCostPROS": 0.00048924,
+      "rawRpcCalls": 0,
+      "receipt": "runs/receipt-M-pass.json"
+    },
+    "scenarioM_fail_live": {
+      "command": "python3 src/dryrun.py --from 0x...0001 --to USDC --sig \"transfer(address,uint256)\" --args 0x...0002 100 --out runs/receipt-M-fail.json",
+      "status": "FAIL",
+      "revertReason": "ERC20: transfer amount exceeds balance",
+      "rawRpcCalls": 0,
+      "receipt": "runs/receipt-M-fail.json"
+    },
+    "reconcile_live": {
+      "command": "python3 src/dryrun.py --reconcile 0x86fd78cf0f71905adbdabde6b7f93e791d0d7d1efe80eaeb5112291420971bde --out runs/reconcile-live-86fd.json",
+      "tx": "0x86fd78cf0f71905adbdabde6b7f93e791d0d7d1efe80eaeb5112291420971bde",
+      "block": 20715527,
+      "gasUsed": 145438,
+      "effectiveGasPriceWei": 15555332165,
+      "actualCostPROS": 0.00226234,
+      "prediction": "none recorded (external tx \u2014 actuals + per-asset deltas only)",
+      "report": "runs/reconcile-live-86fd.json"
+    },
+    "unitTests": "tests/test_estimation_parsing.py 17/17 + tests/test_mcp_migration.py 11/11 = 28/28 PASS (unittest)"
   }
 }
