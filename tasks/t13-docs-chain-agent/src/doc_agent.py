@@ -45,6 +45,43 @@ SELECTORS = {
 }
 
 LINK_RE = re.compile(r"\[([^\]]{1,120})\]\(([^)\s]{1,200})\)")
+MAX_CITED_PAGES = 5  # bound the grounding gate's getPage fan-out per round
+
+
+def page_names_function(page_text: str, fn_name: str) -> bool:
+    """Exact-name match: the bare function name as a whole token in the page
+    text (not a substring of a longer identifier, not a fuzzy match)."""
+    return re.search(rf"(?<![A-Za-z0-9_]){re.escape(fn_name)}(?![A-Za-z0-9_])",
+                     page_text) is not None
+
+
+def grounding_gate(docs: DocsMCP, cites: list, fn_name: str) -> dict:
+    """Cited-page grounding gate.
+
+    askQuestion ANSWERS are not documentation by themselves: the function
+    counts as DOCUMENTED only if at least one of the pages the answer CITES,
+    fetched verbatim via the Docs MCP getPage tool, names the function
+    EXACTLY. A page that fails to fetch counts as unverified (fail-closed).
+    """
+    pages = []
+    documented = False
+    for c in cites[:MAX_CITED_PAGES]:
+        entry = {"url": c["url"], "chars": 0, "names_function": False}
+        try:
+            pg = docs.call("getPage", {"url": c["url"]})
+            text = pg.get("text", "")
+            entry["chars"] = len(text)
+            entry["names_function"] = page_names_function(text, fn_name)
+        except Exception as e:  # fail-closed: unverifiable page != documentation
+            entry["fetch_error"] = f"{type(e).__name__}: {str(e)[:120]}"
+        documented = documented or entry["names_function"]
+        pages.append(entry)
+    return {
+        "rule": "documented iff a cited page fetched via Docs MCP getPage "
+                "names the function exactly (whole-token match)",
+        "pages": pages,
+        "documented": documented,
+    }
 
 
 def absolutize(url: str) -> str:
@@ -158,19 +195,31 @@ def run_round(docs: DocsMCP, chain: ChainMCP, rnd: dict, block: int) -> dict:
     }
     cites = extract_citations(answer_text)
     out["citations"] = cites
-    # genuineness check: does the docs answer actually name the function?
+    # answer-level check (weak, kept for the record): does the answer text name it?
     fn_name = rnd["function"].split("(")[0]
-    out["docs_names_function"] = fn_name.lower() in answer_text.lower()
+    out["docs_answer_names_function"] = fn_name.lower() in answer_text.lower()
     out["docs_source_count"] = len(cites)
+
+    # ---- 1b. CITED-PAGE GROUNDING GATE ----
+    # The askQuestion answer is not documentation by itself. getPage every
+    # cited URL via the Docs MCP; the function is DOCUMENTED only if a
+    # fetched page names it exactly. The gate verdict drives the
+    # interpretation below: NOT DESCRIBED -> raw value, no units, no decimals.
+    gate = grounding_gate(docs, cites, fn_name)
+    docs_tools = ["askQuestion"] + (["getPage"] if cites else [])
+    out["grounding_gate"] = gate
+    out["docs_names_function"] = gate["documented"]  # now page-grounded, not answer-based
+    out["docs_tools_used"] = docs_tools
 
     # ---- 2. CHAIN MCP executes the SAME function ----
     # For the price round the feed address is DERIVED, not hardcoded:
     # askQuestion -> getPage(feeds table) -> parse USDC/USD row.
-    docs_tools = ["askQuestion"]
+    docs_tools = list(out["docs_tools_used"])
     to = rnd["address"]
     if rnd.get("feed_contract"):
         page = docs.call("getPage", {"url": FEEDS_PAGE})
-        docs_tools.append("getPage")
+        if "getPage" not in docs_tools:
+            docs_tools.append("getPage")
         page_text = page.get("text", "")
         out["docs"]["feeds_page_chars"] = len(page_text)
         to = extract_feed_address(page_text)
@@ -233,36 +282,48 @@ def run_round(docs: DocsMCP, chain: ChainMCP, rnd: dict, block: int) -> dict:
                     "calls": chain_calls}
 
     # ---- 3. INTERPRET in the context of the docs explanation ----
+    # The CITED-PAGE GROUNDING GATE decides the interpretation discipline:
+    # DOCUMENTED -> [INFERENCE] with docs-context formatting (decimals, units);
+    # NOT DESCRIBED -> raw value only: no units, no decimals, no formatting
+    # that would imply a documented meaning the pages did not supply.
     value = decode_uint(raw)
-    if rid == "totalsupply":
-        dec = chain.call("eth_call", {"transaction": {"to": USDC, "data": SELECTORS["decimals()"]},
-                                      "block": block})
-        decimals = decode_uint(dec.get("result", "0x0"))
-        human = value / (10 ** decimals)
-        interp = (f"[INFERENCE] The Docs MCP explained totalSupply() as an eth_call "
-                  f"with selector 0x18160ddd. Called live at block {block}: raw "
-                  f"{value}; with {decimals} decimals (live decimals() call) that is "
-                  f"{human:,.6f} USDC in circulation. Read-only: no transaction, no gas.")
-    elif rid == "decimals":
-        interp = (f"[INFERENCE] The Docs MCP explained decimals() as an eth_call "
-                  f"returning uint8. Live at block {block}: {value}. All USDC "
-                  f"human formatting divides by 10^{value}.")
-    elif rid == "balanceof":
-        dec = chain.call("eth_call", {"transaction": {"to": USDC, "data": SELECTORS["decimals()"]},
-                                      "block": block})
-        decimals = decode_uint(dec.get("result", "0x0"))
-        human = value / (10 ** decimals)
-        interp = (f"[INFERENCE] The Docs MCP explained balanceOf(address) with "
-                  f"ABI-encoded calldata (selector 0x70a08231). Holder {out['holder_from_logs']} "
-                  f"was taken from a REAL Transfer log (tx {out['holder_tx'][:18]}…). "
-                  f"Live at block {block}: {value} base units = {human:,.6f} USDC.")
-    else:  # price
-        usd = value / 10**18
-        interp = (f"[INFERENCE] The Docs MCP askQuestion pointed to the Chainlink "
-                  f"feeds page; getPage on that page gave the USDC/USD row with feed "
-                  f"{to}; get_code confirmed the contract; latestAnswer() live at block "
-                  f"{block}: {value} -> ${usd:.5f} (18 decimals, per the docs). "
-                  f"Every step of the address discovery came from the Docs MCP.")
+    if gate["documented"]:
+        if rid == "totalsupply":
+            dec = chain.call("eth_call", {"transaction": {"to": USDC, "data": SELECTORS["decimals()"]},
+                                          "block": block})
+            decimals = decode_uint(dec.get("result", "0x0"))
+            human = value / (10 ** decimals)
+            interp = (f"[INFERENCE] The Docs MCP explained totalSupply() as an eth_call "
+                      f"with selector 0x18160ddd. Called live at block {block}: raw "
+                      f"{value}; with {decimals} decimals (live decimals() call) that is "
+                      f"{human:,.6f} USDC in circulation. Read-only: no transaction, no gas.")
+        elif rid == "decimals":
+            interp = (f"[INFERENCE] The Docs MCP explained decimals() as an eth_call "
+                      f"returning uint8. Live at block {block}: {value}. All USDC "
+                      f"human formatting divides by 10^{value}.")
+        elif rid == "balanceof":
+            dec = chain.call("eth_call", {"transaction": {"to": USDC, "data": SELECTORS["decimals()"]},
+                                          "block": block})
+            decimals = decode_uint(dec.get("result", "0x0"))
+            human = value / (10 ** decimals)
+            interp = (f"[INFERENCE] The Docs MCP explained balanceOf(address) with "
+                      f"ABI-encoded calldata (selector 0x70a08231). Holder {out['holder_from_logs']} "
+                      f"was taken from a REAL Transfer log (tx {out['holder_tx'][:18]}…). "
+                      f"Live at block {block}: {value} base units = {human:,.6f} USDC.")
+        else:  # price
+            usd = value / 10**18
+            interp = (f"[INFERENCE] The Docs MCP askQuestion pointed to the Chainlink "
+                      f"feeds page; getPage on that page gave the USDC/USD row with feed "
+                      f"{to}; get_code confirmed the contract; latestAnswer() live at block "
+                      f"{block}: {value} -> ${usd:.5f} (18 decimals, per the docs). "
+                      f"Every step of the address discovery came from the Docs MCP.")
+    else:
+        interp = (f"[NOT DESCRIBED] The function {rnd['function']} is not described "
+                  f"by any cited page: the Docs MCP askQuestion answer cited "
+                  f"{len(cites)} page(s), and none of the {len(gate['pages'])} "
+                  f"pages fetched via getPage names '{fn_name}' exactly. "
+                  f"Raw on-chain value at block {block}: {value} — reported "
+                  f"without units and without decimal scaling.")
     out["interpretation"] = interp
     out["ok"] = True
     out["docs_tools_used"] = docs_tools
