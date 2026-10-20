@@ -390,7 +390,7 @@ export const SAMPLE_JSON = `{
   "reference": "LK-T19-DEMO-001",
   "memo": "Testnet demo invoice — dust self-payment to operator wallet",
   "line_items": [
-    {"description": "Arena demo service fee", "amount": "0.0007"},
+    {"description": "Consulting services fee", "amount": "0.0007"},
     {"description": "Testnet gas reimbursement", "amount": "0.0003"}
   ]
 }`;
