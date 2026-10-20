@@ -88,7 +88,9 @@ def fail_closed(reason: str):
                  action={}, decision="REFUSE", rule_results=[],
                  reasons=[{"rule": "fail_closed", "result": "REFUSE",
                            "detail": reason}], stamp_hash=None)
-    print(json.dumps({"decision": "REFUSE", "reason": reason}, indent=2))
+    audit_ok, audit_entries = audit_status()
+    print(json.dumps({"decision": "REFUSE", "reason": reason,
+                      "audit_ok": audit_ok, "audit_entries": audit_entries}, indent=2))
     sys.exit(EXIT_REFUSE)
 
 
@@ -147,6 +149,19 @@ def verify_audit(path: str = None):
                 return False, "tamper detected at seq %d" % seq
             prev = entry["entry_hash"]
     return True, "chain intact, %d entries" % seq
+
+
+def audit_status(path: str = None):
+    """(audit_ok, entry_count) — the self-check stamped into every
+    evaluate/execute output: callers see, in the same response, whether the
+    hash-chained audit trail that backs the decision still verifies."""
+    ok, _msg = verify_audit(path)
+    path = path or AUDIT_PATH
+    n = 0
+    if os.path.exists(path):
+        with open(path) as f:
+            n = sum(1 for line in f if line.strip())
+    return ok, n
 
 
 def last_approval_ts(action_hash: str = None, path: str = None):
@@ -328,10 +343,14 @@ def cmd_evaluate(args):
         policy_id=policy["policy_id"], policy_hash=policy_hash(policy),
         action=action, decision=decision, rule_results=rule_results,
         reasons=reasons, stamp_hash=stamp["stamp_hash"] if stamp else None)
+    # Self-check the audit trail behind this decision and stamp the result
+    # into the output: the decision and its proof travel together.
+    audit_ok, audit_entries = audit_status()
     out = {"decision": decision, "policy_id": policy["policy_id"],
            "policy_hash": policy_hash(policy),
            "audit_seq": entry["seq"], "rule_results": rule_results,
-           "reasons": reasons, "stamp": stamp}
+           "reasons": reasons, "stamp": stamp,
+           "audit_ok": audit_ok, "audit_entries": audit_entries}
     if args.stamp_out and stamp:
         with open(args.stamp_out, "w") as f:
             json.dump(stamp, f, indent=2)
@@ -440,7 +459,9 @@ def cmd_execute(args):
         append_audit(policy["policy_id"], policy_hash(policy), action,
                      "REFUSE", [], [{"rule": "no_bypass", "result": "REFUSE",
                                      "detail": why}], None)
-        print(json.dumps({"decision": "REFUSE", "reason": "no-bypass: " + why},
+        audit_ok, audit_entries = audit_status()
+        print(json.dumps({"decision": "REFUSE", "reason": "no-bypass: " + why,
+                          "audit_ok": audit_ok, "audit_entries": audit_entries},
                          indent=2))
         sys.exit(EXIT_REFUSE)
     rpc_url = os.environ.get("ATLANTIC_RPC_URL")
@@ -451,14 +472,25 @@ def cmd_execute(args):
         append_audit(policy["policy_id"], policy_hash(policy), action,
                      "REFUSE", [], [{"rule": "precheck", "result": "REFUSE",
                                      "detail": "; ".join(report)}], None)
+        audit_ok, audit_entries = audit_status()
+        print(json.dumps({"decision": "REFUSE", "reason": "precheck failed",
+                          "audit_ok": audit_ok, "audit_entries": audit_entries},
+                         indent=2))
         sys.exit(EXIT_REFUSE)
     # Only native_transfer broadcasts in this demo task; anything else would
     # need calldata construction — honestly refused rather than faked.
     if action["type"] != "native_transfer":
+        append_audit(policy["policy_id"], policy_hash(policy), action,
+                     "REFUSE", [],
+                     [{"rule": "executor_scope", "result": "REFUSE",
+                       "detail": "executor only broadcasts native_transfer"}], None)
+        audit_ok, audit_entries = audit_status()
         print(json.dumps({"decision": "REFUSE",
                           "reason": "executor only broadcasts native_transfer; "
                                     "%s needs calldata the demo does not "
-                                    "build" % action["type"]}, indent=2))
+                                    "build" % action["type"],
+                          "audit_ok": audit_ok, "audit_entries": audit_entries},
+                         indent=2))
         sys.exit(EXIT_REFUSE)
     to = action["to"]
     value = action["value_wei"]
@@ -474,6 +506,10 @@ def cmd_execute(args):
                      "REFUSE", [],
                      [{"rule": "broadcast", "result": "REFUSE",
                        "detail": p.stderr[:300]}], stamp["stamp_hash"])
+        audit_ok, audit_entries = audit_status()
+        print(json.dumps({"decision": "REFUSE", "reason": "broadcast failed",
+                          "audit_ok": audit_ok, "audit_entries": audit_entries},
+                         indent=2))
         sys.exit(EXIT_ERR)
     txh = None
     for line in p.stdout.splitlines():
@@ -481,7 +517,9 @@ def cmd_execute(args):
             txh = line.split()[-1].strip()
     append_audit(policy["policy_id"], policy_hash(policy), action,
                  "EXECUTED", [], [], stamp["stamp_hash"])
+    audit_ok, audit_entries = audit_status()
     print(json.dumps({"decision": "EXECUTED", "tx_hash": txh,
+                      "audit_ok": audit_ok, "audit_entries": audit_entries,
                       "explorer": "https://atlantic.pharosscan.xyz/tx/%s" % txh
                       if txh else None}, indent=2))
     sys.exit(EXIT_OK)
@@ -489,7 +527,8 @@ def cmd_execute(args):
 
 def cmd_audit_verify(_args):
     ok, msg = verify_audit()
-    print(json.dumps({"audit_ok": ok, "message": msg}, indent=2))
+    _, entries = audit_status()
+    print(json.dumps({"audit_ok": ok, "audit_entries": entries, "message": msg}, indent=2))
     sys.exit(EXIT_OK if ok else EXIT_ERR)
 
 
