@@ -19,7 +19,7 @@ commands:
 
 trendParams:
   metric: baseFeePerGas
-  source: eth_feeHistory
+  source: Chain MCP get_block (per-block, Pharos mainnet 1672)
   fastWindow: 5
   slowWindow: 15
   bandBps: 50
@@ -35,7 +35,7 @@ state:
 attestations:
   noMockData: true
   noSecretsInRepo: true
-  chainIdAsserted: 688689
+  chainIdAsserted: 1672
   gasSpentWei: "0"
   syntheticLabeled: true
 
