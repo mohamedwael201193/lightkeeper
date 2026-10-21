@@ -50,7 +50,7 @@ Zero mock/demo/placeholder data.
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/f646a97f7e985f1d68273331cb4212242ae21a89/tasks/t14-portfolio-assistant
+https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t14-portfolio-assistant
 
 ## Share / demo links
 

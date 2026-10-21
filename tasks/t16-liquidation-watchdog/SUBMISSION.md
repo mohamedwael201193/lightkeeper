@@ -1,6 +1,6 @@
 # SUBMISSION PACK — T16 Liquidation Watchdog (copy-paste ready)
 
-> Fill `f646a97f7e985f1d68273331cb4212242ae21a89` with the real commit hash after committing (see LINKS.md).
+> Fill `9eca5c9` with the real commit hash after committing (see LINKS.md).
 > Video slot is PENDING-VIDEO until the demo is filmed.
 
 ---
@@ -63,7 +63,7 @@ Total gas: 0.00164 PHRS (budget 0.15). No mocks, no simulated prices, no
 placeholder alerts — every number in the alert came from a real `eth_call`.
 
 **Repo (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t16-liquidation-watchdog
+https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t16-liquidation-watchdog
 
 **Share/demo links:** PENDING-VIDEO
 

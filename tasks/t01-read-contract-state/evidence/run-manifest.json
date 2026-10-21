@@ -10,7 +10,7 @@
     "get_chain_info",
     "get_code"
   ],
-  "blockReadAt": 20872843,
+  "blockReadAt": 20872848,
   "values": [
     {
       "name": "name",
@@ -46,8 +46,8 @@
     }
   ],
   "rawRpcCalls": 0,
-  "gitCommit": "8313edf",
-  "gitDirty": true,
+  "gitCommit": "9eca5c9",
+  "gitDirty": false,
   "command": "bin/read-contract-state.sh --manifest evidence/run-manifest.json",
-  "createdAt": "2026-10-21T22:13:22.969605+00:00"
+  "createdAt": "2026-10-21T22:13:29.755190+00:00"
 }

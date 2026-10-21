@@ -47,13 +47,13 @@ Proof it works:
   25 unit tests pass (receipt classifier, retry table, state machine,
   resume-point parser).
 
-Code: https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t06-saga-executor
+Code: https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t06-saga-executor
 Evidence: evidence.md + evidence.json in the same dir (13 txs, all explorer
 links curl-verified server-rendered).
 
 ## Links
 
-- Code (commit-pinned): `https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t06-saga-executor`
+- Code (commit-pinned): `https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t06-saga-executor`
 - Interactive demo (console "Try it live"): `https://lightkeeper-console.vercel.app` — open the
   **T06 Saga Executor** lamp and scroll to the live surface: an interactive timeline of the
   forced-failure run (click each step: tx, receipt, executor decision), a crash-recovery

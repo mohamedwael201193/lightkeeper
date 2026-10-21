@@ -36,7 +36,7 @@ same watched holder — the verdict flips on the MCP-returned data alone.
 Unit tests 8/8. Zero raw JSON-RPC, zero private keys, zero broadcasts.
 
 **Repo link (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/f646a97f7e985f1d68273331cb4212242ae21a89/tasks/t12-skill-chain-flow
+https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t12-skill-chain-flow
 
 **Share/demo links:**
 - Chain MCP endpoint: https://mcp.pharos.xyz/mcp (health: https://mcp.pharos.xyz/health)
