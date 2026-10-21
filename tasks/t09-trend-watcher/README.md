@@ -6,14 +6,15 @@
 
 ## 1. Verdict in 30 seconds
 
-Swell Line watches Atlantic's fee market and answers one question honestly:
+Swell Line watches Pharos mainnet's fee market (chain 1672, read live through the
+Chain MCP at `https://mcp.pharos.xyz/mcp`) and answers one question honestly:
 **is gas trending up, or is that just a wave?** It samples real `baseFeePerGas`
 per block, runs a 5/15 moving-average crossover with a 0.5% confirmation band,
 and FIRES only after **3 consecutive above-band readings** — a single spike
 can never trigger it (the streak resets, proven by demo and by test).
 
-**Live state:** 60 real observations across blocks 31481567–31481678, all HOLD —
-Atlantic's base fee sat flat at 1 gwei. The FIRE path is proven on the
+**Live state:** 30 real observations across mainnet blocks 20872396–20872425, all HOLD —
+mainnet base fee sat flat at 10 gwei (42 MCP tool calls, 0 raw RPC). The FIRE path is proven on the
 controlled synthetic harness (`sustained-demo`) and in 12/12 unit tests.
 
 **Try it:** `node bin/run.mjs observe` (one live cycle, ~40s) ·
@@ -49,10 +50,8 @@ See `src/trend.mjs` (`movingAverage`, `classifyTrend`, `decide`, `evaluateSeries
 
 ```bash
 cd tasks/t09-trend-watcher
-export PATH="$HOME/.foundry/bin:$PATH"
-set -a; source ../../.env; set +a   # ATLANTIC_RPC_URL only; no private key needed (read-only)
 
-node bin/run.mjs observe          # live cycle: Chain MCP get_block fee window + get_gas_price spot polls -> evaluate -> persist -> report
+node bin/run.mjs observe          # live cycle: Chain MCP get_block fee window + get_gas_price spot polls -> evaluate -> persist -> report (no RPC URL, no API key, no Foundry needed)
 node bin/run.mjs report           # summary of observations + why acted/not (official req 5)
 node bin/run.mjs spike-demo       # CONTROLLED SYNTHETIC: single spike -> proves NO fire (official req 4)
 node bin/run.mjs sustained-demo  # CONTROLLED SYNTHETIC: sustained rise -> proves confirmed FIRE
@@ -108,9 +107,9 @@ Example system cron (provided for the operator — **not installed by this build
 */5 * * * * cd /path/to/lightkeeper/tasks/t09-trend-watcher && /usr/bin/env node bin/run.mjs observe >> logs/cron.log 2>&1
 ```
 
-Or as a GitHub Actions scheduled workflow hitting a self-hosted runner with
-`ATLANTIC_RPC_URL` in repo secrets. Either way: the schedule lives with the
-operator, never claimed as a SkillEngine feature.
+Or as a GitHub Actions scheduled workflow on a self-hosted runner — no secrets
+needed (the CLI talks only to the public Chain MCP endpoint). Either way: the
+schedule lives with the operator, never claimed as a SkillEngine feature.
 
 ## 7. Honest limits
 

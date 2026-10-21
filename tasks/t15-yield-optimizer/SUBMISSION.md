@@ -1,8 +1,5 @@
 # T15 — SUBMISSION PACK (copy-paste ready for the Pharos Agent Arena)
 
-> Paste the sections below into the per-task submission form. The repo link is
-> commit-pinned — fill `f646a97f7e985f1d68273331cb4212242ae21a89` after the T09–T16 commit lands.
-
 ---
 
 ## Title
@@ -17,7 +14,7 @@ with net math: live on-chain rate cards, gas + fee + holding-period accounting, 
 
 ## Description
 
-**What it does.** T15 compares ≥3 yield sources on live Atlantic-testnet data and
+**What it does.** T15 compares 2 live yield venues plus an honest 0% stay-put baseline on live Atlantic-testnet data and
 outputs a recommendation with expected net gain — or "stay put" with a reason:
 
 1. **Discovery first.** `optimizer/discover.py` enumerates real yield venues on

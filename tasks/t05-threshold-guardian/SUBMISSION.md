@@ -7,9 +7,9 @@ Threshold Guardian — policy gate that blocks threshold-breaching transfers
 
 ## One-liner
 
-A SkillEngine policy gate that intercepts proposed transfers, evaluates six
-independent on-chain conditions against a single commented policy file, and
-BLOCKS any write that breaches thresholds — with a mainnet hard-firewall.
+A SkillEngine policy gate that intercepts proposed transfers, evaluates three
+live chain reads plus three off-chain policy checks against a single commented
+policy file, and BLOCKS any write that breaches thresholds — with a mainnet hard-firewall.
 
 ## Description
 

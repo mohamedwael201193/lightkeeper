@@ -93,9 +93,9 @@ Spend ledger: `run-logs/spend-ledger.jsonl` (feeds the rolling-window check).
   passes per-tx (`0.0045 ≤ 0.005`) but the rolling window (0.018 + 0.0045 =
   0.0225 > 0.02) BLOCKS it, exit 2, nothing broadcast — the aggregate gate
   proven with a real on-chain ledger behind it.
-- **REFUSE:** `run-logs/mainnet-refusal.log` — live `eth_chainId` read against
-  the Pharos mainnet RPC returned 1672 → REFUSE, exit 3. Refused again with
-  `--confirm-mainnet` supplied: refusal is unconditional.
+- **REFUSE:** `run-logs/mainnet-refusal.log` — mainnet-class request refused by
+  policy (`policy.mainnet.chain_id=1672, enabled=false`; no mainnet RPC dialed),
+  exit 3. Refused again with `--confirm-mainnet` supplied: refusal is unconditional.
 - **Unit tests:** `python3 tests/test_policy_engine.py` — 13/13 pass (offline,
   mocked chain): boundary at threshold, rolling window, gas spike,
   insufficient balance, stale-data fail-closed, wrong-chain, mainnet refuse

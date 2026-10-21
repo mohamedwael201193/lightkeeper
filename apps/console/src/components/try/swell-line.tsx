@@ -2,8 +2,8 @@
  * T09 — Trend Watcher (Swell Line) · try it live (TIER A — live reads, no signature).
  *
  * "Trend line, live": samples the exact series the Swell Line CLI watches —
- * per-block baseFeePerGas on Atlantic testnet (chain 688689), read one block
- * at a time so the run progress can count real observations — and renders the
+ * per-block baseFeePerGas on Pharos mainnet (chain 1672), read one block
+ * at a time via the Chain MCP so the run progress can count real observations — and renders the
  * window as a real trend chart with per-block deltas,
  * fastMA(5) / slowMA(15), the 0.5% confirmation band, and the trailing
  * above-band streak. FIRE needs 3 consecutive confirmations; a single spike
@@ -1022,11 +1022,11 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                 links={[
                   {
                     label: "View first block of the window on the explorer",
-                    href: `https://atlantic.pharosscan.xyz/block/${data.oldestBlock}`,
+                    href: `https://pharosscan.xyz/block/${data.oldestBlock}`,
                   },
                   {
                     label: "View latest sampled block on the explorer",
-                    href: `https://atlantic.pharosscan.xyz/block/${data.oldestBlock + data.rows.length - 1}`,
+                    href: `https://pharosscan.xyz/block/${data.oldestBlock + data.rows.length - 1}`,
                   },
                 ]}
               />
@@ -1092,7 +1092,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
                           <td className="font-mono">
                             <a
                               className="text-accent underline decoration-dotted underline-offset-2"
-                              href={`https://atlantic.pharosscan.xyz/block/${r.blockNumber}`}
+                              href={`https://pharosscan.xyz/block/${r.blockNumber}`}
                               target="_blank"
                               rel="noreferrer"
                             >

@@ -1,167 +1,190 @@
 {
-  "shipped": true,
-  "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
-  "artifact": "t09-trend-watcher evidence packet",
-  "chain": {
-    "chainId": 688689,
-    "explorer": "https://atlantic.pharosscan.xyz/",
-    "name": "Atlantic testnet",
-    "nativeToken": "PHRS",
-    "rpc": "https://atlantic.dplabs-internal.com"
+ "shipped": true,
+ "shipped_note": "Coordinator QA: read-only task, complete by design (no broadcasts). Evidence = real query/scan transcripts.",
+ "artifact": "t09-trend-watcher evidence packet",
+ "chain": {
+  "chainId": 1672,
+  "name": "Pharos mainnet",
+  "nativeToken": "PROS",
+  "rpc": "Chain MCP https://mcp.pharos.xyz/mcp (read-only; rawRpcCalls 0)",
+  "explorer": "https://pharosscan.xyz/"
+ },
+ "claim": "Swell Line detects fee-market trends with a 5/15 MA crossover + raw-reading confirmation band; FIRES only after 3 consecutive above-band readings; single spikes provably do not trigger.",
+ "claimKind": "LIVE",
+ "demoA_spikeHarness": {
+  "fired": false,
+  "label": "SYNTHETIC-CONTROLLED",
+  "mode": "synthetic",
+  "run": "node bin/run.mjs spike-demo",
+  "series": "14x 10 gwei, 1x 50 gwei spike, 6x 10 gwei",
+  "spikeStreak": 1,
+  "streakAfterDip": 0,
+  "transcript": "sample-output/spike-demo-synthetic.txt"
+ },
+ "demoB_sustainedHarness": {
+  "cooldownHolds": true,
+  "firedAtSyntheticBlock": 99000016,
+  "label": "SYNTHETIC-CONTROLLED",
+  "mode": "synthetic",
+  "reason": "CONFIRMED_3X_ABOVE_BAND",
+  "run": "node bin/run.mjs sustained-demo",
+  "transcript": "sample-output/sustained-demo-synthetic.txt"
+ },
+ "gasSpentWei": "0",
+ "liveRuns": [
+  {
+   "cycle": "2026-10-21T22:03Z",
+   "command": "node bin/run.mjs observe",
+   "mode": "LIVE",
+   "chainId": 1672,
+   "blockRange": [
+    20872396,
+    20872425
+   ],
+   "observationsPersisted": 30,
+   "metric": "baseFeePerGas",
+   "mcpToolCalls": 42,
+   "tools": [
+    "get_block",
+    "get_block_number",
+    "get_chain_info",
+    "get_gas_price"
+   ],
+   "rawRpcCalls": 0,
+   "decision": "HOLD",
+   "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+   "note": "Post-migration live run; supersedes Atlantic-era runs for the shipped build. Atlantic-era liveRuns retained below as history."
   },
-  "claim": "Swell Line detects fee-market trends with a 5/15 MA crossover + raw-reading confirmation band; FIRES only after 3 consecutive above-band readings; single spikes provably do not trigger.",
-  "claimKind": "LIVE",
-  "demoA_spikeHarness": {
-    "fired": false,
-    "label": "SYNTHETIC-CONTROLLED",
-    "mode": "synthetic",
-    "run": "node bin/run.mjs spike-demo",
-    "series": "14x 10 gwei, 1x 50 gwei spike, 6x 10 gwei",
-    "spikeStreak": 1,
-    "streakAfterDip": 0,
-    "transcript": "sample-output/spike-demo-synthetic.txt"
-  },
-  "demoB_sustainedHarness": {
-    "cooldownHolds": true,
-    "firedAtSyntheticBlock": 99000016,
-    "label": "SYNTHETIC-CONTROLLED",
-    "mode": "synthetic",
-    "reason": "CONFIRMED_3X_ABOVE_BAND",
-    "run": "node bin/run.mjs sustained-demo",
-    "transcript": "sample-output/sustained-demo-synthetic.txt"
-  },
-  "gasSpentWei": "0",
-  "liveRuns": [
+  {
+   "blockRange": [
+    31481567,
+    31481596
+   ],
+   "chainId": 688689,
+   "command": "node bin/run.mjs observe",
+   "cycle": "2026-10-16T04:13Z approx",
+   "decision": "HOLD",
+   "gasSpotGwei": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "gasSpotNote": "context only, not in MA math",
+   "metric": "baseFeePerGas",
+   "mode": "LIVE",
+   "observationsPersisted": 30,
+   "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+   "samples": [
     {
-      "blockRange": [
-        31481567,
-        31481596
-      ],
-      "chainId": 688689,
-      "command": "node bin/run.mjs observe",
-      "cycle": "2026-10-16T04:13Z approx",
-      "decision": "HOLD",
-      "gasSpotGwei": [
-        10,
-        10,
-        10,
-        10,
-        10
-      ],
-      "gasSpotNote": "context only, not in MA math",
-      "metric": "baseFeePerGas",
-      "mode": "LIVE",
-      "observationsPersisted": 30,
-      "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
-      "samples": [
-        {
-          "blockNumber": 31481567,
-          "fastMAWei": null,
-          "mode": "LIVE",
-          "slowMAWei": null,
-          "trend": "WARMUP",
-          "valueWei": "1000000000"
-        },
-        {
-          "blockNumber": 31481586,
-          "fastMAWei": "1000000000",
-          "mode": "LIVE",
-          "slowMAWei": "1000000000",
-          "trend": "FLAT",
-          "valueWei": "1000000000"
-        },
-        {
-          "blockNumber": 31481596,
-          "fastMAWei": "1000000000",
-          "mode": "LIVE",
-          "slowMAWei": "1000000000",
-          "trend": "FLAT",
-          "valueWei": "1000000000"
-        }
-      ],
-      "signal": "NO SIGNAL — market flat inside the 0.5% band"
+     "blockNumber": 31481567,
+     "fastMAWei": null,
+     "mode": "LIVE",
+     "slowMAWei": null,
+     "trend": "WARMUP",
+     "valueWei": "1000000000"
     },
     {
-      "blockRange": [
-        31481649,
-        31481678
-      ],
-      "chainId": 688689,
-      "command": "node bin/run.mjs observe",
-      "cycle": "2026-10-16T04:15Z approx",
-      "decision": "HOLD",
-      "gasSpotGwei": [
-        10,
-        10,
-        10,
-        10,
-        10
-      ],
-      "gasSpotNote": "context only, not in MA math",
-      "metric": "baseFeePerGas",
-      "mode": "LIVE",
-      "observationsPersisted": 30,
-      "priorsLoadedFrom": "state/runtime.json (samplesTotal 30 -> 60)",
-      "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
-      "signal": "NO SIGNAL — market flat inside the 0.5% band"
+     "blockNumber": 31481586,
+     "fastMAWei": "1000000000",
+     "mode": "LIVE",
+     "slowMAWei": "1000000000",
+     "trend": "FLAT",
+     "valueWei": "1000000000"
     },
     {
-      "cycle": "2026-10-16T06:37Z",
-      "command": "node bin/run.mjs observe",
-      "mode": "LIVE",
-      "chainId": 688689,
-      "metric": "baseFeePerGas",
-      "blockRange": [
-        31486349,
-        31486378
-      ],
-      "observationsPersisted": 30,
-      "decision": "HOLD",
-      "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
-      "signal": "NO SIGNAL — market flat inside the 0.5% band",
-      "gasSpotGwei": [
-        10,
-        10,
-        10,
-        10,
-        10
-      ],
-      "gasSpotNote": "context only, not in MA math",
-      "priorsLoadedFrom": "state/runtime.json (samplesTotal 60 -> 90)",
-      "notes": "2026-10-16 Harden op cycle. Validates two fixes: (1) cast auto-resolution via ~/.foundry/bin without PATH pre-export; (2) report now shows true totals (90 live observations, not tail-60). Streak 0, firesTotal 0 — honest flat-market HOLD."
+     "blockNumber": 31481596,
+     "fastMAWei": "1000000000",
+     "mode": "LIVE",
+     "slowMAWei": "1000000000",
+     "trend": "FLAT",
+     "valueWei": "1000000000"
     }
-  ],
-  "metric": {
-    "name": "baseFeePerGas",
-    "source": "eth_feeHistory",
-    "unit": "wei (displayed gwei)"
+   ],
+   "signal": "NO SIGNAL \u2014 market flat inside the 0.5% band"
   },
-  "mode": "LIVE",
-  "priors": {
-    "cooldownBlocks": 20,
-    "lastFireBlock": null,
-    "samplesTotal": 60,
-    "streak": 0
+  {
+   "blockRange": [
+    31481649,
+    31481678
+   ],
+   "chainId": 688689,
+   "command": "node bin/run.mjs observe",
+   "cycle": "2026-10-16T04:15Z approx",
+   "decision": "HOLD",
+   "gasSpotGwei": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "gasSpotNote": "context only, not in MA math",
+   "metric": "baseFeePerGas",
+   "mode": "LIVE",
+   "observationsPersisted": 30,
+   "priorsLoadedFrom": "state/runtime.json (samplesTotal 30 -> 60)",
+   "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+   "signal": "NO SIGNAL \u2014 market flat inside the 0.5% band"
   },
-  "requirementsCoverage": {
-    "1_persistBetweenRuns": "state/observations.jsonl + runtime.json; run2 samplesTotal 30->60 proves load",
-    "2_loadPriorsAndThresholdRule": "store.loadPriors + decide() dual-condition rule",
-    "3_multipleConfirmations": "FIRE only at streak>=3; unit test + demoB",
-    "4_singleSpikeNoTrigger": "demoA + unit test",
-    "5_summaryAndWhy": "node bin/run.mjs report -> sample-output/live-report.txt"
-  },
-  "task": "T09 Trend Watcher (Swell Line)",
-  "trendParams": {
-    "bandBps": 50,
-    "confirmations": 3,
-    "cooldownBlocks": 20,
-    "fastWindow": 5,
-    "slowWindow": 15
-  },
-  "unitTests": {
-    "command": "npm test",
-    "mode": "synthetic-math-only",
-    "pass": 12,
-    "total": 12
+  {
+   "cycle": "2026-10-16T06:37Z",
+   "command": "node bin/run.mjs observe",
+   "mode": "LIVE",
+   "chainId": 688689,
+   "metric": "baseFeePerGas",
+   "blockRange": [
+    31486349,
+    31486378
+   ],
+   "observationsPersisted": 30,
+   "decision": "HOLD",
+   "reason": "FLAT_INSIDE_BAND_STREAK_RESET",
+   "signal": "NO SIGNAL \u2014 market flat inside the 0.5% band",
+   "gasSpotGwei": [
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "gasSpotNote": "context only, not in MA math",
+   "priorsLoadedFrom": "state/runtime.json (samplesTotal 60 -> 90)",
+   "notes": "2026-10-16 Harden op cycle. Validates two fixes: (1) cast auto-resolution via ~/.foundry/bin without PATH pre-export; (2) report now shows true totals (90 live observations, not tail-60). Streak 0, firesTotal 0 \u2014 honest flat-market HOLD."
   }
+ ],
+ "metric": {
+  "name": "baseFeePerGas",
+  "source": "eth_feeHistory",
+  "unit": "wei (displayed gwei)"
+ },
+ "mode": "LIVE",
+ "priors": {
+  "cooldownBlocks": 20,
+  "lastFireBlock": null,
+  "samplesTotal": 60,
+  "streak": 0
+ },
+ "requirementsCoverage": {
+  "1_persistBetweenRuns": "state/observations.jsonl + runtime.json; run2 samplesTotal 30->60 proves load",
+  "2_loadPriorsAndThresholdRule": "store.loadPriors + decide() dual-condition rule",
+  "3_multipleConfirmations": "FIRE only at streak>=3; unit test + demoB",
+  "4_singleSpikeNoTrigger": "demoA + unit test",
+  "5_summaryAndWhy": "node bin/run.mjs report -> sample-output/live-report.txt"
+ },
+ "task": "T09 Trend Watcher (Swell Line)",
+ "trendParams": {
+  "bandBps": 50,
+  "confirmations": 3,
+  "cooldownBlocks": 20,
+  "fastWindow": 5,
+  "slowWindow": 15
+ },
+ "unitTests": {
+  "command": "npm test",
+  "mode": "synthetic-math-only",
+  "pass": 12,
+  "total": 12
+ }
 }

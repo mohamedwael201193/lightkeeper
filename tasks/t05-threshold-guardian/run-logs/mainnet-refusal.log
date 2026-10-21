@@ -1,0 +1,42 @@
+======================================================================
+THRESHOLD GUARDIAN — decision trace   2026-10-21T22:04:37.169663+00:00
+======================================================================
+proposal : send 0.000100 PHRS
+           from 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+           to   0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+----------------------------------------------------------------------
+[PASS] Private key check (SKILL.md #1)
+       value : set
+       note  : private key present in environment (value never logged)
+[PASS] Sender binding (SKILL.md #2)
+       value : 0xf76e6b0920e9332ff4410f6dd53f01722abc71a3
+       note  : env key derives to the policy sender; proposal matches
+[FAIL] Network check (SKILL.md #3) — mainnet firewall
+       value : chainId=1672 (mainnet, policy-declared)
+       note  : mainnet-class action REFUSED (policy.mainnet.enabled=false). Declared chain id 1672 (mainnet) — refused by policy, no mainnet RPC was dialed. Explicit re-confirmation was NOT provided — refusal is unconditional, there is no override flag.
+----------------------------------------------------------------------
+DECISION: REFUSE
+======================================================================
+
+REFUSED: mainnet-class action. No key material used, nothing broadcast.
+======================================================================
+THRESHOLD GUARDIAN — decision trace   2026-10-21T22:05:07.452002+00:00
+======================================================================
+proposal : send 0.000100 PHRS
+           from 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+           to   0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3
+----------------------------------------------------------------------
+[PASS] Private key check (SKILL.md #1)
+       value : set
+       note  : private key present in environment (value never logged)
+[PASS] Sender binding (SKILL.md #2)
+       value : 0xf76e6b0920e9332ff4410f6dd53f01722abc71a3
+       note  : env key derives to the policy sender; proposal matches
+[FAIL] Network check (SKILL.md #3) — mainnet firewall
+       value : chainId=1672 (mainnet, policy-declared)
+       note  : mainnet-class action REFUSED (policy.mainnet.enabled=false). Declared chain id 1672 (mainnet) — refused by policy, no mainnet RPC was dialed. Explicit re-confirmation was provided — refusal is unconditional, there is no override flag.
+----------------------------------------------------------------------
+DECISION: REFUSE
+======================================================================
+
+REFUSED: mainnet-class action. No key material used, nothing broadcast.

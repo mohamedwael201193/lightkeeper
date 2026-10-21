@@ -1,7 +1,5 @@
 # SUBMISSION PACK — T06 Saga Executor (copy-paste ready)
 
-> Fill `278ee1c2895bf25971444b78a4e57e18dd376d56` after the module commit lands (see coordinator), then paste.
-
 ## Title
 
 `Saga Executor — multi-step on-chain workflows with honest compensation (T06)`

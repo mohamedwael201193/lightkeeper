@@ -148,6 +148,7 @@ def main():
         emoji = "🟠" if z == "WARNING" else "🔴"
         msg = (
             f"{emoji} LIQUIDATION WATCHDOG — {z}\n"
+            f"Time: {datetime.now(timezone.utc).isoformat(timespec='seconds')}\n"
             f"Position: {cfg['watched_user']}\n"
             f"Health factor: {data['hf']:.4f} "
             f"({'below warn ' + str(cfg['warn_hf']) if z == 'WARNING' else 'below critical ' + str(cfg['critical_hf'])})\n"

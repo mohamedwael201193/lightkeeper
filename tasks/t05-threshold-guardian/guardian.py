@@ -164,18 +164,22 @@ def check_sender_binding(policy, proposal_sender):
 
 
 def check_network(policy, network_flag, confirm_mainnet):
-    """P1: chain id read live. Anything but Atlantic => REFUSE, no override."""
+    """P1: chain id read live. Anything but Atlantic => REFUSE, no override.
+
+    Mainnet-class requests are refused BY POLICY — the guardian never dials
+    a mainnet RPC. policy.network.mainnet declares chain_id 1672 with
+    enabled=false; no override flag exists, so no live read is needed to
+    refuse. (Atlantic reads below stay direct-RPC: the Chain MCP serves
+    mainnet 1672 only, so it cannot read Atlantic 688689.)"""
     main = policy["network"]["mainnet"]
     if network_flag == "mainnet":
-        rpc_url = main["rpc_url"]
-        chain_id, err = rpc_call(rpc_url, "eth_chainId")
-        live = int(chain_id, 16) if chain_id else None
         reason = (
             f"mainnet-class action REFUSED (policy.mainnet.enabled=false). "
-            f"Live chain id at {main['name']} rpc: {live}. "
+            f"Declared chain id {main['chain_id']} ({main['name']}) — refused by policy, "
+            f"no mainnet RPC was dialed. "
             f"Explicit re-confirmation was {'provided' if confirm_mainnet else 'NOT provided'} "
             f"— refusal is unconditional, there is no override flag.")
-        return False, f"chainId={live} ({main['name']})", reason, True
+        return False, f"chainId={main['chain_id']} ({main['name']}, policy-declared)", reason, True
     rpc_url = policy["network"]["rpc_url"]
     chain_id, err = rpc_call(rpc_url, "eth_chainId")
     if chain_id is None:

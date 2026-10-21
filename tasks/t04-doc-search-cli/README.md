@@ -192,6 +192,11 @@ Key design decisions:
 
 - Answers depend on the live Docs MCP: if the endpoint is down, the CLI errors
   (exit 1) instead of answering from memory. It never silently serves stale data.
+- **Endpoint reliability (observed 2026-10-19/20):** the public Docs MCP drops
+  ~30–40% of connections mid-stream (`RemoteDisconnected`/`IncompleteRead`); the
+  CLI retries with backoff, but a worst-case run can take ~3.5 minutes before it
+  gives up (exit 1). A live reviewer should expect occasional slow runs — that is
+  the endpoint, not the wrapper.
 - The MCP's search ranking is the docs site's own; the CLI quotes what the MCP
   returns, verbatim — including any docs-publishing artifacts on the pages.
 - `askQuestion` answers are synthesized by the MCP's answer engine over the docs

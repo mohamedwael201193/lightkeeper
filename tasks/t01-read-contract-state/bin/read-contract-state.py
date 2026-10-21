@@ -4,7 +4,10 @@
 Reads typed state from one live contract on Pharos mainnet (chain 1672)
 through the REAL Chain MCP (https://mcp.pharos.xyz/mcp) — every read is an
 MCP tools/call by name (get_chain_info / get_code / get_block_number /
-eth_call). No raw JSON-RPC against an RPC URL anywhere in this task.
+eth_call). The READER issues no raw JSON-RPC against an RPC URL anywhere —
+its four values come only from named Chain MCP tool calls. (The test suite's
+§3 independently re-reads the same values via raw JSON-RPC as an
+openly-labeled verification control — that is the test harness, not the reader.)
 
 Gates (fail LOUD, never silent):
   1. chain-id assertion — abort unless the MCP reports the expected chain

@@ -31,7 +31,7 @@ transactions** (refund + allowance revoke).
   receipt, RPC error) retry ≤3 times with 5/15/45s backoff and +20% gas bumps per
   attempt. A mined `0x0` is *permanent* — never retried, routed straight to
   compensation. Decision table unit-tested (`python3 scripts/saga.py --selftest`,
-  21 cases).
+  25 cases).
 - **Post-state gates:** a `0x1` receipt is not enough — each step also asserts
   on-chain state before the next starts (allowance ≥ amount, `locked` delta,
   `settled` flag, balance restoration). A gate failure escalates to compensation.

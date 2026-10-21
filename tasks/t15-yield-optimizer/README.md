@@ -20,7 +20,7 @@ whether to move your oil — or stay put.*
 A yield optimizer with radical honesty as its competitive edge. It (1) **discovers**
 what yield venues actually exist on Atlantic testnet, (2) reads **live on-chain rate
 views** (reward rate, entry/exit fees, minimum holding period, reward-pool runway) from
-≥3 sources at a **pinned block**, (3) computes **net yield** — gross rewards minus
+the 2 live venues plus the 0% stay-put baseline at a **pinned block**, (3) computes **net yield** — gross rewards minus
 entry fee, minus exit fee (waived only after the holding period), minus real gas from
 live `eth_gasPrice` × `eth_estimateGas`, and (4) outputs a **recommendation with
 expected net gain, or "stay put" with a reason**. Execution is **unsigned-tx only**:
@@ -138,7 +138,7 @@ itself can only *propose* unsigned transactions.
 
 | # | Official requirement (T15, Hard) | How it is met | Evidence |
 |---|---|---|---|
-| 1 | Compares ≥3 yield sources on LIVE on-chain data | Two disclosed builder-deployed OctopusVaults (Kelp, Kraken) + honest 0% wallet baseline; every rate/fee/hold view read via `eth_call` at ONE pinned block (31482643) with explorer block link | `runs/scan.json` (`source_count: 3`), `runs/discovery.json` (empty third-party finding) |
+| 1 | Compares ≥3 yield sources on LIVE on-chain data | Two disclosed builder-deployed OctopusVaults (Kelp, Kraken) with live on-chain rate views + an honest 0% wallet baseline as the stay-put comparator (disclosed: the third comparator yields nothing by construction); every rate/fee/hold view read via `eth_call` at ONE pinned block (31482643) with explorer block link | `runs/scan.json` (`source_count: 3`), `runs/discovery.json` (empty third-party finding) |
 | 2 | Accounts for gas + entry/exit fees + minimum holding period | `net(H) = runway-capped gross − entryFee − exitFee(H<minHold) − gas`; live `eth_gasPrice`, measured (never assumed) block time; fee-sensitivity run at two horizons shows the flip | `optimizer/optimize.py`, `runs/recommendation.json` (50-block → STAY PUT, 1000-block → ALLOCATE) |
 | 3 | Outputs clear recommendation with expected net gain, or 'stay put' with reason | `ALLOCATE` → winner + `expected_net_wei`/`expected_net_phrs`; `STAY PUT` → reason string; per-venue net/APY ledger with assumption notes | `runs/recommendation.json` |
 | 4 | If executing: prepares txs for USER SIGNATURE ONLY — agent never holds keys | `prepare.py` builds an unsigned deposit tx (`signed: false`, no v/r/s fields, chain-id gated to 688689); CI grep gate in tests fails on any signing code or secret material | `optimizer/prepare.py`, `runs/unsigned_deposit.json`, `tests/test_optimizer.py` (12/12 pass) |

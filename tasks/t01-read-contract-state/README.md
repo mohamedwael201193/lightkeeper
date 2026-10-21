@@ -29,7 +29,7 @@ never silent zeros. **Zero raw JSON-RPC calls** against any RPC URL.
 
 | # | Official Arena requirement | How this submission meets it | Evidence |
 |---|---|---|---|
-| 1 | Read ≥3 different values from one contract **via Chain MCP** | 4 values from one contract — `name()` (string), `symbol()` (string), `decimals()` (uint8), `totalSupply()` (uint256) — each read as an MCP `tools/call` named `eth_call`. No `eth_*` call is ever made against an RPC URL. | `bin/read-contract-state.py` (`read_view`); manifest `mcpToolsCalled`; `sample-output/transcript-live.txt` |
+| 1 | Read ≥3 different values from one contract **via Chain MCP** | 4 values from one contract — `name()` (string), `symbol()` (string), `decimals()` (uint8), `totalSupply()` (uint256) — each read as an MCP `tools/call` named `eth_call`. The reader never issues an `eth_*` call against an RPC URL — all reads are named Chain MCP tool calls (test §3 re-reads the same values via raw JSON-RPC as an openly-labeled independent verification control). | `bin/read-contract-state.py` (`read_view`); manifest `mcpToolsCalled`; `sample-output/transcript-live.txt` |
 | 2 | Show contract address + block number read at | Every run prints the contract address and the pinned block; all 4 reads carry that block. | Transcript header; manifest `blockReadAt` |
 | 3 | Format raw values for humans (decimals applied, addresses labelled) | `decimals()` is read **from the contract itself (6)** — never assumed — and `totalSupply` renders as `43,376,165.573737 USDC`. Addresses are checksummed and labelled via `config/labels.json`; the zero address is special-cased; unknown addresses print `unlabeled address` — never a made-up label. | Transcript `human` lines; `config/labels.json` |
 | 4 | Short README (which contract, how to run, sample output) | This file: contract + explorer link (§1), one-command run (§4), real sample output (§5). | — |
@@ -154,7 +154,7 @@ fail loudly (2/2). Transcript: `sample-output/transcript-negative.txt`.
 4. Negative path: suite passes + direct no-code-address read aborts.
 5. Chain-id gate: `EXPECT_CHAIN_ID=1` aborts.
 
-Result: **7/7 groups PASS** (15 individual checks).
+Result: **5/5 groups PASS, 7/7 shell checks, 0 failed** (§3's python harness adds 8 byte-compare checks; §4's negative suite is 2/2 loud).
 
 ## 9 · Files & evidence index
 

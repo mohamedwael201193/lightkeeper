@@ -73,8 +73,8 @@ non-evidence appendix. Where the docs couldn't answer, the log says so with the 
   seconds": a guided picker (read state / send / deploy / watch events) that generates the EXACT
   copy-paste `cast`/`forge` command with the Atlantic RPC and chain ID filled in, a one-line
   explanation of every flag, and a copy button per command — all derived from this task's real
-  Docs-MCP answers (`evidence.json`: 688689/PHRS chain identity, the 100-block `eth_getLogs` paging
-  answer, the 1672-vs-688689 chain-identity trap). Nothing executes in the browser; the visitor runs
+  Docs-MCP answers (`evidence/runs/run-mcp-20261019T200816Z.json` + `evidence/transcripts/transcript-20261019T200816Z.md`: 688689/PHRS chain identity, the 100-block `eth_getLogs` paging
+  answer, the 1672-vs-688689 chain-identity trap — a second confirming 10-query rerun is at `evidence/runs/run-mcp-20261020T042645Z.json`; legacy 2026-10-16 `?ask=`-endpoint runs live in `evidence.json` and are labeled legacy, not evidence). Nothing executes in the browser; the visitor runs
   the command in their own terminal. LIGHTKEEPER never sees, holds, or asks for private keys.
 - **2026-10-16 hardening:** every generated command was re-verified against the live Atlantic RPC —
   which caught and fixed a real bug: the builder generated `cast logs --topic …`, a flag cast does

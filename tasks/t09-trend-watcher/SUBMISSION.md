@@ -65,7 +65,7 @@ New interactive surface: `apps/console/src/components/try/swell-line.tsx`
 (default-exports `TrySwellLine`, lazy-loaded by `TryPanel` for lamp slug
 `swell-line` — no registry edits needed).
 
-- One click samples a **30-block `eth_feeHistory` window** from Atlantic (same source as
+- One click samples a **30-block per-block `get_block` window** from Pharos mainnet via the Chain MCP (same source as
   the CLI), and renders: the trailing streak + verdict chip (**▲ TRENDING UP ×n** /
   **◌ BUILDING** / **○ HOLD** with the honest reason), a sparkline of base fee with
   above-band readings dotted, and a 16-row table (block, base fee gwei, Δ, fastMA(5),

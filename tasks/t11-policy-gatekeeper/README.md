@@ -110,6 +110,11 @@ unit tests.
 - The time window is a demo window; production would set real ops hours.
 - Cooldown is per-machine (audit file), not global across the 28 workers.
 - Gate-stamp = software guardrail, not a cryptographic signature.
+- **Not proxy-rewired (deliberate):** the console panel reads Atlantic directly
+  because `/api/mcp` (the console's MCP proxy) serves Pharos mainnet 1672 only,
+  and this task's policy is Atlantic-only (chain 688689) — rewiring it through
+  the proxy would point it at the wrong chain. Direct Atlantic reads are the
+  correct transport here; the Chain MCP cannot serve this chain.
 
 ## 9. Requirements → evidence
 
