@@ -10,7 +10,7 @@
     "get_chain_info",
     "get_code"
   ],
-  "blockReadAt": 20717196,
+  "blockReadAt": 20872843,
   "values": [
     {
       "name": "name",
@@ -40,14 +40,14 @@
       "name": "totalSupply",
       "type": "uint256",
       "selector": "0x18160ddd",
-      "raw": "0x000000000000000000000000000000000000000000000000000027c8eafe179c",
-      "decoded": "43743889463196",
-      "human": "43,743,889.463196 USDC"
+      "raw": "0x00000000000000000000000000000000000000000000000000002cf3130c84a0",
+      "decoded": "49422508262560",
+      "human": "49,422,508.26256 USDC"
     }
   ],
   "rawRpcCalls": 0,
-  "gitCommit": "999f65f",
+  "gitCommit": "8313edf",
   "gitDirty": true,
   "command": "bin/read-contract-state.sh --manifest evidence/run-manifest.json",
-  "createdAt": "2026-10-20T04:24:39.691191+00:00"
+  "createdAt": "2026-10-21T22:13:22.969605+00:00"
 }
