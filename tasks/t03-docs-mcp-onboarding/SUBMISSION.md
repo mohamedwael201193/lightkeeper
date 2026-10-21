@@ -57,8 +57,8 @@ non-evidence appendix. Where the docs couldn't answer, the log says so with the 
 
 ## Links
 
-- Code + evidence (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t03-docs-mcp-onboarding
-- README: https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t03-docs-mcp-onboarding#readme
+- Code + evidence (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t03-docs-mcp-onboarding
+- README: https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t03-docs-mcp-onboarding#readme
 - Raw query log: https://github.com/mohamedwael201193/lightkeeper/blob/9eca5c9/tasks/t03-docs-mcp-onboarding/evidence/runs/run-mcp-20261019T200816Z.json
 - Gap table: https://github.com/mohamedwael201193/lightkeeper/blob/9eca5c9/tasks/t03-docs-mcp-onboarding/evidence.md
 

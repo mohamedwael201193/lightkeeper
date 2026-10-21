@@ -63,7 +63,7 @@ Total gas: 0.00164 PHRS (budget 0.15). No mocks, no simulated prices, no
 placeholder alerts — every number in the alert came from a real `eth_call`.
 
 **Repo (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t16-liquidation-watchdog
+https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t16-liquidation-watchdog
 
 **Share/demo links:** PENDING-VIDEO
 

@@ -47,7 +47,7 @@ by this build (dust only).
 
 ## Repo link (commit-pinned)
 
-https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t10-batch-executor
+https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t10-batch-executor
 
 ## Share / demo links
 

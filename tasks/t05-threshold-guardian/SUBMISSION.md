@@ -77,7 +77,7 @@ numbers compared (each condition PASS/BLOCK, e.g.
 
 ## Links
 
-- Source (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/9eca5c9b167b633259850a7623347fa2fe499c70/tasks/t05-threshold-guardian
+- Source (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t05-threshold-guardian
 - Demo video: https://hallowed-lichen-6ef2.here.now/T05-threshold-guardian.mp4
 - FIRE tx: https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c
 - Share link (portal session): PENDING — coordinator adds if/when available
