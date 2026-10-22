@@ -1,7 +1,7 @@
 # T09 — Arena Submission Pack (copy-paste ready)
 
 > Video slot: **REPLACE_WITH_NEW_VIDEO_LINK** — film per the re-record guide, then paste the link.
-> Pinned tree: `https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t09-trend-watcher`
+> Pinned tree: `https://github.com/mohamedwael201193/lightkeeper/tree/817f3bc2d2ec85b7e2f8997bfa758a1da36fd606/tasks/t09-trend-watcher`
 
 ---
 
@@ -41,7 +41,7 @@ Read-only: 0 gas spent, no keys, no broadcast. FIRE is an off-chain signal.
 
 ## Links
 
-- **Repo (pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t09-trend-watcher
+- **Repo (pinned):** https://github.com/mohamedwael201193/lightkeeper/tree/817f3bc2d2ec85b7e2f8997bfa758a1da36fd606/tasks/t09-trend-watcher
 - **Proof — explorer, sampled window (curl-verified 200):**
   https://pharosscan.xyz/block/20716110 · https://pharosscan.xyz/block/20716139
   (Chain MCP migration cycle, 2026-10-20; Atlantic-era window: blocks 31481567 /
