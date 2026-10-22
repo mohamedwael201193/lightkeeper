@@ -43,7 +43,7 @@ a nonexistent hash cleanly parked `broadcast-unknown` after the RPC stalled —
 zero broadcasts made by the test), and 15/15 passing unit tests.
 
 **Repo Link (commit-pinned):**
-https://github.com/mohamedwael201193/lightkeeper/tree/a107558293b172544f79be0372760e2b73b60626/tasks/t18-recurring-payment-agent
+https://github.com/mohamedwael201193/lightkeeper/tree/bd2b759ee66c8240778d6a7052d914c99759ba6f/tasks/t18-recurring-payment-agent
 
 **Proof Link (live tx):**
 https://atlantic.pharosscan.xyz/tx/0xeec25b539944419c8a507bc34c2ad20595737997fd702c1bf7d262e45807ec10

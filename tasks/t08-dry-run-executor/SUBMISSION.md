@@ -119,7 +119,7 @@ propose + sign in the visitor's own wallet):
 
 ## Repo link (commit-pinned)
 
-`https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t08-dry-run-executor`
+`https://github.com/mohamedwael201193/lightkeeper/tree/bd2b759ee66c8240778d6a7052d914c99759ba6f/tasks/t08-dry-run-executor`
 
 *(Pinned commit's T08 tree: Chain MCP migration, scenarios B+C gated broadcasts with receipts, prediction ledger, console track-record strip.)*
 

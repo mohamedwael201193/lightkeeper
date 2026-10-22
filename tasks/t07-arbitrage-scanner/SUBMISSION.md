@@ -25,10 +25,10 @@ Proven on-chain (chain 688689):
 - 10/10 tests pass, including a live cross-check that the Python quoter equals ArbPool.getAmountOut on-chain at a pinned block.
 
 ## Repo link (commit-pinned)
-https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t07-arbitrage-scanner
+https://github.com/mohamedwael201193/lightkeeper/tree/bd2b759ee66c8240778d6a7052d914c99759ba6f/tasks/t07-arbitrage-scanner
 
 ## Proof link
-https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t07-arbitrage-scanner/evidence.md
+https://github.com/mohamedwael201193/lightkeeper/tree/bd2b759ee66c8240778d6a7052d914c99759ba6f/tasks/t07-arbitrage-scanner/evidence.md
 (Independently verifiable: `python3 scanner.py` re-runs the scan against the same on-chain venues.)
 
 ## Key tx hashes (Atlantic, chain 688689)

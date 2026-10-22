@@ -47,14 +47,14 @@ Proof it works:
   25 unit tests pass (receipt classifier, retry table, state machine,
   resume-point parser).
 
-Code: PIN-TO-FIX-COMMIT/tasks/t06-saga-executor (re-pin at the fix commit; dc949c522fa32ccd7e66198e9e82fa8fb517c9e0 was the pre-fix pin)
+Code: tree/bd2b759ee66c8240778d6a7052d914c99759ba6f/tasks/t06-saga-executor
 Evidence: evidence.md + evidence.json in the same dir (26 tx links — 13 canonical
 + 2 deploys + 2 aborted + 9 auditor re-verification — plus 2 contract links,
 all explorer links curl-verified server-rendered).
 
 ## Links
 
-- Code (commit-pinned): `PIN-TO-FIX-COMMIT/tasks/t06-saga-executor` (re-pin at the fix commit)
+- Code (commit-pinned): `tree/bd2b759ee66c8240778d6a7052d914c99759ba6f/tasks/t06-saga-executor` (re-pin at the fix commit)
 - Interactive demo (console "Try it live"): `https://lightkeeper-console.vercel.app` — open the
   **T06 Saga Executor** lamp and scroll to the live surface: an interactive timeline of the
   forced-failure run (click each step: tx, receipt, executor decision), a crash-recovery

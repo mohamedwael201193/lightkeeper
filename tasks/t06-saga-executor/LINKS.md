@@ -54,5 +54,5 @@ State log + plan: `runs/t06-run-c-20261016-063734/{state.log,plan.json,run.json}
 
 ## Repo
 
-- Module dir (PIN-TO-FIX-COMMIT — re-pin at the fix commit; was 32951cf4f0b9105046aef5bd5dcd4d5f3f85b531 at submission time, see SUBMISSION.md):
-  `PIN-TO-FIX-COMMIT/tasks/t06-saga-executor`
+- Module dir (tree/bd2b759ee66c8240778d6a7052d914c99759ba6f — re-pin at the fix commit; was 32951cf4f0b9105046aef5bd5dcd4d5f3f85b531 at submission time, see SUBMISSION.md):
+  `tree/bd2b759ee66c8240778d6a7052d914c99759ba6f/tasks/t06-saga-executor`
