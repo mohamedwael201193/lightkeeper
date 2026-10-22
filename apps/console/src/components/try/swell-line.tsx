@@ -24,7 +24,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, animate, useReducedMotion } from "framer-motion";
 import type { Lamp } from "../../types";
-import { rpcCall } from "../../hooks/useAtlantic";
+import { mcpCall, chainMcp } from "../../hooks/useMcp";
 import { ResultCard, ProgressLoader, EmptyState, ErrorState, StatStrip } from "../ui";
 
 const FAST = 5;
@@ -65,16 +65,17 @@ function above(fastMA: bigint, slowMA: bigint, raw: bigint): boolean {
 }
 
 /**
- * Samples `window` blocks of base-fee history from Atlantic testnet (chain 688689)
- * and computes the trend verdict. The observation cycle is progressive so the
- * run progress can show a REAL count: it pins the tip (eth_blockNumber), then
- * reads each block's baseFeePerGas with one real eth_getBlockByNumber call per
- * block — the exact same per-block series the Swell Line CLI gets from
- * eth_feeHistory (bin/run.mjs observe) — advancing onObservation as each call
- * resolves. onStage tracks the real async stages: 0 = pinning tip,
- * 1 = observing blocks, 2 = verdict computation (synchronous, instant).
- * onBlock fires once per REAL completed observation (block + fee) so the run
- * act can draw each point as it arrives — never a timer.
+ * Samples `window` blocks of base-fee history from Pharos mainnet (chain 1672)
+ * via the Chain MCP (same source as the CLI) and computes the trend verdict.
+ * The observation cycle is progressive so the run progress can show a REAL
+ * count: it pins the tip (MCP get_block_number), then reads each block's
+ * baseFeePerGas with one real MCP get_block tools/call per block — the exact
+ * same per-block series the Swell Line CLI gets (bin/run.mjs observe) —
+ * advancing onObservation as each call resolves. onStage tracks the real async
+ * stages: 0 = pinning tip, 1 = observing blocks, 2 = verdict computation
+ * (synchronous, instant). onBlock fires once per REAL completed observation
+ * (block + fee) so the run act can draw each point as it arrives — never a
+ * timer.
  */
 interface TrendProgress {
   onStage: (stage: number) => void;
@@ -84,24 +85,28 @@ interface TrendProgress {
 
 async function sampleTrend(window: number, prog?: TrendProgress): Promise<TrendResult> {
   prog?.onStage(0);
-  const tipHex = (await rpcCall("eth_blockNumber", [])) as string;
-  const tip = Number(BigInt(tipHex));
+  const tipInfo = (await chainMcp.getBlockNumber()) as {
+    blockNumber: string;
+    blockNumberHex: string;
+  };
+  const tip = Number(BigInt(tipInfo.blockNumberHex));
   const oldest = tip - window + 1;
   if (oldest <= 0)
-    throw new Error(`Atlantic tip ${tip} is below the ${window}-block window — cannot sample.`);
+    throw new Error(`Mainnet tip ${tip} is below the ${window}-block window — cannot sample.`);
   prog?.onStage(1);
 
-  // One real RPC call per observation; the count is real, not a timer.
+  // One real Chain MCP get_block tools/call per observation; the count is real, not a timer.
   const fees: bigint[] = new Array<bigint>(window);
   let done = 0;
   await Promise.all(
     Array.from({ length: window }, (_, i) => {
       const blockNumber = oldest + i;
-      return rpcCall("eth_getBlockByNumber", [`0x${blockNumber.toString(16)}`, false])
+      const blockHex = `0x${blockNumber.toString(16)}`;
+      return mcpCall("chain", "get_block", { block: blockHex })
         .then((b) => {
           const block = b as { baseFeePerGas?: string } | null;
           if (!block || !block.baseFeePerGas)
-            throw new Error(`Atlantic did not return block ${blockNumber}.`);
+            throw new Error(`Chain MCP did not return block ${blockNumber}.`);
           fees[i] = BigInt(block.baseFeePerGas);
           prog?.onBlock?.(blockNumber, fees[i]);
         })
@@ -114,7 +119,7 @@ async function sampleTrend(window: number, prog?: TrendProgress): Promise<TrendR
   prog?.onStage(2);
 
   if (fees.length < SLOW)
-    throw new Error(`Atlantic returned only ${fees.length} fee samples — need at least ${SLOW}.`);
+    throw new Error(`Chain MCP returned only ${fees.length} fee samples — need at least ${SLOW}.`);
 
   const rows: Row[] = fees.map((wei, i) => {
     const fast = i >= FAST - 1 ? meanWei(fees.slice(i - FAST + 1, i + 1)) : null;
@@ -750,7 +755,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
       })
       .catch((e: unknown) => {
         if (alive())
-          setError(e instanceof Error ? e.message : "The Atlantic RPC did not answer.");
+          setError(e instanceof Error ? e.message : "The Chain MCP did not answer.");
       })
       .finally(() => {
         if (alive()) setLoading(false);
@@ -952,9 +957,10 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
               </div>
               <p className="mt-3 text-sm text-slate">
                 The window is pinned at the tip, then every block is read with its own real{" "}
-                <code className="font-mono text-sm">eth_getBlockByNumber</code> call — the run
+                <code className="font-mono text-sm">get_block</code> Chain MCP call — the run
                 progress counts them as they arrive. The CLI samples {DEFAULT_WINDOW} blocks by
-                default; every reading on this page is a real Atlantic block, read live.
+                default; every reading on this page is a real Pharos mainnet block, read live
+                via the Chain MCP.
               </p>
             </div>
           </section>
@@ -967,7 +973,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
               onClick={() => setRunId((n) => n + 1)}
               disabled={loading}
             >
-              {loading ? "Sampling Atlantic…" : data ? "Re-sample (free)" : "Sample the fee market"}
+              {loading ? "Sampling mainnet…" : data ? "Re-sample (free)" : "Sample the fee market"}
             </button>
             <span className="text-sm text-slate">
               fast {FAST} / slow {SLOW} · band {BAND_BPS} bps · {CONFIRMATIONS} confirmations to fire
@@ -981,8 +987,8 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
               <ProgressLoader
                 title={stage === 1 ? `Observing ${observed} of ${window}…` : "Sampling the fee market"}
                 steps={[
-                  "Pin the tip — eth_blockNumber",
-                  `Observe ${window} blocks — one real eth_getBlockByNumber call each`,
+                  "Pin the tip — MCP get_block_number",
+                  `Observe ${window} blocks — one real MCP get_block call each`,
                   "Compute the trend verdict",
                 ]}
                 current={stage}
@@ -1032,12 +1038,12 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
               />
 
               <p className="max-w-2xl text-[13px] leading-relaxed text-slate">
-                Honest note on the uniform column: Atlantic&apos;s base fee is
-                protocol-flat at exactly 1 gwei — verified against
-                eth_feeHistory, where 30 consecutive blocks all returned
-                0x3b9aca00 (1,000,000,000 wei). The identical readings are the
-                chain&apos;s real state, not a display artifact; on a flat-fee
-                chain the honest verdict is Hold.
+                Honest note on the readings: every base fee on this page comes
+                from a live Pharos mainnet block header fetched via the Chain
+                MCP&apos;s <code>get_block</code> tool — the same source as the
+                CLI. If a stretch of readings looks uniform, that is the
+                chain&apos;s real state at those blocks, not a display
+                artifact; on a flat stretch the honest verdict is Hold.
               </p>
 
               <motion.div
@@ -1127,7 +1133,7 @@ export default function TrySwellLine({ lamp }: { lamp: Lamp }) {
           {!loading && !error && !data && runId === 0 && (
             <EmptyState
               title="No sample yet"
-              message={`Sample the fee market to pull ${window} real blocks of Atlantic base-fee history — the verdict arrives with the trend line and every number on the table.`}
+              message={`Sample the fee market to pull ${window} real blocks of Pharos mainnet base-fee history — the verdict arrives with the trend line and every number on the table.`}
               actionLabel="Sample the fee market"
               onAction={() => setRunId((n) => n + 1)}
             />
