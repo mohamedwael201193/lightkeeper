@@ -73,6 +73,20 @@ line carrying a tx hash for approve, across both invocations (the resume
 appends a RESUMED marker, not a second broadcast). Saga state: `SUCCEEDED`.
 Run spend: 0.0001995 PHRS.
 
+## Auditor re-verification runs (2026-10-22, independent re-runs)
+
+Two fresh runs on 2026-10-22 re-prove the saga paths with new on-chain transactions:
+
+- **Auditor run A** (`runs/t06-run-a-20261022-170455/`, dust 1000 wei): full-success
+  path with a mid-step crash → resumed from the state log → `SUCCEEDED`
+  (approve 0x4c6b6e…2776, lock 0xcc0328…260d7, execute 0xc67f29…49817,
+  settle 0x1afeaa…54b288 — blocks 31749790–31749863, all 0x1).
+- **Auditor run B** (`runs/t06-run-b-20261022-170705/`, dust 2000 wei): forced
+  failure → `COMPENSATED` (approve 0xcf4705…4f962, lock 0x507798…ba3e9d,
+  execute 0xb6ea8b…af1a8 = REAL 0x0, compensate refund 0xd5d9ed…1c623,
+  compensate revoke 0xb9d28c…9bcfe — blocks 31749881–31749931).
+- All 9 txs are in `evidence.json` → `transactions` and `LINKS.md`.
+
 ## Failure forensics (Run B, zero new spend — pure reads)
 
 - **Revert reason:** `TestFixture: minOut exceeds locked balance` — confirmed
@@ -101,7 +115,7 @@ as the canonical Run B above.
 
 ## Spend log
 
-Receipt-based accounting (Σ gasUsed × effectiveGasPrice over T06's own 13 txs;
+Receipt-based accounting (Σ gasUsed × effectiveGasPrice over T06's own 26 txs;
 wallet deltas are not used — 27 other workers share the key):
 
 | Bucket | PHRS |
@@ -111,7 +125,9 @@ wallet deltas are not used — 27 other workers share the key):
 | Aborted Run B attempt (2 txs) | 0.000092769000092769 |
 | Canonical Run B (5 txs) | 0.000218299000218299 |
 | Run C (4 txs, crash → resume) | 0.000199487000199487 |
-| **Total** | **0.00237628000237628** (budget 0.15) |
+| Auditor run A (4 txs, crash → resume → SUCCEEDED) | 0.000145387000145387 |
+| Auditor run B (5 txs, forced 0x0 → COMPENSATED) | 0.000186339000186339 |
+| **Total** | **0.002708006002708006** (budget 0.15) |
 
 Gas is unrecoverable by design: the forced `0x0` burned 24,231 gas; both
 compensation txs cost gas. Reported, not hidden.

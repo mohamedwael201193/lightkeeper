@@ -13,7 +13,7 @@ Deployer (shared test key): `0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3`.
 | poolB (1000 WPHRS / 980 TKB) | `0x432BCd7bc6944Def44015bF00C82Eb50aA18A3F6` | `0x0592a0075a8a48848c3b32240f4ee05bda954d0f5c59ef1407813859a7f695e0` |
 | poolC (1000 WPHRS / 1020 TKB) | `0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D` | `0x3a0bc2631f958f13a016f3608eb98157a9e9b50efab994a26efc87106041e1fc` |
 
-Setup txs: 2 mints (`0xf44fa64b…90dd0`, `0x469add8f…add40ed`), 6 approvals, 3 seeds (`0x0358cd6c…9853c347`, `0x8930f5f9…46cdd8a8`, `0x9f7fd60c…282d2c2f`) — full list in evidence.json. Source: `src/MockToken.sol`, `src/ArbPool.sol` (original code; `forge script --broadcast` is broken on this RPC — see REVIEWER_NOTES.md — so `forge create --broadcast` + `cast send` were used with identical bytecode).
+Setup txs: 2 mints (`0xf44fa64b…90dd0`, `0x469add8f…add40ed`), 6 approvals, 3 seeds (`0x0358cd6c…9853c347`, `0x8930f5f9…46cdd8a8`, `0x9f7fd60c…282d2c2f`) — full list in evidence.json. Source: `src/MockToken.sol`, `src/ArbPool.sol` (original code; `forge script --broadcast` is broken on this RPC — so `forge create --broadcast` + `cast send` were used with identical bytecode).
 
 ## 2. Scan run transcripts (from `scans.jsonl`, unedited)
 

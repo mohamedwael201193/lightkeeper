@@ -3,8 +3,8 @@
 
 All chain reads are monkeypatched — no network, no keys, no broadcasts.
 The live refusal path is additionally exercised for real in run-logs/
-(see mainnet-refusal.log: a genuine eth_chainId read against the Pharos
-mainnet RPC, refused with exit code 3 and zero broadcast).
+(see mainnet-refusal.log: a mainnet-class proposal refused BY POLICY —
+mainnet.enabled=false, no mainnet RPC dialed — exit code 3, zero broadcast).
 """
 import json
 import os

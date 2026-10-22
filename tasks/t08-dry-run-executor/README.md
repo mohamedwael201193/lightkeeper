@@ -129,7 +129,7 @@ tasks/t08-dry-run-executor/
 ├── runs/                            # REAL run logs + SimulationReceipts (evidence)
 ├── foundry.toml
 ├── task.yaml  REQUIREMENTS.md  evidence.md  evidence.json
-├── REVIEWER_NOTES.md  LINKS.md  SUBMISSION.md  VIDEO-GUIDE.md
+├── LINKS.md  SUBMISSION.md
 ```
 
 ## 5. Run it yourself
@@ -137,10 +137,11 @@ tasks/t08-dry-run-executor/
 ```bash
 export PATH="$HOME/.foundry/bin:$PATH"
 cd tasks/t08-dry-run-executor
-set -a; source ../../.env; set +a   # provides ATLANTIC_RPC_URL (never echoed)
+set -a; source ../../.env; set +a   # provides DEPLOYER_PRIVATE_KEY for step 2 (never echoed)
 
-# 1) dry-run only — predicts, never broadcasts, no key needed
-python3 src/dryrun.py --rpc-url "$ATLANTIC_RPC_URL" \
+# 1) dry-run only — predicts, never broadcasts, no key needed.
+#    Reads via the Chain MCP (Pharos mainnet 1672); no --rpc-url flag exists.
+python3 src/dryrun.py \
   --from 0xf76e6B0920e9332fF4410f6dD53F01722AbC71a3 \
   --to   0xd5f956BCb0806BE66aEfa7C5559f195cd5224a8f \
   --sig "ping()" --out runs/receipt-demo.json
@@ -168,7 +169,7 @@ sends `params: []` and `"latest"`.
 `tools/rpc-normalize-proxy.py` is a local request normalizer (null→`[]`,
 `{blockHash}`→`"latest"` — the blockHash forge sends is the `latest` block it
 just fetched, so the answer is identical). All data still comes from live
-Atlantic; nothing is mocked. Full root-cause trace in `REVIEWER_NOTES.md`.
+Atlantic; nothing is mocked. The full root-cause trace is in §6 above.
 
 ## 7. Security & honesty notes
 
@@ -185,4 +186,4 @@ Atlantic; nothing is mocked. Full root-cause trace in `REVIEWER_NOTES.md`.
 - Scenario C real tx (repeatability): <https://atlantic.pharosscan.xyz/tx/0xd294bb5c03c55d7ffdd750b0a20384aa393e490da11fe3d7f67845d34d34fb03>
 - Prediction ledger: `runs/prediction-ledger.jsonl` (prediction-vs-reality per broadcast)
 - All links curl-verified (HTTP 200) — see `LINKS.md`.
-- Submission pack: `SUBMISSION.md` · filming guide: `VIDEO-GUIDE.md` · reviewer deep-dive: `REVIEWER_NOTES.md`
+- Submission pack: `SUBMISSION.md`

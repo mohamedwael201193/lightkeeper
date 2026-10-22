@@ -43,17 +43,18 @@ Proof it works:
   block 31486478), and completed approve → lock → execute → settle with
   exactly one broadcast tx per step — no duplicate sends after death.
 - Honest limits: gas is unrecoverable (the 0x0 burned 24,231 gas); total T06
-  spend 0.00238 PHRS of a 0.15 budget, receipt-accounted in evidence.json.
+  spend 0.00271 PHRS of a 0.15 budget, receipt-accounted in evidence.json.
   25 unit tests pass (receipt classifier, retry table, state machine,
   resume-point parser).
 
-Code: https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t06-saga-executor
-Evidence: evidence.md + evidence.json in the same dir (13 txs, all explorer
-links curl-verified server-rendered).
+Code: PIN-TO-FIX-COMMIT/tasks/t06-saga-executor (re-pin at the fix commit; dc949c522fa32ccd7e66198e9e82fa8fb517c9e0 was the pre-fix pin)
+Evidence: evidence.md + evidence.json in the same dir (26 tx links — 13 canonical
++ 2 deploys + 2 aborted + 9 auditor re-verification — plus 2 contract links,
+all explorer links curl-verified server-rendered).
 
 ## Links
 
-- Code (commit-pinned): `https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t06-saga-executor`
+- Code (commit-pinned): `PIN-TO-FIX-COMMIT/tasks/t06-saga-executor` (re-pin at the fix commit)
 - Interactive demo (console "Try it live"): `https://lightkeeper-console.vercel.app` — open the
   **T06 Saga Executor** lamp and scroll to the live surface: an interactive timeline of the
   forced-failure run (click each step: tx, receipt, executor decision), a crash-recovery

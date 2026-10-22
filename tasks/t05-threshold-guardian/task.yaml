@@ -23,10 +23,8 @@ deliverables:
   - REQUIREMENTS.md        # official requirements quoted verbatim
   - README.md              # 8 sections, opens with OCTOPUS header
   - evidence.md / evidence.json  # real tx hashes, spend log, curl-tested links
-  - REVIEWER_NOTES.md
   - LINKS.md               # curl-verified links
   - SUBMISSION.md          # exact copy-paste Arena pack
-  - VIDEO-GUIDE.md         # 45-90s filming guide
 
 budget:
   max_phrs: 0.15

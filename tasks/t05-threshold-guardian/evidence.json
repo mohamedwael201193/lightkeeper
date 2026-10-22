@@ -6,7 +6,7 @@
  "honesty_notes": [
   "Thresholds (0.005 max_per_tx, 0.05 blocked proposal, 0.0001 fired proposal) were chosen UP FRONT to exercise both branches \u2014 symmetric disclosure, no post-hoc rigging.",
   "BLOCK/REFUSE runs broadcast nothing and spend nothing; logged honestly as blocked/refused.",
-  "The single FIRE tx is a self-transfer of dust; it is the only spend.",
+  "Five dust self-transfers (1×0.0001 + 4×0.0045 PHRS) — the only spends; the spend log covers all.",
   "Boundary semantics (0.005 == max_per_tx PASSES, <= not <) are covered by the offline unit tests ('boundary at threshold'); run-logs/window.log shows a live per-tx PASS at 0.0045 <= 0.005 alongside the window FAIL.",
   "2026-10-16 ~06:50 UTC: a concurrent workspace agent reverted this task's uncommitted tracked files to HEAD; all changes were re-applied and committed. The 4 window-load txs are real and explorer-verifiable regardless."
  ],

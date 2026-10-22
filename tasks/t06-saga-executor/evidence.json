@@ -69,6 +69,18 @@
       "plan": "runs/t06-run-c-20261016-063734/plan.json",
       "spend_wei": 199487000199487,
       "spend_phrs": 0.000199487000199487
+    },
+    "auditor_run_a": {
+      "run_id": "t06-run-a-20261022-170455",
+      "saga_state": "SUCCEEDED",
+      "note": "crash-resumed mid-step; one broadcast per step",
+      "state_log": "runs/t06-run-a-20261022-170455/state.log"
+    },
+    "auditor_run_b": {
+      "run_id": "t06-run-b-20261022-170705",
+      "saga_state": "COMPENSATED",
+      "forced_failure_status": "0x0",
+      "state_log": "runs/t06-run-b-20261022-170705/state.log"
     }
   },
   "final_onchain_state": {
@@ -248,13 +260,103 @@
       "explorer": "https://atlantic.pharosscan.xyz/tx/0x9a93fe34fae224cf9ca3e229b3d90a52c94eeeb8379cc09c7f8cb2918f97ea75",
       "cost_wei": 46830000046830,
       "cost_phrs": 4.683000004683e-05
+    },
+    {
+      "label": "auditor-run-a approve",
+      "hash": "0x4c6b6ee189edad8b4679827de0b52f882669fa714fb6cbeaf2a21fac273b2776",
+      "block": 31749790,
+      "status": "0x1",
+      "gas": 46663,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x4c6b6ee189edad8b4679827de0b52f882669fa714fb6cbeaf2a21fac273b2776",
+      "cost_wei": 46663000046663,
+      "cost_phrs": 4.6663000046663e-05
+    },
+    {
+      "label": "auditor-run-a lock",
+      "hash": "0xcc03284a3aad72e920bf2d85edcef569b8899b4ad23b22a6ad77cdc5139260d7",
+      "block": 31749835,
+      "status": "0x1",
+      "gas": 46106,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xcc03284a3aad72e920bf2d85edcef569b8899b4ad23b22a6ad77cdc5139260d7",
+      "cost_wei": 46106000046106,
+      "cost_phrs": 4.6106000046106e-05
+    },
+    {
+      "label": "auditor-run-a execute",
+      "hash": "0xc67f292a001c53b429f3f7935009d4d9b72c889df7c464e89dc95568abb49817",
+      "block": 31749854,
+      "status": "0x1",
+      "gas": 25688,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xc67f292a001c53b429f3f7935009d4d9b72c889df7c464e89dc95568abb49817",
+      "cost_wei": 25688000025688,
+      "cost_phrs": 2.5688000025688e-05
+    },
+    {
+      "label": "auditor-run-a settle",
+      "hash": "0x1afeaaa39ba47e26e8d4ea07776ab9da781d4aad64de5304e873ce01554b2882",
+      "block": 31749863,
+      "status": "0x1",
+      "gas": 26930,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x1afeaaa39ba47e26e8d4ea07776ab9da781d4aad64de5304e873ce01554b2882",
+      "cost_wei": 26930000026930,
+      "cost_phrs": 2.693000002693e-05
+    },
+    {
+      "label": "auditor-run-b approve",
+      "hash": "0xcf47059ef16f324c54cabd62b9992c652ed7edac196c931fa6a3e049ffa4f962",
+      "block": 31749881,
+      "status": "0x1",
+      "gas": 46663,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xcf47059ef16f324c54cabd62b9992c652ed7edac196c931fa6a3e049ffa4f962",
+      "cost_wei": 46663000046663,
+      "cost_phrs": 4.6663000046663e-05
+    },
+    {
+      "label": "auditor-run-b lock",
+      "hash": "0x507798e0f5b06726a664411667e4a4bbd0c0869f32d63a377b8ebddf4eba3e9d",
+      "block": 31749894,
+      "status": "0x1",
+      "gas": 50906,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x507798e0f5b06726a664411667e4a4bbd0c0869f32d63a377b8ebddf4eba3e9d",
+      "cost_wei": 50906000050906,
+      "cost_phrs": 5.0906000050906e-05
+    },
+    {
+      "label": "auditor-run-b execute (REAL 0x0)",
+      "hash": "0xb6ea8b369730062051cc1434c694e30ae966725b4b19b8c89f19c2f2c2caf1a8",
+      "block": 31749906,
+      "status": "0x0",
+      "gas": 24231,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xb6ea8b369730062051cc1434c694e30ae966725b4b19b8c89f19c2f2c2caf1a8",
+      "cost_wei": 24231000024231,
+      "cost_phrs": 2.4231000024231e-05
+    },
+    {
+      "label": "auditor-run-b compensate refund",
+      "hash": "0xd5d9edf045334a3e766c347b0e053e7ed35ee69693b2754c8346f1c97e1c6232",
+      "block": 31749917,
+      "status": "0x1",
+      "gas": 39800,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xd5d9edf045334a3e766c347b0e053e7ed35ee69693b2754c8346f1c97e1c6232",
+      "cost_wei": 39800000039800,
+      "cost_phrs": 3.98000000398e-05
+    },
+    {
+      "label": "auditor-run-b compensate revoke",
+      "hash": "0xb9d28c4a9115152c97b56d39ad212b6771af1c88589c05bfcd35be45249fbcfe",
+      "block": 31749931,
+      "status": "0x1",
+      "gas": 24739,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xb9d28c4a9115152c97b56d39ad212b6771af1c88589c05bfcd35be45249fbcfe",
+      "cost_wei": 24739000024739,
+      "cost_phrs": 2.4739000024739e-05
     }
   ],
   "spend_log": {
     "budget_phrs_max": 0.15,
-    "total_cost_wei": 2376280002376280,
-    "total_cost_phrs": 0.00237628000237628,
-    "accounting": "receipt-based: sum(gasUsed x effectiveGasPrice) over T06's own txs only (now 17 txs); wallet deltas are not used because 27 other workers share the key",
+    "total_cost_wei": 2708006002708006,
+    "total_cost_phrs": 0.002708006002708006,
+    "accounting": "receipt-based: sum(gasUsed x effectiveGasPrice) over T06's own txs only (now 26 txs); wallet deltas are not used because 27 other workers share the key",
     "unrecoverable_gas_note": "the forced 0x0 burned 24231 gas and both compensation txs cost gas; none of it is recoverable by design"
   },
   "unit_tests": {
@@ -263,7 +365,7 @@
     "result": "ALL PASSED"
   },
   "links_curl_tested": {
-    "count": 13,
+    "count": 26,
     "all_http_200": true,
     "server_rendered": true,
     "see": "LINKS.md"

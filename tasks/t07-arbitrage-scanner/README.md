@@ -17,7 +17,7 @@ The honesty strategy: testnet liquidity is thin, so the scanner is built to say 
 Per scan: `blockNumber` → parallel `eth_call` `getReserves()` × 3 venues (one pinned block) → `eth_gasPrice` → `eth_estimateGas` per leg → economics over all 12 directed cycles (3 venues × 2 orders × 2 start tokens) → staleness check → threshold policy gate → append JSONL.
 
 ```
-scan.py [--config config.json] [--out scans.jsonl] [--execute]
+scanner.py [--config config.json] [--out scans.jsonl] [--execute]
 ```
 
 - Default run: read-only. Prints the full record, appends to `scans.jsonl`.
@@ -75,7 +75,7 @@ Headline results (all on Atlantic, chain 688689):
 
 ## 7. Honesty & limits
 
-- Spreads come from real reserves; the venues are ours because no public Atlantic DEX offered readable test liquidity — stated openly in `REVIEWER_NOTES.md`.
+- Spreads come from real reserves; the venues are ours because no public Atlantic DEX offered readable test liquidity — stated openly here.
 - `forge script --broadcast` is **incompatible** with the Atlantic RPC (`PARAM_VERIFY_ERROR`); deployments used `forge create --broadcast` + `cast send` (same bytecode). The unused `script/DeployT07.s.sol` is kept for reference.
 - One scan's `--execute` initially failed (`EXECUTION_FAILED`, missing `cast` on PATH) — the record is kept in `scans.jsonl` unedited, then the scan was re-run successfully. Append-only means append-only.
 - Re-seeding a venue overwrites reserves via `seed()` (owner-only test function); inert leftover dust may sit in the pool but quotes always come from `getReserves()`.

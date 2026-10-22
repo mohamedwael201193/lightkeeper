@@ -401,6 +401,9 @@ function ActLabel({ n, title }: { n: string; title: string }) {
 function rowVerdict(c: Cycle, rank: number, thresholdWei: bigint): { label: string; cls: string } {
   if (rank === 0) return { label: c.start === "WPHRS" ? "BOARD WINNER" : "BOARD TOP", cls: "chip-pass" };
   if (c.net <= 0n) return { label: "NEGATIVE_NET", cls: "chip-fail" };
+  // The threshold is WPHRS-denominated: TKB-start rows are judged on sign
+  // only, never against the WPHRS threshold. The panel verdict stays WPHRS-only.
+  if (c.start !== "WPHRS") return { label: "BEATEN", cls: "chip-dim" };
   if (c.net <= thresholdWei) return { label: "BELOW_THRESHOLD", cls: "chip-fail" };
   return { label: "BEATEN", cls: "chip-dim" };
 }

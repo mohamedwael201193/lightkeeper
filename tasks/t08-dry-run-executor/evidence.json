@@ -107,7 +107,7 @@
     }
   ],
   "task": "t08-dry-run-executor",
-  "totalSpentPHRS": 0.000326401000326401,
+  "totalSpentPHRS": 0.00032640,
   "unitTests": {
     "file": "tests/test_estimation_parsing.py",
     "network": "none (pure unit tests)",

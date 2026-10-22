@@ -55,7 +55,7 @@ Estimated total gas used for script: 62804
 SIMULATION COMPLETE. To broadcast these transactions, add --broadcast ...
 ```
 
-Simulation only — nothing broadcast. (Run via `tools/rpc-normalize-proxy.py`; the RPC quirk is disclosed in `REVIEWER_NOTES.md`.)
+Simulation only — nothing broadcast. (Run via `tools/rpc-normalize-proxy.py`; the RPC quirk root-cause is in README §6.)
 
 **Real broadcast** through the gate (`runs/broadcast-B.log`):
 

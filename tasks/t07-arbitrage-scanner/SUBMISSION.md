@@ -31,9 +31,6 @@ https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e
 https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t07-arbitrage-scanner/evidence.md
 (Independently verifiable: `python3 scanner.py` re-runs the scan against the same on-chain venues.)
 
-## Reviewer notes
-https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t07-arbitrage-scanner/REVIEWER_NOTES.md
-
 ## Key tx hashes (Atlantic, chain 688689)
 - Arb leg 1: 0x39fe2154abde86a58418d85667dbec826207b3733eeadb81a877c85e2185de30
 - Arb leg 2: 0xdcd894bb8bd2f981f2af78425bb58623f26c724502212b24820f2fca380c58ad
@@ -43,7 +40,7 @@ https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e
 - Venue contracts: poolA 0x8683C6D6EeAA57B03688f43Ad0cbCA0af26Cf464 · poolB 0x432BCd7bc6944Def44015bF00C82Eb50aA18A3F6 · poolC 0x3f0ae6f640f067B2532194a0ef2c869Aa49E587D
 
 ## Demo video
-https://trusty-canopy-dym2.here.now/T07-arbitrage-scanner.mp4
+PENDING-VIDEO
 (`apps/console/src/components/try/arbitrage-scanner.tsx`) runs the config→scan→verdict
 rhythm in-browser against the same three venues — Tier A live reads, no signature.
 

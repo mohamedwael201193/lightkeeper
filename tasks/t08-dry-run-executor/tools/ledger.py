@@ -76,6 +76,20 @@ def append_ledger(receipt_path: str, tx_hash: str) -> dict:
     actual_cost = (gas_used * price_wei) / WEI_PER_NATIVE
     gas_limit = int(receipt["gasLimit"])
 
+    # Projected post-tx state: ping() increments count by exactly 1.
+    # Compare the projection against the live post-tx read above.
+    state_before = receipt.get("stateBefore") or {}
+    try:
+        projected_count = int(state_before.get("count")) + 1
+    except (TypeError, ValueError):
+        projected_count = None
+    actual_count = actual_state["count"]
+    state_matches_projection = (
+        projected_count is not None
+        and actual_count != "n/a"
+        and int(actual_count) == projected_count
+    )
+
     entry = {
         "tsUtc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "txHash": tx_hash,
@@ -101,7 +115,7 @@ def append_ledger(receipt_path: str, tx_hash: str) -> dict:
         "match": {
             "statusMatches": status_ok,                      # PASS prediction -> success
             "gasWithinSafetyLimit": gas_used <= gas_limit,
-            "stateMatchesProjection": True,                  # verified against receipt-B/C runs
+            "stateMatchesProjection": state_matches_projection,
             "estimateDriftPct": round((receipt["gasEstimate"] - gas_used) / gas_used * 100, 1),
         },
     }

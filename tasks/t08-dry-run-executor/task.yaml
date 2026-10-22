@@ -22,5 +22,4 @@ evidence:
   scenario_b_real_tx: 0x639f87ba9b79ce1a9c62ebe12fdb4753e021d2dfb7fa3caed0e48fab20b012ee
   unit_tests: tests/test_estimation_parsing.py
 requirements_ref: REQUIREMENTS.md
-reviewer_notes: REVIEWER_NOTES.md
 video: PENDING-VIDEO

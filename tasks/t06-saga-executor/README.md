@@ -130,7 +130,8 @@ the manual runbook in `REVIEWER_NOTES.md` takes over.
 - Contracts: [`TestToken`](https://atlantic.pharosscan.xyz/address/0x1F3fb438824140b7E1125502f80B686D95072939) ·
   [`TestFixture`](https://atlantic.pharosscan.xyz/address/0x29bf11Cd948CE845687A21819b2844d5321432Cf) —
   source in `src/`, deployed from this repo
-- All 17 published links curl-tested (HTTP 200, server-rendered HTML with the
+- 26 tx links (13 canonical + 2 deploys + 2 aborted + 9 auditor re-verification)
+  + 2 contract links, all curl-tested (HTTP 200, server-rendered HTML with the
   hash in-page) — see `LINKS.md`
 
 ## 9. Reproduce
@@ -155,7 +156,7 @@ python3 scripts/saga.py resume t06-run-c-<run-id>          # -> SUCCEEDED, one b
 ```
 
 Every broadcast goes through `flock /tmp/lk-nonce.lock` (28 workers share one
-key). Total T06 spend ≈ **0.00238 PHRS** (budget 0.15) — see `evidence.json`.
+key). Total T06 spend ≈ **0.00271 PHRS** (budget 0.15) — see `evidence.json`.
 
 ## 10. Files
 

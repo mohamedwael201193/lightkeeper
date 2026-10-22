@@ -13,8 +13,9 @@ the gate, or it does not pass at all.*
 A **policy gate that intercepts proposed transfers and BLOCKS any write that
 breaches configured thresholds**. It is not a demo of a guardian — it *is*
 the guardian that signed this task's only broadcast. A proposal enters;
-six independent conditions are read live from the chain; a decision trace
-is emitted; and only `ALLOW` reaches `cast send` — under a nonce lock, once,
+three live chain reads (`eth_chainId`, `eth_gasPrice`, `eth_getBalance`) plus
+three off-chain policy checks (key present, sender binding, threshold/window);
+a decision trace is emitted; and only `ALLOW` reaches `cast send` — under a nonce lock, once,
 with a receipt. `BLOCK` and `REFUSE` never broadcast. `REFUSE` is reserved
 for mainnet-class actions, which this guardian declines outright, with no
 override flag.
@@ -128,7 +129,5 @@ Spend ledger: `run-logs/spend-ledger.jsonl` (feeds the rolling-window check).
 ## 8 · Links & submission
 
 - Links (all curl-verified 200): `LINKS.md`
-- Reviewer notes (what to check, what we deliberately did not do): `REVIEWER_NOTES.md`
 - Exact copy-paste Arena submission pack: `SUBMISSION.md`
-- 45–90s filming guide: `VIDEO-GUIDE.md`
 - Machine-readable evidence: `evidence.json`

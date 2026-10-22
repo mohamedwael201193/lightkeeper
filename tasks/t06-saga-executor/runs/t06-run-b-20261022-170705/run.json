@@ -1,0 +1,73 @@
+{
+  "run_id": "t06-run-b-20261022-170705",
+  "saga_state": "COMPENSATED",
+  "txs": [
+    {
+      "step": "approve",
+      "hash": "0xcf47059ef16f324c54cabd62b9992c652ed7edac196c931fa6a3e049ffa4f962",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31749881,
+      "gasUsed": 46663,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xcf47059ef16f324c54cabd62b9992c652ed7edac196c931fa6a3e049ffa4f962"
+    },
+    {
+      "step": "lock",
+      "hash": "0x507798e0f5b06726a664411667e4a4bbd0c0869f32d63a377b8ebddf4eba3e9d",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31749894,
+      "gasUsed": 50906,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0x507798e0f5b06726a664411667e4a4bbd0c0869f32d63a377b8ebddf4eba3e9d"
+    },
+    {
+      "step": "execute",
+      "hash": "0xb6ea8b369730062051cc1434c694e30ae966725b4b19b8c89f19c2f2c2caf1a8",
+      "attempt": 0,
+      "status": "0x0",
+      "blockNumber": 31749906,
+      "gasUsed": 24231,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xb6ea8b369730062051cc1434c694e30ae966725b4b19b8c89f19c2f2c2caf1a8"
+    },
+    {
+      "step": "compensate:refund",
+      "hash": "0xd5d9edf045334a3e766c347b0e053e7ed35ee69693b2754c8346f1c97e1c6232",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31749917,
+      "gasUsed": 39800,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xd5d9edf045334a3e766c347b0e053e7ed35ee69693b2754c8346f1c97e1c6232"
+    },
+    {
+      "step": "compensate:revoke-allowance",
+      "hash": "0xb9d28c4a9115152c97b56d39ad212b6771af1c88589c05bfcd35be45249fbcfe",
+      "attempt": 0,
+      "status": "0x1",
+      "blockNumber": 31749931,
+      "gasUsed": 24739,
+      "effectiveGasPriceWei": 1000000001,
+      "explorer": "https://atlantic.pharosscan.xyz/tx/0xb9d28c4a9115152c97b56d39ad212b6771af1c88589c05bfcd35be45249fbcfe"
+    }
+  ],
+  "total_gas_wei_spent": 186339000186339,
+  "state_log": "/home/hatch/workspace/lightkeeper/tasks/t06-saga-executor/runs/t06-run-b-20261022-170705/state.log",
+  "contracts": {
+    "token": "0x1F3fb438824140b7E1125502f80B686D95072939",
+    "fixture": "0x29bf11Cd948CE845687A21819b2844d5321432Cf"
+  },
+  "explorer": "https://atlantic.pharosscan.xyz",
+  "balances": {
+    "before": {
+      "native_wei": 4137323798310926494,
+      "token_wei": 999999999999999999998000
+    },
+    "after": {
+      "native_wei": 4137137459310740155,
+      "token_wei": 1000000000000000000000000
+    }
+  }
+}

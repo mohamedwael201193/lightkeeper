@@ -6,24 +6,28 @@
 
 ## One-liner
 
-A SkillEngine dry-run gate for Pharos Atlantic: `cast estimate` + `forge script`
-(without `--broadcast`) predict PASS/FAIL, decode the exact revert reason, apply
-a 1.2× gas safety factor — and a separate broadcaster that only replays PASS
-tickets, refusing FAILs automatically. The executor keeps score of itself: a
-**prediction ledger** records every gated broadcast's predicted gas beside the
-chain's actual gas, so the simulation/reality drift is public data, not a
-handwave.
+A SkillEngine dry-run gate for Pharos mainnet (1672): every simulation step runs
+through the Chain MCP's named tools (`get_chain_info`, `get_block_number`,
+`eth_call`, `estimate_gas`, `get_gas_price`, `get_balance`) — zero raw RPC.
+PASS/FAIL prediction, the exact revert reason decoded, a 1.2× gas safety
+factor — and a separate broadcaster that only replays PASS tickets, refusing
+FAILs automatically. The executor keeps score of itself: a **prediction
+ledger** records every gated broadcast's predicted gas beside the chain's
+actual gas, so the simulation/reality drift is public data, not a handwave.
 
 ## Description (paste into the Arena submission form)
 
 **What it does.** Before any transaction reaches the chain, the Dry-Run Executor
 simulates it without broadcasting:
 
-1. **Validate** — address/sig sanity; chain-id must be Atlantic (688689), anything else is refused.
-2. **`eth_call`** — surfaces the revert reason with zero broadcast.
-3. **`estimateGas`** — success yields a gas number; failure yields the exact revert reason
-   (decoded from `Error(string)` / `Panic(uint256)` / custom-error payloads — never invented).
-4. **Gas price + 1.2× safety factor** — predicted cost in PHRS.
+1. **Validate** — address/sig sanity; chain-id must be Pharos mainnet (1672) as
+   reported by the Chain MCP's `get_chain_info`, anything else is refused; the
+   tip is pinned via `get_block_number`.
+2. **`eth_call`** (Chain MCP tool) — surfaces the revert reason with zero broadcast.
+3. **`estimate_gas`** (Chain MCP tool) — success yields a gas number; failure yields
+   the exact revert reason (decoded from `Error(string)` / `Panic(uint256)` /
+   custom-error payloads — never invented).
+4. **`get_gas_price`** (Chain MCP tool) **+ 1.2× safety factor** — predicted cost in PHRS.
 5. **State-diff projection** — before/after snapshots marked "chain unmodified".
 
 The output is a machine-readable **SimulationReceipt** (PASS/FAIL). The dry-run
@@ -69,14 +73,15 @@ refused (exit 2) and logged to a blocked-execution log.
 **Spend:** 0.00032640 PHRS of the 0.15 budget (dry-runs are read-only; only the
 deploy + two broadcasts cost gas).
 
-**Tests:** 17/17 unit tests pass (`tests/test_estimation_parsing.py`) — estimation
-parsing, revert decoding, 1.2× gas math, gate rules, no-signer structural check.
+**Tests:** 28/28 unit tests pass (`tests/test_estimation_parsing.py` 17/17 — estimation
+parsing, revert decoding, 1.2× gas math, gate rules, no-signer structural check;
+`tests/test_mcp_migration.py` 11/11 — Chain MCP tool wiring).
 
 **Honest limits:** estimates **over-predict by ~30%** on Atlantic — measured,
 not assumed: the prediction ledger (`runs/prediction-ledger.jsonl`) records
 58,219→45,470 and 37,379→28,370 across the two gated broadcasts; the 1.2×
 factor absorbs that drift with margin. The Atlantic RPC rejects some Foundry
-request shapes (disclosed root-cause in `REVIEWER_NOTES.md`; worked around with
+request shapes (disclosed root-cause in README §6; worked around with
 a local request normalizer, all data still live from Atlantic). One open
 item, stated plainly: a prediction→receipt pair through the current
 Chain-MCP `--reconcile` path has not been produced yet — that path serves
@@ -112,13 +117,11 @@ propose + sign in the visitor's own wallet):
   their predicted-vs-actual gas and explorer links, and the review
   step names the block the simulation ran at.
 
-New filming shots for the console demo are in `VIDEO-GUIDE.md` (§ Shot 4).
-
 ## Repo link (commit-pinned)
 
 `https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t08-dry-run-executor`
 
-*(Commit 4fd33e2 = T08 harden: scenario C broadcast, prediction ledger, console track-record strip.)*
+*(Pinned commit's T08 tree: Chain MCP migration, scenarios B+C gated broadcasts with receipts, prediction ledger, console track-record strip.)*
 
 ## Share / demo links
 
@@ -127,5 +130,4 @@ share link can be generated from a real session.
 
 ## Video
 
-https://unbound-vault-68jf.here.now/T08-dry-run-executor.mp4
-terminal + real explorer pages only, no staged fakes).
+PENDING-VIDEO (terminal + real explorer pages only, no staged fakes).

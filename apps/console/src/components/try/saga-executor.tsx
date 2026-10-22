@@ -1053,7 +1053,7 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
               <div className="flex items-start gap-3 rounded-2xl border border-hairline bg-porcelain p-5">
                 <Landmark size={20} className="mt-0.5 shrink-0 text-golddeep" aria-hidden />
                 <p className="text-sm leading-relaxed text-ink">
-                  <strong>The exhibition.</strong> Three real executions, thirteen mined
+                  <strong>The exhibition.</strong> Five real executions, twenty-six mined
                   transactions, nothing simulated. The evidence hangs on the wall below —
                   press <strong>“Verify receipts”</strong> above and every one is re-read
                   live from Atlantic.
@@ -1215,7 +1215,7 @@ export default function TrySagaExecutor({ lamp }: { lamp: Lamp }) {
       </div>
 
       <p className="text-sm leading-relaxed text-slate">
-        Full record — state logs, all 13 transactions, receipt-based spend accounting, and the
+        Full record — state logs, all 26 transactions, receipt-based spend accounting, and the
         runbook — on GitHub at{" "}
         <a
           className="font-mono text-accent hover:underline"

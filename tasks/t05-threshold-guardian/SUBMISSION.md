@@ -46,7 +46,7 @@ under a nonce lock, waiting for the receipt.
   - `0xe51e3e9b7fb93d9232d092725eedd6aac6d6d8f3d1688e4def8bf9ad0d6e85c3`
 
   The spend ledger then holds 0.018 PHRS inside the 60-minute window, so a fifth 0.0045 PHRS proposal — which *passes* per-tx (0.0045 ≤ 0.005) and every other condition — is BLOCKED on the rolling window alone (`0.018 + 0.0045 = 0.0225 > 0.02`), exit 2, nothing broadcast. `run-logs/window.log`. The aggregate gate proven with a real on-chain ledger behind it, not a mocked counter.
-- **REFUSE (bonus)** — mainnet-class proposal: live `eth_chainId` read against the real Pharos mainnet RPC returned 1672 → REFUSE, exit 3, refused again *with* explicit re-confirmation supplied. `run-logs/mainnet-refusal.log`.
+- **REFUSE (bonus)** — mainnet-class proposal: refused by policy (`mainnet.enabled=false`); no mainnet RPC dialed; unconditional even with explicit re-confirmation supplied, exit 3. `run-logs/mainnet-refusal.log`.
 
 **Tests:** 13/13 unit tests pass offline (`tests/test_policy_engine.py`):
 boundary at threshold, rolling window, gas spike, insufficient balance,
@@ -78,7 +78,7 @@ numbers compared (each condition PASS/BLOCK, e.g.
 ## Links
 
 - Source (commit-pinned): https://github.com/mohamedwael201193/lightkeeper/tree/dc949c522fa32ccd7e66198e9e82fa8fb517c9e0/tasks/t05-threshold-guardian
-- Demo video: https://hallowed-lichen-6ef2.here.now/T05-threshold-guardian.mp4
+- Demo video: PENDING-VIDEO
 - FIRE tx: https://atlantic.pharosscan.xyz/tx/0xe318dd0af236c292e6a1c21e0c98bd6088dac47fc24a8c0ad5d539912a23048c
 - Share link (portal session): PENDING — coordinator adds if/when available
 

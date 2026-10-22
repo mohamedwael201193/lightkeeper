@@ -114,7 +114,7 @@ agent/cli.py        parse | review | pay [--confirm ID] | stamps
 samples/            3 valid invoices (001 JSON paid on-chain, 002 CSV, 003 TXT)
                     + invoice-004.csv (CSV, paid on-chain 0xc7ff…8bac66)
                     + 5 deliberately broken ones
-tests/              19 unit tests (formats, validation, plan/review, stamp idempotency)
+tests/              20 unit tests (formats, validation, plan/review, stamp idempotency)
 evidence.md/.json   real tx hashes, spend log, curl-tested links
 ```
 

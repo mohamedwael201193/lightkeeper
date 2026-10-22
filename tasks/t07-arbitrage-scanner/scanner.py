@@ -221,6 +221,7 @@ def scan(config: dict) -> dict:
         record.update(decision="SKIP", skip_reason="SOURCE_DOWN",
                       source_errors=errors,
                       note="one or more venue reads failed; refusing to quote")
+        record["elapsed_s"] = round(time.time() - t0, 2)
         return record
     record["reserves_at_pinned_block"] = {
         n: {"wphrs_wei": r[0], "tkb_wei": r[1]} for n, r in reserves.items()
@@ -240,6 +241,7 @@ def scan(config: dict) -> dict:
     except Exception as e:  # noqa: BLE001
         record.update(decision="SKIP", skip_reason="SOURCE_DOWN",
                       source_errors={"estimateGas": str(e)})
+        record["elapsed_s"] = round(time.time() - t0, 2)
         return record
     gas_units = max(gas_per_leg.values()) * 2  # two legs, worst venue
     gas_wei = gas_units * gprice
@@ -263,8 +265,10 @@ def scan(config: dict) -> dict:
     if not cands:
         record.update(decision="SKIP", skip_reason="NO_LIQUIDITY",
                       note="no venue pair had liquidity for the trade size")
+        record["elapsed_s"] = round(time.time() - t0, 2)
         return record
-    best = max(cands, key=lambda c: c["net_wei"])
+    best = max((c for c in cands if c["start_token"] == "WPHRS"),
+                key=lambda c: c["net_wei"])
     record["candidates_evaluated"] = len(cands)
     record["best_route"] = best
 
@@ -274,15 +278,18 @@ def scan(config: dict) -> dict:
     if tip - pinned > STALE_BLOCK_LAG:
         record.update(decision="SKIP", skip_reason="STALE_QUOTE",
                       note=f"pinned {pinned} is {tip-pinned} blocks behind tip")
+        record["elapsed_s"] = round(time.time() - t0, 2)
         return record
     if best["net_wei"] <= 0:
         record.update(decision="SKIP", skip_reason="NEGATIVE_NET",
                       note="best route nets zero or negative after fees+gas")
+        record["elapsed_s"] = round(time.time() - t0, 2)
         return record
     if best["net_wei"] <= threshold:
         record.update(decision="SKIP", skip_reason="BELOW_THRESHOLD",
                       note=(f"net {best['net_wei']} wei <= threshold "
                             f"{threshold} wei"))
+        record["elapsed_s"] = round(time.time() - t0, 2)
         return record
 
     record.update(decision="ACT",

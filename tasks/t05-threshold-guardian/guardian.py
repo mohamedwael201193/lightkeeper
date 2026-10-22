@@ -262,31 +262,31 @@ def check_gas_price(policy, rpc_url):
 # evaluation
 # --------------------------------------------------------------------------- #
 def evaluate(policy, proposal, network_flag, confirm_mainnet):
+    # All six conditions are ALWAYS evaluated so the decision trace carries
+    # each condition's value (requirement 03). The decision stays fail-closed:
+    # a mainnet REFUSE wins outright, otherwise any failed gate => BLOCK.
     trace = []
     refused_mainnet = False
+    any_failed = False
 
     # 1 — key present (SKILL.md pre-check 1)
     ok, val, reason = check_private_key_present()
     trace.append({"id": "key-present", "name": "Private key check (SKILL.md #1)",
                   "value": val, "passed": ok, "reason": reason})
-    if not ok:
-        return trace, "BLOCK", False
+    any_failed = any_failed or not ok
 
     # 2 — sender binding (SKILL.md pre-check 2)
     ok, val, reason = check_sender_binding(policy, proposal["sender"])
     trace.append({"id": "sender-binding", "name": "Sender binding (SKILL.md #2)",
                   "value": val, "passed": ok, "reason": reason})
-    if not ok:
-        return trace, "BLOCK", False
+    any_failed = any_failed or not ok
 
     # 3 — network (SKILL.md pre-check 3 + T05 firewall)
     ok, val, reason, is_refuse = check_network(policy, network_flag, confirm_mainnet)
     trace.append({"id": "network", "name": "Network check (SKILL.md #3) — mainnet firewall",
                   "value": val, "passed": ok, "reason": reason})
-    if is_refuse:
-        return trace, "REFUSE", True
-    if not ok:
-        return trace, "BLOCK", False
+    refused_mainnet = is_refuse
+    any_failed = any_failed or not ok
 
     rpc_url = policy["network"]["rpc_url"]
 
@@ -294,25 +294,30 @@ def evaluate(policy, proposal, network_flag, confirm_mainnet):
     ok, val, reason = check_threshold(policy, proposal["value_wei"])
     trace.append({"id": "threshold", "name": "Threshold check (per-tx + rolling window)",
                   "value": val, "passed": ok, "reason": reason})
-    if not ok:
-        return trace, "BLOCK", False
+    any_failed = any_failed or not ok
 
     # 5 — gas price sanity (independent on-chain condition)
     ok, val, reason, gas_price = check_gas_price(policy, rpc_url)
     trace.append({"id": "gas-price", "name": "Gas-price sanity (on-chain)",
                   "value": val, "passed": ok, "reason": reason})
-    if not ok:
-        return trace, "BLOCK", False
+    any_failed = any_failed or not ok
 
     # 6 — balance sufficiency (SKILL.md pre-check 4)
-    ok, val, reason = check_balance(policy, rpc_url, proposal["sender"],
-                                    proposal["value_wei"], gas_price)
-    trace.append({"id": "balance", "name": "Balance sufficiency (SKILL.md #4)",
-                  "value": val, "passed": ok, "reason": reason})
-    if not ok:
-        return trace, "BLOCK", False
+    if gas_price is None:
+        # Fail-closed: the fee reserve needs the live gas price.
+        trace.append({"id": "balance", "name": "Balance sufficiency (SKILL.md #4)",
+                      "value": "unreadable (gas price unknown)", "passed": False,
+                      "reason": "fail-closed: fee reserve needs the live gas price"})
+        any_failed = True
+    else:
+        ok, val, reason = check_balance(policy, rpc_url, proposal["sender"],
+                                        proposal["value_wei"], gas_price)
+        trace.append({"id": "balance", "name": "Balance sufficiency (SKILL.md #4)",
+                      "value": val, "passed": ok, "reason": reason})
+        any_failed = any_failed or not ok
 
-    return trace, "ALLOW", False
+    decision = "REFUSE" if refused_mainnet else ("BLOCK" if any_failed else "ALLOW")
+    return trace, decision, refused_mainnet
 
 
 def print_trace(proposal, trace, decision):

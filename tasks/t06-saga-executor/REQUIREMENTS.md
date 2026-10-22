@@ -43,7 +43,7 @@ How this build maps to the official bullets:
 | Official bullet | Where it is proven |
 |---|---|
 | (1) ≥3 dependent steps, receipt-verified | Run A: approve → lock → execute → settle, each step waits for its receipt + post-state gate before the next starts (`scripts/saga.py`) |
-| (2) Retry policy for transient failures | `retry_decision()` in `scripts/saga.py`: ≤3 retries, 5/15/45s backoff, +20% gas bumps; unit-tested (`--selftest`, 21 cases) |
+| (2) Retry policy for transient failures | `retry_decision()` in `scripts/saga.py`: ≤3 retries, 5/15/45s backoff, +20% gas bumps; unit-tested (`--selftest`, 25 cases) |
 | (3) Compensation/rollback path + demo | Run B: mined 0x0 → `COMPENSATING` → `refund()` + `approve(0)` revoke, each mined and linked; honest-rollback doctrine in README §5 |
 | (4) State log showing current step | `runs/<run-id>/state.log` — JSONL, one line per transition, written before/after every broadcast |
 | (5) One success run + one forced-failure run with recovery | Run A `SUCCEEDED` (4× 0x1); Run B `COMPENSATED` (1× real 0x0 + 2 compensation txs) — see `evidence.json` |

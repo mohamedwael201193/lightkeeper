@@ -219,6 +219,66 @@
    "net_wei": -253033563746112688,
    "threshold_wei": 100000000000000000000,
    "execution_tx_hashes": []
+  },
+  {
+   "scan_id": "t07-1792133596",
+   "pinned_block": 31487071,
+   "decision": "ACT",
+   "skip_reason": null,
+   "net_wei": 138051195909437998,
+   "best_start_token": "WPHRS",
+   "threshold_wei": 50000000000000000,
+   "candidates_evaluated": 12,
+   "elapsed_s": 14.42,
+   "execution_tx_hashes": []
+  },
+  {
+   "scan_id": "t07-1792133650",
+   "pinned_block": 31487103,
+   "decision": "SKIP",
+   "skip_reason": "BELOW_THRESHOLD",
+   "net_wei": 138051195909437998,
+   "best_start_token": "WPHRS",
+   "threshold_wei": 500000000000000000,
+   "candidates_evaluated": 12,
+   "elapsed_s": null,
+   "execution_tx_hashes": []
+  },
+  {
+   "scan_id": "t07-1792133667",
+   "pinned_block": 31487115,
+   "decision": "SKIP",
+   "skip_reason": "NEGATIVE_NET",
+   "net_wei": -1723761305911841,
+   "best_start_token": "WPHRS",
+   "threshold_wei": 50000000000000000,
+   "candidates_evaluated": 12,
+   "elapsed_s": null,
+   "execution_tx_hashes": []
+  },
+  {
+   "scan_id": "t07-1792688694",
+   "pinned_block": 31749774,
+   "decision": "ACT",
+   "skip_reason": null,
+   "net_wei": 138051195909437998,
+   "best_start_token": "WPHRS",
+   "threshold_wei": 50000000000000000,
+   "candidates_evaluated": 12,
+   "elapsed_s": 16.45,
+   "execution_tx_hashes": []
+  },
+  {
+   "scan_id": "t07-1792689604",
+   "pinned_block": 31750211,
+   "decision": "ACT",
+   "skip_reason": null,
+   "net_wei": 138051195909437998,
+   "best_start_token": "WPHRS",
+   "threshold_wei": 50000000000000000,
+   "candidates_evaluated": 12,
+   "elapsed_s": 14.44,
+   "execution_tx_hashes": []
   }
  ],
  "arb_execution": {

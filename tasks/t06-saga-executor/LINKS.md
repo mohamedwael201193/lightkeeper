@@ -38,7 +38,21 @@ identifier present in-page). Atlantic testnet explorer:
 
 State log + plan: `runs/t06-run-c-20261016-063734/{state.log,plan.json,run.json}`.
 
+## Auditor re-verification runs (2026-10-22, independent re-runs)
+
+- auditor run-a approve: https://atlantic.pharosscan.xyz/tx/0x4c6b6ee189edad8b4679827de0b52f882669fa714fb6cbeaf2a21fac273b2776 (block 31749790, 0x1)
+- auditor run-a lock: https://atlantic.pharosscan.xyz/tx/0xcc03284a3aad72e920bf2d85edcef569b8899b4ad23b22a6ad77cdc5139260d7 (block 31749835, 0x1)
+- auditor run-a execute: https://atlantic.pharosscan.xyz/tx/0xc67f292a001c53b429f3f7935009d4d9b72c889df7c464e89dc95568abb49817 (block 31749854, 0x1)
+- auditor run-a settle: https://atlantic.pharosscan.xyz/tx/0x1afeaaa39ba47e26e8d4ea07776ab9da781d4aad64de5304e873ce01554b2882 (block 31749863, 0x1)
+- → SUCCEEDED after a mid-step crash + resume (`runs/t06-run-a-20261022-170455/state.log`)
+- auditor run-b approve: https://atlantic.pharosscan.xyz/tx/0xcf47059ef16f324c54cabd62b9992c652ed7edac196c931fa6a3e049ffa4f962 (block 31749881, 0x1)
+- auditor run-b lock: https://atlantic.pharosscan.xyz/tx/0x507798e0f5b06726a664411667e4a4bbd0c0869f32d63a377b8ebddf4eba3e9d (block 31749894, 0x1)
+- auditor run-b **execute (REAL 0x0)**: https://atlantic.pharosscan.xyz/tx/0xb6ea8b369730062051cc1434c694e30ae966725b4b19b8c89f19c2f2c2caf1a8 (block 31749906, 0x0)
+- auditor run-b compensate refund: https://atlantic.pharosscan.xyz/tx/0xd5d9edf045334a3e766c347b0e053e7ed35ee69693b2754c8346f1c97e1c6232 (block 31749917, 0x1)
+- auditor run-b compensate revoke: https://atlantic.pharosscan.xyz/tx/0xb9d28c4a9115152c97b56d39ad212b6771af1c88589c05bfcd35be45249fbcfe (block 31749931, 0x1)
+- → COMPENSATED (`runs/t06-run-b-20261022-170705/state.log`)
+
 ## Repo
 
-- Module dir (commit-pinned at submission time — see SUBMISSION.md):
-  `https://github.com/mohamedwael201193/lightkeeper/tree/32951cf4f0b9105046aef5bd5dcd4d5f3f85b531/tasks/t06-saga-executor`
+- Module dir (PIN-TO-FIX-COMMIT — re-pin at the fix commit; was 32951cf4f0b9105046aef5bd5dcd4d5f3f85b531 at submission time, see SUBMISSION.md):
+  `PIN-TO-FIX-COMMIT/tasks/t06-saga-executor`
